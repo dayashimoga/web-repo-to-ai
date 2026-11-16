@@ -140,8 +140,8 @@
 - **Performance Considerations:** Lightweight static verification script completes in <2 seconds.
 - **Documentation Requirements:** Completes all Phase `0.1` tracking and roadmap files.
 - **Validation Evidence:**
-  - `scripts/verify-bootstrap.ps1` passed 100% of checks across directories, governance files, docs, skills, rules, workflows, agents, and git status.
-- **Git Commit Reference:** Recorded in the `0.1.5` commit on `main` (see `git log -n 1` / `PROJECT_STATUS.md`).
+  - `scripts/verify-bootstrap.ps1` passed 100% of checks (173/173 checks passed, 0 failures) across directories, governance files, docs, skills, rules, workflows, agents, and git status.
+- **Git Commit Reference:** `4055f93`
 - **Status:** `ACCEPTED`
 
 ---
