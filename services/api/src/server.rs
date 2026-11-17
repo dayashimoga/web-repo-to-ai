@@ -19,8 +19,8 @@ pub fn build_app(state: AppState) -> Router {
     let timeout = build_timeout_layer(&state.config);
     let body_limit = RequestBodyLimitLayer::new(10 * 1024 * 1024);
 
-    create_router(state)
-        .layer(axum_mw::from_fn(trace_id_middleware))
+    create_router(state.clone())
+        .layer(axum_mw::from_fn_with_state(state, trace_id_middleware))
         .layer(cors)
         .layer(timeout)
         .layer(body_limit)

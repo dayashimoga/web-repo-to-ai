@@ -50,7 +50,10 @@ pub fn create_router(state: AppState) -> Router {
         .route("/ready", get(health::readiness_handler))
         .route("/metrics", get(metrics::metrics_handler))
         .route("/sources/detect", post(sources::detect_sources_handler))
-        .route("/jobs", post(jobs::create_job_handler).get(jobs::list_jobs_handler))
+        .route(
+            "/jobs",
+            post(jobs::create_job_handler).get(jobs::list_jobs_handler),
+        )
         .route("/jobs/:job_id", get(jobs::get_job_handler))
         .route(
             "/jobs/:job_id/artifacts/:format",

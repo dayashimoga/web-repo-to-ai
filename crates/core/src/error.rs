@@ -339,13 +339,18 @@ mod tests {
 
     #[test]
     fn test_invalid_request_schema_envelope() {
-        let err = CoreError::InvalidRequestSchema("Failed to parse JSON body at line 1 column 5".to_string());
+        let err = CoreError::InvalidRequestSchema(
+            "Failed to parse JSON body at line 1 column 5".to_string(),
+        );
         assert_eq!(err.error_code(), ErrorCode::InvalidRequestSchema);
         assert_eq!(err.http_status(), 400);
         let envelope = err.to_api_error(Some("req-test".to_string()));
         assert_eq!(envelope.error.code, "INVALID_REQUEST_SCHEMA");
         let details = envelope.error.details.expect("Details should exist");
-        assert!(details["reason"].as_str().unwrap().contains("line 1 column 5"));
+        assert!(details["reason"]
+            .as_str()
+            .unwrap()
+            .contains("line 1 column 5"));
     }
 
     #[test]

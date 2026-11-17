@@ -12,8 +12,8 @@
 | Stage | Title | Primary Deliverable | Phases | Subphases | Current Status |
 | :--- | :--- | :--- | :---: | :---: | :--- |
 | **STAGE 0** | Project Bootstrap & Engineering Foundation | Working repository, governance, agents/skills/rules/workflows, CI, and Podman dev foundation | `0.1` – `0.3` | 15 (`0.1.1` – `0.3.5`) | `COMPLETED` / `ACCEPTED` |
-| **STAGE 1** | Frontend & Product Experience | Responsive SvelteKit + Svelte 5 website foundation and conversion workspace | `1.1` – `1.4` | 14 (`1.1.1` – `1.4.3`) | `IN_PROGRESS` (Phase `1.1` `COMPLETED` / `ACCEPTED`) |
-| **STAGE 2** | Backend & Processing Foundation | Operational Rust Axum API, PostgreSQL job leasing, and artifact storage | `2.1` – `2.4` | 15 (`2.1.1` – `2.4.4`) | `NOT_STARTED` |
+| **STAGE 1** | Frontend & Product Experience | Responsive SvelteKit + Svelte 5 website foundation and conversion workspace | `1.1` – `1.4` | 14 (`1.1.1` – `1.4.3`) | `COMPLETED` / `ACCEPTED` |
+| **STAGE 2** | Backend & Processing Foundation | Operational Rust Axum API, PostgreSQL job leasing, and artifact storage | `2.1` – `2.4` | 15 (`2.1.1` – `2.4.4`) | `IN_PROGRESS` (Phases `2.1`, `2.2` `COMPLETED` / `ACCEPTED`) |
 | **STAGE 3** | Universal Webpage Extraction | SSRF-guarded HTTP static & Playwright dynamic URL-to-clean-content extraction | `3.1` – `3.4` | 16 (`3.1.1` – `3.4.4`) | `NOT_STARTED` |
 | **STAGE 4** | Canonical Model & Export Engine | Versioned CDM (`v1.0`), Markdown/TXT/JSON/HTML/JSONL/ZIP exporters, and end-to-end web integration | `4.1` – `4.4` | 16 (`4.1.1` – `4.4.4`) | `NOT_STARTED` |
 | **STAGE 5** | Public GitHub Repository Extraction | Complete public GitHub repo conversion with 100% file completeness accounting | `5.1` – `5.5` | 20 (`5.1.1` – `5.5.4`) | `NOT_STARTED` |
@@ -56,8 +56,8 @@
 
 ### STAGE 2 — BACKEND AND PROCESSING FOUNDATION (`IN_PROGRESS`)
 - **Phase 2.1 — Rust architecture:** `2.1.1` Create Rust workspace (`ACCEPTED`) | `2.1.2` Error & configuration systems (`ACCEPTED`) | `2.1.3` Structured logging & tracing (`ACCEPTED` — **PHASE 2.1 CERTIFIED**)
-- **Phase 2.2 — API:** `2.2.1` Implement Axum service (`ACCEPTED`) | `2.2.2` Request validation (`ACCEPTED`) | `2.2.3` API error contracts (`ACCEPTED`) | `2.2.4` Health & readiness endpoints (`NOT_STARTED` — **NEXT ELIGIBLE SUBPHASE**)
-- **Phase 2.3 — Persistence:** `2.3.1` PostgreSQL schema | `2.3.2` Migrations | `2.3.3` Job state machine | `2.3.4` Durable job leasing & recovery
+- **Phase 2.2 — API:** `2.2.1` Implement Axum service (`ACCEPTED`) | `2.2.2` Request validation (`ACCEPTED`) | `2.2.3` API error contracts (`ACCEPTED`) | `2.2.4` Health & readiness endpoints (`ACCEPTED` — **PHASE 2.2 CERTIFIED**)
+- **Phase 2.3 — Persistence:** `2.3.1` PostgreSQL schema (`NOT_STARTED` — **NEXT ELIGIBLE SUBPHASE**) | `2.3.2` Migrations | `2.3.3` Job state machine | `2.3.4` Durable job leasing & recovery
 - **Phase 2.4 — Storage:** `2.4.1` Local artifact storage | `2.4.2` Storage abstraction | `2.4.3` Retention & cleanup | `2.4.4` Checksum validation
 
 ### STAGE 3 — UNIVERSAL WEBPAGE EXTRACTION

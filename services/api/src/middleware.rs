@@ -2,15 +2,17 @@
 //!
 //! Enforces security headers, W3C TraceContext propagation, and request timeout bounds.
 
-use axum::extract::Request;
+use axum::extract::{Request, State};
 use axum::http::{HeaderName, HeaderValue, Method};
 use axum::middleware::Next;
 use axum::response::Response;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tower_http::cors::CorsLayer;
 use tower_http::timeout::TimeoutLayer;
 use web_repo_to_ai_core::{AppConfig, RequestId};
 use web_repo_to_ai_observability::TraceContext;
+
+use crate::state::AppState;
 
 /// Header name constant for request correlation identifier.
 pub static HEADER_REQUEST_ID: HeaderName = HeaderName::from_static("x-request-id");
@@ -56,8 +58,15 @@ pub fn build_timeout_layer(config: &AppConfig) -> TimeoutLayer {
 }
 
 /// Middleware that extracts or generates correlation identifiers (`x-request-id`, `traceparent`),
-/// records them in request extensions for handlers, and attaches them to outgoing responses.
-pub async fn trace_id_middleware(mut req: Request, next: Next) -> Response {
+/// records latency and HTTP request counts in Prometheus metrics, and attaches headers to outgoing responses.
+pub async fn trace_id_middleware(
+    State(state): State<AppState>,
+    mut req: Request,
+    next: Next,
+) -> Response {
+    let start = Instant::now();
+    let method = req.method().to_string();
+
     // 1. Resolve or generate RequestId
     let request_id = req
         .headers()
@@ -80,6 +89,13 @@ pub async fn trace_id_middleware(mut req: Request, next: Next) -> Response {
 
     // Execute downstream pipeline
     let mut response = next.run(req).await;
+
+    // Record Prometheus request metrics
+    let elapsed_ms = (start.elapsed().as_micros() as f64) / 1000.0;
+    state.metrics.http_request_duration_ms.observe(elapsed_ms);
+    let status_str = response.status().as_u16().to_string();
+    let label = format!("method=\"{method}\",status=\"{status_str}\"");
+    state.metrics.http_requests_total.inc(&label);
 
     // Attach correlation headers to outgoing HTTP response
     if let Ok(val) = HeaderValue::from_str(&request_id.to_string()) {

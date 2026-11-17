@@ -16,9 +16,9 @@ pub mod state;
 
 pub use dto::{
     classify_source_url, ArtifactPathParams, CreateJobRequest, DetectSourcesRequest,
-    DetectSourcesResponse, DetectedSource, JobPathParams, JobResponse, JobStatus,
-    ListJobsQuery, PaginatedResponse, SourceClassification, VALID_EXPORT_FORMATS,
-    VALID_SORT_ORDERS, VALID_STATUS_FILTERS,
+    DetectSourcesResponse, DetectedSource, JobPathParams, JobResponse, JobStatus, ListJobsQuery,
+    PaginatedResponse, SourceClassification, VALID_EXPORT_FORMATS, VALID_SORT_ORDERS,
+    VALID_STATUS_FILTERS,
 };
 pub use error::*;
 pub use extractors::{ValidatedJson, ValidatedPath, ValidatedQuery};
@@ -637,5 +637,94 @@ mod tests {
             .to_str()
             .unwrap();
         assert!(resp_trace.starts_with("00-4bf92f3577b34da6a3ce929d0e0e4736-"));
+    }
+
+    #[tokio::test]
+    async fn test_health_liveness_structured_fields() {
+        let app = setup_test_app();
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/health")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = body_to_string(response.into_body()).await;
+        let v: serde_json::Value = serde_json::from_str(&body).unwrap();
+        assert_eq!(v["status"], "pass");
+        assert_eq!(v["service"], "web-repo-to-ai-api");
+        assert!(v.get("uptime_seconds").is_some());
+        assert!(v.get("timestamp").is_some());
+    }
+
+    #[tokio::test]
+    async fn test_readiness_subsystem_checks_structure() {
+        let app = setup_test_app();
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/ready")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = body_to_string(response.into_body()).await;
+        let v: serde_json::Value = serde_json::from_str(&body).unwrap();
+        assert_eq!(v["status"], "ready");
+        assert_eq!(v["checks"]["storage"]["status"], "pass");
+        assert_eq!(v["checks"]["database"]["status"], "pass");
+        assert_eq!(v["checks"]["workers"]["status"], "pass");
+    }
+
+    #[tokio::test]
+    async fn test_readiness_unconfigured_database_failure() {
+        let mut config = AppConfig::default();
+        config.database.url = String::new(); // Empty DB URL
+        let state = AppState::new(config);
+        let app = build_app(state);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/ready")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+        let body = body_to_string(response.into_body()).await;
+        let v: serde_json::Value = serde_json::from_str(&body).unwrap();
+        assert_eq!(v["status"], "not_ready");
+        assert_eq!(v["checks"]["database"]["status"], "fail");
+    }
+
+    #[tokio::test]
+    async fn test_metrics_prometheus_exposition_content() {
+        let app = setup_test_app();
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/metrics")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = body_to_string(response.into_body()).await;
+        assert!(body.contains("web_repo_to_ai_uptime_seconds"));
+        assert!(body.contains("web_repo_to_ai_build_info"));
+        assert!(body.contains("web_repo_to_ai_http_requests_total"));
+        assert!(body.contains("web_repo_to_ai_http_request_duration_ms"));
     }
 }

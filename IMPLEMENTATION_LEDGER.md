@@ -1764,11 +1764,70 @@
 
 ---
 
+#### Subphase `2.2.4` — Implement health, readiness, and metrics endpoints in services/api
+- **Unique ID:** `2.2.4`
+- **Objective:** Implement production-grade health probes (process liveness `/api/v1/health` and subsystem readiness `/api/v1/ready` checking storage writeability and database reachability) and Prometheus metrics exposition (`/api/v1/metrics`) with dynamic process uptime, build info, and HTTP request telemetry.
+- **Scope:** `services/api/src/{routes/health.rs, routes/metrics.rs, middleware.rs, server.rs, state.rs, lib.rs}`, `crates/observability/src/metrics.rs`.
+- **Prerequisites:** `2.2.3` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/observability/src/metrics.rs`
+  - `services/api/src/state.rs`
+  - `services/api/src/middleware.rs`
+  - `services/api/src/server.rs`
+  - `services/api/src/routes/health.rs`
+  - `services/api/src/routes/metrics.rs`
+  - `services/api/src/lib.rs`
+- **Implementation Tasks:**
+  1. Expand `AppMetrics` in `crates/observability/src/metrics.rs` with `http_requests_total` (`CounterVec`) and `http_request_duration_ms` (`Histogram`), updating `render_prometheus_text`.
+  2. Add `start_time: DateTime<Utc>` and `uptime_seconds(&self) -> u64` to `AppState` in `services/api/src/state.rs`.
+  3. Integrate request telemetry and duration timing into `trace_id_middleware` in `services/api/src/middleware.rs` using Axum's `from_fn_with_state`.
+  4. Implement liveness probe handler in `services/api/src/routes/health.rs` returning structured JSON (`status: "pass"`, `service`, `version`, `uptime_seconds`, ISO 8601 `timestamp`).
+  5. Implement deep readiness probe handler in `services/api/src/routes/health.rs` auditing subsystem health: local storage volume writeability (creates directory and probe file), database configuration (`state.config.database.url`), and worker queue state, returning 200 OK (`ready`) or 503 Service Unavailable (`not_ready`).
+  6. Update metrics endpoint in `services/api/src/routes/metrics.rs` serving standard Prometheus text exposition with dynamic uptime, build info, and HTTP metrics.
+  7. Add 4 integration tests in `services/api/src/lib.rs` testing liveness fields, readiness subsystem checks, unconfigured database failure simulation, and Prometheus exposition content.
+  8. Run `cargo check --workspace`, `cargo test --workspace`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, and verify all 5 gates pass in `scripts/check-all.ps1`.
+- **Acceptance Criteria:**
+  - `GET /api/v1/health` returns HTTP 200 with structured JSON liveness information including version, uptime, and timestamp.
+  - `GET /api/v1/ready` validates storage writeability and database configuration, returning HTTP 200 when ready or HTTP 503 with subsystem failure details when degraded.
+  - `GET /api/v1/metrics` outputs standard Prometheus exposition with `web_repo_to_ai_uptime_seconds`, `web_repo_to_ai_build_info`, and application counters/gauges/histograms.
+  - HTTP middleware records latency and request metrics for every served request.
+  - 100% of Rust tests pass (37 in `services/api`, 88 across workspace); zero clippy warnings; all 5 quality gates pass.
+- **Tests:** `cargo test -p web-repo-to-ai-api` (37/37 passed), `cargo test --workspace` (88/88 passed), `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Complies with Rule 00, 02, and 05: `#![forbid(unsafe_code)]` enforced; readiness probes do not leak raw database credentials or internal file paths; temporary probe files are safely cleaned up; Prometheus metric endpoints expose zero secret tokens or user identifiers.
+- **Performance Considerations:** Atomic lock-free metric updates in request middleware; readiness probe storage check performs single low-overhead probe write; uptime computed without syscall overhead using monotonic/cached start time.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-api`: 36 library tests + 1 binary metadata test passed.
+  - `cargo test --workspace`: 88/88 tests passed in 6.01s.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors in 2.26s.
+  - `cargo fmt --all -- --check`: 100% code style compliance.
+  - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
+- **Git Commit Reference:** `25a8fd6`
+- **Status:** `ACCEPTED`
+
+---
+
+#### Phase 2.2 Milestone Certification
+- **Phase Name:** `Phase 2.2 — API`
+- **Subphases Covered:** `2.2.1` (Axum service and router scaffolding), `2.2.2` (Request validation and parameter parsing), `2.2.3` (API error contracts and RFC 7807 problem details), `2.2.4` (Health, readiness, and metrics endpoints).
+- **Certification Date:** 2026-11-17
+- **Certification Findings:**
+  1. Axum HTTP service operational with full middleware pipeline (CORS, request timeouts, `trace_id_middleware` with W3C `traceparent` and `x-request-id` propagation, and request body size bounding to 10 MB).
+  2. Strongly-typed request extractors (`ValidatedJson`, `ValidatedQuery`, `ValidatedPath`) and DTOs enforce strict input validation, security bounds (URL length, schemes, git_ref traversal guards, token budgets, format enumerations), and emit RFC 7807 problem details on rejection.
+  3. API error architecture guarantees `application/problem+json` media type and strict correlation integrity between `x-request-id` header and `body.error.request_id` across all failure paths.
+  4. Health and observability endpoints deliver container orchestrator liveness (`GET /api/v1/health`), deep subsystem readiness probes (`GET /api/v1/ready`), and Prometheus telemetry (`GET /api/v1/metrics`).
+  5. 88/88 automated Rust unit tests pass across the workspace (37 in `services/api`); 184/184 frontend tests pass in `apps/web`.
+  6. All 5 monorepo verification gates in `scripts/check-all.ps1` and `scripts/check-all.sh` pass cleanly with 0 failures.
+- **Status:** `COMPLETED` / `ACCEPTED` (Certified 2026-11-17)
+
+---
+
 ### Upcoming Subphase
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `2.2.4` | Implement health, readiness, and metrics endpoints in services/api | `2.2.3` (`ACCEPTED`) | `services/api/src/*` | `NOT_STARTED` |
+| `2.3.1` | Design and implement PostgreSQL relational schema in crates/storage | Phase 2.2 (`ACCEPTED`) | `crates/storage/*` | `NOT_STARTED` |
 
 ---
 

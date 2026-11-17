@@ -62,11 +62,11 @@
 - [x] **[2.1.2]** Implement typed domain errors, results, and configuration loader in `crates/core` *(Completed 2026-11-17, CoreError, ErrorCode, ApiErrorEnvelope, strongly-typed UUID v7 domain IDs, AppConfig with env/validation, Clock/Identifiable traits, 18 passing tests, 34 workspace tests)*
 - [x] **[2.1.3]** Set up structured logging, OpenTelemetry tracing, and Prometheus metrics in `crates/observability` *(Completed 2026-11-17, secret redaction engine, W3C TraceContext propagation, atomic Prometheus AppMetrics, LoggingConfig with JSON/compact tracing subscriber, 16 passing tests, 50 workspace tests, Phase 2.1 Certified)*
 
-### Phase 2.2 — API (`IN_PROGRESS`)
+### Phase 2.2 — API (`COMPLETED` / `ACCEPTED`)
 - [x] **[2.2.1]** Implement Axum service and router scaffolding *(Completed 2026-11-17, AppState, CORS/timeout/trace middleware, health/metrics routes, RFC 7807 404 fallback, graceful shutdown, 9 passing tests, all 5 gates pass)*
 - [x] **[2.2.2]** Implement request validation and parameter parsing *(Completed 2026-11-17, DTOs for sources/jobs/query/params, ValidatedJson/ValidatedQuery/ValidatedPath extractors, RFC 7807 validation error mapping, 28 passing tests, all 5 gates pass)*
 - [x] **[2.2.3]** Implement API error contracts and RFC 7807 problem details *(Completed 2026-11-17, ApiProblem responder, application/problem+json media type, MethodNotAllowed, RequestBodyLimitLayer 413, correlation integrity, 33 passing tests, all 5 gates pass)*
-- [ ] **[2.2.4]** Implement health, readiness, and metrics endpoints
+- [x] **[2.2.4]** Implement health, readiness, and metrics endpoints *(Completed 2026-11-17, liveness probe /health, deep readiness probe /ready auditing storage writeability and database URL, Prometheus /metrics exposition with dynamic uptime/build info/HTTP metrics, 37 passing tests, Phase 2.2 Certified)*
 
 ---
 

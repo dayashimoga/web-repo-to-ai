@@ -6,6 +6,19 @@
 
 ## [Unreleased] — Stage 2: Backend and Processing Foundation
 
+### 2026-11-17 — Phase 2.2: API (`2.2.4`) & Phase 2.2 Milestone Certification
+
+#### Added
+- **`[2.2.4]` Implement Health, Readiness, and Metrics Endpoints in `services/api`:**
+  - Implemented container orchestrator liveness probe `GET /api/v1/health` returning structured JSON (`status: "pass"`, `service`, `version`, `uptime_seconds`, ISO 8601 `timestamp`).
+  - Implemented deep subsystem readiness probe `GET /api/v1/ready` auditing storage volume writeability (creates and removes `.healthcheck_probe` file in configured `storage.base_dir`), database configuration (`database.url`), and worker queue readiness, returning 200 OK (`ready`) or 503 Service Unavailable (`not_ready`).
+  - Expanded `AppMetrics` in `crates/observability/src/metrics.rs` with `http_requests_total` (`CounterVec`) and `http_request_duration_ms` (`Histogram`).
+  - Added request duration timing and `http_requests_total` recording into `trace_id_middleware` in `services/api/src/middleware.rs`.
+  - Added `start_time` and `uptime_seconds()` to `AppState` in `services/api/src/state.rs`.
+  - Implemented Prometheus exposition endpoint `GET /api/v1/metrics` serving dynamic `web_repo_to_ai_uptime_seconds`, `web_repo_to_ai_build_info`, and application counters/gauges/histograms.
+  - Added 4 integration tests in `services/api/src/lib.rs` verifying liveness fields, subsystem readiness degradation, unconfigured database failures, and Prometheus telemetry format, expanding workspace tests to 88/88 passing (37 in `services/api`). Verified all 5 quality gates pass cleanly.
+  - Formally certified completion of **Phase 2.2: API** (`2.2.1` – `2.2.4` all `ACCEPTED`).
+
 ### 2026-11-17 — Phase 2.2: API (`2.2.3`)
 
 #### Added

@@ -172,6 +172,10 @@ pub const LATENCY_BUCKETS_MS: &[f64] = &[
 /// Centralized application core telemetry metrics.
 #[derive(Debug)]
 pub struct AppMetrics {
+    /// Total incoming HTTP requests by status or route label.
+    pub http_requests_total: CounterVec,
+    /// Total incoming HTTP request execution duration in milliseconds.
+    pub http_request_duration_ms: Histogram,
     /// Total conversion jobs processed by status (`submitted`, `processing`, `completed`, `failed`, `cancelled`).
     pub jobs_total: CounterVec,
     /// Total conversion job duration in milliseconds.
@@ -199,6 +203,8 @@ impl AppMetrics {
     #[must_use]
     pub fn new() -> Self {
         Self {
+            http_requests_total: CounterVec::default(),
+            http_request_duration_ms: Histogram::new(LATENCY_BUCKETS_MS.to_vec()),
             jobs_total: CounterVec::default(),
             job_duration_ms: Histogram::new(LATENCY_BUCKETS_MS.to_vec()),
             extracted_files_total: CounterVec::default(),
@@ -213,6 +219,46 @@ impl AppMetrics {
     #[must_use]
     pub fn render_prometheus_text(&self) -> String {
         let mut out = String::new();
+
+        // http_requests_total
+        out.push_str(
+            "# HELP web_repo_to_ai_http_requests_total Total HTTP requests processed by status.\n",
+        );
+        out.push_str("# TYPE web_repo_to_ai_http_requests_total counter\n");
+        let http_reqs = self.http_requests_total.snapshot();
+        if http_reqs.is_empty() {
+            out.push_str("web_repo_to_ai_http_requests_total{status=\"none\"} 0\n");
+        } else {
+            for (label, count) in http_reqs {
+                out.push_str(&format!(
+                    "web_repo_to_ai_http_requests_total{{{label}}} {count}\n"
+                ));
+            }
+        }
+
+        // http_request_duration_ms
+        out.push_str(
+            "# HELP web_repo_to_ai_http_request_duration_ms HTTP request latency in milliseconds.\n",
+        );
+        out.push_str("# TYPE web_repo_to_ai_http_request_duration_ms histogram\n");
+        for (i, bucket) in self.http_request_duration_ms.buckets.iter().enumerate() {
+            let count = self.http_request_duration_ms.bucket_counts[i].load(Ordering::Relaxed);
+            out.push_str(&format!(
+                "web_repo_to_ai_http_request_duration_ms_bucket{{le=\"{bucket}\"}} {count}\n"
+            ));
+        }
+        out.push_str(&format!(
+            "web_repo_to_ai_http_request_duration_ms_bucket{{le=\"+Inf\"}} {}\n",
+            self.http_request_duration_ms.count()
+        ));
+        out.push_str(&format!(
+            "web_repo_to_ai_http_request_duration_ms_sum {:.3}\n",
+            self.http_request_duration_ms.sum()
+        ));
+        out.push_str(&format!(
+            "web_repo_to_ai_http_request_duration_ms_count {}\n",
+            self.http_request_duration_ms.count()
+        ));
 
         // jobs_total
         out.push_str(
