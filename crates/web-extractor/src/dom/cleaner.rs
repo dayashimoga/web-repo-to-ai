@@ -19,6 +19,10 @@ pub const CONTENT_INDICATORS: &[&str] = &[
     "documentation",
     "body-text",
     "prose",
+    "admonition",
+    "callout",
+    "markdown-alert",
+    "theme-admonition",
 ];
 
 /// Boilerplate class/ID keywords representing advertising, monetization, and sponsored widgets.
@@ -212,8 +216,7 @@ impl BoilerplateCleaner {
         }
 
         // 8. Heuristic pattern checks
-        if policy.strip_ads
-            && Self::matches_any(class_lower.as_deref(), id_lower.as_deref(), AD_PATTERNS)
+        if policy.strip_ads && Self::matches_ad_pattern(class_lower.as_deref(), id_lower.as_deref())
         {
             return true;
         }
@@ -270,6 +273,27 @@ impl BoilerplateCleaner {
         }
 
         false
+    }
+
+    /// Evaluates class and ID attributes against advertising patterns with token boundary checks.
+    fn matches_ad_pattern(class_opt: Option<&str>, id_opt: Option<&str>) -> bool {
+        let check = |s: &str| -> bool {
+            for pattern in AD_PATTERNS {
+                if *pattern == "ad" || *pattern == "ads" {
+                    // Match short "ad" / "ads" tokens on whitespace, hyphen, or underscore boundaries
+                    for token in s.split(|c: char| c.is_whitespace() || c == '-' || c == '_') {
+                        if token == "ad" || token == "ads" {
+                            return true;
+                        }
+                    }
+                } else if s.contains(pattern) {
+                    return true;
+                }
+            }
+            false
+        };
+
+        class_opt.is_some_and(check) || id_opt.is_some_and(check)
     }
 }
 

@@ -6,6 +6,20 @@
 
 ## [Unreleased] — Stage 3: Universal Webpage Extraction
 
+### 2026-11-17 — Phase 3.2: Static Extraction (`3.2.3`)
+
+#### Added
+- **`[3.2.3]` Implement Technical Documentation and Navigation Hierarchy Extraction in `crates/web-extractor`:**
+  - Defined `ExtractedDocumentation`, `DocFramework`, `Admonition`, `AdmonitionType`, `BreadcrumbItem`, `TocItem`, `DocLink`, `DocPagination`, `DocVersionInfo`, and `DocSection` in `crates/web-extractor/src/docs/model.rs`.
+  - Implemented `detect_framework` in `crates/web-extractor/src/docs/framework.rs` identifying generator frameworks (Docusaurus, mdBook, Sphinx, MkDocs, Rustdoc, VitePress, Nextra, GitBook, Generic).
+  - Implemented `extract_table_of_contents` in `crates/web-extractor/src/docs/toc.rs` extracting heading levels (`h1`–`h6`), stripping anchor symbols (`#`, `¶`, `§`), mapping anchor IDs, and building nested ToC trees.
+  - Implemented `DocNavigationExtractor` in `crates/web-extractor/src/docs/navigation.rs` resolving breadcrumb lists, previous/next pagination links, and version dropdown selectors.
+  - Implemented `AdmonitionExtractor` in `crates/web-extractor/src/docs/admonition.rs` classifying callouts across standard and framework-specific alert styles.
+  - Implemented `DocExtractor` in `crates/web-extractor/src/docs/extractor.rs` orchestrating raw HTML navigation discovery, framework-targeted container selection, cleaned content rendering, and section decomposition.
+  - Updated `BoilerplateCleaner` in `crates/web-extractor/src/dom/cleaner.rs` protecting admonitions in `CONTENT_INDICATORS` and refining ad token matching with boundary checks.
+  - Isolated health check probe file naming in `services/api/src/routes/health.rs` with `RequestId::new()` to eliminate Windows sharing violations during concurrent test execution.
+  - Added 14 unit and integration tests across doc frameworks (87 total in crate, 248 across workspace).
+
 ### 2026-11-17 — Phase 3.2: Static Extraction (`3.2.2`)
 
 #### Added

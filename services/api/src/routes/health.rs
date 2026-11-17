@@ -44,7 +44,10 @@ fn check_storage_subsystem(storage_dir: &Path) -> (bool, serde_json::Value) {
         );
     }
 
-    let probe_file = storage_dir.join(".healthcheck_probe");
+    let probe_file = storage_dir.join(format!(
+        ".healthcheck_probe_{}",
+        web_repo_to_ai_core::id::RequestId::new()
+    ));
     match OpenOptions::new()
         .write(true)
         .create(true)

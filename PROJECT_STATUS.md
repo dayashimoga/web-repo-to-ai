@@ -4,15 +4,15 @@
 **Last Updated:** 2026-11-17  
 **Current Stage:** `STAGE 3 — UNIVERSAL WEBPAGE EXTRACTION` (`IN_PROGRESS`)  
 **Current Phase:** `Phase 3.1 — Secure acquisition` (`ACCEPTED` & `CERTIFIED`) / `Phase 3.2 — Static extraction` (`IN_PROGRESS`)  
-**Active Subphase:** `3.2.3 — Technical documentation and navigation hierarchy extraction in crates/web-extractor` (`NOT_STARTED` / `Next Eligible Subphase`)  
-**Last Completed Subphase:** `3.2.2 — Article extraction and readability heuristics in crates/web-extractor` (`ACCEPTED`)  
-**Next Upcoming Subphase:** `3.2.3 — Technical documentation and navigation hierarchy extraction in crates/web-extractor`
+**Active Subphase:** `3.2.4 — Tables, code blocks, syntax detection, and link extraction in crates/web-extractor` (`NOT_STARTED` / `Next Eligible Subphase`)  
+**Last Completed Subphase:** `3.2.3 — Technical documentation and navigation hierarchy extraction in crates/web-extractor` (`ACCEPTED`)  
+**Next Upcoming Subphase:** `3.2.4 — Tables, code blocks, syntax detection, and link extraction in crates/web-extractor`
 
 ---
 
 ## 1. Executive Summary
 
-Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 subphases), Stage 2 (`2.1.1` – `2.4.4`, 15 subphases), and Phase 3.1 (`3.1.1` – `3.1.4`, 4 subphases) are 100% complete, verified, certified, and accepted. **Subphase `3.2.2` ("Article extraction and readability heuristics in crates/web-extractor") is now 100% complete, verified, and accepted.** `crates/web-extractor` implements `ReadabilityScorer` evaluating candidate containers across structural tag weights, positive/negative class patterns, text density, comma frequency, paragraph counts, and link density penalties. `ArticleExtractor` identifies primary editorial candidates (`article`, `main`, `section`, `div`), extracts titles (`<h1>`), tiered author bylines (`rel="author"`, `class="author"`), publication dates (`<time datetime="...">`), and lead excerpts, estimates reading time via `div_ceil(200)`, and provides graceful fallback to whole-document bodies for unformatted pages. 234/234 automated Rust tests pass across all workspace crates (73 in `crates/web-extractor`), 184/184 frontend tests pass in `apps/web`, and all 5 monorepo verification gates pass cleanly with zero failures. Subphase `3.2.3` is queued as the next active subphase.
+Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 subphases), Stage 2 (`2.1.1` – `2.4.4`, 15 subphases), and Phase 3.1 (`3.1.1` – `3.1.4`, 4 subphases) are 100% complete, verified, certified, and accepted. **Subphase `3.2.3` ("Technical documentation and navigation hierarchy extraction in crates/web-extractor") is now 100% complete, verified, and accepted.** `crates/web-extractor` implements `DocExtractor` detecting documentation generator frameworks (`Docusaurus`, `mdBook`, `Sphinx`, `MkDocs`, `Rustdoc`, `VitePress`, `Nextra`, `GitBook`, `Generic`), extracting breadcrumb trails, previous/next pagination controls, and version selectors, constructing nested on-page tables of contents (`h1`–`h6`) with anchor normalization and permalink stripping, parsing callouts/admonitions (`Note`, `Tip`, `Info`, `Important`, `Warning`, `Caution`, `Danger`), and decomposing documents into structured sections. 248/248 automated Rust tests pass across all workspace crates (87 in `crates/web-extractor`), 184/184 frontend tests pass in `apps/web`, and all 5 monorepo verification gates pass cleanly with zero failures. Subphase `3.2.4` is queued as the next active subphase.
 
 ---
 
@@ -20,12 +20,12 @@ Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 su
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 50 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.2.2` |
+| `ACCEPTED` | 51 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.2.3` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 147 | `3.2.3` – `11.4.5` |
+| `NOT_STARTED` | 146 | `3.2.4` – `11.4.5` |
 | **Total** | **197** | `Stage 0` – `Stage 11` |
 
 ---

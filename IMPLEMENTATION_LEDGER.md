@@ -2489,7 +2489,57 @@
   - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
   - `npm test` (`apps/web`): 184/184 tests passed.
   - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
-- **Git Commit Reference:** `6553880`
+- **Git Commit Reference:** `9a5f01a`
+- **Status:** `ACCEPTED`
+
+---
+
+#### Subphase `3.2.3` — Technical documentation and navigation hierarchy extraction in crates/web-extractor
+- **Unique ID:** `3.2.3`
+- **Objective:** Implement documentation framework detection (Docusaurus, mdBook, Sphinx, MkDocs, Rustdoc, VitePress, Nextra, GitBook), breadcrumb trail extraction, on-page table of contents (ToC) hierarchy construction with anchor stripping, previous/next pagination resolution, callout/admonition parsing (Note, Tip, Info, Important, Warning, Caution, Danger), and section-by-section extraction in `crates/web-extractor`.
+- **Scope:** `crates/web-extractor/src/docs/*`, `crates/web-extractor/src/dom/cleaner.rs`, `crates/web-extractor/src/lib.rs`, `services/api/src/routes/health.rs`.
+- **Prerequisites:** `3.2.2` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/web-extractor/src/docs/mod.rs`
+  - `crates/web-extractor/src/docs/model.rs`
+  - `crates/web-extractor/src/docs/framework.rs`
+  - `crates/web-extractor/src/docs/toc.rs`
+  - `crates/web-extractor/src/docs/navigation.rs`
+  - `crates/web-extractor/src/docs/admonition.rs`
+  - `crates/web-extractor/src/docs/extractor.rs`
+  - `crates/web-extractor/src/dom/cleaner.rs`
+  - `crates/web-extractor/src/lib.rs`
+  - `services/api/src/routes/health.rs`
+- **Implementation Tasks:**
+  1. Define `ExtractedDocumentation`, `DocFramework`, `Admonition`, `AdmonitionType`, `BreadcrumbItem`, `TocItem`, `DocLink`, `DocPagination`, `DocVersionInfo`, and `DocSection` in `crates/web-extractor/src/docs/model.rs`.
+  2. Implement `detect_framework` in `crates/web-extractor/src/docs/framework.rs` inspecting generator meta tags and framework-specific CSS selectors.
+  3. Implement `extract_table_of_contents` in `crates/web-extractor/src/docs/toc.rs` extracting heading levels (`h1`–`h6`), stripping permalink anchor glyphs (`#`, `¶`, `§`), mapping anchor IDs, and constructing nested ToC trees.
+  4. Implement `DocNavigationExtractor` in `crates/web-extractor/src/docs/navigation.rs` resolving breadcrumb lists, previous/next pagination links, and version dropdown selectors.
+  5. Implement `AdmonitionExtractor` in `crates/web-extractor/src/docs/admonition.rs` classifying callouts across standard and framework-specific alert styles.
+  6. Implement `DocExtractor` in `crates/web-extractor/src/docs/extractor.rs` orchestrating raw HTML navigation discovery, framework-targeted container selection, cleaned content rendering, and section decomposition.
+  7. Update `BoilerplateCleaner` in `crates/web-extractor/src/dom/cleaner.rs` protecting admonitions in `CONTENT_INDICATORS` and refining ad token matching with boundary checks.
+  8. Isolate health check probe file naming in `services/api/src/routes/health.rs` with `RequestId::new()` to eliminate Windows sharing violations during concurrent test execution.
+  9. Expose documentation extraction API in `crates/web-extractor/src/lib.rs` and add 14 unit and integration tests across doc frameworks.
+  10. Run all 5 monorepo verification gates in `scripts/check-all.ps1` with 0 failures.
+- **Acceptance Criteria:**
+  - Documentation generator frameworks are accurately identified without false positives.
+  - Breadcrumbs, pagination controls, and version selectors are parsed and relative links canonicalized.
+  - On-page table of contents reflects true heading nesting with clean anchor identifiers.
+  - Admonition callout boxes are extracted with correct severity types and titles.
+  - 100% of workspace Rust tests pass (87 in `crates/web-extractor`, 248 across workspace); zero clippy warnings; all 5 monorepo verification gates pass.
+- **Tests:** `cargo test -p web-repo-to-ai-web-extractor` (87 passed), `cargo test --workspace` (248 passed), `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, `pnpm --filter web test:unit` (184 passed), `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, 02, and 05: `#![forbid(unsafe_code)]`; relative URLs resolved against pinned base URLs with XSS scheme neutralization; no regex-based ReDoS; isolated filesystem healthcheck probes prevent cross-thread file locking denial of service.
+- **Performance Considerations:** Single-pass framework heuristics; non-allocating token boundary checks; tree-structured ToC construction in $O(N)$ where $N$ is heading count.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-web-extractor`: 87/87 tests passed.
+  - `cargo test --workspace`: 248/248 tests passed.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors.
+  - `cargo fmt --all -- --check`: 100% code style compliance.
+  - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
+  - `npm test` (`apps/web`): 184/184 tests passed.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
+- **Git Commit Reference:** `65a530a`
 - **Status:** `ACCEPTED`
 
 ---
@@ -2498,7 +2548,7 @@
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `3.2.3` | Technical documentation and navigation hierarchy extraction in crates/web-extractor | `3.2.2` (`ACCEPTED`) | `crates/web-extractor/*` | `NOT_STARTED` |
+| `3.2.4` | Tables, code blocks, syntax detection, and link extraction in crates/web-extractor | `3.2.3` (`ACCEPTED`) | `crates/web-extractor/*` | `NOT_STARTED` |
 
 ---
 

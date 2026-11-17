@@ -13,6 +13,7 @@
 
 pub mod article;
 pub mod compression;
+pub mod docs;
 pub mod dom;
 pub mod error;
 pub mod http;
@@ -22,6 +23,10 @@ pub use article::{
     ArticleExtractor, ExtractedArticle, ReadabilityMetrics, ReadabilityOptions, ReadabilityScorer,
 };
 pub use compression::{BodyLimits, BoundedDecompressor, ContentEncoding};
+pub use docs::{
+    Admonition, AdmonitionType, BreadcrumbItem, DocExtractor, DocFramework, DocLink, DocPagination,
+    DocSection, DocVersionInfo, ExtractedDocumentation, TocItem,
+};
 pub use dom::{
     BoilerplateCleaner, BoilerplatePolicy, CleanedDocument, DocumentMetadata, DomParser,
     LinkResolver,
@@ -1172,5 +1177,239 @@ mod tests {
         assert!(article.is_fallback);
         assert_eq!(article.title, "Unformatted");
         assert!(article.content_text.contains("Just a raw plain sentence"));
+    }
+
+    #[test]
+    fn test_doc_extractor_mdbook_documentation_page() {
+        let html = r##"
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Writing Tests - The Rust Book</title>
+                <meta name="generator" content="mdBook 0.4.36">
+            </head>
+            <body>
+                <nav id="sidebar" class="sidebar">
+                    <ol class="chapter">
+                        <li><a href="ch01.html">Chapter 1</a></li>
+                        <li><a href="ch11.html" class="active">Chapter 11: Writing Tests</a></li>
+                    </ol>
+                </nav>
+                <div id="content" class="content">
+                    <main id="content">
+                        <h1 id="writing-tests">How to Write Tests</h1>
+                        <p>Tests are Rust functions that verify that the non-test code is functioning in the expected manner.</p>
+                        <h2 id="anatomy-of-a-test">The Anatomy of a Test Function</h2>
+                        <p>At its simplest, a test in Rust is a function that's annotated with the test attribute.</p>
+                        <pre><code class="language-rust">#[test]
+fn it_works() {
+    let result = 2 + 2;
+    assert_eq!(result, 4);
+}</code></pre>
+                        <h2 id="checking-results">Checking Results with the assert_eq! Macro</h2>
+                        <p>The assert_eq! and assert_ne! macros compare two arguments for equality or inequality respectively.</p>
+                    </main>
+                </div>
+                <nav class="nav-wrapper">
+                    <a rel="prev" href="ch10.html" class="nav-chapters previous" title="Previous chapter: Generics">Previous</a>
+                    <a rel="next" href="ch12.html" class="nav-chapters next" title="Next chapter: An I/O Project">Next</a>
+                </nav>
+            </body>
+            </html>
+        "##;
+
+        let extractor = DocExtractor::new();
+        let doc = extractor.extract(html, None).unwrap();
+
+        assert_eq!(doc.framework, DocFramework::MdBook);
+        assert_eq!(doc.title, "How to Write Tests");
+        assert_eq!(doc.table_of_contents.len(), 1);
+        assert_eq!(doc.table_of_contents[0].title, "How to Write Tests");
+        assert_eq!(doc.table_of_contents[0].children.len(), 2);
+        assert_eq!(
+            doc.table_of_contents[0].children[0].title,
+            "The Anatomy of a Test Function"
+        );
+        assert_eq!(
+            doc.table_of_contents[0].children[1].title,
+            "Checking Results with the assert_eq! Macro"
+        );
+
+        assert!(doc.pagination.prev.is_some());
+        assert_eq!(
+            doc.pagination.prev.as_ref().unwrap().title,
+            "Previous chapter: Generics"
+        );
+        assert!(doc.pagination.next.is_some());
+
+        assert!(doc.content_text.contains("assert_eq!(result, 4)"));
+        assert!(doc.content_html.contains("<code class=\"language-rust\">"));
+    }
+
+    #[test]
+    fn test_doc_extractor_sphinx_with_admonitions_and_sections() {
+        let html = r##"
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Sphinx Configuration Guide</title>
+                <meta name="generator" content="Sphinx 7.2.6">
+            </head>
+            <body>
+                <div class="sphinxsidebar">
+                    <div class="sphinxsidebarwrapper">
+                        <h3>Table of Contents</h3>
+                    </div>
+                </div>
+                <div class="document">
+                    <div class="documentwrapper">
+                        <div class="body" role="main">
+                            <h1 id="configuration-options">Configuration Options</h1>
+                            <p>This chapter covers all build-time configuration directives available in Sphinx.</p>
+                            <div class="admonition warning">
+                                <p class="admonition-title">Warning</p>
+                                <p>Deprecations will raise errors when strict mode is active.</p>
+                            </div>
+                            <h2 id="html-theme">HTML Theme Settings</h2>
+                            <p>Choose an appropriate theme for mobile responsiveness.</p>
+                            <div class="admonition note">
+                                <p class="admonition-title">Note</p>
+                                <p>Alabaster is the default theme provided with Sphinx distributions.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </body>
+            </html>
+        "##;
+
+        let extractor = DocExtractor::new();
+        let doc = extractor.extract(html, None).unwrap();
+
+        assert_eq!(doc.framework, DocFramework::Sphinx);
+        assert_eq!(doc.title, "Configuration Options");
+        assert_eq!(doc.table_of_contents.len(), 1);
+        assert_eq!(doc.table_of_contents[0].children.len(), 1);
+
+        assert_eq!(doc.admonitions.len(), 2);
+        assert_eq!(doc.admonitions[0].kind, AdmonitionType::Warning);
+        assert!(doc.admonitions[0]
+            .content
+            .contains("Deprecations will raise errors"));
+        assert_eq!(doc.admonitions[1].kind, AdmonitionType::Note);
+        assert!(doc.admonitions[1]
+            .content
+            .contains("Alabaster is the default theme"));
+    }
+
+    #[test]
+    fn test_doc_extractor_rustdoc_reference_layout() {
+        let html = r##"
+            <!DOCTYPE html>
+            <html class="rustdoc">
+            <head>
+                <title>tokio::sync::mpsc - Rust</title>
+                <meta name="generator" content="rustdoc">
+            </head>
+            <body>
+                <nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../index.html">tokio</a></h2></div></nav>
+                <main>
+                    <div class="main-heading"><h1>Module tokio::sync::mpsc</h1></div>
+                    <section id="main-content" class="content">
+                        <h2 id="overview">Overview</h2>
+                        <p>A multi-producer, single-consumer channel for message passing across asynchronous tasks.</p>
+                        <h2 id="macros">Macros</h2>
+                        <p>No macros defined in this module.</p>
+                    </section>
+                </main>
+            </body>
+            </html>
+        "##;
+
+        let extractor = DocExtractor::new();
+        let doc = extractor.extract(html, None).unwrap();
+
+        assert_eq!(doc.framework, DocFramework::Rustdoc);
+        assert!(doc.title.contains("Overview") || doc.title.contains("Module tokio"));
+        assert!(doc.content_text.contains("multi-producer, single-consumer"));
+    }
+
+    #[test]
+    fn test_doc_extractor_mkdocs_material_pagination_and_breadcrumbs() {
+        let html = r##"
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Getting Started - MkDocs</title>
+                <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.3">
+            </head>
+            <body>
+                <nav class="md-header__breadcrumb" aria-label="breadcrumbs">
+                    <ol class="breadcrumb">
+                        <li><a href="/">Home</a></li>
+                        <li><a href="/user-guide/">User Guide</a></li>
+                        <li>Getting Started</li>
+                    </ol>
+                </nav>
+                <article class="md-content__inner md-typeset">
+                    <h1 id="getting-started">Getting Started with MkDocs</h1>
+                    <p>MkDocs is a fast, simple and downright gorgeous static site generator geared towards building project documentation.</p>
+                    <div class="admonition tip">
+                        <p class="admonition-title">Tip</p>
+                        <p>Run mkdocs serve to preview documentation locally.</p>
+                    </div>
+                </article>
+                <footer class="md-footer">
+                    <nav class="md-footer__inner">
+                        <a href="/index.html" class="md-footer__link md-footer__link--prev" rel="prev">
+                            <div class="md-footer__title">Previous: Introduction</div>
+                        </a>
+                        <a href="/deploy.html" class="md-footer__link md-footer__link--next" rel="next">
+                            <div class="md-footer__title">Next: Deployment</div>
+                        </a>
+                    </nav>
+                </footer>
+            </body>
+            </html>
+        "##;
+
+        let extractor = DocExtractor::new();
+        let doc = extractor.extract(html, None).unwrap();
+
+        assert_eq!(doc.framework, DocFramework::MkDocs);
+        assert_eq!(doc.title, "Getting Started with MkDocs");
+        assert_eq!(doc.breadcrumbs.len(), 3);
+        assert_eq!(doc.breadcrumbs[1].label, "User Guide");
+
+        assert!(doc.pagination.prev.is_some());
+        assert!(doc.pagination.next.is_some());
+        assert_eq!(doc.admonitions.len(), 1);
+        assert_eq!(doc.admonitions[0].kind, AdmonitionType::Tip);
+    }
+
+    #[test]
+    fn test_doc_extractor_generic_fallback_when_unrecognized() {
+        let html = r##"
+            <html>
+            <head><title>Uncategorized Manual</title></head>
+            <body>
+                <main>
+                    <h1>Custom Manual</h1>
+                    <p>This is a custom internal system manual with no specific framework generator tags.</p>
+                    <h2 id="sec-1">Section 1</h2>
+                    <p>Operational instructions for database backups.</p>
+                </main>
+            </body>
+            </html>
+        "##;
+
+        let extractor = DocExtractor::new();
+        let doc = extractor.extract(html, None).unwrap();
+
+        assert_eq!(doc.framework, DocFramework::Generic);
+        assert_eq!(doc.title, "Custom Manual");
+        assert_eq!(doc.table_of_contents.len(), 1);
+        assert_eq!(doc.table_of_contents[0].children.len(), 1);
+        assert!(doc.content_text.contains("Operational instructions"));
     }
 }

@@ -62,7 +62,7 @@
 
 ### STAGE 3 — UNIVERSAL WEBPAGE EXTRACTION (`IN_PROGRESS`)
 - **Phase 3.1 — Secure acquisition:** `3.1.1` URL parsing & validation (`ACCEPTED`) | `3.1.2` DNS & SSRF protection (`ACCEPTED`) | `3.1.3` HTTP fetching & redirects (`ACCEPTED`) | `3.1.4` Compression, timeouts & size limits (`ACCEPTED` — **PHASE 3.1 CERTIFIED**)
-- **Phase 3.2 — Static extraction:** `3.2.1` DOM parsing (`ACCEPTED`) | `3.2.2` Article extraction (`ACCEPTED`) | `3.2.3` Documentation extraction (`NEXT`) | `3.2.4` Tables, links & code extraction
+- **Phase 3.2 — Static extraction:** `3.2.1` DOM parsing (`ACCEPTED`) | `3.2.2` Article extraction (`ACCEPTED`) | `3.2.3` Documentation extraction (`ACCEPTED`) | `3.2.4` Tables, links & code extraction (`NEXT`)
 - **Phase 3.3 — Dynamic extraction:** `3.3.1` Browser worker architecture | `3.3.2` Playwright integration | `3.3.3` Resource & navigation limits | `3.3.4` Dynamic DOM extraction
 - **Phase 3.4 — Extraction quality:** `3.4.1` Source provenance | `3.4.2` Duplicate detection | `3.4.3` Extraction completeness | `3.4.4` Golden dataset regression testing
 
