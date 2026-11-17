@@ -23,6 +23,7 @@ pub const EXPECTED_TABLES: &[&str] = &[
     "job_artifacts",
     "github_installations",
     "content_cache_index",
+    "job_state_transitions",
 ];
 
 /// Expected indexes defined in the schema.
@@ -36,6 +37,7 @@ pub const EXPECTED_INDEXES: &[&str] = &[
     "uq_github_installations_owner_gh_id",
     "idx_github_installations_owner",
     "idx_content_cache_last_accessed",
+    "idx_job_state_transitions_job_id",
 ];
 
 /// Splits raw SQL DDL script into discrete executable SQL statements,

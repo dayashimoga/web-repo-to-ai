@@ -33,7 +33,7 @@
 - **Phases:**
   - `2.1` Rust architecture (`2.1.1` [ACCEPTED], `2.1.2` [ACCEPTED], `2.1.3` [ACCEPTED — CERTIFIED])
   - `2.2` API (`2.2.1` [ACCEPTED], `2.2.2` [ACCEPTED], `2.2.3` [ACCEPTED], `2.2.4` [ACCEPTED — CERTIFIED])
-  - `2.3` Persistence (`2.3.1` [ACCEPTED], `2.3.2` [ACCEPTED], `2.3.3` [NEXT], `2.3.4`)
+  - `2.3` Persistence (`2.3.1` [ACCEPTED], `2.3.2` [ACCEPTED], `2.3.3` [ACCEPTED], `2.3.4` [NEXT])
   - `2.4` Storage (`2.4.1` – `2.4.4`)
 
 ### STAGE 3 — UNIVERSAL WEBPAGE EXTRACTION

@@ -78,6 +78,21 @@ pub fn expected_table_columns() -> HashMap<&'static str, &'static [&'static str]
             "last_accessed_at",
         ][..],
     );
+    map.insert(
+        "job_state_transitions",
+        &[
+            "id",
+            "job_id",
+            "from_status",
+            "to_status",
+            "phase",
+            "progress_pct",
+            "message",
+            "error_code",
+            "worker_id",
+            "transitioned_at",
+        ][..],
+    );
     map
 }
 

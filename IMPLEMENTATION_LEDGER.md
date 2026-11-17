@@ -1920,11 +1920,63 @@
 
 ---
 
+#### Subphase `2.3.3` — Implement job state machine, transitions, and history in crates/storage
+- **Unique ID:** `2.3.3`
+- **Objective:** Implement the transactional job state machine, transition request validation, terminal state immutability, audit trail history logging (`job_state_transitions` table & migration), and repository methods in `crates/storage`.
+- **Scope:** `crates/storage/migrations/20261117000002_job_state_transitions.sql`, `crates/storage/src/schema/ddl.sql`, `crates/storage/src/schema/mod.rs`, `crates/storage/src/validation/mod.rs`, `crates/storage/src/state_machine.rs`, `crates/storage/src/repository.rs`, `crates/storage/src/lib.rs`, `docs/DATA_MODEL.md`.
+- **Prerequisites:** `2.3.2` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/storage/migrations/20261117000002_job_state_transitions.sql`
+  - `crates/storage/src/schema/ddl.sql`
+  - `crates/storage/src/schema/mod.rs`
+  - `crates/storage/src/validation/mod.rs`
+  - `crates/storage/src/state_machine.rs`
+  - `crates/storage/src/repository.rs`
+  - `crates/storage/src/lib.rs`
+  - `docs/DATA_MODEL.md`
+- **Implementation Tasks:**
+  1. Author migration `crates/storage/migrations/20261117000002_job_state_transitions.sql` defining `job_state_transitions` table with `job_id REFERENCES jobs(id) ON DELETE CASCADE`, `from_status`, `to_status`, `phase`, `progress_pct`, `message`, `error_code`, `worker_id`, `transitioned_at`, and index `idx_job_state_transitions_job_id`.
+  2. Synchronize `crates/storage/src/schema/ddl.sql`, `crates/storage/src/schema/mod.rs` (`EXPECTED_TABLES`, `EXPECTED_INDEXES`), `crates/storage/src/validation/mod.rs` (`expected_table_columns()`), and `docs/DATA_MODEL.md` Section 2.1 to document `job_state_transitions`.
+  3. Implement `crates/storage/src/state_machine.rs`:
+     - `JobStateMachine::evaluate_transition(current, target)` enforcing transition legality rules and terminal state immutability (`Completed`, `Failed`, `Cancelled`).
+     - `JobStateMachine::validate_transition_request(current, req)` enforcing progress bounds (0..=100), completion invariants (100% progress and Completed phase), and failure invariants (Failed phase).
+     - `JobTransitionRequest` builder with semantic constructors (`lease`, `start_running`, `update_progress`, `complete`, `complete_partial`, `fail`, `cancel`, `requeue`).
+     - `JobStateTransitionRow` entity struct deriving `sqlx::FromRow`, `Serialize`, `Deserialize`.
+  4. Implement `JobRepository` in `crates/storage/src/repository.rs`:
+     - `create_job(&pool, &JobRow)` inserting job records.
+     - `get_job(&pool, id)` retrieving job records by typed `JobId`.
+     - `transition_job(&pool, id, req)` performing transactional row-level locked transitions (`SELECT ... FOR UPDATE`), validating invariants, updating `jobs` status, lease, and completion timestamps, and recording audit history in `job_state_transitions`.
+     - `get_transition_history(&pool, id)` retrieving chronological transition history.
+     - Convenience transition methods: `update_progress`, `complete_job`, `fail_job`, `cancel_job`.
+  5. Re-export state machine and repository types in `crates/storage/src/lib.rs` (`JobStateMachine`, `JobTransitionRequest`, `JobStateTransitionRow`, `JobRepository`).
+  6. Add 5 state machine unit tests covering legal transitions, illegal transitions from terminal states, request builders, transition validation invariants, and transition row instantiation (expanding storage unit tests from 17 to 22). Verify `cargo test --workspace` (109 passed), `cargo clippy`, `cargo fmt`, `cargo deny check`, and `scripts/check-all.ps1`.
+- **Acceptance Criteria:**
+  - `job_state_transitions` table and migration `20261117000002` defined and verified in schema DDL and catalog validation.
+  - State machine strictly enforces allowed transitions and disallows transitions from terminal states (`Completed`, `Failed`, `Cancelled`).
+  - Progress percentages and phase invariants are strictly validated before transitions execute.
+  - `JobRepository::transition_job` is transactional with row-level locking and writes an immutable audit record on every transition.
+  - 100% of Rust tests pass (22 in `crates/storage`, 109 across workspace); zero clippy warnings; all 5 monorepo verification gates pass.
+- **Tests:** `cargo test -p web-repo-to-ai-storage` (22/22 passed), `cargo test --workspace` (109/109 passed), `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Complies with Rule 00, 02, and 05: `#![forbid(unsafe_code)]` enforced; parameterized SQL queries used across all repository methods; foreign key cascade deletion ensures transition history is pruned when parent jobs are deleted; audit trail records are immutable (insert-only); no secret leakage in transition messages or error codes.
+- **Performance Considerations:** Transitions use row-level locking (`SELECT ... FOR UPDATE`) within bounded transactions avoiding table-level locks; `idx_job_state_transitions_job_id` provides index-backed transition history lookups without scanning full transition tables.
+- **Documentation Requirements:** Updated `docs/DATA_MODEL.md`, `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-storage`: 22/22 tests passed in 0.00s.
+  - `cargo test --workspace`: 109/109 tests passed in 5.02s.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors in 2.82s.
+  - `cargo fmt --all -- --check`: 100% code style compliance.
+  - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
+- **Git Commit Reference:** `8b8082a`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `2.3.3` | Implement job state machine, transitions, and history in crates/storage | `2.3.2` (`ACCEPTED`) | `crates/storage/*` | `NOT_STARTED` |
+| `2.3.4` | Implement durable job leasing, heartbeat, and recovery in crates/storage | `2.3.3` (`ACCEPTED`) | `crates/storage/*` | `NOT_STARTED` |
 
 ---
 

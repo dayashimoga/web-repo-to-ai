@@ -106,3 +106,15 @@ Large content artifacts are stored in `crates/storage` (filesystem or S3-compati
    - `storage_key` (`TEXT NOT NULL`)
    - `byte_size` (`BIGINT NOT NULL`)
    - `last_accessed_at` (`TIMESTAMPTZ NOT NULL`)
+
+5. **`job_state_transitions`**
+   - `id` (`UUID PRIMARY KEY`)
+   - `job_id` (`UUID NOT NULL REFERENCES jobs(id) ON DELETE CASCADE`)
+   - `from_status` (`TEXT NOT NULL`)
+   - `to_status` (`TEXT NOT NULL`)
+   - `phase` (`TEXT NOT NULL`)
+   - `progress_pct` (`SMALLINT NOT NULL CHECK (progress_pct >= 0 AND progress_pct <= 100)`)
+   - `message` (`TEXT NULL`)
+   - `error_code` (`TEXT NULL`)
+   - `worker_id` (`TEXT NULL`)
+   - `transitioned_at` (`TIMESTAMPTZ NOT NULL DEFAULT NOW()`)

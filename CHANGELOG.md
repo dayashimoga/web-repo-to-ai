@@ -6,6 +6,24 @@
 
 ## [Unreleased] — Stage 2: Backend and Processing Foundation
 
+### 2026-11-17 — Phase 2.3: Persistence (`2.3.3`)
+
+#### Added
+- **`[2.3.3]` Implement Job State Machine, Transitions, and History in `crates/storage`:**
+  - Added migration file `crates/storage/migrations/20261117000002_job_state_transitions.sql` defining `job_state_transitions` audit trail table with `job_id REFERENCES jobs(id) ON DELETE CASCADE`, `from_status`, `to_status`, `phase`, `progress_pct`, `message`, `error_code`, `worker_id`, `transitioned_at`, and index `idx_job_state_transitions_job_id`.
+  - Updated schema DDL script `crates/storage/src/schema/ddl.sql`, expected catalog tables/indexes in `crates/storage/src/schema/mod.rs`, and expected columns in `crates/storage/src/validation/mod.rs`.
+  - Documented `job_state_transitions` table in `docs/DATA_MODEL.md` Section 2.1.
+  - Implemented `JobStateMachine` and `JobTransitionRequest` builder in `crates/storage/src/state_machine.rs`:
+    - Enforces legal status transitions and terminal state immutability (`Completed`, `Failed`, `Cancelled`).
+    - Enforces progress bounds (0..=100), completion invariants (100% progress and Completed phase), and failure invariants.
+    - Added typed entity struct `JobStateTransitionRow` deriving `sqlx::FromRow`, `Serialize`, and `Deserialize`.
+  - Implemented transactional `JobRepository` in `crates/storage/src/repository.rs`:
+    - `create_job(&pool, &JobRow)` and `get_job(&pool, id)`.
+    - `transition_job(&pool, id, req)` using transaction with row-level locking (`SELECT ... FOR UPDATE`), state machine validation, updating status/lease/completion timestamps, and inserting audit records into `job_state_transitions`.
+    - `get_transition_history(&pool, id)` retrieving chronological transition history.
+    - Convenience transition helpers (`update_progress`, `complete_job`, `fail_job`, `cancel_job`).
+  - Added 5 unit tests in `crates/storage/src/state_machine.rs` verifying legal/illegal transitions, request builders, invariant validations, and transition row construction, expanding storage crate tests to 22 and workspace automated tests to 109/109 passing. Verified all 5 quality gates pass cleanly.
+
 ### 2026-11-17 — Phase 2.3: Persistence (`2.3.2`)
 
 #### Added

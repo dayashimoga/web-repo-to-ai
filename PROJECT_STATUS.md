@@ -4,15 +4,15 @@
 **Last Updated:** 2026-11-17  
 **Current Stage:** `STAGE 2 — BACKEND AND PROCESSING FOUNDATION` (`IN_PROGRESS`)  
 **Current Phase:** `Phase 2.3 — Persistence` (`IN_PROGRESS`)  
-**Active Subphase:** `2.3.3 — Implement job state machine, transitions, and history in crates/storage` (`NOT_STARTED` / `Next Eligible Subphase`)  
-**Last Completed Subphase:** `2.3.2 — Implement database migrations and schema validation in crates/storage` (`ACCEPTED`)  
-**Next Upcoming Subphase:** `2.3.3 — Implement job state machine, transitions, and history in crates/storage`
+**Active Subphase:** `2.3.4 — Implement durable job leasing, heartbeat, and recovery in crates/storage` (`NOT_STARTED` / `Next Eligible Subphase`)  
+**Last Completed Subphase:** `2.3.3 — Implement job state machine, transitions, and history in crates/storage` (`ACCEPTED`)  
+**Next Upcoming Subphase:** `2.3.4 — Implement durable job leasing, heartbeat, and recovery in crates/storage`
 
 ---
 
 ## 1. Executive Summary
 
-Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 subphases), Phase 2.1 (`2.1.1` – `2.1.3`), and Phase 2.2 (`2.2.1` – `2.2.4`) are 100% complete, verified, certified, and accepted. Stage 2 ("Backend and Processing Foundation") is advancing through Phase 2.3: **Subphase `2.3.2` ("Implement database migrations and schema validation in crates/storage") has been successfully implemented, verified, and accepted**. The SQLx migration framework is established with compile-time embedded migrations (`MIGRATOR`), structured migration reporting (`MigrationReport`), and runtime schema catalog validation (`validate_schema` auditing tables, columns, indexes, and triggers against database metadata). `DatabaseManager` wraps PostgreSQL connection pooling with health probing (`SELECT 1`), migration execution, and schema audits. 104/104 automated Rust tests pass across all workspace crates (17 in `crates/storage`), 184/184 frontend tests pass in `apps/web`, and all 5 monorepo verification gates pass cleanly. Subphase `2.3.3` ("Implement job state machine, transitions, and history in crates/storage") is queued as the next eligible subphase.
+Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 subphases), Phase 2.1 (`2.1.1` – `2.1.3`), and Phase 2.2 (`2.2.1` – `2.2.4`) are 100% complete, verified, certified, and accepted. Stage 2 ("Backend and Processing Foundation") is advancing through Phase 2.3: **Subphase `2.3.3` ("Implement job state machine, transitions, and history in crates/storage") has been successfully implemented, verified, and accepted**. The job state machine (`JobStateMachine`) strictly enforces legal transitions, phase invariants, and terminal state immutability (`Completed`, `Failed`, `Cancelled`). Database migration `20261117000002_job_state_transitions.sql` establishes the indexed audit trail table `job_state_transitions` with cascade deletion. `JobRepository` provides transactional row-level locked transitions (`SELECT ... FOR UPDATE`), progress updates, and chronological transition history retrieval. 109/109 automated Rust tests pass across all workspace crates (22 in `crates/storage`), 184/184 frontend tests pass in `apps/web`, and all 5 monorepo verification gates pass cleanly. Subphase `2.3.4` ("Implement durable job leasing, heartbeat, and recovery in crates/storage") is queued as the next eligible subphase.
 
 ---
 
@@ -20,12 +20,12 @@ Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 su
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 38 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.1.3`, `2.2.1` – `2.2.4`, `2.3.1` – `2.3.2` |
+| `ACCEPTED` | 39 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.1.3`, `2.2.1` – `2.2.4`, `2.3.1` – `2.3.3` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 159 | `2.3.3` – `11.4.5` |
+| `NOT_STARTED` | 158 | `2.3.4` – `11.4.5` |
 | **Total** | **197** | `Stage 0` – `Stage 11` |
 
 ---
