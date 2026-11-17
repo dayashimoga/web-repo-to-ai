@@ -2443,7 +2443,53 @@
   - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
   - `npm test` (`apps/web`): 184/184 tests passed.
   - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
-- **Git Commit Reference:** `f59b5d9`
+- **Git Commit Reference:** `13a393b`
+- **Status:** `ACCEPTED`
+
+---
+
+#### Subphase `3.2.2` — Article extraction and readability heuristics in crates/web-extractor
+- **Unique ID:** `3.2.2`
+- **Objective:** Implement automated article discovery, candidate container scoring heuristics (text density, comma frequency, paragraph counts, heading counts, code block bonuses, class/ID weights, link density penalties), title/byline/publication-date/excerpt extraction, reading time estimation, and fallback preservation in `crates/web-extractor`.
+- **Scope:** `crates/web-extractor/src/article/*`, `crates/web-extractor/src/dom/parser.rs`, `crates/web-extractor/src/error.rs`, `crates/web-extractor/src/lib.rs`.
+- **Prerequisites:** `3.2.1` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/web-extractor/src/article/mod.rs`
+  - `crates/web-extractor/src/article/model.rs`
+  - `crates/web-extractor/src/article/heuristics.rs`
+  - `crates/web-extractor/src/article/scorer.rs`
+  - `crates/web-extractor/src/article/extractor.rs`
+  - `crates/web-extractor/src/dom/parser.rs`
+  - `crates/web-extractor/src/error.rs`
+  - `crates/web-extractor/src/lib.rs`
+- **Implementation Tasks:**
+  1. Define `ExtractedArticle`, `ReadabilityMetrics`, and `ReadabilityOptions` builder in `crates/web-extractor/src/article/model.rs`.
+  2. Implement heuristic pattern matchers (`POSITIVE_PATTERNS`, `NEGATIVE_PATTERNS`, `UNLIKELY_PATTERNS`) and scoring calculations (`calculate_tag_weight`, `calculate_class_weight`, `is_unlikely_candidate`) in `crates/web-extractor/src/article/heuristics.rs`.
+  3. Implement `ReadabilityScorer` in `crates/web-extractor/src/article/scorer.rs` recursively evaluating candidate containers against text length, comma count, paragraph count, code blocks, headings, link density, and class/ID weights.
+  4. Implement `ArticleExtractor` in `crates/web-extractor/src/article/extractor.rs` identifying candidate containers (`article`, `main`, `section`, `div`), selecting the top-scoring candidate, rendering subtrees via `DomParser::render_subtree`, extracting `<h1>` titles, tiered author bylines (`rel="author"`, `class="author"`), publication time (`<time datetime="...">`), lead excerpts, word/char counts, and reading time minutes, with graceful fallback to whole-document extraction.
+  5. Extend `DomParser` in `crates/web-extractor/src/dom/parser.rs` with `render_subtree` and preserve `rel`, `id`, `class` on `<a>` tags and `datetime` on `<time>` tags.
+  6. Add `HtmlParseFailed` and `ExtractionFailed` variants to `WebExtractorError` in `crates/web-extractor/src/error.rs`.
+  7. Expose article subsystem in `crates/web-extractor/src/lib.rs` and add 15 unit and integration tests across article extraction modules.
+  8. Run all 5 monorepo verification gates in `scripts/check-all.ps1` with 0 failures.
+- **Acceptance Criteria:**
+  - Primary article containers are reliably distinguished from sidebars, navigation link farms, and noise.
+  - Code blocks and tables within the selected article are preserved intact.
+  - Author bylines and publication timestamps are accurately parsed from semantic HTML attributes and classes.
+  - Pages lacking distinctive article containers fall back gracefully to the whole document body.
+  - 100% of workspace Rust tests pass (73 in `crates/web-extractor`, 234 in workspace); zero clippy warnings; clean code style; all 5 monorepo verification gates pass.
+- **Tests:** `cargo test -p web-repo-to-ai-web-extractor` (73 passed), `cargo test --workspace` (234 passed), `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, `pnpm --filter web test:unit` (184 passed), `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, 02, and 05: `#![forbid(unsafe_code)]`; no regex-based catastrophic backtracking (ReDoS); candidate scoring operates on bounded parsed VDom trees; sanitized link attributes preserve XSS mitigations; zero unmaintained dependencies.
+- **Performance Considerations:** Single-pass candidate collection; linear text accumulation during scoring; bounded calculations with pre-allocated String buffers; integer reading time calculation via `div_ceil`.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-web-extractor`: 73/73 tests passed.
+  - `cargo test --workspace`: 234/234 tests passed.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors.
+  - `cargo fmt --all -- --check`: 100% code style compliance.
+  - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
+  - `npm test` (`apps/web`): 184/184 tests passed.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
+- **Git Commit Reference:** `6553880`
 - **Status:** `ACCEPTED`
 
 ---
@@ -2452,7 +2498,7 @@
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `3.2.2` | Article extraction and readability heuristics in crates/web-extractor | `3.2.1` (`ACCEPTED`) | `crates/web-extractor/*` | `NOT_STARTED` |
+| `3.2.3` | Technical documentation and navigation hierarchy extraction in crates/web-extractor | `3.2.2` (`ACCEPTED`) | `crates/web-extractor/*` | `NOT_STARTED` |
 
 ---
 

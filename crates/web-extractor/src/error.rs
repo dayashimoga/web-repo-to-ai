@@ -86,6 +86,13 @@ pub enum WebExtractorError {
         /// Actual raw bytes read from the network.
         actual: u64,
     },
+    /// HTML DOM parsing failure.
+    HtmlParseFailed(String),
+    /// Content extraction or readability processing failure.
+    ExtractionFailed {
+        /// Failure details.
+        details: String,
+    },
 }
 
 impl fmt::Display for WebExtractorError {
@@ -93,6 +100,8 @@ impl fmt::Display for WebExtractorError {
         match self {
             Self::UrlSecurity(err) => write!(f, "URL Security Error: {err}"),
             Self::Http(err) => write!(f, "HTTP error: {err}"),
+            Self::HtmlParseFailed(details) => write!(f, "HTML parse failed: {details}"),
+            Self::ExtractionFailed { details } => write!(f, "Extraction failed: {details}"),
             Self::RedirectLoop { url, hops } => {
                 write!(f, "Redirect loop detected at '{url}' after {hops} hops")
             }
@@ -216,6 +225,12 @@ impl From<WebExtractorError> for CoreError {
                     field: "content-length".to_string(),
                     reason: format!("Content-Length mismatch: expected {expected}, actual {actual}"),
                 }
+            }
+            WebExtractorError::HtmlParseFailed(details) => {
+                CoreError::Extraction(format!("HTML parse error: {details}"))
+            }
+            WebExtractorError::ExtractionFailed { details } => {
+                CoreError::Extraction(format!("Extraction error: {details}"))
             }
         }
     }

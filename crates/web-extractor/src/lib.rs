@@ -11,12 +11,16 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
+pub mod article;
 pub mod compression;
 pub mod dom;
 pub mod error;
 pub mod http;
 pub mod url;
 
+pub use article::{
+    ArticleExtractor, ExtractedArticle, ReadabilityMetrics, ReadabilityOptions, ReadabilityScorer,
+};
 pub use compression::{BodyLimits, BoundedDecompressor, ContentEncoding};
 pub use dom::{
     BoilerplateCleaner, BoilerplatePolicy, CleanedDocument, DocumentMetadata, DomParser,
@@ -792,7 +796,10 @@ mod tests {
         let base_url = ValidatedUrl::parse_default("https://example.com/blog/async-rust").unwrap();
         let doc = parser.parse(html, Some(&base_url)).unwrap();
 
-        assert_eq!(doc.metadata.title.as_deref(), Some("Async Rust in Production"));
+        assert_eq!(
+            doc.metadata.title.as_deref(),
+            Some("Async Rust in Production")
+        );
         assert_eq!(
             doc.metadata.description.as_deref(),
             Some("Lessons from deploying Tokio and Axum at scale.")
@@ -809,13 +816,21 @@ mod tests {
         assert!(!doc.cleaned_html.contains("window.dataLayer"));
 
         // Verify core article is preserved
-        assert!(doc.cleaned_html.contains("<h1>Async Rust in Production</h1>"));
-        assert!(doc.cleaned_html.contains("<p>Building high-throughput microservices requires strict resource bounds.</p>"));
-        assert!(doc.cleaned_html.contains("<li>Memory bounding on streams</li>"));
+        assert!(doc
+            .cleaned_html
+            .contains("<h1>Async Rust in Production</h1>"));
+        assert!(doc.cleaned_html.contains(
+            "<p>Building high-throughput microservices requires strict resource bounds.</p>"
+        ));
+        assert!(doc
+            .cleaned_html
+            .contains("<li>Memory bounding on streams</li>"));
 
         // Verify plain text output
         assert!(doc.cleaned_text.contains("Async Rust in Production"));
-        assert!(doc.cleaned_text.contains("Building high-throughput microservices requires strict resource bounds."));
+        assert!(doc
+            .cleaned_text
+            .contains("Building high-throughput microservices requires strict resource bounds."));
         assert!(doc.cleaned_text.contains("Memory bounding on streams"));
         assert!(!doc.cleaned_text.contains("Sponsored"));
         assert!(!doc.cleaned_text.contains("Copyright 2026"));
@@ -877,11 +892,20 @@ mod tests {
         let parser = DomParser::default();
         let doc = parser.parse(html, None).unwrap();
 
-        assert_eq!(doc.metadata.base_url.as_deref(), Some("https://docs.rs/tokio/latest/tokio/"));
-        assert!(doc.cleaned_html.contains("href=\"https://docs.rs/tokio/latest/tokio/sync/struct.Mutex.html\""));
-        assert!(doc.cleaned_html.contains("href=\"https://docs.rs/tokio/latest/index.html\""));
+        assert_eq!(
+            doc.metadata.base_url.as_deref(),
+            Some("https://docs.rs/tokio/latest/tokio/")
+        );
+        assert!(doc
+            .cleaned_html
+            .contains("href=\"https://docs.rs/tokio/latest/tokio/sync/struct.Mutex.html\""));
+        assert!(doc
+            .cleaned_html
+            .contains("href=\"https://docs.rs/tokio/latest/index.html\""));
         assert!(doc.cleaned_html.contains("href=\"#methods\""));
-        assert!(doc.cleaned_html.contains("src=\"https://docs.rs/tokio/latest/tokio/logo.png\""));
+        assert!(doc
+            .cleaned_html
+            .contains("src=\"https://docs.rs/tokio/latest/tokio/logo.png\""));
     }
 
     #[test]
@@ -954,10 +978,199 @@ mod tests {
         let parser = DomParser::default();
         let doc = parser.parse(html, None).unwrap();
 
-        assert_eq!(doc.metadata.title.as_deref(), Some("OpenGraph Article Title"));
+        assert_eq!(
+            doc.metadata.title.as_deref(),
+            Some("OpenGraph Article Title")
+        );
         assert_eq!(
             doc.metadata.description.as_deref(),
             Some("OpenGraph Article Summary")
         );
+    }
+
+    #[test]
+    fn test_article_extractor_standard_blog_post() {
+        let html = r##"
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Async Systems in Rust</title>
+                <meta name="author" content="Dr. Alan Kay">
+                <meta name="description" content="An architectural discussion of actor models and async Rust.">
+            </head>
+            <body>
+                <header class="site-header">
+                    <nav><a href="/">Home</a><a href="/docs">Docs</a></nav>
+                </header>
+                <div class="sidebar widget">
+                    <h4>Top Stories</h4>
+                    <a href="/s1">Story 1</a>
+                    <a href="/s2">Story 2</a>
+                </div>
+                <main class="page-container">
+                    <article class="post-entry" id="post-88">
+                        <h1>Async Systems in Rust</h1>
+                        <p class="byline">Published by <a rel="author" href="/author/alankay">Alan Kay</a> on <time datetime="2026-11-17T10:00:00Z">November 17, 2026</time></p>
+                        <p>Modern software architectures increasingly rely on asynchronous event loops and non-blocking I/O to achieve massive concurrency on modest hardware.</p>
+                        <p>In this post, we explore how Tokio coordinates task work-stealing, how pinned futures eliminate heap allocations, and how backpressure preserves stability under high load.</p>
+                        <p>When engineering web crawlers or data conversion engines, unbounded memory allocation is the primary vulnerability that must be defended against.</p>
+                    </article>
+                </main>
+                <footer class="site-footer">
+                    <p>Copyright 2026</p>
+                </footer>
+            </body>
+            </html>
+        "##;
+
+        let extractor = ArticleExtractor::new();
+        let article = extractor.extract(html, None).unwrap();
+
+        assert!(!article.is_fallback);
+        assert_eq!(article.candidate_tag, "article");
+        assert_eq!(article.candidate_id.as_deref(), Some("post-88"));
+        assert_eq!(article.title, "Async Systems in Rust");
+        assert_eq!(article.byline.as_deref(), Some("Alan Kay"));
+        assert_eq!(
+            article.published_time.as_deref(),
+            Some("2026-11-17T10:00:00Z")
+        );
+        assert!(article.word_count >= 50);
+        assert!(article.reading_time_minutes >= 1);
+        assert!(article.readability_score >= 30.0);
+        assert!(article
+            .content_text
+            .contains("Modern software architectures"));
+        assert!(article.content_text.contains("work-stealing"));
+        assert!(!article.content_text.contains("Top Stories"));
+    }
+
+    #[test]
+    fn test_article_extractor_technical_post_with_tables_and_code() {
+        let html = r##"
+            <html>
+            <body>
+                <article class="markdown-body">
+                    <h1>Memory Bounds in Low-Level Rust</h1>
+                    <p>Engineers must carefully evaluate decompression buffers, streaming limits, and allocator configurations when handling untrusted data streams.</p>
+                    <pre><code class="language-rust">pub fn verify_budget(allocated: usize, ceiling: usize) -> bool {
+    allocated <= ceiling
+}</code></pre>
+                    <p>The table below summarizes the maximum permissible memory footprints across various monorepo worker profiles:</p>
+                    <table>
+                        <thead>
+                            <tr><th>Worker Type</th><th>RAM Ceiling</th><th>Storage Ceiling</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>API Gateway</td><td>2 GB</td><td>5 GB</td></tr>
+                            <tr><td>Browser Worker</td><td>4 GB</td><td>15 GB</td></tr>
+                        </tbody>
+                    </table>
+                    <p>Strict observance of these thresholds guarantees predictable execution on standard 16 GB hardware without out-of-memory kernel intervention.</p>
+                </article>
+            </body>
+            </html>
+        "##;
+
+        let extractor = ArticleExtractor::new();
+        let article = extractor.extract(html, None).unwrap();
+
+        assert!(!article.is_fallback);
+        assert_eq!(article.candidate_tag, "article");
+        assert!(article
+            .content_html
+            .contains("<pre><code class=\"language-rust\">"));
+        assert!(article.content_html.contains("<table>"));
+        assert!(article.content_text.contains("pub fn verify_budget"));
+        assert!(article.content_text.contains("Browser Worker"));
+    }
+
+    #[test]
+    fn test_article_extractor_penalizes_and_rejects_link_heavy_widgets() {
+        let html = r##"
+            <html>
+            <body>
+                <div class="navigation-hub">
+                    <a href="/cat1">Category 1</a>
+                    <a href="/cat2">Category 2</a>
+                    <a href="/cat3">Category 3</a>
+                    <a href="/cat4">Category 4</a>
+                    <a href="/cat5">Category 5</a>
+                    <a href="/cat6">Category 6</a>
+                </div>
+            </body>
+            </html>
+        "##;
+
+        let extractor = ArticleExtractor::new();
+        let article = extractor.extract(html, None).unwrap();
+
+        // High link density elements should be rejected or trigger fallback
+        assert!(article.is_fallback || article.readability_score < 10.0);
+    }
+
+    #[test]
+    fn test_article_extractor_byline_and_time_extraction() {
+        let html = r##"
+            <article class="entry-content">
+                <h2>Security Architecture Review</h2>
+                <div class="post-meta">
+                    <span class="author-name">Jane Doe, Principal Engineer</span>
+                    <time datetime="2026-10-31">Halloween 2026</time>
+                </div>
+                <p>This comprehensive security analysis evaluates SSRF vectors, IPv4-mapped IPv6 encapsulation, and DNS rebinding mitigations across microservices.</p>
+                <p>We enforce strict boundary checks at every layer, from socket connection establishment to TLS certificate verification and payload streaming.</p>
+                <p>All network calls must resolve through an authenticated and verified pin-down mechanism to eliminate time-of-check to time-of-use exploits.</p>
+            </article>
+        "##;
+
+        let extractor = ArticleExtractor::new();
+        let article = extractor.extract(html, None).unwrap();
+
+        assert!(!article.is_fallback);
+        assert_eq!(article.title, "Security Architecture Review");
+        assert_eq!(
+            article.byline.as_deref(),
+            Some("Jane Doe, Principal Engineer")
+        );
+        assert_eq!(article.published_time.as_deref(), Some("2026-10-31"));
+    }
+
+    #[test]
+    fn test_article_extractor_custom_thresholds_and_classes() {
+        let html = r##"
+            <div class="custom-blog-container">
+                <h2>Custom Knowledge Node</h2>
+                <p>This is a custom formatted knowledge node that uses proprietary class conventions rather than standard article tags.</p>
+                <p>It contains multiple sentences of informational prose, designed to test custom class weight overrides and threshold adjustments.</p>
+            </div>
+        "##;
+
+        let custom_options = ReadabilityOptions::new()
+            .with_min_word_count(15)
+            .with_min_score_threshold(10.0)
+            .add_positive_class("custom-blog-container");
+
+        let extractor = ArticleExtractor::new().with_options(custom_options);
+        let article = extractor.extract(html, None).unwrap();
+
+        assert!(!article.is_fallback);
+        assert_eq!(article.candidate_tag, "div");
+        assert_eq!(
+            article.candidate_class.as_deref(),
+            Some("custom-blog-container")
+        );
+        assert!(article.readability_score >= 10.0);
+    }
+
+    #[test]
+    fn test_article_extractor_fallback_on_plain_document() {
+        let html = "<html><head><title>Unformatted</title></head><body>Just a raw plain sentence without tags.</body></html>";
+        let extractor = ArticleExtractor::new();
+        let article = extractor.extract(html, None).unwrap();
+
+        assert!(article.is_fallback);
+        assert_eq!(article.title, "Unformatted");
+        assert!(article.content_text.contains("Just a raw plain sentence"));
     }
 }

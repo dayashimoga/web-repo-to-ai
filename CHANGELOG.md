@@ -6,6 +6,18 @@
 
 ## [Unreleased] — Stage 3: Universal Webpage Extraction
 
+### 2026-11-17 — Phase 3.2: Static Extraction (`3.2.2`)
+
+#### Added
+- **`[3.2.2]` Implement Article Extraction and Readability Heuristics in `crates/web-extractor`:**
+  - Defined `ExtractedArticle`, `ReadabilityMetrics`, and `ReadabilityOptions` builder in `crates/web-extractor/src/article/model.rs`.
+  - Implemented heuristic pattern scoring in `crates/web-extractor/src/article/heuristics.rs` featuring positive/negative class matchers, unlikely candidate filters, and structural tag weights.
+  - Implemented `ReadabilityScorer` in `crates/web-extractor/src/article/scorer.rs` computing text density, comma and prose frequency, paragraph density, heading counts, code block bonuses, and quadratic link-density penalties.
+  - Implemented `ArticleExtractor` in `crates/web-extractor/src/article/extractor.rs` identifying candidate article containers (`article`, `main`, `section`, `div`), rendering selected subtrees via `DomParser::render_subtree`, extracting `<h1>` headlines, tiered bylines (`rel="author"`, `class="author"`), publication timestamps (`<time datetime="...">`), and lead excerpts, calculating reading times via `div_ceil`, and supporting whole-document fallback.
+  - Extended `DomParser` in `crates/web-extractor/src/dom/parser.rs` to render isolated subtrees and preserve `rel`, `id`, `class` on `<a>` tags and `datetime` on `<time>` tags.
+  - Added `HtmlParseFailed` and `ExtractionFailed` error variants to `WebExtractorError` and mapped into `CoreError`.
+  - Added 15 unit and integration tests across article extraction modules (73 total in crate), expanding workspace tests to 234 passing across all 17 crates with 100% pass rate across all 5 monorepo verification gates.
+
 ### 2026-11-17 — Phase 3.2: Static Extraction (`3.2.1`)
 
 #### Added

@@ -126,8 +126,9 @@ impl DomParser {
             });
         }
 
-        let vdom = tl::parse(html, tl::ParserOptions::default())
-            .map_err(|e| WebExtractorError::Http(format!("HTML DOM parsing error: {e:?}")))?;
+        let vdom = tl::parse(html, tl::ParserOptions::default()).map_err(|e| {
+            WebExtractorError::HtmlParseFailed(format!("HTML DOM parsing error: {e:?}"))
+        })?;
 
         // 1. Extract metadata and compute effective base URL
         let metadata = DocumentMetadata::extract(&vdom, base_url, &self.url_security_policy);
@@ -182,6 +183,36 @@ impl DomParser {
             removed_nodes_count,
             has_semantic_main,
         })
+    }
+
+    /// Renders a specific DOM subtree rooted at `handle` into clean HTML and plain text buffers.
+    #[must_use]
+    pub fn render_subtree(
+        &self,
+        handle: tl::NodeHandle,
+        parser: &tl::Parser<'_>,
+        base_url: Option<&ValidatedUrl>,
+    ) -> (String, String) {
+        let mut cleaned_html = String::new();
+        let mut cleaned_text = String::new();
+        let mut removed_count = 0;
+
+        self.render_node(
+            handle,
+            parser,
+            base_url,
+            true, // inside_main_or_article: protects content within this chosen subtree
+            false,
+            &mut cleaned_html,
+            &mut cleaned_text,
+            &mut removed_count,
+        );
+
+        let normalized_text = self.normalize_text_newlines(&cleaned_text);
+        (
+            cleaned_html.trim().to_string(),
+            normalized_text.trim().to_string(),
+        )
     }
 
     /// Recursively evaluates and renders a node and its children into output buffers.
@@ -328,6 +359,21 @@ impl DomParser {
                     out.push_str(title.as_utf8_str().as_ref());
                     out.push('"');
                 }
+                if let Some(Some(rel)) = attrs.get("rel") {
+                    out.push_str(" rel=\"");
+                    out.push_str(rel.as_utf8_str().as_ref());
+                    out.push('"');
+                }
+                if let Some(Some(id)) = attrs.get("id") {
+                    out.push_str(" id=\"");
+                    out.push_str(id.as_utf8_str().as_ref());
+                    out.push('"');
+                }
+                if let Some(Some(class)) = attrs.get("class") {
+                    out.push_str(" class=\"");
+                    out.push_str(class.as_utf8_str().as_ref());
+                    out.push('"');
+                }
             }
             "img" => {
                 if let Some(Some(src)) = attrs.get("src") {
@@ -351,6 +397,24 @@ impl DomParser {
             }
             "code" | "pre" => {
                 // Preserve language class e.g. class="language-rust"
+                if let Some(Some(class)) = attrs.get("class") {
+                    out.push_str(" class=\"");
+                    out.push_str(class.as_utf8_str().as_ref());
+                    out.push('"');
+                }
+            }
+            "time" => {
+                // Preserve publication datetime attribute
+                if let Some(Some(dt)) = attrs.get("datetime") {
+                    out.push_str(" datetime=\"");
+                    out.push_str(dt.as_utf8_str().as_ref());
+                    out.push('"');
+                }
+                if let Some(Some(id)) = attrs.get("id") {
+                    out.push_str(" id=\"");
+                    out.push_str(id.as_utf8_str().as_ref());
+                    out.push('"');
+                }
                 if let Some(Some(class)) = attrs.get("class") {
                     out.push_str(" class=\"");
                     out.push_str(class.as_utf8_str().as_ref());
