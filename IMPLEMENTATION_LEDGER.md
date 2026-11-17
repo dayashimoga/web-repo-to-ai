@@ -2217,14 +2217,56 @@
 
 ---
 
+### STAGE 3 — UNIVERSAL WEBPAGE EXTRACTION
+
+### Phase 3.1 — Secure acquisition
+
+#### Subphase `3.1.1` — URL parsing, normalization, and validation in crates/url-security and crates/web-extractor
+- **Unique ID:** `3.1.1`
+- **Objective:** Implement zero-trust WHATWG URL parsing, query canonicalization, tracking parameter stripping, comprehensive SSRF IP/host filtering (including alternative IP encodings, cloud metadata protection, and IPv4-mapped IPv6 evaluation), and document-type classification in `crates/url-security` and `crates/web-extractor`.
+- **Scope:** `crates/url-security/src/*`, `crates/url-security/Cargo.toml`, `crates/web-extractor/src/url.rs`, `crates/web-extractor/src/lib.rs`, `crates/web-extractor/Cargo.toml`.
+- **Prerequisites:** Stage 2 (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/url-security/Cargo.toml`, `crates/url-security/src/error.rs`, `crates/url-security/src/policy.rs`, `crates/url-security/src/ip_filter.rs`, `crates/url-security/src/normalizer.rs`, `crates/url-security/src/validated_url.rs`, `crates/url-security/src/lib.rs`
+  - `crates/web-extractor/Cargo.toml`, `crates/web-extractor/src/url.rs`, `crates/web-extractor/src/lib.rs`
+- **Implementation Tasks:**
+  1. Define `UrlSecurityError` enum in `crates/url-security/src/error.rs` covering scheme violations, character/length bounds, userinfo credentials, missing hosts, blocked ports, and SSRF category details, with conversion into `CoreError`.
+  2. Implement `UrlSecurityPolicy` and `UrlSecurityPolicyBuilder` in `crates/url-security/src/policy.rs` with configurable length limits, scheme allowlists, tracking parameter definitions, port blocklists, and testing overrides.
+  3. Implement `is_blocked_ip`, `is_blocked_host`, and `parse_alternative_ipv4` in `crates/url-security/src/ip_filter.rs` covering IPv4 loopback, RFC 1918 private, link-local/cloud metadata (`169.254.169.254`), CGNAT (`100.64.0.0/10`), multicast/reserved, IPv6 loopback, unique-local (`fc00::/7`), link-local (`fe80::/10`), IPv4-mapped IPv6, 6to4, and Teredo tunnels, alongside decimal/hex/octal alternative integer notation parsing (POSIX `inet_aton`).
+  4. Implement `UrlNormalizer` in `crates/url-security/src/normalizer.rs` performing length checking, null byte/control character detection, scheme validation, default-port stripping (`:80` for http, `:443` for https), path duplicate slash collapse, tracking query parameter stripping (`utm_*`, `fbclid`, `gclid`), and deterministic query pair sorting.
+  5. Implement `ValidatedUrl` in `crates/url-security/src/validated_url.rs` encapsulating normalized URLs, origin/domain comparison utilities, relative link resolution via `join`, and serde string serialization/deserialization with defensive re-validation.
+  6. Implement `WebTarget` and `WebPageType` in `crates/web-extractor/src/url.rs` providing heuristic classification (`Documentation`, `Article`, `FileResource`, `GenericWeb`) based on subdomains, publishing platforms (`medium.com`, `substack.com`, etc.), path keywords, and date patterns, with relative link resolution and subpath matching.
+- **Acceptance Criteria:**
+  - Standard HTTP/HTTPS URLs pass validation and normalization; forbidden schemes (`file`, `ftp`, `gopher`, `data`, `javascript`) and embedded userinfo are strictly rejected.
+  - SSRF blocklist strictly rejects all private/loopback/cloud metadata IPv4 and IPv6 addresses, as well as alternative IP encodings (`2130706433`, `0x7f000001`, `017700000001`, `127.1`).
+  - Tracking parameters are stripped and remaining query pairs are deterministically ordered.
+  - `WebTarget` accurately classifies documentation, articles, file resources, and generic web targets.
+  - 100% of Rust tests pass (16 in `crates/url-security`, 7 in `crates/web-extractor`, 163 across workspace); zero clippy warnings; all 5 monorepo verification gates pass cleanly.
+- **Tests:** `cargo test -p web-repo-to-ai-url-security` (16 passed), `cargo test -p web-repo-to-ai-web-extractor` (7 passed), `cargo test --workspace` (163 passed), `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, 02, and 05: `#![forbid(unsafe_code)]` enabled; comprehensive SSRF defense with zero-bypass coverage for IPv4-mapped IPv6, tunneling encapsulation, non-standard IP notations, and cloud metadata IPs (`169.254.169.254`); credential userinfo strictly rejected; ports restricted against protocol confusion attacks.
+- **Performance Considerations:** In-place path and query parameter normalization with minimal heap allocations; fast bitwise CIDR masking for IP range evaluation; zero external network I/O during validation.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-url-security`: 16/16 tests passed in 0.00s.
+  - `cargo test -p web-repo-to-ai-web-extractor`: 7/7 tests passed in 0.00s.
+  - `cargo test --workspace`: 163/163 tests passed across 17 workspace crates.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors.
+  - `cargo fmt --all -- --check`: 100% code style compliance.
+  - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
+- **Git Commit Reference:** `d90ec34`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 3 — Universal Webpage Extraction)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `3.1.1` | URL parsing, normalization, and validation in crates/url-security and crates/web-extractor | Stage 2 (`ACCEPTED`) | `crates/url-security/*`, `crates/web-extractor/*` | `NOT_STARTED` |
+| `3.1.2` | DNS resolution, IP pinning, and DNS-rebinding protection in crates/url-security | `3.1.1` (`ACCEPTED`) | `crates/url-security/*` | `NOT_STARTED` |
 
 ---
 
-## STAGES 2 – 11 QUEUED LEDGER SUMMARY
+## STAGES 3 – 11 QUEUED LEDGER SUMMARY
 
-All subsequent subphases for **Stage 2** (`2.2.1`–`2.4.4`), **Stage 3** (`3.1.1`–`3.4.4`), **Stage 4** (`4.1.1`–`4.4.4`), **Stage 5** (`5.1.1`–`5.5.4`), **Stage 6** (`6.1.1`–`6.4.4`), **Stage 7** (`7.1.1`–`7.4.4`), **Stage 8** (`8.1.1`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.
+All subsequent subphases for **Stage 3** (`3.1.2`–`3.4.4`), **Stage 4** (`4.1.1`–`4.4.4`), **Stage 5** (`5.1.1`–`5.5.4`), **Stage 6** (`6.1.1`–`6.4.4`), **Stage 7** (`7.1.1`–`7.4.4`), **Stage 8** (`8.1.1`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.

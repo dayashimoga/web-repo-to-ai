@@ -4,8 +4,14 @@
 //! - HTML DOM parsing and boilerplate reduction
 //! - Documentation hierarchy and code block extraction
 //! - Dynamic browser fallback integration for SPA hydration
+//! - Target URL classification and link resolution
 
+#![forbid(unsafe_code)]
 #![warn(missing_docs)]
+
+pub mod url;
+
+pub use url::{classify_url, WebPageType, WebTarget};
 
 /// Returns the unique crate identifier name.
 #[must_use]

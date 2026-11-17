@@ -82,8 +82,35 @@
 
 ---
 
+## Stage 3: Universal Webpage Extraction (`IN_PROGRESS`)
+
+### Phase 3.1 — Secure acquisition (`IN_PROGRESS`)
+- [x] **[3.1.1]** URL parsing, normalization, and validation in crates/url-security and crates/web-extractor *(Completed 2026-11-17, UrlSecurityError, UrlSecurityPolicy, is_blocked_ip, is_blocked_host, parse_alternative_ipv4, UrlNormalizer, ValidatedUrl, WebTarget, WebPageType, 16 passing url-security tests, 7 passing web-extractor tests, 163 workspace tests)*
+- [ ] **[3.1.2]** DNS resolution, IP pinning, and DNS-rebinding protection in crates/url-security
+- [ ] **[3.1.3]** HTTP fetching, streaming bodies, and redirect revalidation in crates/web-extractor
+- [ ] **[3.1.4]** Compression bombs, timeouts, and body size limits in crates/web-extractor
+
+### Phase 3.2 — Static extraction (`NOT_STARTED`)
+- [ ] **[3.2.1]** DOM parsing and boilerplate removal in crates/web-extractor
+- [ ] **[3.2.2]** Article extraction and readability heuristics in crates/web-extractor
+- [ ] **[3.2.3]** Technical documentation and navigation hierarchy extraction in crates/web-extractor
+- [ ] **[3.2.4]** Tables, code blocks, syntax detection, and link extraction in crates/web-extractor
+
+### Phase 3.3 — Dynamic extraction (`NOT_STARTED`)
+- [ ] **[3.3.1]** Browser worker architecture and IPC protocol in services/browser-worker
+- [ ] **[3.3.2]** Playwright/Chromium dynamic fallback integration in services/browser-worker
+- [ ] **[3.3.3]** Resource limits, navigation timeouts, and sandbox isolation in services/browser-worker
+- [ ] **[3.3.4]** Dynamic DOM extraction and post-render hydration in crates/web-extractor
+
+### Phase 3.4 — Extraction quality (`NOT_STARTED`)
+- [ ] **[3.4.1]** Source attribution, HTTP provenance, and metadata capture in crates/web-extractor
+- [ ] **[3.4.2]** Duplicate detection and canonical URL resolution in crates/web-extractor
+- [ ] **[3.4.3]** Content completeness scoring and extraction warnings in crates/web-extractor
+- [ ] **[3.4.4]** Golden dataset test suite for universal webpage extraction in crates/web-extractor
+
+---
+
 ## Subsequent Stages (Queued)
-- [ ] **[Stage 3]** Universal Webpage Extraction (`3.1.1` – `3.4.4`)
 - [ ] **[Stage 4]** Canonical Model and Export Engine (`4.1.1` – `4.4.4`)
 - [ ] **[Stage 5]** Public GitHub Repository Extraction (`5.1.1` – `5.5.4`)
 - [ ] **[Stage 6]** Private GitHub Repositories (`6.1.1` – `6.4.4`)

@@ -2153,7 +2153,10 @@ dependencies = [
 name = "web-repo-to-ai-url-security"
 version = "0.1.0"
 dependencies = [
+ "serde",
+ "serde_json",
  "thiserror 1.0.69",
+ "url",
  "web-repo-to-ai-core",
 ]
 
@@ -2161,7 +2164,10 @@ dependencies = [
 name = "web-repo-to-ai-web-extractor"
 version = "0.1.0"
 dependencies = [
+ "serde",
+ "serde_json",
  "thiserror 1.0.69",
+ "url",
  "web-repo-to-ai-cdm",
  "web-repo-to-ai-core",
  "web-repo-to-ai-url-security",

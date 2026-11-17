@@ -14,3 +14,8 @@ workspace = true
 [dependencies]
 web-repo-to-ai-core = { workspace = true }
 thiserror = { workspace = true }
+url = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+
+[dev-dependencies]
+serde_json = { workspace = true }

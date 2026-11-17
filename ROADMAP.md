@@ -14,7 +14,7 @@
 | **STAGE 0** | Project Bootstrap & Engineering Foundation | Working repository, governance, agents/skills/rules/workflows, CI, and Podman dev foundation | `0.1` – `0.3` | 15 (`0.1.1` – `0.3.5`) | `COMPLETED` / `ACCEPTED` |
 | **STAGE 1** | Frontend & Product Experience | Responsive SvelteKit + Svelte 5 website foundation and conversion workspace | `1.1` – `1.4` | 14 (`1.1.1` – `1.4.3`) | `COMPLETED` / `ACCEPTED` |
 | **STAGE 2** | Backend & Processing Foundation | Operational Rust Axum API, PostgreSQL job leasing, and artifact storage | `2.1` – `2.4` | 15 (`2.1.1` – `2.4.4`) | `COMPLETED` / `ACCEPTED` |
-| **STAGE 3** | Universal Webpage Extraction | SSRF-guarded HTTP static & Playwright dynamic URL-to-clean-content extraction | `3.1` – `3.4` | 16 (`3.1.1` – `3.4.4`) | `NOT_STARTED` |
+| **STAGE 3** | Universal Webpage Extraction | SSRF-guarded HTTP static & Playwright dynamic URL-to-clean-content extraction | `3.1` – `3.4` | 16 (1 completed) | `IN_PROGRESS` |
 | **STAGE 4** | Canonical Model & Export Engine | Versioned CDM (`v1.0`), Markdown/TXT/JSON/HTML/JSONL/ZIP exporters, and end-to-end web integration | `4.1` – `4.4` | 16 (`4.1.1` – `4.4.4`) | `NOT_STARTED` |
 | **STAGE 5** | Public GitHub Repository Extraction | Complete public GitHub repo conversion with 100% file completeness accounting | `5.1` – `5.5` | 20 (`5.1.1` – `5.5.4`) | `NOT_STARTED` |
 | **STAGE 6** | Private GitHub Repositories | Secure read-only GitHub App integration, encrypted tokens, and tenant isolation | `6.1` – `6.4` | 16 (`6.1.1` – `6.4.4`) | `NOT_STARTED` |
@@ -60,8 +60,8 @@
 - **Phase 2.3 — Persistence:** `2.3.1` PostgreSQL schema (`ACCEPTED`) | `2.3.2` Migrations (`ACCEPTED`) | `2.3.3` Job state machine (`ACCEPTED`) | `2.3.4` Durable job leasing & recovery (`ACCEPTED` — **PHASE 2.3 CERTIFIED**)
 - **Phase 2.4 — Storage:** `2.4.1` Local artifact storage (`ACCEPTED`) | `2.4.2` Storage abstraction (`ACCEPTED`) | `2.4.3` Retention & cleanup (`ACCEPTED`) | `2.4.4` Checksum validation (`ACCEPTED` — **PHASE 2.4 & STAGE 2 CERTIFIED**)
 
-### STAGE 3 — UNIVERSAL WEBPAGE EXTRACTION (`NOT_STARTED` — **NEXT ELIGIBLE STAGE**)
-- **Phase 3.1 — Secure acquisition:** `3.1.1` URL parsing & validation (`NOT_STARTED` — **NEXT ELIGIBLE SUBPHASE**) | `3.1.2` DNS & SSRF protection | `3.1.3` HTTP fetching & redirects | `3.1.4` Compression, timeouts & size limits
+### STAGE 3 — UNIVERSAL WEBPAGE EXTRACTION (`IN_PROGRESS`)
+- **Phase 3.1 — Secure acquisition:** `3.1.1` URL parsing & validation (`ACCEPTED`) | `3.1.2` DNS & SSRF protection (`NOT_STARTED` — **NEXT ELIGIBLE SUBPHASE**) | `3.1.3` HTTP fetching & redirects | `3.1.4` Compression, timeouts & size limits
 - **Phase 3.2 — Static extraction:** `3.2.1` DOM parsing | `3.2.2` Article extraction | `3.2.3` Documentation extraction | `3.2.4` Tables, links & code extraction
 - **Phase 3.3 — Dynamic extraction:** `3.3.1` Browser worker architecture | `3.3.2` Playwright integration | `3.3.3` Resource & navigation limits | `3.3.4` Dynamic DOM extraction
 - **Phase 3.4 — Extraction quality:** `3.4.1` Source provenance | `3.4.2` Duplicate detection | `3.4.3` Extraction completeness | `3.4.4` Golden dataset regression testing

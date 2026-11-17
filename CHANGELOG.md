@@ -6,6 +6,21 @@
 
 ## [Unreleased] — Stage 3: Universal Webpage Extraction
 
+### 2026-11-17 — Phase 3.1: Secure Acquisition (`3.1.1`)
+
+#### Added
+- **`[3.1.1]` Implement URL Parsing, Normalization, and Validation in `crates/url-security` and `crates/web-extractor`:**
+  - Added `url = { workspace = true }`, `serde = { workspace = true, features = ["derive"] }`, and `serde_json = { workspace = true }` to `crates/url-security/Cargo.toml` and `crates/web-extractor/Cargo.toml`.
+  - Implemented `UrlSecurityError` domain error enum in `crates/url-security/src/error.rs` covering `TooLong`, `ForbiddenScheme`, `ParseError`, `UserinfoForbidden`, `BlockedIp`, `BlockedHost`, `BlockedPort`, `MissingHost`, and `InvalidCharacters`, with standard conversion into `CoreError`.
+  - Implemented `UrlSecurityPolicy` and `UrlSecurityPolicyBuilder` in `crates/url-security/src/policy.rs` supporting configurable length limits, scheme allowlists, marketing/analytics tracking query parameter lists, port blocklists against protocol confusion attacks, and test overrides.
+  - Implemented comprehensive SSRF filters in `crates/url-security/src/ip_filter.rs`:
+    - `is_blocked_ip` covering IPv4 loopback (`127.0.0.0/8`), RFC 1918 private (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), link-local / cloud metadata (`169.254.0.0/16` including AWS/GCP/Azure `169.254.169.254`), CGNAT (`100.64.0.0/10`), multicast (`224.0.0.0/4`), reserved (`240.0.0.0/4`), IPv6 loopback (`::1`), unspecified (`::`), unique-local (`fc00::/7`), link-local (`fe80::/10`), multicast (`ff00::/8`), documentation (`2001:db8::/32`), IPv4-mapped IPv6 (`::ffff:0:0/96`), IPv4-compatible IPv6, 6to4 encapsulation (`2002::/16`), and Teredo tunneling (`2001:0000::/32`).
+    - `is_blocked_host` covering domain blocklists, local/internal domain patterns (`localhost`, `*.localhost`, `*.local`, `*.internal`, `*.lan`), cloud metadata domain names (`metadata.google.internal`), and alternative integer IP notations (POSIX `inet_aton` decimal integers e.g. `2130706433`, hex `0x7f000001`, octal `017700000001`, and dotted abbreviations `127.1`).
+  - Implemented `UrlNormalizer` in `crates/url-security/src/normalizer.rs` performing length verification, null byte and control character detection, WHATWG parsing, scheme validation, default-port stripping (`:80` for http, `:443` for https), duplicate path slash collapse, tracking parameter stripping (`utm_*`, `fbclid`, `gclid`), and deterministic query parameter sorting.
+  - Implemented domain wrapper `ValidatedUrl` in `crates/url-security/src/validated_url.rs` with `as_str`, `origin`, `is_same_origin`, `is_same_domain`, `is_subpath_of`, `join` for relative link traversal with full security re-evaluation, and secure serde serialization/deserialization.
+  - Implemented `WebTarget` and `WebPageType` in `crates/web-extractor/src/url.rs` with heuristic classifier `classify_url` recognizing documentation (by keywords and subdomains e.g. `docs.rs`), articles (by keywords, date paths, and platforms e.g. `medium.com`, `substack.com`), file resources (by file extensions), and generic web pages.
+  - Added 16 unit tests in `crates/url-security` and 7 unit tests in `crates/web-extractor`, expanding workspace unit tests to 163 passing across all 17 crates with 0 warnings and 0 errors across all 5 monorepo verification gates.
+
 ### 2026-11-17 — Phase 2.4: Storage (`2.4.4`), Phase 2.4 Milestone Certification & Stage 2 Completion Certification
 
 #### Added

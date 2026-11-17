@@ -2,17 +2,17 @@
 
 **Project:** `web-repo-to-ai` (Universal URL & GitHub Repository → AI-Ready Content Converter)  
 **Last Updated:** 2026-11-17  
-**Current Stage:** `STAGE 3 — UNIVERSAL WEBPAGE EXTRACTION` (`NOT_STARTED` / `Next Eligible Stage`)  
-**Current Phase:** `Phase 3.1 — Secure acquisition` (`NOT_STARTED`)  
-**Active Subphase:** `3.1.1 — URL parsing, normalization, and validation in crates/url-security and crates/web-extractor` (`NOT_STARTED` / `Next Eligible Subphase`)  
-**Last Completed Subphase:** `2.4.4 — Implement artifact checksum validation and verification in crates/storage` (`ACCEPTED` — **Phase 2.4 & Stage 2 Certified**)  
-**Next Upcoming Subphase:** `3.1.1 — URL parsing, normalization, and validation in crates/url-security and crates/web-extractor`
+**Current Stage:** `STAGE 3 — UNIVERSAL WEBPAGE EXTRACTION` (`IN_PROGRESS`)  
+**Current Phase:** `Phase 3.1 — Secure acquisition` (`IN_PROGRESS`)  
+**Active Subphase:** `3.1.2 — DNS resolution, IP pinning, and DNS-rebinding protection in crates/url-security` (`NOT_STARTED` / `Next Eligible Subphase`)  
+**Last Completed Subphase:** `3.1.1 — URL parsing, normalization, and validation in crates/url-security and crates/web-extractor` (`ACCEPTED`)  
+**Next Upcoming Subphase:** `3.1.2 — DNS resolution, IP pinning, and DNS-rebinding protection in crates/url-security`
 
 ---
 
 ## 1. Executive Summary
 
-Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 subphases), and **Stage 2 (`2.1.1` – `2.4.4`, 15 subphases)** are 100% complete, verified, certified, and accepted. **Subphase `2.4.4` ("Implement artifact checksum validation and verification in crates/storage") has been successfully implemented, verified, and accepted, formally completing and certifying Phase 2.4 ("Storage") and Stage 2 ("Backend and Processing Foundation")**. `ArtifactDigests` computes dual cryptographic hashes (SHA-256 and BLAKE3) in a single pass over byte slices and asynchronously over streaming readers in 64 KB buffers, maintaining the 16 GB baseline memory ceiling on multi-GB artifacts. Verification coordinator `ArtifactVerifier` audits physical storage files, relational `job_artifacts` rows, and standard BSD/GNU `checksums.sha256` manifests. 142/142 automated Rust tests pass across all workspace crates (55 in `crates/storage`), 184/184 frontend tests pass in `apps/web`, and all 5 monorepo verification gates pass cleanly with zero failures. Stage 3 ("Universal Webpage Extraction") is queued with Subphase `3.1.1` as the next eligible subphase.
+Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 subphases), and Stage 2 (`2.1.1` – `2.4.4`, 15 subphases) are 100% complete, verified, certified, and accepted. **Stage 3 ("Universal Webpage Extraction") is officially in progress with Subphase `3.1.1` ("URL parsing, normalization, and validation in crates/url-security and crates/web-extractor") successfully implemented, verified, and accepted.** `crates/url-security` establishes zero-trust WHATWG URL parsing, query canonicalization with tracking parameter stripping (`utm_*`, `fbclid`, `gclid`), default-port stripping (`:80`, `:443`), path duplicate-slash collapse, and rigorous SSRF defenses covering IPv4 loopback, RFC 1918 private, link-local / cloud metadata (`169.254.169.254`), CGNAT, multicast/reserved, IPv6 unique-local, link-local, IPv4-mapped IPv6, 6to4/Teredo tunnels, and alternative integer encodings (POSIX `inet_aton` decimal/hex/octal). `crates/web-extractor` integrates `ValidatedUrl` into `WebTarget` with heuristic classification (`Documentation`, `Article`, `FileResource`, `GenericWeb`), relative link resolution, and subpath detection. 163/163 automated Rust tests pass across all workspace crates (16 in `crates/url-security`, 7 in `crates/web-extractor`), 184/184 frontend tests pass in `apps/web`, and all 5 monorepo verification gates pass cleanly with zero failures. Subphase `3.1.2` is queued as the next active subphase.
 
 ---
 
@@ -20,12 +20,12 @@ Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 su
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 44 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.1.3`, `2.2.1` – `2.2.4`, `2.3.1` – `2.3.4`, `2.4.1` – `2.4.4` |
+| `ACCEPTED` | 45 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 153 | `3.1.1` – `11.4.5` |
+| `NOT_STARTED` | 152 | `3.1.2` – `11.4.5` |
 | **Total** | **197** | `Stage 0` – `Stage 11` |
 
 ---
