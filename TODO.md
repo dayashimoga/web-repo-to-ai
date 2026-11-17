@@ -15,7 +15,7 @@
 
 ### Phase 0.2 — GitHub and CI foundation
 - [x] **[0.2.1]** Create or connect GitHub remote repository (`web-repo-to-ai`) and push `main` branch *(Completed 2026-11-17, https://github.com/dayashimoga/web-repo-to-ai)*
-- [ ] **[0.2.2]** Configure branch protection and repository settings where authorized
+- [x] **[0.2.2]** Configure branch protection and repository settings where authorized *(Completed 2026-11-17, linear history, Dependabot alerts/fixes, main protection)*
 - [ ] **[0.2.3]** Create executable GitHub Actions CI workflows (`ci.yml`, `build.yml`, `release.yml`, `container.yml`)
 - [ ] **[0.2.4]** Configure linting, formatting, and test checks for Rust and Frontend
 - [ ] **[0.2.5]** Configure security and dependency scanning workflows (`security.yml`, `dependency-review.yml`, `codeql.yml`, `deny.toml`)

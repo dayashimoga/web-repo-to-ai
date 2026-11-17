@@ -6,9 +6,15 @@
 
 ## [Unreleased] — Stage 0: Project Bootstrap and Engineering Foundation
 
-### 2026-11-17 — Phase 0.2: GitHub and CI Foundation (`0.2.1`)
+### 2026-11-17 — Phase 0.2: GitHub and CI Foundation (`0.2.1` – `0.2.2`)
 
 #### Added
+- **`[0.2.2]` Branch Protection & Repository Governance:**
+  - Configured repository merge strategy via GitHub REST API: disabled merge commits (`allow_merge_commit: false`), enabled squash merge (`allow_squash_merge: true`), and enabled rebase merge (`allow_rebase_merge: true`) to enforce linear history.
+  - Enabled automatic head branch pruning on PR merge (`delete_branch_on_merge: true`).
+  - Enabled Dependabot vulnerability alerts and automated security fixes.
+  - Enforced branch protection on `main`: blocked force pushes (`allow_force_pushes: false`), blocked branch deletions (`allow_deletions: false`), and required PR conversation resolution (`required_conversation_resolution: true`).
+  - Documented repository governance and protection rules in `docs/DEVELOPMENT.md`.
 - **`[0.2.1]` GitHub Remote Repository & Push:**
   - Verified Git Credential Manager OAuth scopes (`gist, repo, workflow`) for authenticated user `dayashimoga`.
   - Created public GitHub repository `https://github.com/dayashimoga/web-repo-to-ai` via GitHub REST API with issues enabled.

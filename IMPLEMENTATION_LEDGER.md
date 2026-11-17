@@ -173,17 +173,45 @@
   - Remote repository live at `https://github.com/dayashimoga/web-repo-to-ai`.
   - `git status` reports: `On branch main, Your branch is up to date with 'origin/main', nothing to commit, working tree clean`.
   - `git ls-remote origin` output: `98cc1decf23f270aef970877eb3a4b574b86d822 refs/heads/main`.
-- **Git Commit Reference:** `41db2d0`
+- **Git Commit Reference:** `68936ac`
 - **Status:** `ACCEPTED`
 
 ---
 
-### Phase 0.2 — Upcoming Subphases (Awaiting User Approval for `0.2.2`)
+#### Subphase `0.2.2` — Configure branch protection and repository settings where authorized
+- **Unique ID:** `0.2.2`
+- **Objective:** Configure branch protection and repository settings where authorized to enforce linear history, branch deletion on merge, vulnerability alerts, and protection against accidental force pushes or deletions on `main`.
+- **Scope:** GitHub repository settings (`dayashimoga/web-repo-to-ai`), `docs/DEVELOPMENT.md`, and tracking ledgers.
+- **Prerequisites:** `0.2.1` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - GitHub repository settings (`dayashimoga/web-repo-to-ai`)
+  - `docs/DEVELOPMENT.md`
+  - `PROJECT_STATUS.md`, `IMPLEMENTATION_LEDGER.md`, `TODO.md`, `CHANGELOG.md`
+- **Implementation Tasks:**
+  1. Configure repository merge strategies via GitHub REST API: disable traditional merge commits (`allow_merge_commit: false`), enable squash merge (`allow_squash_merge: true`), enable rebase merge (`allow_rebase_merge: true`), and enable automatic head branch deletion (`delete_branch_on_merge: true`).
+  2. Enable automated vulnerability alerts (`PUT /repos/{owner}/{repo}/vulnerability-alerts`) and automated security fixes (`PUT /repos/{owner}/{repo}/automated-security-fixes`).
+  3. Apply branch protection policy on `main` (`PUT /repos/{owner}/{repo}/branches/main/protection`): prevent force pushes (`allow_force_pushes: false`), prevent branch deletions (`allow_deletions: false`), and require conversation resolution (`required_conversation_resolution: true`).
+  4. Document repository governance and branch protection policy in `docs/DEVELOPMENT.md`.
+- **Acceptance Criteria:**
+  - Linear history enforced, automatic branch pruning enabled, vulnerability alerts enabled, and branch protection on `main` active and documented in `docs/DEVELOPMENT.md`.
+- **Tests:** GitHub API queries confirm `allow_force_pushes: false`, `allow_deletions: false`, `required_conversation_resolution: true`, `delete_branch_on_merge: true`, `allow_merge_commit: false`, vulnerability alerts HTTP 204, automated security fixes HTTP 204.
+- **Security Considerations:** Prevents destructive force pushes or accidental branch deletions on `main`; activates automated Dependabot vulnerability alerts; zero credentials stored in files.
+- **Performance Considerations:** API configuration calls complete in <3 seconds.
+- **Documentation Requirements:** Documented in `docs/DEVELOPMENT.md`, `PROJECT_STATUS.md`, `IMPLEMENTATION_LEDGER.md`, `TODO.md`, and `CHANGELOG.md`.
+- **Validation Evidence:**
+  - Branch protection output verified: `allow_force_pushes: False`, `allow_deletions: False`, `required_conversation_resolution: True`.
+  - Repo settings verified: `delete_branch_on_merge: True`, `allow_merge_commit: False`, `allow_squash_merge: True`, `allow_rebase_merge: True`.
+  - Security endpoints: HTTP 204 response for vulnerability alerts and automated fixes.
+- **Git Commit Reference:** Recorded in commit for subphase 0.2.2 docs update
+- **Status:** `ACCEPTED`
+
+---
+
+### Phase 0.2 — Upcoming Subphases (Awaiting User Approval for `0.2.3`)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `0.2.2` | Configure branch protection and repository settings where authorized | `0.2.1` (`ACCEPTED`) | GitHub repository settings / `docs/DEVELOPMENT.md` | `NOT_STARTED` |
-| `0.2.3` | Create GitHub Actions CI workflows (`ci.yml`, `build.yml`, `release.yml`, `container.yml`) | `0.2.2` | `.github/workflows/{ci,build,release,container}.yml` | `NOT_STARTED` |
+| `0.2.3` | Create GitHub Actions CI workflows (`ci.yml`, `build.yml`, `release.yml`, `container.yml`) | `0.2.2` (`ACCEPTED`) | `.github/workflows/{ci,build,release,container}.yml` | `NOT_STARTED` |
 | `0.2.4` | Configure linting, formatting and test checks across Rust and Frontend | `0.2.3` | `.github/workflows/ci.yml`, root lint/format configs | `NOT_STARTED` |
 | `0.2.5` | Configure security and dependency scanning (`security.yml`, `dependency-review.yml`, `codeql.yml`, `deny.toml`) | `0.2.4` | `.github/workflows/{security,dependency-review,codeql}.yml`, `deny.toml` | `NOT_STARTED` |
 

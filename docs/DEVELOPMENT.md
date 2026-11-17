@@ -45,3 +45,23 @@ Recorded during Stage 0 Subphase 0.1.1 inspection on Windows workstation:
 - **Container & Resource Budget Management (Stage 0.3+):**
   - Inspect Podman storage and host disk usage via `scripts/check-resources.ps1`.
   - Clean unused build caches safely via `scripts/clean-caches.ps1`.
+
+---
+
+## 4. GitHub Repository Settings & Branch Protection Policy
+
+The GitHub remote repository (`dayashimoga/web-repo-to-ai`) is configured with the following baseline governance rules (established in Subphase `0.2.2`):
+
+- **Default Branch:** `main`
+- **Linear History Enforced:**
+  - `allow_merge_commit: false` (traditional merge commits are disabled to ensure linear Git history)
+  - `allow_squash_merge: true` (PR squash merge enabled with PR title as commit message)
+  - `allow_rebase_merge: true` (rebase merging permitted for atomic subphase integration)
+- **Automatic Head Branch Deletion:** `delete_branch_on_merge: true` (PR feature branches are pruned automatically upon merge)
+- **Branch Protection on `main`:**
+  - `allow_force_pushes: false` (force pushes to `main` are strictly blocked)
+  - `allow_deletions: false` (deletion of `main` is strictly blocked)
+  - `required_conversation_resolution: true` (all review comments and discussions must be resolved before merging)
+- **Vulnerability & Security Alerts:**
+  - Dependabot vulnerability alerts: `active`
+  - Dependabot automated security fixes: `active`
