@@ -1972,11 +1972,65 @@
 
 ---
 
+#### Subphase `2.3.4` — Implement durable job leasing, heartbeat, and recovery in crates/storage
+- **Unique ID:** `2.3.4`
+- **Objective:** Implement durable distributed worker job leasing, periodic heartbeat lease extensions, lease validity probing, voluntary lease release, and automatic stale lease recovery sweeps in `crates/storage`.
+- **Scope:** `crates/storage/src/leasing.rs`, `crates/storage/src/repository.rs`, `crates/storage/src/schema/jobs.rs`, `crates/storage/src/schema/mod.rs`, `crates/storage/src/lib.rs`.
+- **Prerequisites:** `2.3.3` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/storage/src/leasing.rs`
+  - `crates/storage/src/repository.rs`
+  - `crates/storage/src/schema/jobs.rs`
+  - `crates/storage/src/schema/mod.rs`
+  - `crates/storage/src/lib.rs`
+- **Implementation Tasks:**
+  1. Implement `LeaseConfig` in `crates/storage/src/leasing.rs` defining worker identity (`worker_id`), lease duration (`lease_duration_seconds`), heartbeat interval (`heartbeat_interval_seconds`), and max attempts (`max_attempts`), with invariant validation, default constructors, and Serde support.
+  2. Implement `HeartbeatResult` and `LeaseRecoveryReport` structs with accumulator and inspection helpers (`total_processed`, `is_empty`) and Serde support.
+  3. Implement `JobRepository::acquire_next_job` using PostgreSQL `SELECT ... FOR UPDATE SKIP LOCKED` inside a transaction, atomically leasing either `queued` jobs or stale `leased`/`running` jobs whose lease expired, updating attempt count, calculating lease expiration relative to `NOW()`, and appending a transition audit record.
+  4. Implement `JobRepository::heartbeat_job` and `JobRepository::is_lease_valid`, enforcing worker lease ownership, preventing heartbeat on terminal jobs, verifying expiration boundaries, updating timestamps, and optionally logging progress transitions.
+  5. Implement `JobRepository::release_lease` enabling graceful voluntary lease relinquishment back to `queued` on worker shutdown, and `JobRepository::recover_stale_jobs` sweeping expired worker leases to either `queued` (for retry) or `failed` with code `LEASE_TIMEOUT_EXCEEDED` (when max attempts reached).
+  6. Implement coordinator `LeaseManager` wrapping `PgPool` and `LeaseConfig` with typed async leasing operations, update `JobStatus::can_transition_to` to permit `Running -> Leased` reacquisition, and add 6 unit tests covering leasing configurations, validation rejections, constants invariants, and Serde round-trips (expanding storage tests from 22 to 28, and workspace tests to 115).
+- **Acceptance Criteria:**
+  - `acquire_next_job` safely selects and leases candidate jobs using `FOR UPDATE SKIP LOCKED` without race conditions.
+  - `heartbeat_job` validates worker ownership, rejects terminal/stale jobs, and extends expiration.
+  - `recover_stale_jobs` correctly resets recoverable jobs to `queued` and fails expired jobs exceeding max attempts with `LEASE_TIMEOUT_EXCEEDED`.
+  - 100% of Rust tests pass (28 in `crates/storage`, 115 across workspace); zero clippy warnings; all 5 monorepo verification gates pass cleanly.
+- **Tests:** `cargo test -p web-repo-to-ai-storage` (28/28 passed), `cargo test --workspace` (115/115 passed), `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Complies with Rule 00, 02, and 05: `#![forbid(unsafe_code)]` enforced; worker lease ownership strictly checked on every heartbeat and release preventing cross-worker lease hijacking; parameterized queries across all database operations; bounded batch sizes on recovery sweeps prevent transaction memory exhaustion.
+- **Performance Considerations:** `FOR UPDATE SKIP LOCKED` eliminates distributed lock contention across parallel workers; index `idx_jobs_status_lease` ensures fast query plans for lease acquisition and reaper sweeps.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-storage`: 28/28 tests passed in 0.00s.
+  - `cargo test --workspace`: 115/115 tests passed in 5.97s.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors in 1.93s.
+  - `cargo fmt --all -- --check`: 100% code style compliance.
+  - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
+- **Git Commit Reference:** `545aec1`
+- **Status:** `ACCEPTED`
+
+---
+
+#### Phase 2.3 Milestone Certification
+- **Phase Name:** `Phase 2.3 — Persistence`
+- **Subphases Covered:** `2.3.1` (PostgreSQL relational schema), `2.3.2` (Database migrations and schema validation), `2.3.3` (Job state machine, transitions, and history), `2.3.4` (Durable job leasing, heartbeat, and recovery).
+- **Certification Date:** 2026-11-17
+- **Certification Findings:**
+  1. Complete production relational schema in `ddl.sql` and embedded migrations (`20261117000001` and `20261117000002`) defining `jobs`, `job_artifacts`, `github_installations`, `content_cache_index`, and `job_state_transitions`.
+  2. Compile-time embedded SQLx migration framework (`MIGRATOR`), structured migration reporting (`MigrationReport`), and runtime PostgreSQL catalog validation (`validate_schema`).
+  3. Deterministic state machine (`JobStateMachine`) and immutable transition audit trail with row-level locking (`SELECT ... FOR UPDATE`).
+  4. Durable distributed worker leasing (`FOR UPDATE SKIP LOCKED`), periodic heartbeats, voluntary lease release, and automated stale lease recovery (`recover_stale_jobs`).
+  5. 115/115 automated Rust unit tests pass across the workspace (28 in `crates/storage`); 184/184 frontend tests pass in `apps/web`.
+  6. All 5 monorepo verification gates in `scripts/check-all.ps1` and `scripts/check-all.sh` pass cleanly with 0 failures.
+- **Status:** `COMPLETED` / `ACCEPTED` (Certified 2026-11-17)
+
+---
+
 ### Upcoming Subphase
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `2.3.4` | Implement durable job leasing, heartbeat, and recovery in crates/storage | `2.3.3` (`ACCEPTED`) | `crates/storage/*` | `NOT_STARTED` |
+| `2.4.1` | Implement local filesystem artifact storage in crates/storage | Phase 2.3 (`ACCEPTED`) | `crates/storage/*` | `NOT_STARTED` |
 
 ---
 

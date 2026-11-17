@@ -145,7 +145,12 @@ impl JobStatus {
             ),
             Self::Running => matches!(
                 target,
-                Self::Completed | Self::Partial | Self::Failed | Self::Cancelled | Self::Queued
+                Self::Completed
+                    | Self::Partial
+                    | Self::Failed
+                    | Self::Cancelled
+                    | Self::Queued
+                    | Self::Leased
             ),
             Self::Completed | Self::Partial | Self::Failed | Self::Cancelled => false,
         }

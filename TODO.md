@@ -68,11 +68,11 @@
 - [x] **[2.2.3]** Implement API error contracts and RFC 7807 problem details *(Completed 2026-11-17, ApiProblem responder, application/problem+json media type, MethodNotAllowed, RequestBodyLimitLayer 413, correlation integrity, 33 passing tests, all 5 gates pass)*
 - [x] **[2.2.4]** Implement health, readiness, and metrics endpoints *(Completed 2026-11-17, liveness probe /health, deep readiness probe /ready auditing storage writeability and database URL, Prometheus /metrics exposition with dynamic uptime/build info/HTTP metrics, 37 passing tests, Phase 2.2 Certified)*
 
-### Phase 2.3 — Persistence (`IN_PROGRESS`)
+### Phase 2.3 — Persistence (`COMPLETED` / `ACCEPTED`)
 - [x] **[2.3.1]** Design and implement PostgreSQL relational schema in crates/storage *(Completed 2026-11-17, DDL schema for jobs/artifacts/installations/cache, SQLx FromRow entity models, 10 passing storage tests, 97 workspace tests)*
 - [x] **[2.3.2]** Implement database migrations and schema validation in crates/storage *(Completed 2026-11-17, embedded SQLx migrator, MigrationReport, validate_schema catalog verification, DatabaseManager, 17 passing storage tests, 104 workspace tests)*
 - [x] **[2.3.3]** Implement job state machine, transitions, and history in crates/storage *(Completed 2026-11-17, JobStateMachine transition validation, terminal state immutability, job_state_transitions migration, JobRepository row-level locked transitions, 22 passing storage tests, 109 workspace tests)*
-- [ ] **[2.3.4]** Implement durable job leasing, heartbeat, and recovery in crates/storage
+- [x] **[2.3.4]** Implement durable job leasing, heartbeat, and recovery in crates/storage *(Completed 2026-11-17, FOR UPDATE SKIP LOCKED worker queue polling, heartbeat lease extension, voluntary lease release, automated stale recovery, LeaseManager, 28 passing storage tests, 115 workspace tests, Phase 2.3 Certified)*
 
 ### Phase 2.4 — Storage
 - [ ] **[2.4.1]** Implement local filesystem artifact storage in crates/storage

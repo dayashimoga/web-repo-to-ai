@@ -14,6 +14,7 @@
 #![warn(missing_docs)]
 
 pub mod database;
+pub mod leasing;
 pub mod migrations;
 pub mod repository;
 pub mod schema;
@@ -21,6 +22,7 @@ pub mod state_machine;
 pub mod validation;
 
 pub use database::*;
+pub use leasing::*;
 pub use migrations::*;
 pub use repository::*;
 pub use schema::*;

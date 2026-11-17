@@ -6,6 +6,18 @@
 
 ## [Unreleased] — Stage 2: Backend and Processing Foundation
 
+### 2026-11-17 — Phase 2.3: Persistence (`2.3.4`) & Phase 2.3 Milestone Certification
+
+#### Added
+- **`[2.3.4]` Implement Durable Job Leasing, Heartbeat, and Recovery in `crates/storage`:**
+  - Implemented `LeaseConfig` in `crates/storage/src/leasing.rs` defining worker identity (`worker_id`), lease duration (`lease_duration_seconds`), heartbeat interval (`heartbeat_interval_seconds`), and max retry attempts (`max_attempts`) with invariant validation and Serde support.
+  - Implemented `HeartbeatResult` and `LeaseRecoveryReport` structs with accumulator and inspection helpers (`total_processed`, `is_empty`) and Serde support.
+  - Implemented `JobRepository::acquire_next_job` using PostgreSQL `SELECT ... FOR UPDATE SKIP LOCKED` inside an atomic transaction, dynamically leasing either `queued` jobs or stale `leased`/`running` jobs whose lease expired, updating attempt count, calculating lease expiration relative to `NOW()`, and appending an audit record to `job_state_transitions`.
+  - Implemented `JobRepository::heartbeat_job` and `JobRepository::is_lease_valid`, enforcing worker lease ownership, preventing heartbeat on terminal jobs, verifying expiration boundaries, updating timestamps, and optionally logging progress transitions.
+  - Implemented `JobRepository::release_lease` enabling graceful voluntary lease relinquishment back to `queued` on worker shutdown, and `JobRepository::recover_stale_jobs` sweeping expired worker leases to either `queued` (for retry) or `failed` with code `LEASE_TIMEOUT_EXCEEDED` (when max attempts reached).
+  - Implemented coordinator `LeaseManager` wrapping `PgPool` and `LeaseConfig` with typed async leasing operations, updated `JobStatus::can_transition_to` to permit `Running -> Leased` reacquisition, and added 6 unit tests covering leasing configurations, validation rejections, constants invariants, and Serde round-trips, expanding storage crate tests to 28 and automated Rust workspace tests to 115/115 passing. Verified all 5 quality gates pass cleanly.
+  - Formally certified completion of **Phase 2.3: Persistence** (`2.3.1` – `2.3.4` all `ACCEPTED`).
+
 ### 2026-11-17 — Phase 2.3: Persistence (`2.3.3`)
 
 #### Added

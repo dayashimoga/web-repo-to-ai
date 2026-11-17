@@ -168,6 +168,7 @@ mod tests {
         assert!(JobStatus::Running.can_transition_to(JobStatus::Completed));
         assert!(JobStatus::Running.can_transition_to(JobStatus::Partial));
         assert!(JobStatus::Running.can_transition_to(JobStatus::Failed));
+        assert!(JobStatus::Running.can_transition_to(JobStatus::Leased));
 
         // Terminal states cannot transition further
         assert!(!JobStatus::Completed.can_transition_to(JobStatus::Running));
