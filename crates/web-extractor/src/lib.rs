@@ -27,7 +27,9 @@ pub use article::{
 pub use browser::{
     BlockedSubresource, BrowserRedirect, BrowserRenderRequest, BrowserRenderResponse,
     BrowserTiming, BrowserWorkerClient, BrowserWorkerError, BrowserWorkerHealth, ConsoleMessage,
-    PageError, Viewport, WaitUntil, DEFAULT_CLIENT_TIMEOUT,
+    DynamicExtractorOptions, DynamicProvenance, DynamicWebExtractor, ExtractedWebpage,
+    ExtractionMethod, ExtractionStrategy, PageError, SpaDetector, Viewport, WaitUntil,
+    DEFAULT_CLIENT_TIMEOUT, DEFAULT_MIN_CONTENT_DENSITY, DEFAULT_MIN_STATIC_TEXT_LENGTH,
 };
 pub use compression::{BodyLimits, BoundedDecompressor, ContentEncoding};
 pub use docs::{

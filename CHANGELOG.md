@@ -6,6 +6,20 @@
 
 ## [Unreleased] — Stage 3: Universal Webpage Extraction
 
+### 2026-11-17 — Phase 3.3: Dynamic Extraction (`3.3.4`) — PHASE 3.3 CERTIFIED
+
+#### Added
+- **`[3.3.4]` Implement Dynamic DOM Extraction and Post-Render Hydration in `crates/web-extractor` (Phase 3.3 Milestone Certified):**
+  - Implemented `DynamicWebExtractor` orchestrating full web extraction: fast streaming static acquisition, content density & SPA shell heuristic analysis, dynamic browser worker invocation for JS-rendered pages, and post-render hydration into DOM, article, documentation, and structured element models.
+  - Implemented `SpaDetector` heuristic analyzer detecting empty DOMs, framework hydration roots (`#root`, `#app`, `#__next`, `#svelte`, `<app-root>`), `<noscript>` JavaScript warnings, and low-density markup shells (< 5% content density).
+  - Implemented post-render hydration pipeline feeding rendered HTML into `DomParser`, `ArticleExtractor`, `DocExtractor`, and `ElementsExtractor`, returning unified `ExtractedWebpage` instances.
+  - Implemented `DynamicProvenance` capturing extraction method (`Static` vs `DynamicBrowser`), HTTP status, redirect chains, console logs, unhandled page errors, blocked subresources, and diagnostic warnings.
+  - Implemented graceful degradation in `DynamicWebExtractor::extract`: if dynamic browser rendering fails or times out on an SPA page with fallback static content, preserve static extraction and attach diagnostic provenance warnings rather than failing the job.
+  - Re-exported `DynamicWebExtractor`, `SpaDetector`, `ExtractionStrategy`, `ExtractionMethod`, `DynamicExtractorOptions`, `DynamicProvenance`, and `ExtractedWebpage` in `crates/web-extractor/src/lib.rs`.
+  - Added 4 unit and integration tests in `crates/web-extractor/src/browser/extractor.rs` testing SPA detector heuristics, rich article static path, SPA fallback with mock browser worker, and graceful degradation on browser worker failure, bringing `crates/web-extractor` to 114/114 tests and workspace to 275/275 passing tests.
+  - Formally certified **Phase 3.3 ("Dynamic extraction")** with all 4 subphases (`3.3.1` – `3.3.4`) fully implemented, verified, and accepted.
+  - Verified 114/114 tests in `crates/web-extractor`, 275/275 workspace tests, 29/29 Node.js tests in `services/browser-worker`, 184/184 frontend tests in `apps/web`, and 100% pass rate across all 5 monorepo verification gates.
+
 ### 2026-11-17 — Phase 3.3: Dynamic Extraction (`3.3.3`)
 
 #### Added
