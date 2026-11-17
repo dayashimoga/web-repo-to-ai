@@ -466,7 +466,7 @@ impl DomParser {
 }
 
 /// Decodes common standard HTML entities for clean plain-text output.
-fn decode_html_entities(text: &str) -> String {
+pub(crate) fn decode_html_entities(text: &str) -> String {
     if !text.contains('&') {
         return text.to_string();
     }

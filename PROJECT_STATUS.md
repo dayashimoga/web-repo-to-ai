@@ -3,16 +3,16 @@
 **Project:** `web-repo-to-ai` (Universal URL & GitHub Repository → AI-Ready Content Converter)  
 **Last Updated:** 2026-11-17  
 **Current Stage:** `STAGE 3 — UNIVERSAL WEBPAGE EXTRACTION` (`IN_PROGRESS`)  
-**Current Phase:** `Phase 3.1 — Secure acquisition` (`ACCEPTED` & `CERTIFIED`) / `Phase 3.2 — Static extraction` (`IN_PROGRESS`)  
-**Active Subphase:** `3.2.4 — Tables, code blocks, syntax detection, and link extraction in crates/web-extractor` (`NOT_STARTED` / `Next Eligible Subphase`)  
-**Last Completed Subphase:** `3.2.3 — Technical documentation and navigation hierarchy extraction in crates/web-extractor` (`ACCEPTED`)  
-**Next Upcoming Subphase:** `3.2.4 — Tables, code blocks, syntax detection, and link extraction in crates/web-extractor`
+**Current Phase:** `Phase 3.1 & Phase 3.2` (`ACCEPTED` & `CERTIFIED`) / `Phase 3.3 — Dynamic extraction` (`NOT_STARTED`)  
+**Active Subphase:** `3.3.1 — Browser worker architecture and IPC protocol in services/browser-worker` (`NOT_STARTED` / `Next Eligible Subphase`)  
+**Last Completed Subphase:** `3.2.4 — Tables, code blocks, syntax detection, and link extraction in crates/web-extractor` (`ACCEPTED` — **PHASE 3.2 CERTIFIED**)  
+**Next Upcoming Subphase:** `3.3.1 — Browser worker architecture and IPC protocol in services/browser-worker`
 
 ---
 
 ## 1. Executive Summary
 
-Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 subphases), Stage 2 (`2.1.1` – `2.4.4`, 15 subphases), and Phase 3.1 (`3.1.1` – `3.1.4`, 4 subphases) are 100% complete, verified, certified, and accepted. **Subphase `3.2.3` ("Technical documentation and navigation hierarchy extraction in crates/web-extractor") is now 100% complete, verified, and accepted.** `crates/web-extractor` implements `DocExtractor` detecting documentation generator frameworks (`Docusaurus`, `mdBook`, `Sphinx`, `MkDocs`, `Rustdoc`, `VitePress`, `Nextra`, `GitBook`, `Generic`), extracting breadcrumb trails, previous/next pagination controls, and version selectors, constructing nested on-page tables of contents (`h1`–`h6`) with anchor normalization and permalink stripping, parsing callouts/admonitions (`Note`, `Tip`, `Info`, `Important`, `Warning`, `Caution`, `Danger`), and decomposing documents into structured sections. 248/248 automated Rust tests pass across all workspace crates (87 in `crates/web-extractor`), 184/184 frontend tests pass in `apps/web`, and all 5 monorepo verification gates pass cleanly with zero failures. Subphase `3.2.4` is queued as the next active subphase.
+Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 subphases), Stage 2 (`2.1.1` – `2.4.4`, 15 subphases), Phase 3.1 (`3.1.1` – `3.1.4`, 4 subphases), and Phase 3.2 (`3.2.1` – `3.2.4`, 4 subphases) are 100% complete, verified, certified, and accepted. **Phase 3.2: Static Extraction is formally completed and certified.** `crates/web-extractor` delivers robust DOM parsing (`tl`), boilerplate cleaning, metadata harvesting, readability scoring and article extraction, documentation generator framework recognition (Docusaurus, mdBook, Sphinx, MkDocs, Rustdoc, VitePress, Nextra, GitBook), on-page heading hierarchy/ToC extraction, breadcrumbs and pagination, callout/admonition parsing, HTML table normalization into rectangular matrices with GFM Markdown generation, `<pre><code>` code block extraction with line-number gutter stripping and syntax detection heuristics, and hyperlink canonicalization/classification. 268/268 automated Rust tests pass across all workspace crates (107 in `crates/web-extractor`), 184/184 frontend tests pass in `apps/web`, and all 5 monorepo verification gates pass cleanly with zero failures. Subphase `3.3.1` is queued as the next active subphase.
 
 ---
 
@@ -20,12 +20,12 @@ Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 su
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 51 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.2.3` |
+| `ACCEPTED` | 52 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.2.4` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 146 | `3.2.4` – `11.4.5` |
+| `NOT_STARTED` | 145 | `3.3.1` – `11.4.5` |
 | **Total** | **197** | `Stage 0` – `Stage 11` |
 
 ---

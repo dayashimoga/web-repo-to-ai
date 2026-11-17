@@ -15,6 +15,7 @@ pub mod article;
 pub mod compression;
 pub mod docs;
 pub mod dom;
+pub mod elements;
 pub mod error;
 pub mod http;
 pub mod url;
@@ -30,6 +31,11 @@ pub use docs::{
 pub use dom::{
     BoilerplateCleaner, BoilerplatePolicy, CleanedDocument, DocumentMetadata, DomParser,
     LinkResolver,
+};
+pub use elements::{
+    detect_syntax, normalize_language_tag, CodeBlockExtractor, ElementsExtractor, ElementsOptions,
+    ExtractedCodeBlock, ExtractedElements, ExtractedLink, ExtractedTable, LinkExtractor, LinkType,
+    TableAlignment, TableExtractor, ASSET_EXTENSIONS,
 };
 pub use error::WebExtractorError;
 pub use http::{
@@ -1411,5 +1417,224 @@ fn it_works() {
         assert_eq!(doc.table_of_contents.len(), 1);
         assert_eq!(doc.table_of_contents[0].children.len(), 1);
         assert!(doc.content_text.contains("Operational instructions"));
+    }
+
+    #[test]
+    fn test_elements_table_complex_matrix_and_markdown() {
+        let html = r##"
+            <table>
+                <caption>Quarterly Cloud Architecture Costs</caption>
+                <thead>
+                    <tr>
+                        <th align="left">Service</th>
+                        <th align="center">Region</th>
+                        <th style="text-align: right">Cost (USD)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Compute Instances</td>
+                        <td>us-east-1</td>
+                        <td>$1,250.00</td>
+                    </tr>
+                    <tr>
+                        <td>Block Storage</td>
+                        <td>eu-central-1</td>
+                        <td>$340.50</td>
+                    </tr>
+                </tbody>
+            </table>
+        "##;
+
+        let extractor = ElementsExtractor::default();
+        let elements = extractor.extract(html, None).unwrap();
+
+        assert_eq!(elements.tables.len(), 1);
+        let table = &elements.tables[0];
+        assert_eq!(
+            table.caption.as_deref(),
+            Some("Quarterly Cloud Architecture Costs")
+        );
+        assert_eq!(table.headers, vec!["Service", "Region", "Cost (USD)"]);
+        assert_eq!(table.num_rows, 3);
+        assert_eq!(table.num_cols, 3);
+        assert_eq!(
+            table.column_alignments,
+            vec![
+                TableAlignment::Left,
+                TableAlignment::Center,
+                TableAlignment::Right
+            ]
+        );
+
+        let md = table.to_markdown();
+        assert!(md.contains("**Quarterly Cloud Architecture Costs**"));
+        assert!(md.contains("| Service | Region | Cost (USD) |"));
+        assert!(md.contains("| :--- | :---: | ---: |"));
+        assert!(md.contains("| Compute Instances | us-east-1 | $1,250.00 |"));
+    }
+
+    #[test]
+    fn test_elements_code_blocks_and_syntax_detection() {
+        let html = r##"
+            <div class="content">
+                <pre><code class="language-rust">
+pub async fn fetch_manifest(id: &str) -> Result<Manifest, Error> {
+    let url = format!("https://api.example.com/manifest/{id}");
+    reqwest::get(&url).await?.json().await
+}
+                </code></pre>
+
+                <pre><code>
+SELECT u.id, u.email, COUNT(j.id) as total_jobs
+FROM users u
+JOIN jobs j ON j.user_id = u.id
+WHERE u.status = 'active'
+GROUP BY u.id, u.email;
+                </code></pre>
+            </div>
+        "##;
+
+        let extractor = ElementsExtractor::default();
+        let elements = extractor.extract(html, None).unwrap();
+
+        assert_eq!(elements.code_blocks.len(), 2);
+        let rust_block = &elements.code_blocks[0];
+        assert_eq!(rust_block.language.as_deref(), Some("rust"));
+        assert!(rust_block.code.contains("pub async fn fetch_manifest"));
+
+        let sql_block = &elements.code_blocks[1];
+        assert_eq!(sql_block.language.as_deref(), Some("sql"));
+        assert!(sql_block.code.contains("SELECT u.id, u.email"));
+    }
+
+    #[test]
+    fn test_elements_code_line_number_gutters_stripped() {
+        let html = r##"
+            <pre><code>1  // Entry point
+2  fn main() {
+3      println!("Hello World");
+4  }</code></pre>
+        "##;
+
+        let extractor = ElementsExtractor::default();
+        let elements = extractor.extract(html, None).unwrap();
+
+        assert_eq!(elements.code_blocks.len(), 1);
+        let block = &elements.code_blocks[0];
+        assert!(block.has_line_numbers_stripped);
+        assert_eq!(
+            block.code,
+            "// Entry point\nfn main() {\n    println!(\"Hello World\");\n}"
+        );
+        assert_eq!(block.language.as_deref(), Some("rust"));
+    }
+
+    #[test]
+    fn test_elements_link_extraction_and_classification() {
+        let base_url = ValidatedUrl::parse_default("https://antigravity.dev/docs/intro").unwrap();
+        let html = r##"
+            <nav>
+                <a href="/docs/architecture" title="System Architecture">Architecture</a>
+                <a href="https://github.com/dayashimoga/web-repo-to-ai" rel="noopener noreferrer">GitHub Repo</a>
+                <a href="#quickstart">Quickstart</a>
+                <a href="/data/dataset.parquet">Dataset Download</a>
+                <a href="/archive/release-v1.zip">Release Archive</a>
+                <a href="mailto:security@antigravity.dev">Security Contact</a>
+                <a href="javascript:void(0)">Noop Link</a>
+            </nav>
+        "##;
+
+        let extractor = ElementsExtractor::default();
+        let elements = extractor.extract(html, Some(&base_url)).unwrap();
+
+        assert_eq!(elements.links.len(), 6); // javascript: link is stripped
+
+        let internal = &elements.links[0];
+        assert_eq!(internal.url, "https://antigravity.dev/docs/architecture");
+        assert_eq!(internal.link_type, LinkType::Internal);
+        assert_eq!(internal.title.as_deref(), Some("System Architecture"));
+
+        let external = &elements.links[1];
+        assert_eq!(
+            external.url,
+            "https://github.com/dayashimoga/web-repo-to-ai"
+        );
+        assert_eq!(external.link_type, LinkType::External);
+        assert_eq!(external.rel, vec!["noopener", "noreferrer"]);
+
+        let anchor = &elements.links[2];
+        assert_eq!(anchor.url, "#quickstart");
+        assert_eq!(anchor.link_type, LinkType::Anchor);
+
+        let asset1 = &elements.links[3];
+        assert_eq!(asset1.url, "https://antigravity.dev/data/dataset.parquet");
+        assert_eq!(asset1.link_type, LinkType::Asset);
+
+        let asset2 = &elements.links[4];
+        assert_eq!(asset2.url, "https://antigravity.dev/archive/release-v1.zip");
+        assert_eq!(asset2.link_type, LinkType::Asset);
+
+        let special = &elements.links[5];
+        assert_eq!(special.url, "mailto:security@antigravity.dev");
+        assert_eq!(special.link_type, LinkType::Special);
+    }
+
+    #[test]
+    fn test_elements_extractor_integrated_full_pipeline() {
+        let base = ValidatedUrl::parse_default("https://example.org/api-ref").unwrap();
+        let html = r##"
+            <!DOCTYPE html>
+            <html>
+            <head><title>API Reference & Benchmarks</title></head>
+            <body>
+                <h1>API Specification</h1>
+                <p>Refer to our <a href="/getting-started">Getting Started</a> guide.</p>
+                
+                <pre><code class="language-python">
+import httpx
+
+async def call_api(token: str):
+    headers = {"Authorization": f"Bearer {token}"}
+    async with httpx.AsyncClient() as client:
+        return await client.get("https://api.example.org/v1/jobs", headers=headers)
+                </code></pre>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Endpoint</th>
+                            <th>Method</th>
+                            <th>Auth</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>/v1/convert</td>
+                            <td>POST</td>
+                            <td>Required</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p>Download client SDK: <a href="/downloads/python-sdk.tar.gz">SDK Archive</a></p>
+            </body>
+            </html>
+        "##;
+
+        let options = ElementsOptions::default().with_inline_code(true);
+        let extractor = ElementsExtractor::new(options);
+        let elements = extractor.extract(html, Some(&base)).unwrap();
+
+        assert_eq!(elements.tables.len(), 1);
+        assert_eq!(elements.tables[0].num_rows, 2);
+        assert_eq!(elements.tables[0].num_cols, 3);
+
+        assert_eq!(elements.code_blocks.len(), 1);
+        assert_eq!(elements.code_blocks[0].language.as_deref(), Some("python"));
+
+        assert_eq!(elements.links.len(), 2);
+        assert_eq!(elements.links[0].link_type, LinkType::Internal);
+        assert_eq!(elements.links[1].link_type, LinkType::Asset);
     }
 }

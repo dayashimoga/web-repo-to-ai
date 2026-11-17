@@ -2544,11 +2544,72 @@
 
 ---
 
+#### Subphase `3.2.4` — Tables, code blocks, syntax detection, and link extraction in crates/web-extractor
+- **Unique ID:** `3.2.4`
+- **Objective:** Implement structured HTML table extraction with alignment and cell spanning (`colspan`/`rowspan`) normalization; `<pre><code>` and inline code extraction with syntax highlighter pattern handling, line-number stripping, and heuristic programming language detection; link extraction with canonical URL resolution, link type classification (internal, external, anchor, asset, special), and attribute parsing; and coordinate extraction through `ElementsExtractor`.
+- **Scope:** `crates/web-extractor/src/elements/*`, `crates/web-extractor/src/lib.rs`.
+- **Prerequisites:** `3.2.3` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/web-extractor/src/elements/mod.rs`
+  - `crates/web-extractor/src/elements/model.rs`
+  - `crates/web-extractor/src/elements/table.rs`
+  - `crates/web-extractor/src/elements/code.rs`
+  - `crates/web-extractor/src/elements/syntax.rs`
+  - `crates/web-extractor/src/elements/link.rs`
+  - `crates/web-extractor/src/elements/extractor.rs`
+  - `crates/web-extractor/src/lib.rs`
+- **Implementation Tasks:**
+  1. Define `ExtractedTable`, `TableAlignment`, `ExtractedCodeBlock`, `ExtractedLink`, `LinkType`, `ExtractedElements`, and `ElementsOptions` in `crates/web-extractor/src/elements/model.rs`.
+  2. Implement `TableExtractor` in `crates/web-extractor/src/elements/table.rs` extracting table headers, body rows, captions, cell alignments (`left`, `center`, `right`), handling `colspan`/`rowspan` rectangular normalization, and rendering to GFM Markdown table syntax.
+  3. Implement `detect_syntax` in `crates/web-extractor/src/elements/syntax.rs` identifying programming languages via shebangs and keyword/syntax frequencies (Rust, Python, JS, TS, Go, C/C++, Java, SQL, HTML, CSS, JSON, YAML, TOML, Bash/Shell, Dockerfile).
+  4. Implement `CodeBlockExtractor` in `crates/web-extractor/src/elements/code.rs` identifying code blocks, extracting language classes, stripping line numbers and gutter tables, preserving exact indentation and whitespace, and detecting language fallbacks.
+  5. Implement `LinkExtractor` in `crates/web-extractor/src/elements/link.rs` resolving hyperlinks against document base URLs, classifying links (internal, external, anchor, asset, special), extracting anchor text, titles, and `rel` attributes.
+  6. Implement `ElementsExtractor` in `crates/web-extractor/src/elements/extractor.rs` orchestrating comprehensive structural extraction from HTML strings or parsed DOMs.
+  7. Expose element extraction modules in `crates/web-extractor/src/lib.rs`.
+  8. Add exhaustive unit and integration tests across tables, code blocks, syntax detection, and link extraction.
+  9. Run all 5 monorepo verification gates in `scripts/check-all.ps1`.
+- **Acceptance Criteria:**
+  - HTML tables are accurately parsed with rectangular column alignment and rendered to valid GFM Markdown tables.
+  - Spanned cells (`colspan` and `rowspan`) preserve data without shifting column alignments.
+  - Code blocks preserve exact code indentation and linebreaks without whitespace corruption; line numbers from highlighter gutters are cleanly excluded; syntax languages are detected accurately.
+  - Hyperlinks are resolved, sanitized (XSS schemes neutralized), and classified correctly into internal, external, anchor, asset, and special.
+  - 100% of workspace tests pass; 0 clippy warnings; 0 formatting errors; all 5 verification gates pass.
+- **Tests:** `cargo test -p web-repo-to-ai-web-extractor`, `cargo test --workspace`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, `pnpm --filter web test:unit`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, 02, 04, 05: `#![forbid(unsafe_code)]`; no regex ReDoS; all URLs resolved against pinned base URLs with XSS schemes (`javascript:`) neutralized; pipe characters and markup escaped in Markdown table formatting.
+- **Performance Considerations:** Single-pass DOM traversal where applicable; fast heuristic syntax scanning; bounded memory allocations.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-web-extractor`: 107/107 tests passed.
+  - `cargo test --workspace`: 268/268 tests passed.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors.
+  - `cargo fmt --all -- --check`: 100% code style compliance.
+  - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
+  - `npm test` (`apps/web`): 184/184 tests passed.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
+- **Git Commit Reference:** `abbbeed`
+- **Status:** `ACCEPTED`
+
+---
+
+### Phase 3.2 Milestone Certification — Static Extraction
+- **Phase ID:** `Phase 3.2`
+- **Scope:** `3.2.1` – `3.2.4` (DOM parsing, article extraction, documentation extraction, tables/code/links).
+- **Certification Date:** 2026-11-17
+- **Verification Summary:**
+  - `3.2.1`: Pure-Rust DOM parsing via `tl`, document metadata, boilerplate removal policies, relative link/image URL canonicalization (`ACCEPTED`).
+  - `3.2.2`: Readability scoring heuristics, text density, byline/time extraction, article extraction with whole-document fallback (`ACCEPTED`).
+  - `3.2.3`: Heuristic framework detection (Docusaurus, mdBook, Sphinx, MkDocs, Rustdoc, VitePress, Nextra, GitBook), heading hierarchy/ToC extraction, breadcrumb/pagination navigation, callout/admonition extraction (`ACCEPTED`).
+  - `3.2.4`: HTML table normalization into rectangular matrices, `colspan`/`rowspan` handling, GFM Markdown table generation, code block extraction with line-number stripping and syntax heuristics, hyperlink classification (`ACCEPTED`).
+  - All 4 subphases hold status `ACCEPTED`. 268/268 workspace Rust tests pass, 184/184 frontend tests pass, all 5 monorepo verification gates pass with 0 failures.
+- **Phase Status:** `ACCEPTED` & `CERTIFIED`
+
+---
+
 ### Upcoming Subphase (Stage 3 — Universal Webpage Extraction)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `3.2.4` | Tables, code blocks, syntax detection, and link extraction in crates/web-extractor | `3.2.3` (`ACCEPTED`) | `crates/web-extractor/*` | `NOT_STARTED` |
+| `3.3.1` | Browser worker architecture and IPC protocol in services/browser-worker | `3.2.4` (`ACCEPTED`) | `services/browser-worker/*` | `NOT_STARTED` |
 
 ---
 

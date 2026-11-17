@@ -6,6 +6,19 @@
 
 ## [Unreleased] — Stage 3: Universal Webpage Extraction
 
+### 2026-11-17 — Phase 3.2: Static Extraction (`3.2.4`) & Phase 3.2 Milestone Certification
+
+#### Added
+- **`[3.2.4]` Implement Tables, Code Blocks, Syntax Detection, and Link Extraction in `crates/web-extractor`:**
+  - Defined `ExtractedTable`, `TableAlignment`, `ExtractedCodeBlock`, `ExtractedLink`, `LinkType`, `ExtractedElements`, and `ElementsOptions` in `crates/web-extractor/src/elements/model.rs`.
+  - Implemented `TableExtractor` in `crates/web-extractor/src/elements/table.rs` extracting table headers, body rows, captions, and alignments (`align` and CSS `text-align`), normalizing `colspan` and `rowspan` into rectangular matrices, and generating GitHub Flavored Markdown (GFM) tables with character escaping.
+  - Implemented `detect_syntax` and `normalize_language_tag` in `crates/web-extractor/src/elements/syntax.rs` identifying programming languages via shebangs and keyword patterns across Rust, Python, TypeScript, JavaScript, Go, C/C++, Java, SQL, HTML, CSS, JSON, YAML, TOML, Bash, and Dockerfile.
+  - Implemented `CodeBlockExtractor` in `crates/web-extractor/src/elements/code.rs` handling `<pre><code>` and `<pre>` blocks, identifying language classes and data attributes, stripping Rouge/Pygments line-number gutters and monotonic numeric prefixes, and preserving exact indentation, whitespace, and line breaks without loss.
+  - Implemented `LinkExtractor` in `crates/web-extractor/src/elements/link.rs` resolving hyperlinks against base URLs, classifying links into `Internal`, `External`, `Anchor`, `Asset` (`.pdf`, `.zip`, `.parquet`, `.tar.gz`, etc.), and `Special` (`mailto:`, `tel:`), and neutralizing dangerous `javascript:` schemes.
+  - Implemented `ElementsExtractor` in `crates/web-extractor/src/elements/extractor.rs` coordinating unified extraction of tables, code, and links from raw HTML strings or parsed DOM trees.
+  - Added 20 unit and integration tests across elements modules and `lib.rs` (107 total in crate), expanding workspace tests to 268 passing across all 17 crates with 100% pass rate across all 5 monorepo verification gates.
+  - Formally certified completion of **Phase 3.2: Static Extraction** (`3.2.1` – `3.2.4` all `ACCEPTED`).
+
 ### 2026-11-17 — Phase 3.2: Static Extraction (`3.2.3`)
 
 #### Added
