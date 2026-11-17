@@ -86,7 +86,7 @@
 
 ### Phase 3.1 — Secure acquisition (`IN_PROGRESS`)
 - [x] **[3.1.1]** URL parsing, normalization, and validation in crates/url-security and crates/web-extractor *(Completed 2026-11-17, UrlSecurityError, UrlSecurityPolicy, is_blocked_ip, is_blocked_host, parse_alternative_ipv4, UrlNormalizer, ValidatedUrl, WebTarget, WebPageType, 16 passing url-security tests, 7 passing web-extractor tests, 163 workspace tests)*
-- [ ] **[3.1.2]** DNS resolution, IP pinning, and DNS-rebinding protection in crates/url-security
+- [x] **[3.1.2]** DNS resolution, IP pinning, and DNS-rebinding protection in crates/url-security *(Completed 2026-11-17, DnsResolver trait, SystemDnsResolver, MockDnsResolver, PinnedTarget, SecureDnsResolver with RwLock caching, all-record SSRF validation, anti-rebinding tests, 21 passing url-security tests, 8 passing web-extractor tests, 169 workspace tests)*
 - [ ] **[3.1.3]** HTTP fetching, streaming bodies, and redirect revalidation in crates/web-extractor
 - [ ] **[3.1.4]** Compression bombs, timeouts, and body size limits in crates/web-extractor
 

@@ -7,7 +7,9 @@ use std::fmt;
 use std::ops::Deref;
 
 use serde::{Deserialize, Serialize};
-use web_repo_to_ai_url_security::{UrlSecurityError, UrlSecurityPolicy, ValidatedUrl};
+use web_repo_to_ai_url_security::{
+    PinnedTarget, SecureDnsResolver, UrlSecurityError, UrlSecurityPolicy, ValidatedUrl,
+};
 
 /// Heuristic classification of webpage content structure.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -106,6 +108,14 @@ impl WebTarget {
         policy: &UrlSecurityPolicy,
     ) -> Result<ValidatedUrl, UrlSecurityError> {
         self.url.join(link, policy)
+    }
+
+    /// Resolves and pins this target's host using the provided `SecureDnsResolver`.
+    pub async fn resolve_and_pin(
+        &self,
+        resolver: &SecureDnsResolver,
+    ) -> Result<PinnedTarget, UrlSecurityError> {
+        resolver.resolve_and_pin(&self.url).await
     }
 
     /// Checks if another URL shares the exact origin with this target.
@@ -341,5 +351,14 @@ mod tests {
 
         assert_eq!(target, deserialized);
         assert_eq!(deserialized.page_type(), WebPageType::Documentation);
+    }
+
+    #[tokio::test]
+    async fn test_target_resolve_and_pin() {
+        let resolver = SecureDnsResolver::new(UrlSecurityPolicy::default());
+        let target = WebTarget::from_str_default("https://1.1.1.1/dns-query").unwrap();
+        let pinned = target.resolve_and_pin(&resolver).await.unwrap();
+        assert_eq!(pinned.host(), "1.1.1.1");
+        assert_eq!(pinned.port(), 443);
     }
 }

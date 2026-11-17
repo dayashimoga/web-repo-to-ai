@@ -1,11 +1,12 @@
 //! # URL Security Errors
 //!
-//! Strongly-typed domain errors for URL syntax, scheme restriction, and SSRF defenses.
+//! Strongly-typed domain errors for URL syntax, scheme restriction, DNS resolution,
+//! IP pinning, and SSRF defenses.
 
 use std::fmt;
 use web_repo_to_ai_core::error::CoreError;
 
-/// Specific error conditions encountered during URL parsing, normalization, and SSRF evaluation.
+/// Specific error conditions encountered during URL parsing, normalization, DNS resolution, and SSRF evaluation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum UrlSecurityError {
     /// The URL exceeds the maximum allowed character limit.
@@ -57,6 +58,29 @@ pub enum UrlSecurityError {
         /// Description of the invalid character violation.
         details: String,
     },
+    /// DNS resolution failed for the given hostname.
+    DnsResolutionFailed {
+        /// The hostname that failed resolution.
+        host: String,
+        /// Underlying error explanation.
+        details: String,
+    },
+    /// DNS rebinding attack detected where hostname re-resolved to a prohibited or altered address.
+    DnsRebindingDetected {
+        /// Hostname under rebinding.
+        host: String,
+        /// Original pinned IP address.
+        original_ip: String,
+        /// Rebound IP address.
+        rebound_ip: String,
+    },
+    /// Socket connection destination did not match the pinned IP address.
+    IpPinningMismatch {
+        /// The expected pinned IP/socket address.
+        expected: String,
+        /// The actual connected socket address.
+        actual: String,
+    },
 }
 
 impl fmt::Display for UrlSecurityError {
@@ -95,6 +119,25 @@ impl fmt::Display for UrlSecurityError {
             Self::InvalidCharacters { details } => {
                 write!(f, "URL contains invalid characters: {details}")
             }
+            Self::DnsResolutionFailed { host, details } => {
+                write!(f, "DNS resolution failed for '{host}': {details}")
+            }
+            Self::DnsRebindingDetected {
+                host,
+                original_ip,
+                rebound_ip,
+            } => {
+                write!(
+                    f,
+                    "SSRF Defense: DNS rebinding detected for '{host}' (pinned: {original_ip}, rebound: {rebound_ip})"
+                )
+            }
+            Self::IpPinningMismatch { expected, actual } => {
+                write!(
+                    f,
+                    "SSRF Defense: IP pinning mismatch (expected {expected}, connected to {actual})"
+                )
+            }
         }
     }
 }
@@ -119,6 +162,16 @@ impl From<UrlSecurityError> for CoreError {
             UrlSecurityError::UserinfoForbidden => {
                 CoreError::Security("URL userinfo credentials are not permitted".to_string())
             }
+            UrlSecurityError::DnsRebindingDetected {
+                host,
+                original_ip,
+                rebound_ip,
+            } => CoreError::Security(format!(
+                "DNS rebinding attack detected on '{host}' (pinned {original_ip} -> rebound {rebound_ip})"
+            )),
+            UrlSecurityError::IpPinningMismatch { expected, actual } => CoreError::Security(
+                format!("IP pinning violation: expected {expected}, got {actual}"),
+            ),
             UrlSecurityError::TooLong { actual, maximum } => CoreError::Validation {
                 field: "url".to_string(),
                 reason: format!("URL length ({actual}) exceeds limit ({maximum})"),
@@ -134,6 +187,10 @@ impl From<UrlSecurityError> for CoreError {
             UrlSecurityError::InvalidCharacters { details } => CoreError::Validation {
                 field: "url".to_string(),
                 reason: details,
+            },
+            UrlSecurityError::DnsResolutionFailed { host, details } => CoreError::Validation {
+                field: "url".to_string(),
+                reason: format!("Host '{host}' cannot be resolved: {details}"),
             },
         }
     }

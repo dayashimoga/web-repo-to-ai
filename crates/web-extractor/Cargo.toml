@@ -21,3 +21,4 @@ serde = { workspace = true, features = ["derive"] }
 
 [dev-dependencies]
 serde_json = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt"] }

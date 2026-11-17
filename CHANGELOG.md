@@ -6,6 +6,18 @@
 
 ## [Unreleased] — Stage 3: Universal Webpage Extraction
 
+### 2026-11-17 — Phase 3.1: Secure Acquisition (`3.1.2`)
+
+#### Added
+- **`[3.1.2]` Implement DNS Resolution, IP Pinning, and DNS-Rebinding Protection in `crates/url-security`:**
+  - Added `tokio = { workspace = true, features = ["net", "rt", "macros", "time", "sync"] }`, `async-trait = { workspace = true }`, and `chrono = { workspace = true, features = ["serde"] }` to `crates/url-security/Cargo.toml`.
+  - Added `DnsResolutionFailed`, `DnsRebindingDetected`, and `IpPinningMismatch` variants to `UrlSecurityError` in `crates/url-security/src/error.rs`, mapping rebinding and pinning mismatches to `CoreError::Security`.
+  - Defined asynchronous `DnsResolver` trait in `crates/url-security/src/dns.rs` along with production `SystemDnsResolver` utilizing `tokio::net::lookup_host` and thread-safe `MockDnsResolver` supporting static host mappings and ordered multi-response rebinding attack sequences.
+  - Implemented immutable `PinnedTarget` in `crates/url-security/src/pinning.rs` containing `url`, `host`, `port`, `pinned_ip`, `all_resolved_ips`, `resolved_at`, and `ttl_secs`, with `socket_addr()`, TTL expiration checking, and socket destination verification via `verify_socket_addr`.
+  - Implemented `SecureDnsResolver` in `crates/url-security/src/resolver.rs` providing thread-safe `RwLock` target caching, IP literal pre-checks, hostname blocklist validation, and **strict all-record SSRF validation** (rejecting entire DNS responses if even one resolved IP belongs to loopback, private, or cloud metadata CIDRs).
+  - Integrated `resolve_and_pin` directly on `WebTarget` in `crates/web-extractor/src/url.rs`.
+  - Added 5 new unit tests in `crates/url-security` and 1 integration test in `crates/web-extractor`, expanding workspace tests to 169 passing across all 17 crates, with all 5 monorepo verification gates passing cleanly.
+
 ### 2026-11-17 — Phase 3.1: Secure Acquisition (`3.1.1`)
 
 #### Added

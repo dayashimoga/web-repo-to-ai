@@ -2254,7 +2254,45 @@
   - `cargo fmt --all -- --check`: 100% code style compliance.
   - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
   - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
-- **Git Commit Reference:** `d90ec34`
+- **Git Commit Reference:** `2a70255`
+- **Status:** `ACCEPTED`
+
+---
+
+#### Subphase `3.1.2` — DNS resolution, IP pinning, and DNS-rebinding protection in crates/url-security
+- **Unique ID:** `3.1.2`
+- **Objective:** Implement asynchronous DNS resolution with all-record SSRF validation, anti-rebinding IP pinning, thread-safe resolution caching, and socket connection verification in `crates/url-security` and integrate with `crates/web-extractor`.
+- **Scope:** `crates/url-security/src/dns.rs`, `crates/url-security/src/pinning.rs`, `crates/url-security/src/resolver.rs`, `crates/url-security/src/error.rs`, `crates/url-security/src/lib.rs`, `crates/url-security/Cargo.toml`, `crates/web-extractor/src/url.rs`, `crates/web-extractor/Cargo.toml`.
+- **Prerequisites:** `3.1.1` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/url-security/Cargo.toml`, `crates/url-security/src/error.rs`, `crates/url-security/src/dns.rs`, `crates/url-security/src/pinning.rs`, `crates/url-security/src/resolver.rs`, `crates/url-security/src/lib.rs`
+  - `crates/web-extractor/Cargo.toml`, `crates/web-extractor/src/url.rs`
+- **Implementation Tasks:**
+  1. Add DNS resolution and pinning errors to `UrlSecurityError` (`DnsResolutionFailed`, `DnsRebindingDetected`, `IpPinningMismatch`) and map to `CoreError`.
+  2. Define asynchronous `DnsResolver` trait, production `SystemDnsResolver` (using `tokio::net::lookup_host`), and programmable `MockDnsResolver` supporting static mappings and dynamic rebinding attack sequences in `crates/url-security/src/dns.rs`.
+  3. Implement immutable `PinnedTarget` in `crates/url-security/src/pinning.rs` encapsulating verified endpoints, pinned IP address, all resolved safe IPs, resolution timestamp, configurable TTL, and socket address verification (`verify_socket_addr`).
+  4. Implement `SecureDnsResolver` in `crates/url-security/src/resolver.rs` coordinating cache lookups, IP literal bypass detection, hostname blocklist checks, asynchronous resolution, and strict all-record SSRF filtering (rejecting the entire resolution if any resolved IP address belongs to loopback, private, or cloud metadata CIDRs).
+  5. Expose `resolve_and_pin` on `WebTarget` in `crates/web-extractor/src/url.rs`.
+  6. Add unit tests for public resolution, internal IP blocking, dual-record split-DNS rejection, DNS rebinding mitigation across sequential resolutions, cache TTL behavior, and serde roundtrips.
+- **Acceptance Criteria:**
+  - DNS resolution resolving to internal or loopback IP addresses is strictly rejected.
+  - Dual-record responses containing both public and private addresses are rejected via all-record validation.
+  - DNS rebinding attacks across requests are mitigated through cache pinning and re-resolution rejection.
+  - Pinned targets enforce exact IP and port matching via `verify_socket_addr`.
+  - 100% of Rust tests pass (21 in `crates/url-security`, 8 in `crates/web-extractor`, 169 across workspace); zero clippy warnings; all 5 monorepo verification gates pass cleanly.
+- **Tests:** `cargo test -p web-repo-to-ai-url-security` (21 passed), `cargo test -p web-repo-to-ai-web-extractor` (8 passed), `cargo test --workspace` (169 passed), `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, 02, and 05: `#![forbid(unsafe_code)]` enabled; prevents Time-of-Check to Time-of-Use (TOCTOU) DNS rebinding by pinning connections to the specific validated IP; dual-record / round-robin DNS records containing private fallback addresses are blocked immediately.
+- **Performance Considerations:** In-memory `tokio::sync::RwLock` cache eliminates redundant DNS lookups within TTL windows; non-blocking asynchronous lookups prevent thread starvation.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-url-security`: 21/21 tests passed in 0.00s.
+  - `cargo test -p web-repo-to-ai-web-extractor`: 8/8 tests passed in 0.00s.
+  - `cargo test --workspace`: 169/169 tests passed across 17 workspace crates.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors.
+  - `cargo fmt --all -- --check`: 100% code style compliance.
+  - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
+- **Git Commit Reference:** `6f0da12`
 - **Status:** `ACCEPTED`
 
 ---
@@ -2263,10 +2301,10 @@
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `3.1.2` | DNS resolution, IP pinning, and DNS-rebinding protection in crates/url-security | `3.1.1` (`ACCEPTED`) | `crates/url-security/*` | `NOT_STARTED` |
+| `3.1.3` | HTTP fetching, streaming bodies, and redirect revalidation in crates/web-extractor | `3.1.2` (`ACCEPTED`) | `crates/web-extractor/*` | `NOT_STARTED` |
 
 ---
 
 ## STAGES 3 – 11 QUEUED LEDGER SUMMARY
 
-All subsequent subphases for **Stage 3** (`3.1.2`–`3.4.4`), **Stage 4** (`4.1.1`–`4.4.4`), **Stage 5** (`5.1.1`–`5.5.4`), **Stage 6** (`6.1.1`–`6.4.4`), **Stage 7** (`7.1.1`–`7.4.4`), **Stage 8** (`8.1.1`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.
+All subsequent subphases for **Stage 3** (`3.1.3`–`3.4.4`), **Stage 4** (`4.1.1`–`4.4.4`), **Stage 5** (`5.1.1`–`5.5.4`), **Stage 6** (`6.1.1`–`6.4.4`), **Stage 7** (`7.1.1`–`7.4.4`), **Stage 8** (`8.1.1`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.

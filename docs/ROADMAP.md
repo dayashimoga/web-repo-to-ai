@@ -40,7 +40,7 @@
 - **Deliverable:** Functional, SSRF-safe URL-to-clean-content conversion across static HTML and dynamic JS pages.
 - **Stage Acceptance Gate:** Actual URLs produce validated, source-traceable output with full SSRF/DNS-rebinding protection and golden regression tests.
 - **Phases:**
-  - `3.1` Secure acquisition (`3.1.1` [ACCEPTED], `3.1.2` [NEXT] – `3.1.4`)
+  - `3.1` Secure acquisition (`3.1.1` [ACCEPTED], `3.1.2` [ACCEPTED], `3.1.3` [NEXT], `3.1.4`)
   - `3.2` Static extraction (`3.2.1` – `3.2.4`)
   - `3.3` Dynamic extraction (`3.3.1` – `3.3.4`)
   - `3.4` Extraction quality (`3.4.1` – `3.4.4`)

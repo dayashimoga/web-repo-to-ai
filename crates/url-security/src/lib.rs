@@ -6,23 +6,31 @@
 //! - Alternative IP address encoding detection (hex, octal, decimal integers)
 //! - Tracking/analytics query parameter stripping and canonicalization
 //! - Network port restrictions and protocol confusion defenses
+//! - Asynchronous DNS resolution, all-record SSRF validation, and IP pinning
+//! - DNS-rebinding (TOCTOU) mitigation via pinned socket targets and cache pinning
 
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
+pub mod dns;
 pub mod error;
 pub mod ip_filter;
 pub mod normalizer;
+pub mod pinning;
 pub mod policy;
+pub mod resolver;
 pub mod validated_url;
 
+pub use dns::{DnsResolver, MockDnsResolver, SystemDnsResolver};
 pub use error::UrlSecurityError;
 pub use ip_filter::{is_blocked_host, is_blocked_ip, is_cloud_metadata_ip, parse_alternative_ipv4};
 pub use normalizer::UrlNormalizer;
+pub use pinning::PinnedTarget;
 pub use policy::{
     UrlSecurityPolicy, UrlSecurityPolicyBuilder, DEFAULT_BLOCKED_PORTS, DEFAULT_MAX_URL_LENGTH,
     DEFAULT_TRACKING_PARAMS,
 };
+pub use resolver::{SecureDnsResolver, DEFAULT_DNS_CACHE_TTL_SECS};
 pub use validated_url::ValidatedUrl;
 
 /// Returns the unique crate identifier name.
@@ -34,7 +42,8 @@ pub fn crate_name() -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::net::IpAddr;
+    use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+    use std::sync::Arc;
 
     #[test]
     fn test_url_security_metadata() {
@@ -381,5 +390,132 @@ mod tests {
         let evil_json = "\"http://169.254.169.254/latest/meta-data/\"";
         let res: Result<ValidatedUrl, _> = serde_json::from_str(evil_json);
         assert!(res.is_err(), "Deserializing SSRF target should fail");
+    }
+
+    #[tokio::test]
+    async fn test_secure_dns_resolver_public_host() {
+        let mock = MockDnsResolver::new();
+        let public_ip = Ipv4Addr::new(93, 184, 216, 34); // example.com
+        let public_sock = SocketAddr::new(IpAddr::V4(public_ip), 443);
+        mock.set_host("example.com", vec![public_sock]);
+
+        let resolver =
+            SecureDnsResolver::with_resolver(UrlSecurityPolicy::default(), Arc::new(mock));
+
+        let url = ValidatedUrl::parse_default("https://example.com/index.html").unwrap();
+        let pinned = resolver.resolve_and_pin(&url).await.unwrap();
+
+        assert_eq!(pinned.host(), "example.com");
+        assert_eq!(pinned.port(), 443);
+        assert_eq!(pinned.pinned_ip(), IpAddr::V4(public_ip));
+        assert_eq!(pinned.socket_addr(), public_sock);
+        assert!(!pinned.is_expired());
+        assert_eq!(resolver.cached_count().await, 1);
+
+        // Connection verification check
+        assert!(pinned.verify_socket_addr(public_sock).is_ok());
+        let bad_sock = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(1, 1, 1, 1)), 443);
+        assert!(matches!(
+            pinned.verify_socket_addr(bad_sock),
+            Err(UrlSecurityError::IpPinningMismatch { .. })
+        ));
+    }
+
+    #[tokio::test]
+    async fn test_secure_dns_resolver_blocks_internal_ip_resolution() {
+        let mock = MockDnsResolver::new();
+        // Domain resolves to internal RFC 1918 private IP
+        mock.set_host(
+            "internal.company.com",
+            vec![SocketAddr::new(IpAddr::V4(Ipv4Addr::new(10, 0, 0, 5)), 443)],
+        );
+
+        let resolver =
+            SecureDnsResolver::with_resolver(UrlSecurityPolicy::default(), Arc::new(mock));
+
+        let url = ValidatedUrl::parse_default("https://internal.company.com/api").unwrap();
+        let res = resolver.resolve_and_pin(&url).await;
+
+        assert!(
+            matches!(res, Err(UrlSecurityError::BlockedIp { .. })),
+            "Expected resolution to private IP to be rejected, got {res:?}"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_secure_dns_resolver_all_records_validation() {
+        let mock = MockDnsResolver::new();
+        // Dual-record response: one public IP, but one prohibited loopback IP
+        let public_sock = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(93, 184, 216, 34)), 443);
+        let loopback_sock = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 443);
+        mock.set_host("split-dns.evil.com", vec![public_sock, loopback_sock]);
+
+        let resolver =
+            SecureDnsResolver::with_resolver(UrlSecurityPolicy::default(), Arc::new(mock));
+
+        let url = ValidatedUrl::parse_default("https://split-dns.evil.com/").unwrap();
+        let res = resolver.resolve_and_pin(&url).await;
+
+        // Even though one record is public, the entire resolution must be rejected because
+        // another record is internal/loopback!
+        assert!(
+            matches!(res, Err(UrlSecurityError::BlockedIp { .. })),
+            "All-record validation must reject resolution containing any internal address"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_dns_rebinding_defense_and_pinning() {
+        let mock = MockDnsResolver::new();
+        let public_sock = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(93, 184, 216, 34)), 80);
+        let metadata_sock = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(169, 254, 169, 254)), 80);
+
+        // Rebinding sequence: 1st resolution -> public IP, 2nd resolution -> cloud metadata IP
+        mock.set_rebinding_sequence(
+            "rebind.attacker.com",
+            vec![vec![public_sock], vec![metadata_sock]],
+        );
+
+        let resolver =
+            SecureDnsResolver::with_resolver(UrlSecurityPolicy::default(), Arc::new(mock));
+
+        let url = ValidatedUrl::parse_default("http://rebind.attacker.com/data").unwrap();
+
+        // 1st call: resolves to public IP and pins it in cache
+        let pinned_first = resolver.resolve_and_pin(&url).await.unwrap();
+        assert_eq!(
+            pinned_first.pinned_ip(),
+            IpAddr::V4(Ipv4Addr::new(93, 184, 216, 34))
+        );
+
+        // 2nd call: cache returns the pinned public IP (preventing rebinding)
+        let pinned_second = resolver.resolve_and_pin(&url).await.unwrap();
+        assert_eq!(pinned_second.pinned_ip(), pinned_first.pinned_ip());
+        assert_eq!(pinned_second.socket_addr(), public_sock);
+
+        // 3rd call: if cache is explicitly cleared or expired, the re-resolution to metadata is BLOCKED!
+        resolver.clear_cache().await;
+        let rebound_res = resolver.resolve_and_pin(&url).await;
+        assert!(
+            matches!(rebound_res, Err(UrlSecurityError::BlockedIp { .. })),
+            "Rebound IP targeting cloud metadata must be caught and blocked"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_pinned_target_serde_and_ip_literal() {
+        let resolver = SecureDnsResolver::new(UrlSecurityPolicy::default());
+
+        // Resolving an IP literal does not query DNS and pins directly
+        let ip_url = ValidatedUrl::parse_default("https://1.1.1.1/dns-query").unwrap();
+        let pinned = resolver.resolve_and_pin(&ip_url).await.unwrap();
+
+        assert_eq!(pinned.pinned_ip(), IpAddr::V4(Ipv4Addr::new(1, 1, 1, 1)));
+        assert_eq!(pinned.port(), 443);
+
+        // Serde roundtrip for PinnedTarget
+        let json = serde_json::to_string(&pinned).unwrap();
+        let deserialized: PinnedTarget = serde_json::from_str(&json).unwrap();
+        assert_eq!(pinned, deserialized);
     }
 }
