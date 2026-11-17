@@ -78,6 +78,7 @@ regex = "1.10"
 flate2 = { version = "1.0", default-features = false, features = ["rust_backend"] }
 brotli = { version = "7.0", default-features = false, features = ["std"] }
 zstd = { version = "0.13", default-features = false }
+tl = "0.7"
 
 # Error handling & observability
 thiserror = "1.0"

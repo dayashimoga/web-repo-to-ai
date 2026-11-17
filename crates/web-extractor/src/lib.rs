@@ -12,11 +12,16 @@
 #![warn(missing_docs)]
 
 pub mod compression;
+pub mod dom;
 pub mod error;
 pub mod http;
 pub mod url;
 
 pub use compression::{BodyLimits, BoundedDecompressor, ContentEncoding};
+pub use dom::{
+    BoilerplateCleaner, BoilerplatePolicy, CleanedDocument, DocumentMetadata, DomParser,
+    LinkResolver,
+};
 pub use error::WebExtractorError;
 pub use http::{
     BodyByteStream, FetchedResponse, HttpTransport, MockHttpTransport, MockResponse, RedirectHop,
@@ -41,7 +46,7 @@ mod tests {
     use std::sync::Arc;
     use std::time::Duration;
     use web_repo_to_ai_url_security::{
-        MockDnsResolver, SecureDnsResolver, UrlSecurityError, UrlSecurityPolicy,
+        MockDnsResolver, SecureDnsResolver, UrlSecurityError, UrlSecurityPolicy, ValidatedUrl,
     };
 
     #[test]
@@ -737,6 +742,222 @@ mod tests {
             WebExtractorError::UnsupportedContentEncoding {
                 encoding: "compress".to_string(),
             }
+        );
+    }
+
+    #[test]
+    fn test_dom_parser_article_with_nav_footer_sidebar_pruning() {
+        let html = r##"
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <title>Async Rust in Production</title>
+                <meta name="description" content="Lessons from deploying Tokio and Axum at scale.">
+                <!-- Analytics script -->
+                <script>window.dataLayer = [];</script>
+                <style>.promo { background: yellow; }</style>
+            </head>
+            <body>
+                <header class="site-header">
+                    <nav class="main-menu">
+                        <a href="/">Home</a>
+                        <a href="/blog">Blog</a>
+                        <a href="/pricing">Pricing</a>
+                    </nav>
+                </header>
+                <aside class="sidebar-ad banner">
+                    <p>Sponsored: Try Cloud Hosting</p>
+                </aside>
+                <main class="post-content">
+                    <h1>Async Rust in Production</h1>
+                    <p>Building high-throughput microservices requires strict resource bounds.</p>
+                    <h2>Key Architecture Tenets</h2>
+                    <ul>
+                        <li>Memory bounding on streams</li>
+                        <li>Backpressure propagation</li>
+                    </ul>
+                </main>
+                <div class="social-share-buttons">
+                    <button>Tweet</button>
+                    <button>Share</button>
+                </div>
+                <footer class="site-footer">
+                    <p>Copyright 2026. All rights reserved.</p>
+                </footer>
+            </body>
+            </html>
+        "##;
+
+        let parser = DomParser::default();
+        let base_url = ValidatedUrl::parse_default("https://example.com/blog/async-rust").unwrap();
+        let doc = parser.parse(html, Some(&base_url)).unwrap();
+
+        assert_eq!(doc.metadata.title.as_deref(), Some("Async Rust in Production"));
+        assert_eq!(
+            doc.metadata.description.as_deref(),
+            Some("Lessons from deploying Tokio and Axum at scale.")
+        );
+        assert!(doc.has_semantic_main);
+
+        // Verify boilerplate is cleanly stripped
+        assert!(!doc.cleaned_html.contains("site-header"));
+        assert!(!doc.cleaned_html.contains("main-menu"));
+        assert!(!doc.cleaned_html.contains("Sponsored: Try Cloud Hosting"));
+        assert!(!doc.cleaned_html.contains("sidebar-ad"));
+        assert!(!doc.cleaned_html.contains("social-share-buttons"));
+        assert!(!doc.cleaned_html.contains("site-footer"));
+        assert!(!doc.cleaned_html.contains("window.dataLayer"));
+
+        // Verify core article is preserved
+        assert!(doc.cleaned_html.contains("<h1>Async Rust in Production</h1>"));
+        assert!(doc.cleaned_html.contains("<p>Building high-throughput microservices requires strict resource bounds.</p>"));
+        assert!(doc.cleaned_html.contains("<li>Memory bounding on streams</li>"));
+
+        // Verify plain text output
+        assert!(doc.cleaned_text.contains("Async Rust in Production"));
+        assert!(doc.cleaned_text.contains("Building high-throughput microservices requires strict resource bounds."));
+        assert!(doc.cleaned_text.contains("Memory bounding on streams"));
+        assert!(!doc.cleaned_text.contains("Sponsored"));
+        assert!(!doc.cleaned_text.contains("Copyright 2026"));
+    }
+
+    #[test]
+    fn test_dom_parser_exact_code_and_table_preservation() {
+        let code_html = "pub async fn handle() -&gt; Result&lt;(), Error&gt; {\n    let stream = fetch();\n    pin_mut!(stream);\n    Ok(())\n}";
+        let expected_code_text = "pub async fn handle() -> Result<(), Error> {\n    let stream = fetch();\n    pin_mut!(stream);\n    Ok(())\n}";
+        let html = format!(
+            r##"
+            <article class="documentation">
+                <h1>API Specification</h1>
+                <p>Example implementation:</p>
+                <pre><code class="language-rust">{}</code></pre>
+                <table>
+                    <thead>
+                        <tr><th>Method</th><th>Endpoint</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>GET</td><td>/api/v1/jobs</td></tr>
+                    </tbody>
+                </table>
+            </article>
+        "##,
+            code_html
+        );
+
+        let parser = DomParser::default();
+        let doc = parser.parse(&html, None).unwrap();
+
+        // Exact code block preservation
+        assert!(doc.cleaned_html.contains(code_html));
+        assert!(doc.cleaned_text.contains(expected_code_text));
+
+        // Exact table structure preservation
+        assert!(doc.cleaned_html.contains("<table>"));
+        assert!(doc.cleaned_html.contains("<th>Method</th>"));
+        assert!(doc.cleaned_html.contains("<td>/api/v1/jobs</td>"));
+    }
+
+    #[test]
+    fn test_dom_parser_base_url_and_relative_link_rewrite() {
+        let html = r##"
+            <html>
+            <head>
+                <base href="https://docs.rs/tokio/latest/tokio/">
+            </head>
+            <body>
+                <main>
+                    <h1>Tokio API</h1>
+                    <p>See <a href="sync/struct.Mutex.html">Mutex</a> or <a href="../index.html">Crate Root</a> or <a href="#methods">Methods</a>.</p>
+                    <img src="logo.png" alt="Tokio Logo">
+                </main>
+            </body>
+            </html>
+        "##;
+
+        let parser = DomParser::default();
+        let doc = parser.parse(html, None).unwrap();
+
+        assert_eq!(doc.metadata.base_url.as_deref(), Some("https://docs.rs/tokio/latest/tokio/"));
+        assert!(doc.cleaned_html.contains("href=\"https://docs.rs/tokio/latest/tokio/sync/struct.Mutex.html\""));
+        assert!(doc.cleaned_html.contains("href=\"https://docs.rs/tokio/latest/index.html\""));
+        assert!(doc.cleaned_html.contains("href=\"#methods\""));
+        assert!(doc.cleaned_html.contains("src=\"https://docs.rs/tokio/latest/tokio/logo.png\""));
+    }
+
+    #[test]
+    fn test_dom_parser_custom_policy_overrides() {
+        let html = r##"
+            <body>
+                <nav class="navigation">
+                    <a href="/home">Home</a>
+                </nav>
+                <div class="newsletter-box">
+                    <p>Subscribe to our newsletter</p>
+                </div>
+                <div class="custom-promo keep-this-banner">
+                    <p>Important System Announcement</p>
+                </div>
+                <main>
+                    <p>Content text.</p>
+                </main>
+            </body>
+        "##;
+
+        let policy = BoilerplatePolicy::default()
+            .with_strip_nav(false)
+            .with_blocked_class("newsletter-box")
+            .with_allowed_class("keep-this-banner");
+
+        let parser = DomParser::new(policy);
+        let doc = parser.parse(html, None).unwrap();
+
+        // Nav is preserved because strip_nav = false
+        assert!(doc.cleaned_html.contains("<nav"));
+        assert!(doc.cleaned_html.contains("/home"));
+
+        // Newsletter is stripped because of custom_blocked_classes
+        assert!(!doc.cleaned_html.contains("Subscribe to our newsletter"));
+
+        // Announcement is preserved because keep-this-banner is in custom_allowed_classes
+        assert!(doc.cleaned_html.contains("Important System Announcement"));
+    }
+
+    #[test]
+    fn test_dom_parser_malformed_html_resilience() {
+        // Missing doctype, unclosed tags, messy structure
+        let malformed = "<div><h1>Broken Header<p>Paragraph without closing tag<div><span>Nested unclosed<span></div>";
+        let parser = DomParser::default();
+        let doc = parser.parse(malformed, None).unwrap();
+
+        assert!(!doc.is_empty());
+        assert!(doc.cleaned_text.contains("Broken Header"));
+        assert!(doc.cleaned_text.contains("Paragraph without closing tag"));
+        assert!(doc.cleaned_text.contains("Nested unclosed"));
+    }
+
+    #[test]
+    fn test_dom_parser_metadata_opengraph_fallback() {
+        let html = r##"
+            <html>
+            <head>
+                <meta property="og:title" content="OpenGraph Article Title">
+                <meta property="og:description" content="OpenGraph Article Summary">
+            </head>
+            <body>
+                <article>
+                    <p>Body text.</p>
+                </article>
+            </body>
+            </html>
+        "##;
+
+        let parser = DomParser::default();
+        let doc = parser.parse(html, None).unwrap();
+
+        assert_eq!(doc.metadata.title.as_deref(), Some("OpenGraph Article Title"));
+        assert_eq!(
+            doc.metadata.description.as_deref(),
+            Some("OpenGraph Article Summary")
         );
     }
 }

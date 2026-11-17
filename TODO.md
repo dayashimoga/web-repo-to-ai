@@ -90,8 +90,8 @@
 - [x] **[3.1.3]** HTTP fetching, streaming bodies, and redirect revalidation in crates/web-extractor *(Completed 2026-11-17, WebExtractorError, RedirectTracker, FetchedResponse, HttpTransport, ReqwestTransport with Policy::none, MockHttpTransport, WebFetcher with DNS pinning & redirect revalidation, 16 passing web-extractor tests, 177 workspace tests)*
 - [x] **[3.1.4]** Compression bombs, timeouts, and body size limits in crates/web-extractor *(Completed 2026-11-17, ContentEncoding, BodyLimits, BoundedDecompressor with atomic ratio accounting, gzip/brotli/zstd/deflate decoders, Content-Length early exit, timeout controls, 38 passing web-extractor tests, 199 workspace tests)*
 
-### Phase 3.2 — Static extraction (`NOT_STARTED`)
-- [ ] **[3.2.1]** DOM parsing and boilerplate removal in crates/web-extractor
+### Phase 3.2 — Static extraction (`IN_PROGRESS`)
+- [x] **[3.2.1]** DOM parsing and boilerplate removal in crates/web-extractor *(Completed 2026-11-17, tl pure-Rust parser, DocumentMetadata with OpenGraph/Twitter fallbacks, BoilerplatePolicy, BoilerplateCleaner with semantic main/code/table protection, LinkResolver relative URL canonicalization and JS scheme stripping, DomParser with entity decoding, 58 passing web-extractor tests, 219 workspace tests)*
 - [ ] **[3.2.2]** Article extraction and readability heuristics in crates/web-extractor
 - [ ] **[3.2.3]** Technical documentation and navigation hierarchy extraction in crates/web-extractor
 - [ ] **[3.2.4]** Tables, code blocks, syntax detection, and link extraction in crates/web-extractor

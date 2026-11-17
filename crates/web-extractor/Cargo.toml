@@ -27,6 +27,7 @@ tokio = { workspace = true, features = ["rt", "time"] }
 flate2 = { workspace = true }
 brotli = { workspace = true }
 zstd = { workspace = true }
+tl = { workspace = true }
 
 [dev-dependencies]
 serde_json = { workspace = true }

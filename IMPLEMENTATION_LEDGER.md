@@ -2399,11 +2399,60 @@
 
 ---
 
+### Phase 3.2: Static Extraction
+
+#### Subphase `3.2.1` — DOM parsing and boilerplate removal in crates/web-extractor
+- **Unique ID:** `3.2.1`
+- **Objective:** Implement WHATWG HTML tree parsing, comprehensive document and OpenGraph/Twitter metadata extraction, fine-grained boilerplate pruning (scripts, styles, tracking, ads, cookie banners, navigation, footers, sidebars), semantic main preservation, preformatted code and table preservation, and relative URL canonicalization using safe pure-Rust parser `tl` in `crates/web-extractor`.
+- **Scope:** `crates/web-extractor/src/dom/*`, `crates/web-extractor/src/lib.rs`, `Cargo.toml`, `crates/web-extractor/Cargo.toml`.
+- **Prerequisites:** `3.1.4` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `Cargo.toml`, `Cargo.lock`
+  - `crates/web-extractor/Cargo.toml`
+  - `crates/web-extractor/src/dom/mod.rs`
+  - `crates/web-extractor/src/dom/metadata.rs`
+  - `crates/web-extractor/src/dom/policy.rs`
+  - `crates/web-extractor/src/dom/cleaner.rs`
+  - `crates/web-extractor/src/dom/link_resolver.rs`
+  - `crates/web-extractor/src/dom/parser.rs`
+  - `crates/web-extractor/src/lib.rs`
+- **Implementation Tasks:**
+  1. Add `tl` (v0.7.8, safe pure Rust, MIT licensed, zero dependencies) to root `Cargo.toml` and `crates/web-extractor/Cargo.toml`.
+  2. Implement `DocumentMetadata` in `crates/web-extractor/src/dom/metadata.rs` extracting title, meta description, author, keywords, OpenGraph (`og:*`), Twitter card (`twitter:*`), `<base href="...">`, language, and canonical URL with fallback cascades.
+  3. Implement `BoilerplatePolicy` and builder in `crates/web-extractor/src/dom/policy.rs` with fine-grained switches for scripts, styles, comments, nav, footers, sidebars, forms, ads, cookies, social widgets, and custom class block/allow lists.
+  4. Implement `BoilerplateCleaner` in `crates/web-extractor/src/dom/cleaner.rs` distinguishing boilerplate elements from semantic content, explicitly protecting `<pre><code>` blocks, markdown containers, and `<table>` data.
+  5. Implement `LinkResolver` in `crates/web-extractor/src/dom/link_resolver.rs` resolving and canonicalizing relative `<a>` href and `<img>` src attributes against base URLs while stripping dangerous `javascript:` schemes.
+  6. Implement `DomParser` and `CleanedDocument` in `crates/web-extractor/src/dom/parser.rs` performing recursive DOM traversal, boilerplate pruning, link rewriting, standard entity decoding, and text newline normalization.
+  7. Expose DOM extraction API in `crates/web-extractor/src/lib.rs` and add comprehensive unit and integration tests covering empty HTML, metadata fallbacks, boilerplate pruning, base URL resolution, code/table preservation, custom policies, and malformed HTML resilience.
+  8. Run all 5 monorepo verification gates in `scripts/check-all.ps1` with 0 failures.
+- **Acceptance Criteria:**
+  - HTML parsing handles arbitrary valid and malformed HTML without panics or memory leaks.
+  - Boilerplate elements (scripts, styles, nav, footer, sidebar, ads, cookie banners, tracking) are removed while retaining semantic `<main>` and `<article>` content.
+  - Preformatted code blocks (`<pre><code>`) and tables (`<table>`) are preserved verbatim with whitespace intact.
+  - Relative links and images are canonicalized against effective base URLs; unsafe JavaScript URIs are neutralized.
+  - 100% of Rust tests pass (58 in `crates/web-extractor`, 219 across workspace); zero clippy warnings; all 5 monorepo gates pass.
+- **Tests:** `cargo test -p web-repo-to-ai-web-extractor` (58 passed), `cargo test --workspace` (219 passed), `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, `pnpm --filter web test:unit` (184 passed), `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, 02, and 05: Zero unsafe code (`#![forbid(unsafe_code)]`); neutralizes `javascript:` XSS vectors in link and image attributes; pure-Rust `tl` parser avoids C/C++ memory corruption vulnerabilities; rejects MPL or unmaintained dependencies per licensing policy.
+- **Performance Considerations:** Zero-copy borrowing where possible using `tl::Parser`; single-pass recursive traversal; pre-allocated String buffers for cleaned HTML and text.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-web-extractor`: 58/58 tests passed.
+  - `cargo test --workspace`: 219/219 tests passed.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors.
+  - `cargo fmt --all -- --check`: 100% code style compliance.
+  - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
+  - `npm test` (`apps/web`): 184/184 tests passed.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
+- **Git Commit Reference:** `f59b5d9`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 3 — Universal Webpage Extraction)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `3.2.1` | DOM parsing and boilerplate removal in crates/web-extractor | `3.1.4` (`ACCEPTED`) | `crates/web-extractor/*` | `NOT_STARTED` |
+| `3.2.2` | Article extraction and readability heuristics in crates/web-extractor | `3.2.1` (`ACCEPTED`) | `crates/web-extractor/*` | `NOT_STARTED` |
 
 ---
 

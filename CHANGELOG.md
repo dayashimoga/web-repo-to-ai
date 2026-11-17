@@ -6,6 +6,18 @@
 
 ## [Unreleased] — Stage 3: Universal Webpage Extraction
 
+### 2026-11-17 — Phase 3.2: Static Extraction (`3.2.1`)
+
+#### Added
+- **`[3.2.1]` Implement DOM Parsing and Boilerplate Removal in `crates/web-extractor`:**
+  - Integrated `tl` (v0.7.8, safe pure Rust, MIT licensed, zero dependencies) into root `Cargo.toml` and `crates/web-extractor/Cargo.toml`.
+  - Implemented `DocumentMetadata` in `crates/web-extractor/src/dom/metadata.rs` extracting `<title>`, meta description/author/keywords, OpenGraph (`og:*`), Twitter card (`twitter:*`), `<base href="...">`, document language, and canonical link attributes with robust fallback cascades.
+  - Implemented `BoilerplatePolicy` and builder in `crates/web-extractor/src/dom/policy.rs` providing granular controls for scripts, styles, comments, nav, footers, sidebars, forms, ads, cookies, social sharing widgets, and custom class block/allow lists.
+  - Implemented `BoilerplateCleaner` in `crates/web-extractor/src/dom/cleaner.rs` distinguishing boilerplate elements from semantic content, explicitly protecting `<pre><code>` blocks, markdown body containers, and `<table>` content.
+  - Implemented `LinkResolver` in `crates/web-extractor/src/dom/link_resolver.rs` resolving and canonicalizing relative `<a>` href and `<img>` src attributes against base URLs while neutralizing malicious `javascript:` schemes.
+  - Implemented `DomParser` and `CleanedDocument` in `crates/web-extractor/src/dom/parser.rs` executing single-pass recursive DOM traversal, boilerplate pruning, link rewriting, standard entity decoding, and text newline normalization.
+  - Added 20 unit and integration tests across DOM modules and `lib.rs` (58 total in crate), expanding workspace tests to 219 passing across all 17 crates with 100% pass rate across all 5 monorepo verification gates.
+
 ### 2026-11-17 — Phase 3.1: Secure Acquisition (`3.1.4`) & Phase 3.1 Milestone Certification
 
 #### Added
