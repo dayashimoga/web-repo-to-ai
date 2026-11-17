@@ -6,6 +6,19 @@
 
 ## [Unreleased] — Stage 1: Frontend and Product Experience
 
+### 2026-11-17 — Phase 1.2: Main Website (`1.2.4`) & Phase 1.2 Certification
+
+#### Added
+- **`[1.2.4]` Responsive Layout Auditing, Mobile Touch Targets & Phase 1.2 Certification:**
+  - Audited and hardened responsive layout rules across all Phase 1.2 components:
+    - Root layout (`apps/web/src/routes/+layout.svelte`) configured with `w-full max-w-full overflow-x-hidden` ensuring zero horizontal page scrolling across mobile viewports down to `320px`.
+    - Enforced WCAG 2.1 AA recommended touch target sizing ($\ge 44 \times 44\text{px}$) across mobile hamburger button, theme switch toggle, mobile navigation drawer links, clear buttons, and submit controls.
+    - Updated `Hero.svelte` action buttons with mobile full-width vertical stacking and $\ge 48\text{px}$ touch targets.
+    - Updated `UrlInput.svelte` submit button with mobile full-width stacking (`w-full sm:w-auto min-h-[48px]`).
+  - Authored automated responsive layout test suite `apps/web/tests/responsive-layout.test.ts` (7 tests) validating overflow containment, container padding, responsive grid collapsing, and touch target minimums.
+  - Total automated test suite count expanded to 76/76 passing tests with zero failures across 9 test suites.
+  - Formally certified completion of **Phase 1.2: Main website** across all 4 subphases (`1.2.1` – `1.2.4` all `ACCEPTED`).
+
 ### 2026-11-17 — Phase 1.2: Main Website (`1.2.3`)
 
 #### Added

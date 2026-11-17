@@ -4,6 +4,6 @@
   let { children } = $props();
 </script>
 
-<div class="min-h-screen bg-theme-canvas text-theme-primary flex flex-col font-sans transition-colors duration-150">
+<div class="min-h-screen bg-theme-canvas text-theme-primary flex flex-col font-sans transition-colors duration-150 w-full max-w-full overflow-x-hidden">
   {@render children?.()}
 </div>

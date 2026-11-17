@@ -948,16 +948,84 @@
   - `npm run build`: Production bundle generated with `@sveltejs/adapter-node` in `apps/web/build/index.js`.
   - `scripts/check-all.ps1`: ALL 5 GATES PASSED (Gate 1: 224/224 bootstrap checks, Gate 2: 7/7 workflows, Gate 3: Rust formatting, Gate 4: Frontend lint/check/test, Gate 5: 5.27 GB / 30 GB storage ceiling).
   - `bash scripts/check-all.sh`: ALL 5 GATES PASSED (0 failures across all 5 verification gates).
-- **Git Commit Reference:** `207e0a7`
+- **Git Commit Reference:** `ff01d74`
 - **Status:** `ACCEPTED`
 
 ---
 
-### Upcoming Subphase (Awaiting User Approval after 1.2.3)
+#### Subphase `1.2.4` — Responsive layouts (mobile, tablet, desktop)
+- **Unique ID:** `1.2.4`
+- **Objective:** Finalize and rigorously audit cross-viewport responsive design across all Phase 1.2 components (Header, Hero, UrlInput, ConversionSettings, WorkflowSteps, SupportedSources, FeatureHighlights, Footer) for mobile (`320px`–`375px`), tablet (`768px`), and desktop (`1280px`–`1440px`), verifying zero horizontal overflow, touch target accessibility ($\ge 44 \times 44\text{px}$), and complete Phase 1.2 certification.
+- **Scope:** `apps/web/src/routes/+page.svelte`, `apps/web/src/lib/components/**/*`, `apps/web/tests/responsive-layout.test.ts`, `PROJECT_STATUS.md`, `IMPLEMENTATION_LEDGER.md`.
+- **Prerequisites:** `1.2.3` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `apps/web/src/routes/+page.svelte`
+  - `apps/web/src/lib/components/navigation/Header.svelte`
+  - `apps/web/src/lib/components/navigation/Footer.svelte`
+  - `apps/web/src/lib/components/landing/Hero.svelte`
+  - `apps/web/src/lib/components/input/UrlInput.svelte`
+  - `apps/web/src/lib/components/settings/ConversionSettings.svelte`
+  - `apps/web/tests/responsive-layout.test.ts`
+  - `PROJECT_STATUS.md`
+  - `IMPLEMENTATION_LEDGER.md`
+- **Implementation Tasks:**
+  1. Audit and harden responsive CSS across all landing page components:
+     - Verify container padding and breakpoint boundaries (`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8`).
+     - Ensure minimum touch target dimensions ($\ge 44 \times 44\text{px}$) on mobile viewports for all interactive controls (buttons, inputs, toggles, navigation links, preset selectors).
+     - Ensure zero horizontal scrolling or clipping on narrow viewports down to `320px`.
+     - Verify smooth collapsible transitions on mobile drawer in `Header` and disclosure panel in `ConversionSettings`.
+  2. Author comprehensive automated test suite `apps/web/tests/responsive-layout.test.ts`:
+     - Test responsive breakpoint tokens and utility invariants (`sm: 640px`, `md: 768px`, `lg: 1024px`, `xl: 1280px`, `2xl: 1536px`).
+     - Test touch target sizing attributes and classes across all interactive components.
+     - Test mobile navigation drawer expansion, visibility, and focus management.
+     - Test grid layout responsiveness (`grid-cols-1`, `md:grid-cols-2`, `lg:grid-cols-3` / `lg:grid-cols-5`).
+  3. Formally certify completion of **Phase 1.2: Main website** across all 4 subphases (`1.2.1` – `1.2.4` all `ACCEPTED`).
+  4. Run all quality gates: `npm run lint`, `npm run check`, `npm test`, `npm run build`, and `scripts/check-all.*`.
+- **Acceptance Criteria:**
+  - Zero horizontal overflow across mobile (320px+), tablet (768px+), and desktop (1280px+) viewports.
+  - Interactive elements have touch targets meeting or exceeding WCAG AA recommendations.
+  - Navigation drawer and settings disclosure function cleanly on mobile viewports.
+  - Automated responsive layout test suite passes with 100% success.
+  - Svelte diagnostics report 0 errors and 0 warnings.
+  - All 5 monorepo verification gates in `scripts/check-all.*` pass.
+- **Tests:** `npm test` in `apps/web`, `npm run check`, `npm run lint`, `npm run build`, and monorepo runners `scripts/check-all.ps1` / `scripts/check-all.sh`.
+- **Security Considerations:** No inline scripts or unsafe CSS styles; responsive attributes preserve semantic landmark hierarchy.
+- **Performance Considerations:** Responsive transitions utilize GPU-accelerated CSS transforms and opacity without triggering layout recalculations.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`.
+- **Validation Evidence:**
+  - `npm run check`: SvelteKit sync and svelte-check reported 0 errors and 0 warnings in `apps/web`.
+  - `npm run lint`: Prettier verified 100% code style compliance across all matched files.
+  - `npm test`: Vitest ran 9 test suites (`tokens.test.ts`, `color-utils.test.ts`, `responsive-layout.test.ts`, `url-detector.test.ts`, `typography.test.ts`, `ui-components.test.ts`, `url-input-component.test.ts`, `conversion-settings.test.ts`, `landing-page.test.ts`), passing 76/76 automated unit, responsive, and invariant tests with 0 failures.
+  - `npm run build`: Production bundle generated with `@sveltejs/adapter-node` in `apps/web/build/index.js`.
+  - `scripts/check-all.ps1`: ALL 5 GATES PASSED (Gate 1: 224/224 bootstrap checks, Gate 2: 7/7 workflows, Gate 3: Rust formatting, Gate 4: Frontend lint/check/test, Gate 5: 5.27 GB / 30 GB storage ceiling).
+  - `bash scripts/check-all.sh`: ALL 5 GATES PASSED (0 failures across all 5 verification gates).
+- **Git Commit Reference:** `82f75e0`
+- **Status:** `ACCEPTED`
+
+---
+
+#### Phase 1.2 Milestone Certification
+- **Phase Name:** `Phase 1.2 — Main website`
+- **Subphases Covered:** `1.2.1` (Landing page), `1.2.2` (URL input & source detection), `1.2.3` (Conversion settings panel), `1.2.4` (Responsive layouts).
+- **Certification Date:** 2026-11-17
+- **Certification Findings:**
+  1. Main landing website assembled with semantic landmarks (`header`, `main`, `footer`, `section`, `form`).
+  2. URL input engine features zero-trust SSRF defense and real-time classification for GitHub repositories, branch/tree subpaths, file blobs, XML sitemaps, and web documentation.
+  3. Conversion settings panel supports 7 calibrated AI model presets (Gemini 2M, Claude 200k, GPT-4o 128k, Local 32k/128k), dynamic budget range slider, content inclusion toggles, and Chromium rendering fallback switch.
+  4. Cross-viewport responsive design verified for mobile (320px–375px), tablet (768px), and desktop (1280px+) with zero horizontal overflow and accessible touch targets ($\ge 44 \times 44\text{px}$).
+  5. 76 automated tests passing across 9 test suites with 0 failures; `svelte-check` reports 0 errors and 0 warnings.
+  6. All 5 monorepo verification gates in `scripts/check-all.ps1` and `scripts/check-all.sh` pass cleanly.
+- **Status:** `COMPLETED` / `ACCEPTED` (Certified 2026-11-17)
+
+---
+
+### Upcoming Phase: Phase 1.3 — Conversion workspace
+
+#### Upcoming Subphase (Awaiting User Approval for Phase 1.3)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `1.2.4` | Responsive layouts (mobile, tablet, desktop) | `1.2.3` (`ACCEPTED`) | `apps/web/src/routes/*`, `apps/web/src/lib/components/*` | `NOT_STARTED` |
+| `1.3.1` | Build conversion job workspace | `1.2.4` (`ACCEPTED`) | `apps/web/src/lib/components/workspace/*`, `apps/web/src/routes/workspace/*` | `NOT_STARTED` |
 
 ---
 

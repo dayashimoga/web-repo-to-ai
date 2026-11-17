@@ -38,7 +38,7 @@
     <!-- Main Headline -->
     <h1
       id="hero-title"
-      class="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-theme-primary max-w-4xl mx-auto leading-tight"
+      class="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-theme-primary max-w-4xl mx-auto leading-tight"
     >
       Universal URL &amp; GitHub Repository
       <span class="block bg-gradient-to-r from-brand-600 via-brand-500 to-accent-500 bg-clip-text text-transparent">
@@ -47,17 +47,17 @@
     </h1>
 
     <!-- Subtitle / Value Proposition -->
-    <p class="mt-6 text-lg sm:text-xl text-theme-secondary max-w-3xl mx-auto leading-relaxed">
+    <p class="mt-4 sm:mt-6 text-base sm:text-xl text-theme-secondary max-w-3xl mx-auto leading-relaxed">
       Transform complex web documentation, dynamic web applications, and multi-language GitHub repositories into
       canonical, deduplicated, token-budgeted context for Gemini, Claude, OpenAI, and local LLMs.
     </p>
 
     <!-- Call to Action Buttons -->
-    <div class="mt-8 flex flex-wrap items-center justify-center gap-4">
-      <Button variant="primary" size="lg" href="#convert">
+    <div class="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4 max-w-sm sm:max-w-none mx-auto">
+      <Button variant="primary" size="lg" href="#convert" class="w-full sm:w-auto min-h-[48px]">
         Start Conversion
       </Button>
-      <Button variant="outline" size="lg" href="#workflow">
+      <Button variant="outline" size="lg" href="#workflow" class="w-full sm:w-auto min-h-[48px]">
         Explore How It Works
       </Button>
     </div>

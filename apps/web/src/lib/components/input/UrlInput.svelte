@@ -187,7 +187,7 @@
       loading={loading}
       disabled={disabled || !detection.isValid || !detection.isSafe}
       ariaLabel="Start Ingestion Job"
-      class="sm:h-[50px] whitespace-nowrap min-w-[150px]"
+      class="w-full sm:w-auto min-h-[48px] sm:h-[50px] whitespace-nowrap min-w-[150px]"
     >
       {loading ? 'Verifying...' : 'Convert URL'}
     </Button>

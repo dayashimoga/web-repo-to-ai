@@ -23,7 +23,7 @@
 - **Stage Acceptance Gate:** Real frontend, functional navigation, and validated responsive UI connected to tested API contracts with keyboard/WCAG AA accessibility.
 - **Phases:**
   - `1.1` Design system (`1.1.1` – `1.1.3`) (`COMPLETED` / `ACCEPTED`)
-  - `1.2` Main website (`1.2.1` – `1.2.4`)
+  - `1.2` Main website (`1.2.1` – `1.2.4`) (`COMPLETED` / `ACCEPTED`)
   - `1.3` Conversion workspace (`1.3.1` – `1.3.4`)
   - `1.4` UX validation (`1.4.1` – `1.4.3`)
 

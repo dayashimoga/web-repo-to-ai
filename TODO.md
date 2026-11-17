@@ -36,11 +36,11 @@
 - [x] **[1.1.2]** Implement typography scale, spacing system, and accessible color contrast utilities *(Completed 2026-11-17, Heading/Text/Code/Mono, Container/Stack/Grid, color-utils, docs/DESIGN_SYSTEM.md)*
 - [x] **[1.1.3]** Build reusable accessible UI component primitives (Button, Input, Toggle, Badge, Modal, Tooltip) *(Completed 2026-11-17, Button/Input/Toggle/Badge/Modal/Tooltip, ARIA roles, 37 passing tests)*
 
-### Phase 1.2 — Main website
+### Phase 1.2 — Main website (`COMPLETED` / `ACCEPTED`)
 - [x] **[1.2.1]** Implement landing page with conversion flow *(Completed 2026-11-17, Header, Hero, WorkflowSteps, SupportedSources, FeatureHighlights, Footer, 46 passing tests)*
 - [x] **[1.2.2]** Implement URL input with instant source detection *(Completed 2026-11-17, UrlInput, url-detector, SSRF pre-check, 63 passing tests)*
 - [x] **[1.2.3]** Implement conversion settings panel *(Completed 2026-11-17, ConversionSettings, model presets, budget slider, content filters, 69 passing tests)*
-- [ ] **[1.2.4]** Implement responsive layouts (mobile, tablet, desktop)
+- [x] **[1.2.4]** Implement responsive layouts (mobile, tablet, desktop) *(Completed 2026-11-17, mobile touch targets >=44px, overflow containment, 76 passing tests, Phase 1.2 certified)*
 
 ### Phase 1.3 — Conversion workspace
 - [ ] **[1.3.1]** Build conversion job workspace

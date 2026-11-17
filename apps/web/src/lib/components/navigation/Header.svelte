@@ -141,11 +141,12 @@
         </Button>
       </div>
 
-      <!-- Mobile Hamburger Button -->
+      <!-- Mobile Hamburger Button & Theme Switcher -->
       <div class="flex items-center gap-2 md:hidden">
         <Button
           variant="ghost"
           size="sm"
+          class="min-h-[44px] min-w-[44px] flex items-center justify-center"
           onclick={handleThemeToggle}
           ariaLabel={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
         >
@@ -153,7 +154,7 @@
         </Button>
         <button
           type="button"
-          class="p-2 rounded-lg text-theme-secondary hover:text-theme-primary hover:bg-theme-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+          class="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-theme-secondary hover:text-theme-primary hover:bg-theme-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
           aria-expanded={mobileMenuOpen}
           aria-controls="mobile-navigation"
           aria-label="Toggle navigation menu"
@@ -175,33 +176,33 @@
   {#if mobileMenuOpen}
     <div
       id="mobile-navigation"
-      class="md:hidden border-t border-theme-subtle bg-theme-panel px-4 pt-2 pb-4 space-y-2 shadow-elevation-2"
+      class="md:hidden border-t border-theme-subtle bg-theme-panel px-4 pt-2 pb-5 space-y-2 shadow-elevation-2 animate-fadeIn"
     >
       <nav aria-label="Mobile Navigation" class="flex flex-col space-y-1">
         <a
           href="#convert"
-          class="px-3 py-2 rounded-md text-sm font-medium text-theme-secondary hover:text-theme-primary hover:bg-theme-subtle transition-colors"
+          class="px-3 py-2.5 rounded-lg text-sm font-medium text-theme-secondary hover:text-theme-primary hover:bg-theme-subtle transition-colors min-h-[44px] flex items-center"
           onclick={closeMobileMenu}
         >
           Convert
         </a>
         <a
           href="#workflow"
-          class="px-3 py-2 rounded-md text-sm font-medium text-theme-secondary hover:text-theme-primary hover:bg-theme-subtle transition-colors"
+          class="px-3 py-2.5 rounded-lg text-sm font-medium text-theme-secondary hover:text-theme-primary hover:bg-theme-subtle transition-colors min-h-[44px] flex items-center"
           onclick={closeMobileMenu}
         >
           How It Works
         </a>
         <a
           href="#sources"
-          class="px-3 py-2 rounded-md text-sm font-medium text-theme-secondary hover:text-theme-primary hover:bg-theme-subtle transition-colors"
+          class="px-3 py-2.5 rounded-lg text-sm font-medium text-theme-secondary hover:text-theme-primary hover:bg-theme-subtle transition-colors min-h-[44px] flex items-center"
           onclick={closeMobileMenu}
         >
           Supported Sources
         </a>
         <a
           href="#features"
-          class="px-3 py-2 rounded-md text-sm font-medium text-theme-secondary hover:text-theme-primary hover:bg-theme-subtle transition-colors"
+          class="px-3 py-2.5 rounded-lg text-sm font-medium text-theme-secondary hover:text-theme-primary hover:bg-theme-subtle transition-colors min-h-[44px] flex items-center"
           onclick={closeMobileMenu}
         >
           Features
@@ -210,7 +211,7 @@
           href="https://github.com/dayashimoga/web-repo-to-ai#readme"
           target="_blank"
           rel="noopener noreferrer"
-          class="px-3 py-2 rounded-md text-sm font-medium text-theme-secondary hover:text-theme-primary hover:bg-theme-subtle transition-colors flex items-center justify-between"
+          class="px-3 py-2.5 rounded-lg text-sm font-medium text-theme-secondary hover:text-theme-primary hover:bg-theme-subtle transition-colors min-h-[44px] flex items-center justify-between"
           onclick={closeMobileMenu}
         >
           Documentation
