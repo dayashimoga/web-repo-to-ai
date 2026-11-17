@@ -54,8 +54,8 @@
 - **Phase 1.3 — Conversion workspace:** `1.3.1` Job workspace (`ACCEPTED`) | `1.3.2` Preview panels (`ACCEPTED`) | `1.3.3` Token statistics interface (`ACCEPTED`) | `1.3.4` Output & download controls (`ACCEPTED`)
 - **Phase 1.4 — UX validation:** `1.4.1` Keyboard & accessibility testing (`ACCEPTED`) | `1.4.2` Mobile/tablet/desktop testing (`ACCEPTED`) | `1.4.3` UI performance & visual regression testing (`ACCEPTED` — **STAGE 1 CERTIFIED**)
 
-### STAGE 2 — BACKEND AND PROCESSING FOUNDATION (`NOT_STARTED`)
-- **Phase 2.1 — Rust architecture:** `2.1.1` Create Rust workspace (`NOT_STARTED` — **NEXT ELIGIBLE SUBPHASE**) | `2.1.2` Error & configuration systems | `2.1.3` Structured logging & tracing
+### STAGE 2 — BACKEND AND PROCESSING FOUNDATION (`IN_PROGRESS`)
+- **Phase 2.1 — Rust architecture:** `2.1.1` Create Rust workspace (`ACCEPTED`) | `2.1.2` Error & configuration systems (`NOT_STARTED` — **NEXT ELIGIBLE SUBPHASE**) | `2.1.3` Structured logging & tracing
 - **Phase 2.2 — API:** `2.2.1` Implement Axum service | `2.2.2` Request validation | `2.2.3` API error contracts | `2.2.4` Health & readiness endpoints
 - **Phase 2.3 — Persistence:** `2.3.1` PostgreSQL schema | `2.3.2` Migrations | `2.3.3` Job state machine | `2.3.4` Durable job leasing & recovery
 - **Phase 2.4 — Storage:** `2.4.1` Local artifact storage | `2.4.2` Storage abstraction | `2.4.3` Retention & cleanup | `2.4.4` Checksum validation

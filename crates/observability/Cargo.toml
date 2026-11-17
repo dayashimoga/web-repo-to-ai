@@ -1,0 +1,18 @@
+[package]
+name = "web-repo-to-ai-observability"
+description = "Structured tracing initialization, secret redaction layers, and telemetry metrics"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+web-repo-to-ai-core = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true, features = ["env-filter", "json"] }
+thiserror = { workspace = true }

@@ -31,6 +31,14 @@ elif command -v powershell.exe >/dev/null 2>&1; then
   PWSH_BIN="powershell.exe"
 fi
 
+# Resolve Cargo binary (cargo / cargo.exe)
+CARGO_BIN=""
+if command -v cargo >/dev/null 2>&1; then
+  CARGO_BIN="cargo"
+elif command -v cargo.exe >/dev/null 2>&1; then
+  CARGO_BIN="cargo.exe"
+fi
+
 # 1. Bootstrap & Governance Integrity Gate
 if [ -n "$PWSH_BIN" ]; then
   run_gate "Bootstrap & Governance Integrity" "$PWSH_BIN -ExecutionPolicy Bypass -File scripts/verify-bootstrap.ps1"
@@ -43,15 +51,23 @@ run_gate "GitHub Actions Workflow Validation" "python3 scripts/validate-workflow
 
 # 3. Rust Workspace Quality Gate
 run_gate "Rust Workspace Checks" '
-  if [ -f "Cargo.toml" ]; then
+  if [ -f "Cargo.toml" ] && [ -n "'"$CARGO_BIN"'" ]; then
     echo "Checking cargo fmt..."
-    cargo fmt --all -- --check
+    '"$CARGO_BIN"' fmt --all -- --check
     echo "Checking cargo clippy..."
-    cargo clippy --workspace --all-targets -- -D warnings
+    '"$CARGO_BIN"' clippy --workspace --all-targets -- -D warnings
     echo "Checking cargo test..."
-    cargo test --workspace
+    '"$CARGO_BIN"' test --workspace
+    if command -v cargo-deny >/dev/null 2>&1 || command -v cargo-deny.exe >/dev/null 2>&1; then
+      echo "Checking cargo deny..."
+      '"$CARGO_BIN"' deny check
+    fi
   else
-    echo "Notice: Root Cargo.toml scheduled for Stage 2 (Rust Architecture). rustfmt.toml verified."
+    if [ -z "'"$CARGO_BIN"'" ]; then
+      echo "Notice: Cargo binary not found in PATH. Skipping Rust checks."
+    else
+      echo "Notice: Root Cargo.toml scheduled for Stage 2 (Rust Architecture). rustfmt.toml verified."
+    fi
   fi
 '
 

@@ -1445,14 +1445,75 @@
 
 ---
 
-### Upcoming Subphase (Awaiting User Approval to Begin Stage 2)
+## STAGE 2 — BACKEND AND PROCESSING FOUNDATION
 
-| Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
-| :--- | :--- | :--- | :--- | :--- |
-| `2.1.1` | Create Rust workspace and crate structure | Stage 1 (`ACCEPTED`) | `Cargo.toml`, `crates/*`, `services/*` | `NOT_STARTED` |
+### Phase 2.1 — Rust architecture
+
+#### Subphase `2.1.1` — Create Rust workspace and crate structure
+- **Unique ID:** `2.1.1`
+- **Objective:** Create root Cargo workspace manifest, define workspace member crates and services with explicit versions, set up unified compiler warnings and clippy lints, configure deny.toml for dependencies/licenses, and initialize all 17 member crates (`crates/*` and `services/*`) with clean compilation and unit tests.
+- **Scope:** Root `Cargo.toml`, `Cargo.lock`, `rustfmt.toml`, `deny.toml`, `scripts/check-all.sh`, `scripts/check-all.ps1`, 15 crates under `crates/`, and 2 services under `services/`.
+- **Prerequisites:** Stage 1 (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `Cargo.toml`, `Cargo.lock`, `rustfmt.toml`, `deny.toml`
+  - `scripts/check-all.sh`, `scripts/check-all.ps1`
+  - `services/api/{Cargo.toml, src/main.rs}`
+  - `services/worker/{Cargo.toml, src/main.rs}`
+  - `crates/core/{Cargo.toml, src/lib.rs}`
+  - `crates/cdm/{Cargo.toml, src/lib.rs}`
+  - `crates/url-security/{Cargo.toml, src/lib.rs}`
+  - `crates/web-extractor/{Cargo.toml, src/lib.rs}`
+  - `crates/github-extractor/{Cargo.toml, src/lib.rs}`
+  - `crates/code-intelligence/{Cargo.toml, src/lib.rs}`
+  - `crates/normalizer/{Cargo.toml, src/lib.rs}`
+  - `crates/deduplication/{Cargo.toml, src/lib.rs}`
+  - `crates/tokenizer/{Cargo.toml, src/lib.rs}`
+  - `crates/context-optimizer/{Cargo.toml, src/lib.rs}`
+  - `crates/chunking/{Cargo.toml, src/lib.rs}`
+  - `crates/exporters/{Cargo.toml, src/lib.rs}`
+  - `crates/storage/{Cargo.toml, src/lib.rs}`
+  - `crates/job-engine/{Cargo.toml, src/lib.rs}`
+  - `crates/observability/{Cargo.toml, src/lib.rs}`
+- **Implementation Tasks:**
+  1. Create root `Cargo.toml` configuring `[workspace]`, `[workspace.package]`, `[workspace.lints.rust]`, `[workspace.lints.clippy]`, and `[workspace.dependencies]` with exact versioning and path mappings.
+  2. Configure `deny.toml` for cargo-deny 0.20+ with license checks, security advisories, bans, and wildcard path allowances.
+  3. Ensure `rustfmt.toml` uses standard stable formatting rules compatible with Rust 1.97.1.
+  4. Create `Cargo.toml` and entry point `src/lib.rs` / `src/main.rs` with metadata functions and unit tests for all 17 members.
+  5. Verify cross-platform cargo binary resolution in `scripts/check-all.sh` and `scripts/check-all.ps1` including cargo-deny gate.
+  6. Execute `cargo check --workspace`, `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`, and `cargo deny check`.
+- **Acceptance Criteria:**
+  - Root `Cargo.toml` defines workspace members without syntax errors.
+  - All 17 crates and services compile cleanly under `cargo check --workspace`.
+  - Zero warnings under `cargo clippy --workspace --all-targets -- -D warnings`.
+  - Zero formatting issues under `cargo fmt --all -- --check`.
+  - 17/17 Rust unit tests pass under `cargo test --workspace`.
+  - `cargo deny check` passes with advisories ok, bans ok, licenses ok, sources ok.
+  - All 5 monorepo verification gates pass in both `scripts/check-all.ps1` and `scripts/check-all.sh`.
+- **Tests:** `cargo test --workspace` (17 tests passed across all 17 crates/services), `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo deny check`, `npm test --prefix apps/web` (184/184 tests passed), `powershell scripts/check-all.ps1`, `bash scripts/check-all.sh`.
+- **Security Considerations:** No unvetted third-party crates introduced; all dependencies pinned with exact versions; `cargo-deny` configured and passing for zero known vulnerabilities and license validation.
+- **Performance Considerations:** Minimal dependency trees; zero redundant crate dependencies; dev profile compiles in $< 1$s for incremental builds; workspace inheritance eliminates configuration duplication.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo check --workspace`: Compiled 17/17 crates cleanly in 0.64s.
+  - `cargo fmt --all -- --check`: 100% compliance with `rustfmt.toml`.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors.
+  - `cargo test --workspace`: 17 passed across 17 test suites (100% pass rate).
+  - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
+  - `bash scripts/check-all.sh`: ALL 5 GATES PASSED (0 failures).
+- **Git Commit Reference:** `54829d2`
+- **Status:** `ACCEPTED`
 
 ---
 
-## STAGES 1 – 11 QUEUED LEDGER SUMMARY
+### Upcoming Subphase
 
-All subphases for **Stage 1** (`1.1.1`–`1.4.3`), **Stage 2** (`2.1.1`–`2.4.4`), **Stage 3** (`3.1.1`–`3.4.4`), **Stage 4** (`4.1.1`–`4.4.4`), **Stage 5** (`5.1.1`–`5.5.4`), **Stage 6** (`6.1.1`–`6.4.4`), **Stage 7** (`7.1.1`–`7.4.4`), **Stage 8** (`8.1.1`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.
+| Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| `2.1.2` | Implement typed domain errors, results, and configuration loader in crates/core | `2.1.1` (`ACCEPTED`) | `crates/core/src/*`, `crates/core/Cargo.toml` | `NOT_STARTED` |
+
+---
+
+## STAGES 2 – 11 QUEUED LEDGER SUMMARY
+
+All subsequent subphases for **Stage 2** (`2.1.2`–`2.4.4`), **Stage 3** (`3.1.1`–`3.4.4`), **Stage 4** (`4.1.1`–`4.4.4`), **Stage 5** (`5.1.1`–`5.5.4`), **Stage 6** (`6.1.1`–`6.4.4`), **Stage 7** (`7.1.1`–`7.4.4`), **Stage 8** (`8.1.1`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.

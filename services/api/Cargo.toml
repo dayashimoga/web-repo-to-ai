@@ -1,0 +1,22 @@
+[package]
+name = "web-repo-to-ai-api"
+description = "Axum HTTP and SSE API server for web-repo-to-ai"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+web-repo-to-ai-core = { workspace = true }
+web-repo-to-ai-cdm = { workspace = true }
+web-repo-to-ai-url-security = { workspace = true }
+web-repo-to-ai-storage = { workspace = true }
+web-repo-to-ai-job-engine = { workspace = true }
+web-repo-to-ai-observability = { workspace = true }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+tracing = { workspace = true }

@@ -1,0 +1,80 @@
+[workspace]
+members = [
+    "services/api",
+    "services/worker",
+    "crates/core",
+    "crates/cdm",
+    "crates/url-security",
+    "crates/web-extractor",
+    "crates/github-extractor",
+    "crates/code-intelligence",
+    "crates/normalizer",
+    "crates/deduplication",
+    "crates/tokenizer",
+    "crates/context-optimizer",
+    "crates/chunking",
+    "crates/exporters",
+    "crates/storage",
+    "crates/job-engine",
+    "crates/observability",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.80.0"
+license = "MIT"
+authors = ["web-repo-to-ai contributors"]
+repository = "https://github.com/dayashimoga/web-repo-to-ai"
+homepage = "https://github.com/dayashimoga/web-repo-to-ai"
+readme = "README.md"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+rust_2018_idioms = { level = "warn", priority = -1 }
+unused_must_use = "warn"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+dbg_macro = "warn"
+todo = "warn"
+unimplemented = "warn"
+
+[workspace.dependencies]
+# Internal workspace crates
+web-repo-to-ai-core = { path = "crates/core", version = "0.1.0" }
+web-repo-to-ai-cdm = { path = "crates/cdm", version = "0.1.0" }
+web-repo-to-ai-url-security = { path = "crates/url-security", version = "0.1.0" }
+web-repo-to-ai-web-extractor = { path = "crates/web-extractor", version = "0.1.0" }
+web-repo-to-ai-github-extractor = { path = "crates/github-extractor", version = "0.1.0" }
+web-repo-to-ai-code-intelligence = { path = "crates/code-intelligence", version = "0.1.0" }
+web-repo-to-ai-normalizer = { path = "crates/normalizer", version = "0.1.0" }
+web-repo-to-ai-deduplication = { path = "crates/deduplication", version = "0.1.0" }
+web-repo-to-ai-tokenizer = { path = "crates/tokenizer", version = "0.1.0" }
+web-repo-to-ai-context-optimizer = { path = "crates/context-optimizer", version = "0.1.0" }
+web-repo-to-ai-chunking = { path = "crates/chunking", version = "0.1.0" }
+web-repo-to-ai-exporters = { path = "crates/exporters", version = "0.1.0" }
+web-repo-to-ai-storage = { path = "crates/storage", version = "0.1.0" }
+web-repo-to-ai-job-engine = { path = "crates/job-engine", version = "0.1.0" }
+web-repo-to-ai-observability = { path = "crates/observability", version = "0.1.0" }
+
+# Async runtime & networking
+tokio = { version = "1.40", default-features = false }
+async-trait = "0.1"
+futures = "0.3"
+bytes = "1.7"
+
+# Serialization & encoding
+serde = { version = "1.0", default-features = false }
+serde_json = "1.0"
+
+# Error handling & observability
+thiserror = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", default-features = false }
+
+# Identity & time
+chrono = { version = "0.4", default-features = false }
+uuid = { version = "1.10", default-features = false }

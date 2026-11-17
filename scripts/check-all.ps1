@@ -47,6 +47,12 @@ Run-Gate "Rust Workspace Checks" {
         Write-Output "Checking cargo test..."
         cargo test --workspace
         if ($LASTEXITCODE -ne 0) { throw "cargo test failed" }
+
+        if (Get-Command cargo-deny -ErrorAction SilentlyContinue) {
+            Write-Output "Checking cargo deny..."
+            cargo deny check
+            if ($LASTEXITCODE -ne 0) { throw "cargo deny check failed" }
+        }
     } else {
         Write-Output "Notice: Root Cargo.toml scheduled for Stage 2 (Rust Architecture). rustfmt.toml verified."
     }

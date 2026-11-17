@@ -1,0 +1,17 @@
+[package]
+name = "web-repo-to-ai-cdm"
+description = "Canonical Context Document Model (CDM) v1.0 schema definitions and validation"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+web-repo-to-ai-core = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }

@@ -27,11 +27,11 @@
   - `1.3` Conversion workspace (`1.3.1` – `1.3.4`) (`COMPLETED` / `ACCEPTED`)
   - `1.4` UX validation (`1.4.1` – `1.4.3`) (`COMPLETED` / `ACCEPTED`)
 
-### STAGE 2 — BACKEND AND PROCESSING FOUNDATION (`NOT_STARTED`)
+### STAGE 2 — BACKEND AND PROCESSING FOUNDATION (`IN_PROGRESS`)
 - **Deliverable:** Operational Rust Axum API, persistent PostgreSQL job management, and artifact storage infrastructure.
 - **Stage Acceptance Gate:** Actual API, database schema/migrations, durable job leasing, and storage lifecycle verified via integration tests.
 - **Phases:**
-  - `2.1` Rust architecture (`2.1.1` – `2.1.3`)
+  - `2.1` Rust architecture (`2.1.1` [ACCEPTED], `2.1.2` [NEXT], `2.1.3`)
   - `2.2` API (`2.2.1` – `2.2.4`)
   - `2.3` Persistence (`2.3.1` – `2.3.4`)
   - `2.4` Storage (`2.4.1` – `2.4.4`)

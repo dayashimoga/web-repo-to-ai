@@ -1,0 +1,31 @@
+[package]
+name = "web-repo-to-ai-worker"
+description = "Asynchronous conversion pipeline worker daemon for web-repo-to-ai"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+web-repo-to-ai-core = { workspace = true }
+web-repo-to-ai-cdm = { workspace = true }
+web-repo-to-ai-url-security = { workspace = true }
+web-repo-to-ai-web-extractor = { workspace = true }
+web-repo-to-ai-github-extractor = { workspace = true }
+web-repo-to-ai-code-intelligence = { workspace = true }
+web-repo-to-ai-normalizer = { workspace = true }
+web-repo-to-ai-deduplication = { workspace = true }
+web-repo-to-ai-tokenizer = { workspace = true }
+web-repo-to-ai-context-optimizer = { workspace = true }
+web-repo-to-ai-chunking = { workspace = true }
+web-repo-to-ai-exporters = { workspace = true }
+web-repo-to-ai-storage = { workspace = true }
+web-repo-to-ai-job-engine = { workspace = true }
+web-repo-to-ai-observability = { workspace = true }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+tracing = { workspace = true }

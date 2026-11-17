@@ -1,0 +1,17 @@
+[package]
+name = "web-repo-to-ai-chunking"
+description = "Deterministic AST- and heading-aware document chunking with configurable overlap"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+web-repo-to-ai-core = { workspace = true }
+web-repo-to-ai-cdm = { workspace = true }
+thiserror = { workspace = true }

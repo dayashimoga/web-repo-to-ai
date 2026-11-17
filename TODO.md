@@ -55,8 +55,17 @@
 
 ---
 
+## Stage 2 — Backend and Processing Foundation (`IN_PROGRESS`)
+
+### Phase 2.1 — Rust architecture (`IN_PROGRESS`)
+- [x] **[2.1.1]** Create Rust workspace and crate structure *(Completed 2026-11-17, root Cargo.toml, 17 workspace member crates/services, deny.toml 0.20+, rustfmt, 17/17 tests passing, all 5 gates pass)*
+- [ ] **[2.1.2]** Implement typed domain errors, results, and configuration loader in `crates/core`
+- [ ] **[2.1.3]** Set up structured logging, OpenTelemetry tracing, and Prometheus metrics in `crates/observability`
+- [ ] **[2.1.4]** Create database schema, migrations, and connection pool in `crates/storage`
+
+---
+
 ## Subsequent Stages (Queued)
-- [ ] **[Stage 2]** Backend and Processing Foundation (`2.1.1` – `2.4.4`)
 - [ ] **[Stage 3]** Universal Webpage Extraction (`3.1.1` – `3.4.4`)
 - [ ] **[Stage 4]** Canonical Model and Export Engine (`4.1.1` – `4.4.4`)
 - [ ] **[Stage 5]** Public GitHub Repository Extraction (`5.1.1` – `5.5.4`)

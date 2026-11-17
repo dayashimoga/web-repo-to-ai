@@ -1,0 +1,18 @@
+[package]
+name = "web-repo-to-ai-storage"
+description = "Content-addressed artifact storage backend abstraction and retention lifecycle"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+web-repo-to-ai-core = { workspace = true }
+async-trait = { workspace = true }
+bytes = { workspace = true }
+thiserror = { workspace = true }

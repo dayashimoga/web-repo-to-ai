@@ -6,6 +6,21 @@
 
 ## [Unreleased] — Stage 2: Backend and Processing Foundation
 
+### 2026-11-17 — Phase 2.1: Rust Architecture (`2.1.1`)
+
+#### Added
+- **`[2.1.1]` Create Rust Workspace and 17 Crate Structures:**
+  - Initialized monorepo root `Cargo.toml` with `[workspace]` configuration, unified lints, and workspace dependency management:
+    - Declared 2 backend services (`services/api`, `services/worker`) and 15 domain/processing crates (`crates/core`, `crates/cdm`, `crates/url-security`, `crates/web-extractor`, `crates/github-extractor`, `crates/code-intelligence`, `crates/normalizer`, `crates/deduplication`, `crates/tokenizer`, `crates/context-optimizer`, `crates/chunking`, `crates/exporters`, `crates/storage`, `crates/job-engine`, `crates/observability`).
+    - Configured package metadata defaults (`edition = "2021"`, `version = "0.1.0"`, `license = "MIT OR Apache-2.0"`).
+    - Enforced strict workspace compiler warnings (`rust.unsafe_code = "deny"`, `rust.unused_must_use = "deny"`, `clippy.all = "warn"`, `clippy.pedantic = "warn"`, `clippy.correctness = "deny"`).
+    - Pinned internal and third-party dependencies (`tokio`, `serde`, `tracing`, `thiserror`, `anyhow`, `chrono`) with exact versions and path mappings.
+  - Initialized all 17 member crates with compilable `Cargo.toml` and entry points (`src/lib.rs` / `src/main.rs`), each providing crate metadata functions and passing unit tests.
+  - Configured `deny.toml` compatible with cargo-deny 0.20+ (license validation, bans, security advisories, and path dependency wildcard allowances).
+  - Configured `rustfmt.toml` with stable formatting options compatible with Rust 1.97.1.
+  - Updated `scripts/check-all.sh` and `scripts/check-all.ps1` with robust cross-platform `cargo` binary detection and `cargo deny check` quality gating.
+  - Verified 17/17 Rust unit tests pass, `cargo check --workspace` compiles cleanly in 0.64s, `cargo fmt` and `cargo clippy` report 0 warnings/errors, and all 5 monorepo verification gates pass.
+
 ### 2026-11-17 — Phase 1.4: UX Validation (`1.4.3`), Phase 1.4 Certification & Stage 1 Milestone Certification
 
 #### Added

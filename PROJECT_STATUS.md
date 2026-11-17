@@ -2,17 +2,17 @@
 
 **Project:** `web-repo-to-ai` (Universal URL & GitHub Repository → AI-Ready Content Converter)  
 **Last Updated:** 2026-11-17  
-**Current Stage:** `STAGE 1 — FRONTEND AND PRODUCT EXPERIENCE` (`COMPLETED` / `ACCEPTED`)  
-**Current Phase:** `Phase 1.4 — UX validation` (`COMPLETED` / `ACCEPTED`)  
-**Active Subphase:** `2.1.1 — Create Rust workspace and crate structure` (`NOT_STARTED` / `Awaiting User Approval to Begin Stage 2`)  
-**Last Completed Subphase:** `1.4.3 — Execute UI performance and visual regression verification` (`ACCEPTED` / `Stage 1 Certified`)  
-**Next Upcoming Subphase:** `2.1.1 — Create Rust workspace and crate structure`
+**Current Stage:** `STAGE 2 — BACKEND AND PROCESSING FOUNDATION` (`IN_PROGRESS`)  
+**Current Phase:** `Phase 2.1 — Rust architecture` (`IN_PROGRESS`)  
+**Active Subphase:** `2.1.2 — Implement typed domain errors, results, and configuration loader in crates/core` (`NOT_STARTED` / `Next Eligible Subphase`)  
+**Last Completed Subphase:** `2.1.1 — Create Rust workspace and crate structure` (`ACCEPTED`)  
+**Next Upcoming Subphase:** `2.1.2 — Implement typed domain errors, results, and configuration loader in crates/core`
 
 ---
 
 ## 1. Executive Summary
 
-Stage 0 (`0.1.1` – `0.3.5`, 15 subphases) and Stage 1 (`1.1.1` – `1.4.3`, 15 subphases) are 100% complete, verified, certified, and accepted. All 30 bootstrap and frontend subphases are accepted. Phase 1.4 ("UX validation") and Stage 1 are fully certified with 184/184 automated tests passing across 15 test suites with 0 failures, 0 `svelte-check` diagnostics, 100% Prettier compliance, and all 5 monorepo verification gates passing cleanly. Stage 2 ("Backend and Processing Foundation") Subphase `2.1.1` is queued for user confirmation.
+Stage 0 (`0.1.1` – `0.3.5`, 15 subphases) and Stage 1 (`1.1.1` – `1.4.3`, 15 subphases) are 100% complete, verified, certified, and accepted. Stage 2 ("Backend and Processing Foundation") is underway with Subphase `2.1.1` ("Create Rust workspace and crate structure") fully implemented and accepted: root Cargo workspace manifest with 2 services and 15 internal crates configured, `deny.toml` updated for cargo-deny 0.20+, `rustfmt.toml` standard configuration, 17/17 Rust unit tests passing, and all 5 monorepo verification gates passing cleanly on both PowerShell and POSIX bash. Subphase `2.1.2` is queued as the next eligible subphase.
 
 ---
 
@@ -20,12 +20,12 @@ Stage 0 (`0.1.1` – `0.3.5`, 15 subphases) and Stage 1 (`1.1.1` – `1.4.3`, 15
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 29 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3` |
+| `ACCEPTED` | 30 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 168 | `2.1.1` – `11.4.5` |
+| `NOT_STARTED` | 167 | `2.1.2` – `11.4.5` |
 | **Total** | **197** | `Stage 0` – `Stage 11` |
 
 ---

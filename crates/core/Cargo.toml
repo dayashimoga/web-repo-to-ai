@@ -1,0 +1,16 @@
+[package]
+name = "web-repo-to-ai-core"
+description = "Domain IDs, configuration loader, unified error taxonomy, and shared traits"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+serde = { workspace = true, features = ["derive"] }
+thiserror = { workspace = true }
