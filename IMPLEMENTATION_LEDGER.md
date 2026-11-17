@@ -3322,11 +3322,63 @@
 
 ---
 
+#### Subphase `4.2.2` — Plain-text generator in crates/exporters
+- **Unique ID:** `4.2.2`
+- **Objective:** Implement a deterministic, clean, AI-ready Plain-Text (`.txt`) export engine in `crates/exporters` converting `CdmDocument` instances into clean plain-text context packages free of Markdown syntax decoration, featuring configurable ASCII/Unicode header banners, directory tree hierarchy, table of contents, customizable section delimiters, code bodies with optional line numbering, provenance citations, auditable exclusions, completeness accounting, token budget caps, and streaming writer support.
+- **Scope:** `crates/exporters/src/plain_text.rs`, `crates/exporters/src/options.rs`, `crates/exporters/src/lib.rs`, `crates/exporters/tests/plain_text_export.rs`.
+- **Prerequisites:** `4.2.1` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/exporters/src/plain_text.rs`
+  - `crates/exporters/src/options.rs`
+  - `crates/exporters/src/lib.rs`
+  - `crates/exporters/tests/plain_text_export.rs`
+- **Implementation Tasks:**
+  1. Extend `crates/exporters/src/options.rs` with `PlainTextOptions`:
+     - Configurable header banner, metadata block, directory tree style (`HierarchyStyle`), table of contents, section banners, citations, exclusions, completeness report, divider character and width, token budget ceiling, and line numbering.
+     - Presets: `default()`, `minimal()`, `compact()`.
+  2. Implement `crates/exporters/src/plain_text.rs`:
+     - `PlainTextExporter` struct with fluent builder methods.
+     - Deterministic ASCII document header block (Title, Source URL, Type, Retrieved, License, Language, Metrics).
+     - Directory tree / outline hierarchy renderer.
+     - Plain-text Table of Contents with section numbers, titles, and volume/token metrics.
+     - Polyglot section formatting with structured divider banners (`----------------`), section kind labels, metadata headers, and clean bodies without markdown fence noise.
+     - Plain-text Citations & Sources section.
+     - Plain-text Excluded Files & Content audit section.
+     - Completeness Accounting breakdown.
+     - Token budget enforcement with ASCII warning banner.
+     - Streaming writer support via `export_plain_text_to_writer`.
+  3. Re-export public Plain-Text exporter types in `crates/exporters/src/lib.rs`.
+  4. Implement integration tests in `crates/exporters/tests/plain_text_export.rs` verifying default plain-text output, minimal/compact presets, line numbering, hierarchy styles, token budget truncation, streaming writer byte equivalence, and empty document handling.
+  5. Run all 5 monorepo verification gates in `scripts/check-all.ps1`.
+- **Acceptance Criteria:**
+  - `PlainTextExporter` converts any valid `CdmDocument` into deterministic, clean plain text without markdown syntax artefacts.
+  - All `SectionKind` variants render accurately with clean visual separation and metadata headers.
+  - Exclusions and citations render faithfully to preserve auditability for non-markdown consumers.
+  - Both in-memory `export_to_string` and streaming `export_to_writer` produce byte-identical results and report accurate `ExportMetrics`.
+  - All workspace tests pass, clippy passes with zero warnings, formatting checks clean, and cargo deny passes.
+- **Tests:** `cargo test -p web-repo-to-ai-exporters`, `cargo test --workspace`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, 01, 04, 05: Safe memory handling, bounded allocation, no panics, canonical URL citations sanitized, and complete provenance tracking.
+- **Performance Considerations:** Single-pass streaming rendering directly to writers without redundant string allocations, pre-allocated string buffers.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-exporters`: 26 passed (1 unit + 15 markdown + 10 plain text integration tests), 0 failed.
+  - `cargo test --workspace`: 406 passed, 0 failed across all monorepo crates.
+  - `apps/web` (SvelteKit + Vitest): 184 passed, 0 failed across 15 test suites.
+  - `services/browser-worker` (Node.js + Jest): 29 passed, 0 failed across 7 test suites.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, clean pass.
+  - `cargo fmt --all -- --check`: Clean formatting verified across all Rust crates.
+  - `cargo deny check`: Licenses, bans, advisories, and sources passed with zero violations.
+  - Monorepo 5-gate audit (`powershell scripts/check-all.ps1`): ALL 5 GATES PASSED (100% pass rate).
+- **Git Commit Reference:** PENDING_COMMIT
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 4 — Canonical Model and Export Engine)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `4.2.2` | Plain-text generator in crates/exporters | `4.2.1` (`ACCEPTED`) | `crates/exporters/*` | `NOT_STARTED` |
+| `4.2.3` | JSON generator in crates/exporters | `4.2.2` (`ACCEPTED`) | `crates/exporters/*` | `NOT_STARTED` |
 
 ---
 

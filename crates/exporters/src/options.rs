@@ -232,3 +232,157 @@ impl MarkdownOptions {
         self
     }
 }
+
+/// Configuration options controlling Plain-Text (`.txt`) document generation.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PlainTextOptions {
+    /// Whether to render the top-level document metadata banner.
+    pub include_header_banner: bool,
+    /// Hierarchy tree style (Unicode, ASCII, Bulleted, or None).
+    pub hierarchy_style: HierarchyStyle,
+    /// Whether to generate a plain-text Table of Contents.
+    pub include_table_of_contents: bool,
+    /// Whether to include section banner delimiters and metadata headers.
+    pub include_section_headers: bool,
+    /// Whether to append an Excluded Files section when exclusions are present.
+    pub include_exclusions: bool,
+    /// Whether to append a Citations & Sources section when citations are present.
+    pub include_citations: bool,
+    /// Whether to append a Completeness Accounting summary.
+    pub include_completeness_report: bool,
+    /// Character used for section divider lines (e.g. `'-'`, `'='`).
+    pub divider_char: char,
+    /// Width of divider lines in characters (default: 80).
+    pub divider_width: usize,
+    /// Maximum allowed token budget. If reached, remaining sections are omitted with a notice.
+    pub max_token_budget: Option<usize>,
+    /// Prefix code blocks with line numbers (default: false).
+    pub include_line_numbers: bool,
+}
+
+impl Default for PlainTextOptions {
+    fn default() -> Self {
+        Self {
+            include_header_banner: true,
+            hierarchy_style: HierarchyStyle::AsciiTree,
+            include_table_of_contents: true,
+            include_section_headers: true,
+            include_exclusions: true,
+            include_citations: true,
+            include_completeness_report: true,
+            divider_char: '-',
+            divider_width: 80,
+            max_token_budget: None,
+            include_line_numbers: false,
+        }
+    }
+}
+
+impl PlainTextOptions {
+    /// Creates a minimal options configuration (raw sections only, no TOC or hierarchy tree).
+    #[must_use]
+    pub fn minimal() -> Self {
+        Self {
+            include_header_banner: false,
+            hierarchy_style: HierarchyStyle::None,
+            include_table_of_contents: false,
+            include_section_headers: false,
+            include_exclusions: false,
+            include_citations: false,
+            include_completeness_report: false,
+            divider_char: '-',
+            divider_width: 80,
+            max_token_budget: None,
+            include_line_numbers: false,
+        }
+    }
+
+    /// Creates a compact options configuration (concise headers, no verbose metadata).
+    #[must_use]
+    pub fn compact() -> Self {
+        Self {
+            include_header_banner: true,
+            hierarchy_style: HierarchyStyle::AsciiTree,
+            include_table_of_contents: false,
+            include_section_headers: true,
+            include_exclusions: true,
+            include_citations: true,
+            include_completeness_report: false,
+            divider_char: '-',
+            divider_width: 80,
+            max_token_budget: None,
+            include_line_numbers: false,
+        }
+    }
+
+    /// Configures header banner inclusion.
+    #[must_use]
+    pub const fn with_header_banner(mut self, enabled: bool) -> Self {
+        self.include_header_banner = enabled;
+        self
+    }
+
+    /// Configures hierarchy tree rendering style.
+    #[must_use]
+    pub const fn with_hierarchy_style(mut self, style: HierarchyStyle) -> Self {
+        self.hierarchy_style = style;
+        self
+    }
+
+    /// Configures table of contents inclusion.
+    #[must_use]
+    pub const fn with_table_of_contents(mut self, enabled: bool) -> Self {
+        self.include_table_of_contents = enabled;
+        self
+    }
+
+    /// Configures section headers inclusion.
+    #[must_use]
+    pub const fn with_section_headers(mut self, enabled: bool) -> Self {
+        self.include_section_headers = enabled;
+        self
+    }
+
+    /// Configures exclusions list inclusion.
+    #[must_use]
+    pub const fn with_exclusions(mut self, enabled: bool) -> Self {
+        self.include_exclusions = enabled;
+        self
+    }
+
+    /// Configures citations list inclusion.
+    #[must_use]
+    pub const fn with_citations(mut self, enabled: bool) -> Self {
+        self.include_citations = enabled;
+        self
+    }
+
+    /// Configures completeness report inclusion.
+    #[must_use]
+    pub const fn with_completeness_report(mut self, enabled: bool) -> Self {
+        self.include_completeness_report = enabled;
+        self
+    }
+
+    /// Configures divider line character and width.
+    #[must_use]
+    pub const fn with_divider(mut self, ch: char, width: usize) -> Self {
+        self.divider_char = ch;
+        self.divider_width = if width == 0 { 40 } else { width };
+        self
+    }
+
+    /// Sets the maximum token budget cap.
+    #[must_use]
+    pub const fn with_max_token_budget(mut self, budget: Option<usize>) -> Self {
+        self.max_token_budget = budget;
+        self
+    }
+
+    /// Configures line numbers in code blocks.
+    #[must_use]
+    pub const fn with_line_numbers(mut self, enabled: bool) -> Self {
+        self.include_line_numbers = enabled;
+        self
+    }
+}

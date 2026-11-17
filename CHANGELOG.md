@@ -6,6 +6,30 @@
 
 ## [Unreleased] — Stage 4: Canonical Model and Export Engine
 
+### 2026-11-17 — Phase 4.2: Format Generators (`4.2.2`)
+
+#### Added
+- **`[4.2.2]` Implement Plain-Text Generator in `crates/exporters`:**
+  - Implemented `PlainTextOptions` configuration model in `crates/exporters/src/options.rs`:
+    - Configurable top-level document metadata banner (`include_header_banner`), hierarchy tree style (`HierarchyStyle::AsciiTree` default), plain-text table of contents, customizable section divider lines (`divider_char`, `divider_width`), line numbering, exclusions and citations audit sections, completeness report, and token budget ceiling.
+    - Added preset constructors `minimal()` and `compact()`.
+  - Implemented core Plain-Text generator in `crates/exporters/src/plain_text.rs`:
+    - `PlainTextExporter`: Builder API supporting `export_to_string` and streaming `export_to_writer`.
+    - `export_plain_text`: In-memory deterministic plain-text generation.
+    - `export_plain_text_to_writer`: Single-pass streaming renderer writing directly to any `std::io::Write` sink with `CountingWriter` for exact byte and newline telemetry.
+    - Clean ASCII header banner detailing Document Title, Source URL, Type, Retrieved timestamp, License, Language, Authors, Commit SHA, volume/token metrics, and Completeness yield.
+    - Plain-text directory / outline tree rendering (ASCII tree, Unicode tree, or bulleted list) without Markdown code block fences.
+    - Plain-text Table of Contents with numbered section index, titles, language, line count, byte size, and token estimates.
+    - Clean polyglot section formatting with structured divider banners (`----------------`), section kind labels, metadata headers, and clean bodies without markdown fence noise.
+    - Plain-text Sources & Citations section.
+    - Plain-text Excluded Files & Content audit section detailing skipped paths, reasons, patterns, sizes, and rationale.
+    - Completeness Accounting breakdown with discovered, extracted, excluded, failed, and unsupported counts.
+    - Token budget enforcement halting section emission with an ASCII warning banner when budget is exceeded.
+  - Factored shared utilities into `crates/exporters/src/util.rs` (`CountingWriter`, `format_bytes`).
+  - Re-exported public types in `crates/exporters/src/lib.rs`.
+  - Created integration test suite in `crates/exporters/tests/plain_text_export.rs` (10 tests) verifying default export, minimal/compact presets, line numbering, token budget truncation, streaming writer byte equivalence, hierarchy styles, custom dividers, empty document handling, and serde roundtrips.
+  - Verification: 26 passing exporter tests, 406 total workspace Rust tests, 184 frontend tests, 29 browser-worker tests, and 100% pass rate across all 5 monorepo verification gates.
+
 ### 2026-11-17 — Phase 4.2: Format Generators (`4.2.1`)
 
 #### Added

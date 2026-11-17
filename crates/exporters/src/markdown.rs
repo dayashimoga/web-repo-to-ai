@@ -5,6 +5,7 @@
 
 use crate::error::{ExporterError, Result};
 use crate::options::{CodeFenceStyle, ExportMetrics, HierarchyStyle, MarkdownOptions};
+use crate::util::{format_bytes, CountingWriter};
 use std::io::Write;
 use web_repo_to_ai_cdm::hierarchy::{HierarchyKind, HierarchyNode};
 use web_repo_to_ai_cdm::model::CdmDocument;
@@ -709,47 +710,5 @@ fn escape_yaml_str(s: &str) -> String {
         out
     } else {
         s.to_string()
-    }
-}
-
-fn format_bytes(bytes: u64) -> String {
-    if bytes < 1024 {
-        format!("{bytes} B")
-    } else if bytes < 1024 * 1024 {
-        format!("{:.1} KB", bytes as f64 / 1024.0)
-    } else if bytes < 1024 * 1024 * 1024 {
-        format!("{:.1} MB", bytes as f64 / (1024.0 * 1024.0))
-    } else {
-        format!("{:.2} GB", bytes as f64 / (1024.0 * 1024.0 * 1024.0))
-    }
-}
-
-/// A wrapper around any [`Write`] implementation tracking bytes and lines written.
-struct CountingWriter<W> {
-    inner: W,
-    bytes_written: usize,
-    lines_written: usize,
-}
-
-impl<W: Write> CountingWriter<W> {
-    fn new(inner: W) -> Self {
-        Self {
-            inner,
-            bytes_written: 0,
-            lines_written: 0,
-        }
-    }
-}
-
-impl<W: Write> Write for CountingWriter<W> {
-    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        let n = self.inner.write(buf)?;
-        self.bytes_written += n;
-        self.lines_written += buf[..n].iter().filter(|&&b| b == b'\n').count();
-        Ok(n)
-    }
-
-    fn flush(&mut self) -> std::io::Result<()> {
-        self.inner.flush()
     }
 }
