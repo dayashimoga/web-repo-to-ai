@@ -125,7 +125,7 @@
 - [x] **[4.2.4]** HTML & JSONL generators in crates/exporters *(Completed 2026-11-17, HtmlExporter, HtmlOptions, standalone HTML5 document, embedded responsive CSS, dark/light theme aware, collapsible sections, line numbers, table of contents, citations & exclusions tables, JsonlExporter, JsonlOptions, JsonlFlavor (RagChunks, FineTuningChat, FineTuningPromptCompletion, CanonicalSections), streaming writers, 53 passing exporter tests, 433 workspace tests — PHASE 4.2 CERTIFIED)*
 
 ### Phase 4.3 — Export
-- [ ] **[4.3.1]** ZIP package generation in crates/exporters
+- [x] **[4.3.1]** ZIP package generation in crates/exporters *(Completed 2026-11-17, ZipPackageExporter, ZipPackageOptions, zip v9.6.1 deflate/zlib-rs, deterministic timestamps, manifest/provenance/quality reports, checksums.sha256, path traversal defense, 9 passing tests, 62 exporter tests, 442 workspace tests)*
 - [ ] **[4.3.2]** Manifest & checksums generation in crates/exporters
 - [ ] **[4.3.3]** Streaming downloads in services/api
 - [ ] **[4.3.4]** Export integrity tests in crates/exporters

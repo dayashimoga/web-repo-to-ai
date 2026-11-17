@@ -3475,11 +3475,57 @@
 
 ---
 
+#### Subphase `4.3.1` — ZIP package generation in crates/exporters
+- **Unique ID:** `4.3.1`
+- **Objective:** Implement a deterministic, streaming ZIP archive package generator in `crates/exporters` converting `CdmDocument` instances into standardized `.zip` packages containing multi-format exports (`context.md`, `context.txt`, `context.json`, `document.json`, `context.html`, `context.jsonl`), individual source files organized in directory hierarchies (`sources/{path}`), metadata manifests (`manifest.json`), provenance reports (`provenance.json`), quality reports (`quality-report.json`), and coreutils-compatible SHA-256 checksums (`checksums.sha256`).
+- **Scope:** `crates/exporters/src/zip.rs`, `crates/exporters/src/options.rs`, `crates/exporters/src/lib.rs`, `crates/exporters/tests/zip_export.rs`.
+- **Prerequisites:** `4.2.4` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/exporters/src/zip.rs`
+  - `crates/exporters/src/options.rs`
+  - `crates/exporters/src/lib.rs`
+  - `crates/exporters/tests/zip_export.rs`
+- **Implementation Tasks:**
+  1. Add `ZipPackageOptions`, `ZipPackageMetrics`, `ZipCompressionMethod`, and `PackageManifest` to `crates/exporters/src/options.rs` or `crates/exporters/src/zip.rs`.
+  2. Implement `crates/exporters/src/zip.rs`:
+     - `ZipPackageExporter`: Builder API supporting in-memory `export_to_bytes` and streaming `export_to_writer`.
+     - Deterministic ZIP archive generation with uniform timestamps and permissions (0o644) for reproducible builds.
+     - Integration of format generators: Markdown, Plain-Text, JSON (Canonical CDM and Structured Context), HTML, JSONL.
+     - Individual source files extraction preserving relative folder structures (`sources/...`).
+     - Generation of `manifest.json`, `provenance.json`, `quality-report.json`, and `checksums.sha256` calculating SHA-256 digests for each embedded archive entry.
+     - Telemetry metrics capturing archive file count, uncompressed byte size, compressed byte size, and package SHA-256 digest.
+  3. Re-export public ZIP package exporter types in `crates/exporters/src/lib.rs`.
+  4. Implement integration tests in `crates/exporters/tests/zip_export.rs` verifying archive creation, multi-format file presence, SHA-256 checksum validity, streaming writer equivalence, empty document handling, and zip reading roundtrip with `zip::ZipArchive`.
+  5. Run all 5 monorepo verification gates in `scripts/check-all.ps1`.
+- **Acceptance Criteria:**
+  - `ZipPackageExporter` creates standard, uncorrupted `.zip` archives that open cleanly in any standard zip client (`unzip`, Windows Explorer, 7-zip).
+  - Multi-format files, manifest, provenance, quality report, and checksums are accurately emitted according to options.
+  - Every file in `checksums.sha256` matches the exact SHA-256 digest of the extracted entry byte-for-byte.
+  - In-memory bytes generation and streaming writer emission produce valid archives.
+  - All workspace tests pass, clippy has 0 warnings, formatting is clean, and cargo deny passes.
+- **Tests:** `cargo test -p web-repo-to-ai-exporters`, `cargo test --workspace`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, 01, 04, 05: Safe memory handling, path traversal defense sanitizing entry names (preventing directory traversal attacks like `../` or absolute paths in ZIP headers), bounded allocations, no panics.
+- **Performance Considerations:** Single-pass streaming rendering directly to zip writer sinks with Deflate compression, avoiding redundant buffers where possible.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-exporters`: 62 passed (1 unit + 10 html + 8 json + 9 jsonl + 15 markdown + 10 plain text + 9 zip integration tests), 0 failed.
+  - `cargo test --workspace`: 442 passed, 0 failed across all monorepo crates.
+  - `apps/web` (SvelteKit + Vitest): 184 passed, 0 failed across 15 test suites.
+  - `services/browser-worker` (Node.js + Jest): 29 passed, 0 failed across 7 test suites.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, clean pass.
+  - `cargo fmt --all -- --check`: Clean formatting verified across all Rust crates.
+  - `cargo deny check`: Licenses, bans, advisories (zip v9.6.1 with flate2/zlib-rs), and sources passed with zero violations.
+  - Monorepo 5-gate audit (`powershell scripts/check-all.ps1`): ALL 5 GATES PASSED (100% pass rate).
+- **Git Commit Reference:** PENDING_COMMIT
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 4 — Canonical Model and Export Engine)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `4.3.1` | ZIP package generation in crates/exporters | `4.2.4` (`ACCEPTED`) | `crates/exporters/*` | `NOT_STARTED` |
+| `4.3.2` | Manifest & checksums generation in crates/exporters | `4.3.1` (`ACCEPTED`) | `crates/exporters/*` | `NOT_STARTED` |
 
 ---
 

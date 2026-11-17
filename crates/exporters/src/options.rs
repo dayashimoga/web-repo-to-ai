@@ -811,3 +811,254 @@ impl JsonlOptions {
         self
     }
 }
+
+/// Telemetry metrics recorded during ZIP package generation.
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub struct ZipPackageMetrics {
+    /// Total bytes written to the final ZIP archive.
+    pub total_bytes_written: usize,
+    /// Total number of distinct files embedded in the archive.
+    pub files_archived: usize,
+    /// Uncompressed aggregate byte size across all embedded files.
+    pub uncompressed_bytes: u64,
+    /// Compressed aggregate byte size across all embedded files.
+    pub compressed_bytes: u64,
+    /// Cryptographic SHA-256 hex digest of the final ZIP archive stream.
+    pub sha256_checksum: String,
+}
+
+/// Configuration options controlling ZIP package generation.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ZipPackageOptions {
+    /// Whether to include `context.md` (Markdown format).
+    pub include_markdown: bool,
+    /// Archive path for the Markdown export.
+    pub markdown_path: String,
+    /// Markdown generator options.
+    pub markdown_options: MarkdownOptions,
+
+    /// Whether to include `context.txt` (Plain-text format).
+    pub include_plain_text: bool,
+    /// Archive path for the Plain-text export.
+    pub plain_text_path: String,
+    /// Plain-text generator options.
+    pub plain_text_options: PlainTextOptions,
+
+    /// Whether to include `document.json` (Canonical CDM v1.0 schema format).
+    pub include_json_canonical: bool,
+    /// Archive path for the Canonical CDM export.
+    pub json_canonical_path: String,
+
+    /// Whether to include `context.json` (Structured LLM context format).
+    pub include_json_structured: bool,
+    /// Archive path for the Structured JSON export.
+    pub json_structured_path: String,
+
+    /// Whether to include `context.html` (Standalone semantic HTML5 document).
+    pub include_html: bool,
+    /// Archive path for the HTML export.
+    pub html_path: String,
+    /// HTML generator options.
+    pub html_options: HtmlOptions,
+
+    /// Whether to include `context.jsonl` (RAG chunk newline-delimited JSON).
+    pub include_jsonl: bool,
+    /// Archive path for the JSONL export.
+    pub jsonl_path: String,
+    /// JSONL generator options.
+    pub jsonl_options: JsonlOptions,
+
+    /// Whether to extract individual source files into a directory hierarchy.
+    pub include_individual_files: bool,
+    /// Folder prefix for individual source files (default: `"sources/"`).
+    pub individual_files_dir: String,
+
+    /// Whether to generate `manifest.json`.
+    pub include_manifest: bool,
+    /// Whether to generate `provenance.json`.
+    pub include_provenance: bool,
+    /// Whether to generate `quality-report.json`.
+    pub include_quality_report: bool,
+    /// Whether to generate `checksums.sha256` (coreutils-compatible format).
+    pub include_checksums: bool,
+
+    /// Optional overall token budget ceiling.
+    pub max_token_budget: Option<usize>,
+}
+
+impl Default for ZipPackageOptions {
+    fn default() -> Self {
+        Self {
+            include_markdown: true,
+            markdown_path: "context.md".to_string(),
+            markdown_options: MarkdownOptions::default(),
+
+            include_plain_text: true,
+            plain_text_path: "context.txt".to_string(),
+            plain_text_options: PlainTextOptions::default(),
+
+            include_json_canonical: true,
+            json_canonical_path: "document.json".to_string(),
+
+            include_json_structured: true,
+            json_structured_path: "context.json".to_string(),
+
+            include_html: true,
+            html_path: "context.html".to_string(),
+            html_options: HtmlOptions::default(),
+
+            include_jsonl: true,
+            jsonl_path: "context.jsonl".to_string(),
+            jsonl_options: JsonlOptions::default(),
+
+            include_individual_files: true,
+            individual_files_dir: "sources/".to_string(),
+
+            include_manifest: true,
+            include_provenance: true,
+            include_quality_report: true,
+            include_checksums: true,
+
+            max_token_budget: None,
+        }
+    }
+}
+
+impl ZipPackageOptions {
+    /// Creates a complete export package with all formats, sources, manifests, and checksums.
+    #[must_use]
+    pub fn complete() -> Self {
+        Self::default()
+    }
+
+    /// Creates a minimal package containing only Markdown, manifest, and checksums.
+    #[must_use]
+    pub fn minimal() -> Self {
+        Self {
+            include_markdown: true,
+            include_plain_text: false,
+            include_json_canonical: false,
+            include_json_structured: false,
+            include_html: false,
+            include_jsonl: false,
+            include_individual_files: false,
+            include_manifest: true,
+            include_provenance: false,
+            include_quality_report: false,
+            include_checksums: true,
+            ..Default::default()
+        }
+    }
+
+    /// Creates a package containing only format artifacts without individual sources.
+    #[must_use]
+    pub fn formats_only() -> Self {
+        Self {
+            include_individual_files: false,
+            ..Default::default()
+        }
+    }
+
+    /// Creates a package containing only individual extracted source files and manifests.
+    #[must_use]
+    pub fn sources_only() -> Self {
+        Self {
+            include_markdown: false,
+            include_plain_text: false,
+            include_json_canonical: false,
+            include_json_structured: false,
+            include_html: false,
+            include_jsonl: false,
+            include_individual_files: true,
+            include_manifest: true,
+            include_provenance: true,
+            include_quality_report: true,
+            include_checksums: true,
+            ..Default::default()
+        }
+    }
+
+    /// Configures Markdown inclusion.
+    #[must_use]
+    pub const fn with_markdown(mut self, enabled: bool) -> Self {
+        self.include_markdown = enabled;
+        self
+    }
+
+    /// Configures Plain-Text inclusion.
+    #[must_use]
+    pub const fn with_plain_text(mut self, enabled: bool) -> Self {
+        self.include_plain_text = enabled;
+        self
+    }
+
+    /// Configures Canonical CDM JSON inclusion.
+    #[must_use]
+    pub const fn with_json_canonical(mut self, enabled: bool) -> Self {
+        self.include_json_canonical = enabled;
+        self
+    }
+
+    /// Configures Structured Context JSON inclusion.
+    #[must_use]
+    pub const fn with_json_structured(mut self, enabled: bool) -> Self {
+        self.include_json_structured = enabled;
+        self
+    }
+
+    /// Configures HTML inclusion.
+    #[must_use]
+    pub const fn with_html(mut self, enabled: bool) -> Self {
+        self.include_html = enabled;
+        self
+    }
+
+    /// Configures JSONL inclusion.
+    #[must_use]
+    pub const fn with_jsonl(mut self, enabled: bool) -> Self {
+        self.include_jsonl = enabled;
+        self
+    }
+
+    /// Configures individual extracted source files inclusion.
+    #[must_use]
+    pub const fn with_individual_files(mut self, enabled: bool) -> Self {
+        self.include_individual_files = enabled;
+        self
+    }
+
+    /// Configures manifest inclusion.
+    #[must_use]
+    pub const fn with_manifest(mut self, enabled: bool) -> Self {
+        self.include_manifest = enabled;
+        self
+    }
+
+    /// Configures provenance inclusion.
+    #[must_use]
+    pub const fn with_provenance(mut self, enabled: bool) -> Self {
+        self.include_provenance = enabled;
+        self
+    }
+
+    /// Configures quality report inclusion.
+    #[must_use]
+    pub const fn with_quality_report(mut self, enabled: bool) -> Self {
+        self.include_quality_report = enabled;
+        self
+    }
+
+    /// Configures SHA-256 checksums file inclusion.
+    #[must_use]
+    pub const fn with_checksums(mut self, enabled: bool) -> Self {
+        self.include_checksums = enabled;
+        self
+    }
+
+    /// Configures token budget ceiling.
+    #[must_use]
+    pub const fn with_max_token_budget(mut self, budget: Option<usize>) -> Self {
+        self.max_token_budget = budget;
+        self
+    }
+}

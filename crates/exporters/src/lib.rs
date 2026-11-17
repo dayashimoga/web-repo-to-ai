@@ -19,6 +19,7 @@ pub mod markdown;
 pub mod options;
 pub mod plain_text;
 pub(crate) mod util;
+pub mod zip;
 
 // Public re-exports
 pub use error::{ExporterError, Result};
@@ -36,8 +37,13 @@ pub use markdown::{export_markdown, export_markdown_to_writer, MarkdownExporter}
 pub use options::{
     CodeFenceStyle, ExportMetrics, HierarchyStyle, HtmlOptions, JsonExportOptions,
     JsonFormatFlavor, JsonlFlavor, JsonlOptions, MarkdownOptions, PlainTextOptions,
+    ZipPackageMetrics, ZipPackageOptions,
 };
 pub use plain_text::{export_plain_text, export_plain_text_to_writer, PlainTextExporter};
+pub use zip::{
+    export_zip_package, export_zip_package_to_writer, PackageFileEntry, PackageManifest,
+    PackageProvenance, PackageQualityReport, ZipPackageExporter,
+};
 
 /// Returns the unique crate identifier name.
 #[must_use]

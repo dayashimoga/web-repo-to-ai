@@ -69,7 +69,7 @@
 ### STAGE 4 — CANONICAL MODEL AND EXPORT ENGINE
 - **Phase 4.1 — CDM:** `4.1.1` Define schema (`ACCEPTED`) | `4.1.2` Serialization (`ACCEPTED`) | `4.1.3` Validation (`ACCEPTED`) | `4.1.4` Schema versioning (`ACCEPTED` — **PHASE 4.1 CERTIFIED**)
 - **Phase 4.2 — Format generators:** `4.2.1` Markdown generator (`ACCEPTED`) | `4.2.2` Plain-text generator (`ACCEPTED`) | `4.2.3` JSON generator (`ACCEPTED`) | `4.2.4` HTML & JSONL generators (`ACCEPTED` — **PHASE 4.2 CERTIFIED**)
-- **Phase 4.3 — Export:** `4.3.1` ZIP package generation (`NEXT`) | `4.3.2` Manifest & checksums | `4.3.3` Streaming downloads | `4.3.4` Export integrity tests
+- **Phase 4.3 — Export:** `4.3.1` ZIP package generation (`ACCEPTED`) | `4.3.2` Manifest & checksums (`NEXT`) | `4.3.3` Streaming downloads | `4.3.4` Export integrity tests
 - **Phase 4.4 — Website integration:** `4.4.1` Connect actual conversion API | `4.4.2` Real progress (SSE) | `4.4.3` Preview & copy | `4.4.4` Downloads
 
 ### STAGE 5 — PUBLIC GITHUB REPOSITORY EXTRACTION

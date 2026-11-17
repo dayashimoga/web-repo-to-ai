@@ -6,6 +6,29 @@
 
 ## [Unreleased] — Stage 4: Canonical Model and Export Engine
 
+### 2026-11-17 — Phase 4.3: Export (`4.3.1`)
+
+#### Added
+- **`[4.3.1]` Implement Deterministic ZIP Package Generator in `crates/exporters`:**
+  - Added dependency `zip = { version = "9.6", default-features = false, features = ["deflate"] }` with `flate2/zlib-rs` pure safe Rust backend (zero C dependencies, zero cargo deny advisories) and `sha2 = { workspace = true }`.
+  - Implemented `ZipPackageOptions` and `ZipPackageMetrics` in `crates/exporters/src/options.rs`:
+    - Flags for bundled formats: `include_markdown`, `include_plain_text`, `include_json_cdm`, `include_json_structured`, `include_html`, `include_jsonl`.
+    - Flags for source files & audit metadata: `include_sources`, `include_manifest`, `include_provenance`, `include_quality_report`, `include_checksums`.
+    - Nested sub-options: `markdown_options`, `plain_text_options`, `json_options`, `html_options`, `jsonl_options`.
+    - Compression options: `compression_method` (`ZipCompressionMethod::Deflate` or `Stored`), and `compression_level` (0–9).
+    - Presets: `complete()` (default), `minimal()` (markdown + plain_text + manifest), `formats_only()` (all 6 formats + manifest/provenance/quality/checksums without sources), and `sources_only()` (hierarchical sources + manifest/checksums).
+  - Implemented core ZIP exporter engine in `crates/exporters/src/zip.rs`:
+    - `ZipPackageExporter`: Fluent builder API supporting in-memory `export_to_bytes` and streaming `export_to_writer`.
+    - `export_zip_package` and `export_zip_package_to_writer`: High-performance deterministic ZIP package generator writing to any `std::io::Write + std::io::Seek` sink.
+    - Deterministic reproducible builds: Sets uniform fixed timestamps (`1980-01-01 00:00:00`) and standard permissions (`0o644`) on all ZIP entries.
+    - Path traversal defense: Sanitizes all archive paths using `sanitize_zip_path`, stripping drive prefixes, leading slashes, backslashes, and `../` directory traversal attempts to prevent zip-slip vulnerabilities.
+    - Metadata manifests: Emits `manifest.json` (`PackageManifest`), `provenance.json` (`PackageProvenance`), and `quality-report.json` (`PackageQualityReport`).
+    - Standard checksums: Generates `checksums.sha256` matching GNU `sha256sum` format (`<hex_digest>  <relative_archive_path>`) for all embedded archive files.
+    - Telemetry metrics: Captures total files bundled, uncompressed byte size, compressed byte size, and overall package SHA-256 digest.
+  - Re-exported public ZIP package types in `crates/exporters/src/lib.rs`.
+  - Created integration test suite `crates/exporters/tests/zip_export.rs` (9 tests) verifying complete preset, minimal preset, formats-only preset, sources-only preset, streaming writer equivalence, path sanitization security defense, empty documents, serde roundtrips, and builder API.
+  - Verification: 62 passing exporter tests (up from 53), 442 total workspace Rust tests (up from 433), 184 frontend tests, 29 browser-worker tests, and 100% pass rate across all 5 monorepo verification gates.
+
 ### 2026-11-17 — Phase 4.2: Format Generators (`4.2.4` — **PHASE 4.2 CERTIFIED**)
 
 #### Added
