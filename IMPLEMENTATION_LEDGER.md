@@ -3005,7 +3005,7 @@
   - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
   - `npm test` (`apps/web`): 184/184 tests passed across 15 suites.
   - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
-- **Git Commit Reference:** `PENDING_COMMIT`
+- **Git Commit Reference:** `3037fee`
 - **Status:** `ACCEPTED`
 
 ---
@@ -3016,7 +3016,7 @@
   - `3.4.1`: Source attribution, HTTP provenance, and metadata capture in crates/web-extractor (`ACCEPTED`, commit `f8caa8f` / `c5590c4`)
   - `3.4.2`: Duplicate detection and canonical URL resolution in crates/web-extractor (`ACCEPTED`, commit `1a99646` / `1c859f9`)
   - `3.4.3`: Content completeness scoring and extraction warnings in crates/web-extractor (`ACCEPTED`, commit `63c67f5` / `afbcd94`)
-  - `3.4.4`: Golden dataset test suite for universal webpage extraction in crates/web-extractor (`ACCEPTED`, commit `PENDING_COMMIT`)
+  - `3.4.4`: Golden dataset test suite for universal webpage extraction in crates/web-extractor (`ACCEPTED`, commit `3037fee`)
 - **Certification Evidence:**
   - Complete source attribution, HTTP header capture, dual cryptographic content hashing (SHA-256 and BLAKE3), and citation formatting.
   - RFC-compliant canonical URL resolution with SSRF defense, 64-bit SimHash near-duplicate detection, and concurrent `DuplicateRegistry`.
