@@ -202,7 +202,7 @@
   - Branch protection output verified: `allow_force_pushes: False`, `allow_deletions: False`, `required_conversation_resolution: True`.
   - Repo settings verified: `delete_branch_on_merge: True`, `allow_merge_commit: False`, `allow_squash_merge: True`, `allow_rebase_merge: True`.
   - Security endpoints: HTTP 204 response for vulnerability alerts and automated fixes.
-- **Git Commit Reference:** Recorded in commit for subphase 0.2.2 docs update
+- **Git Commit Reference:** `a6923d8`
 - **Status:** `ACCEPTED`
 
 ---
