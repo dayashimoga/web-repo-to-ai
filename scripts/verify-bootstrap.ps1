@@ -261,6 +261,33 @@ foreach ($rs in $resourceScripts) {
 $null = powershell -ExecutionPolicy Bypass -File scripts/check-resources.ps1 -Quiet 2>&1
 Assert-Condition ($LASTEXITCODE -eq 0) "scripts/check-resources.ps1 executes successfully and satisfies 30 GB ceiling"
 
+# 13. Verify development environment lifecycle scripts
+$devLifecycleScripts = @(
+    "scripts/dev-up.ps1",
+    "scripts/dev-up.sh",
+    "scripts/dev-down.ps1",
+    "scripts/dev-down.sh",
+    "scripts/dev-logs.ps1",
+    "scripts/dev-logs.sh",
+    "scripts/dev-restart.ps1",
+    "scripts/dev-restart.sh",
+    "scripts/dev-status.ps1",
+    "scripts/dev-status.sh"
+)
+foreach ($ds in $devLifecycleScripts) {
+    $dsExists = Test-Path -Path $ds -PathType Leaf
+    $dsNonEmpty = $dsExists -and ((Get-Item $ds -Force).Length -gt 10)
+    Assert-Condition $dsNonEmpty "Development lifecycle script exists and is non-empty: $ds"
+}
+$null = powershell -ExecutionPolicy Bypass -File scripts/dev-status.ps1 -Quiet 2>&1
+Assert-Condition ($LASTEXITCODE -eq 0) "scripts/dev-status.ps1 executes successfully"
+$null = powershell -ExecutionPolicy Bypass -File scripts/dev-up.ps1 -DryRun 2>&1
+Assert-Condition ($LASTEXITCODE -eq 0) "scripts/dev-up.ps1 -DryRun executes successfully"
+$null = powershell -ExecutionPolicy Bypass -File scripts/dev-down.ps1 -DryRun 2>&1
+Assert-Condition ($LASTEXITCODE -eq 0) "scripts/dev-down.ps1 -DryRun executes successfully"
+$null = powershell -ExecutionPolicy Bypass -File scripts/dev-restart.ps1 -DryRun 2>&1
+Assert-Condition ($LASTEXITCODE -eq 0) "scripts/dev-restart.ps1 -DryRun executes successfully"
+
 Write-Output "=== Verification Summary: $($checks - $failures)/$checks checks passed, $failures failures ==="
 if ($failures -gt 0) {
     exit 1

@@ -397,12 +397,73 @@
 
 ---
 
-### Phase 0.3 — Upcoming Subphases (Awaiting User Approval for `0.3.3`)
+#### Subphase `0.3.3` — Create development environment scripts
+- **Unique ID:** `0.3.3`
+- **Objective:** Create cross-platform development environment lifecycle utilities across Windows PowerShell and POSIX bash (`scripts/dev-up.*`, `scripts/dev-down.*`, `scripts/dev-logs.*`, `scripts/dev-restart.*`, `scripts/dev-status.*`), integrating them with bootstrap verification, quality runners, and documentation.
+- **Scope:** Development lifecycle scripts in `scripts/`, `scripts/verify-bootstrap.ps1`, `docs/DEVELOPMENT.md`, and tracking ledgers.
+- **Prerequisites:** `0.3.2` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `scripts/dev-up.ps1`
+  - `scripts/dev-up.sh`
+  - `scripts/dev-down.ps1`
+  - `scripts/dev-down.sh`
+  - `scripts/dev-logs.ps1`
+  - `scripts/dev-logs.sh`
+  - `scripts/dev-restart.ps1`
+  - `scripts/dev-restart.sh`
+  - `scripts/dev-status.ps1`
+  - `scripts/dev-status.sh`
+  - `scripts/verify-bootstrap.ps1`
+  - `docs/DEVELOPMENT.md`
+  - `PROJECT_STATUS.md`
+  - `IMPLEMENTATION_LEDGER.md`
+  - `TODO.md`
+  - `CHANGELOG.md`
+  - `ROADMAP.md`
+- **Implementation Tasks:**
+  1. Author `scripts/dev-up.ps1` and `scripts/dev-up.sh` supporting service subsets, optional image rebuilds (`--build`), pre-flight 30 GB storage ceiling verification, automatic `deploy/.env` initialization from `deploy/.env.example`, and PostgreSQL healthcheck polling.
+  2. Author `scripts/dev-down.ps1` and `scripts/dev-down.sh` for clean service and network teardown with interactive guards against accidental deletion of persistent database volumes (`postgres_data`, `artifact_data`) and post-teardown cache pruning (`-PruneCaches`).
+  3. Author `scripts/dev-logs.ps1` and `scripts/dev-logs.sh` supporting service filtering, line tailing, and real-time streaming (`-Follow`).
+  4. Author `scripts/dev-restart.ps1` and `scripts/dev-restart.sh` for service restarts, optional rebuilds, and healthcheck validation.
+  5. Author `scripts/dev-status.ps1` and `scripts/dev-status.sh` displaying runtime container states, healthchecks, open ports, and live storage ceiling metrics in formatted table and JSON formats.
+  6. Extend `scripts/verify-bootstrap.ps1` with Category 13 asserting all 10 lifecycle scripts exist, are non-empty, and execute without error.
+  7. Document the complete developer lifecycle commands in `docs/DEVELOPMENT.md`.
+- **Acceptance Criteria:**
+  - All 10 lifecycle scripts exist, support dry-run simulation, execute cleanly on Windows and POSIX, and correctly manage Compose workloads.
+  - Teardown protects persistent volumes by default.
+  - Status utility accurately reports container state, health, exposed ports, and storage consumption.
+  - All 5 gates in `scripts/check-all.*` pass with 0 failures, and `scripts/verify-bootstrap.ps1` passes all 213 checks.
+- **Tests:**
+  - `scripts/dev-up.ps1 -DryRun`: passed (verified env init, ceiling check, and compose arguments).
+  - `bash scripts/dev-up.sh --dry-run`: passed.
+  - `scripts/dev-down.ps1 -DryRun`: passed.
+  - `bash scripts/dev-down.sh --dry-run`: passed.
+  - `scripts/dev-logs.ps1 -Tail 5`: passed.
+  - `bash scripts/dev-logs.sh --tail 5`: passed.
+  - `scripts/dev-restart.ps1 -DryRun`: passed.
+  - `bash scripts/dev-restart.sh --dry-run`: passed.
+  - `scripts/dev-status.ps1`: passed (displayed 5 services, health, ports, and budget).
+  - `scripts/dev-status.ps1 -Json`: passed (verified valid JSON structure).
+  - `bash scripts/dev-status.sh`: passed.
+  - `scripts/check-all.ps1`: ALL 5 GATES PASSED (213/213 checks).
+  - `bash scripts/check-all.sh`: ALL 5 GATES PASSED (213/213 checks).
+- **Security Considerations:** `dev-up` enforces pre-flight 30 GB ceiling check; `dev-down` protects database state from accidental deletion with interactive confirmation; unprivileged container users are preserved; no secrets are logged.
+- **Performance Considerations:** Dry-run and status checks execute in < 2 seconds; polling loops use bounded timeouts (default 60s); detached execution frees terminal.
+- **Documentation Requirements:** Updated `docs/DEVELOPMENT.md`, `PROJECT_STATUS.md`, `IMPLEMENTATION_LEDGER.md`, `TODO.md`, `CHANGELOG.md`, and `ROADMAP.md`.
+- **Validation Evidence:**
+  - `scripts/dev-status.ps1` output: 5 services reported, storage budget verified.
+  - `scripts/check-all.ps1`: ALL 5 GATES PASSED (213/213 checks passed).
+  - `bash scripts/check-all.sh`: ALL 5 GATES PASSED (213/213 checks passed).
+- **Git Commit Reference:** `ef43d23`
+- **Status:** `ACCEPTED`
+
+---
+
+### Phase 0.3 — Upcoming Subphases (Awaiting User Approval for `0.3.4`)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `0.3.3` | Create development environment scripts | `0.3.2` (`ACCEPTED`) | `scripts/dev-*.ps1` | `NOT_STARTED` |
-| `0.3.4` | Validate reproducible container builds | `0.3.3` | `deploy/*`, `IMPLEMENTATION_LEDGER.md` | `NOT_STARTED` |
+| `0.3.4` | Validate reproducible container builds | `0.3.3` (`ACCEPTED`) | `deploy/*`, `IMPLEMENTATION_LEDGER.md` | `NOT_STARTED` |
 | `0.3.5` | Document setup and recovery | `0.3.4` | `docs/DEVELOPMENT.md`, `docs/DEPLOYMENT.md` | `NOT_STARTED` |
 
 ---

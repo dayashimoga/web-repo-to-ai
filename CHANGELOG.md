@@ -6,6 +6,18 @@
 
 ## [Unreleased] — Stage 0: Project Bootstrap and Engineering Foundation
 
+### 2026-11-17 — Phase 0.3: Containerized Development Foundation (`0.3.3`)
+
+#### Added
+- **`[0.3.3]` Development Environment Lifecycle Scripts:**
+  - Authored `scripts/dev-up.ps1` and `scripts/dev-up.sh` for starting the compose stack, ensuring `deploy/.env` initialization, verifying the 30 GB storage ceiling prior to launch, supporting service subsets (`-Services`) and image rebuilding (`-Build`), and awaiting database healthcheck readiness.
+  - Authored `scripts/dev-down.ps1` and `scripts/dev-down.sh` for service teardown with interactive protection for persistent database volumes (`postgres_data`, `artifact_data`) and post-teardown cache pruning (`-PruneCaches`).
+  - Authored `scripts/dev-logs.ps1` and `scripts/dev-logs.sh` supporting service filtering, line tailing, and real-time log streaming (`-Follow`).
+  - Authored `scripts/dev-restart.ps1` and `scripts/dev-restart.sh` for safe service restarts and healthcheck validation.
+  - Authored `scripts/dev-status.ps1` and `scripts/dev-status.sh` reporting runtime container state, healthcheck status, exposed ports, and storage budget compliance in table and structured JSON formats.
+  - Documented complete developer lifecycle workflow in `docs/DEVELOPMENT.md`.
+  - Expanded bootstrap verification suite (`scripts/verify-bootstrap.ps1`) to 213/213 checks.
+
 ### 2026-11-17 — Phase 0.3: Containerized Development Foundation (`0.3.2`)
 
 #### Added

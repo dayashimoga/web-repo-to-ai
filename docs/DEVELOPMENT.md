@@ -42,9 +42,41 @@ Recorded during Stage 0 Subphase 0.1.1 inspection on Windows workstation:
   npm run check
   npm test
   ```
-- **Container & Resource Budget Management (Stage 0.3+):**
-  - Inspect Podman storage and host disk usage via `scripts/check-resources.ps1`.
-  - Clean unused build caches safely via `scripts/clean-caches.ps1`.
+- **Containerized Development Environment Lifecycle (Stage 0.3+):**
+  - **Start Services:**
+    ```powershell
+    pwsh scripts/dev-up.ps1               # Boot all services detached
+    pwsh scripts/dev-up.ps1 -Services postgres # Boot only PostgreSQL for local backend development
+    pwsh scripts/dev-up.ps1 -Build        # Rebuild container images before launching
+    ```
+  - **Inspect Status & Health:**
+    ```powershell
+    pwsh scripts/dev-status.ps1           # Formatted service status table & storage budget
+    pwsh scripts/dev-status.ps1 -Json     # Structured JSON output
+    ```
+  - **Stream Service Logs:**
+    ```powershell
+    pwsh scripts/dev-logs.ps1 -Follow     # Stream logs from all running services
+    pwsh scripts/dev-logs.ps1 -Service api -Follow # Stream logs for specific service
+    ```
+  - **Restart Services:**
+    ```powershell
+    pwsh scripts/dev-restart.ps1          # Restart all services and wait for DB healthcheck
+    pwsh scripts/dev-restart.ps1 -Services api -Build # Rebuild and restart specific service
+    ```
+  - **Stop Services:**
+    ```powershell
+    pwsh scripts/dev-down.ps1             # Stop services (retains postgres_data and artifact_data)
+    pwsh scripts/dev-down.ps1 -Volumes    # CAUTION: Prompted removal of persistent volumes
+    pwsh scripts/dev-down.ps1 -PruneCaches # Stop services and prune build caches
+    ```
+  - **Storage Ceiling Audit & Cache Pruning:**
+    ```powershell
+    pwsh scripts/check-resources.ps1      # Audit host CPU, RAM, disk, and 30 GB Podman ceiling
+    pwsh scripts/clean-caches.ps1 -DryRun # Inspect reclaimable cache space
+    pwsh scripts/clean-caches.ps1         # Safely prune build caches and dangling layers
+    ```
+  *(POSIX bash equivalents `scripts/dev-*.sh`, `scripts/check-resources.sh`, and `scripts/clean-caches.sh` are provided for Linux, macOS, and CI runners).*
 
 ---
 
