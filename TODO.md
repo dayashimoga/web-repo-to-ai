@@ -42,11 +42,11 @@
 - [x] **[1.2.3]** Implement conversion settings panel *(Completed 2026-11-17, ConversionSettings, model presets, budget slider, content filters, 69 passing tests)*
 - [x] **[1.2.4]** Implement responsive layouts (mobile, tablet, desktop) *(Completed 2026-11-17, mobile touch targets >=44px, overflow containment, 76 passing tests, Phase 1.2 certified)*
 
-### Phase 1.3 — Conversion workspace
+### Phase 1.3 — Conversion workspace (`COMPLETED` / `ACCEPTED`)
 - [x] **[1.3.1]** Build conversion job workspace *(Completed 2026-11-17, JobWorkspace.svelte, job domain model, completeness invariant matrix, 4-stage pipeline tracker, 90 passing tests)*
 - [x] **[1.3.2]** Build syntax-highlighted content preview panels *(Completed 2026-11-17, PreviewPanel.svelte, 5 export formats, safe syntax highlighter, line numbers gutter, copy/download, 107 passing tests)*
 - [x] **[1.3.3]** Build token statistics interface and budget bar *(Completed 2026-11-17, TokenBudgetBar.svelte, context utilization math, savings percentage, dual-layer progress bar, 122 passing tests)*
-- [ ] **[1.3.4]** Build format selection and download controls
+- [x] **[1.3.4]** Build format selection and download controls *(Completed 2026-11-17, DownloadControls.svelte, SHA-256 integrity, batch downloads, checksums manifest, 133 passing tests, Phase 1.3 certified)*
 
 ### Phase 1.4 — UX validation
 - [ ] **[1.4.1]** Execute keyboard navigation and accessibility audits

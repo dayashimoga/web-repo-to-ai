@@ -1190,11 +1190,79 @@
 
 ---
 
-### Upcoming Subphase (Awaiting User Approval after 1.3.3)
+#### Subphase `1.3.4` — Build format selection and download controls
+- **Unique ID:** `1.3.4`
+- **Objective:** Implement comprehensive export artifact download controls (`DownloadControls.svelte`) supporting multi-format downloads (Markdown, JSON CDM, Claude XML, Plaintext, JSONL), batch format downloading, cryptographic SHA-256 integrity checksum verification, and standardized checksum manifest generation (`checksums.txt` and `manifest.json`).
+- **Scope:** `apps/web/src/lib/types/download.ts`, `apps/web/src/lib/components/workspace/DownloadControls.svelte`, `apps/web/src/lib/components/workspace/JobWorkspace.svelte`, `apps/web/src/lib/components/workspace/index.ts`, `apps/web/tests/download-controls.test.ts`, `PROJECT_STATUS.md`, `IMPLEMENTATION_LEDGER.md`.
+- **Prerequisites:** `1.3.3` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `apps/web/src/lib/types/download.ts`
+  - `apps/web/src/lib/components/workspace/DownloadControls.svelte`
+  - `apps/web/src/lib/components/workspace/JobWorkspace.svelte`
+  - `apps/web/src/lib/components/workspace/index.ts`
+  - `apps/web/tests/download-controls.test.ts`
+  - `PROJECT_STATUS.md`
+  - `IMPLEMENTATION_LEDGER.md`
+- **Implementation Tasks:**
+  1. Author export artifact domain contracts and cryptographic SHA-256 generators in `apps/web/src/lib/types/download.ts` using Web Crypto API:
+     - `computeSha256Hex`: Produces 64-character hexadecimal SHA-256 digest.
+     - `deriveArtifactBaseName`: Sanitizes filesystem-safe artifact base names from repository and documentation URLs.
+     - `buildExportArtifacts`: Generates concrete `ExportArtifact` records for all 5 formats with real content, byte sizes, and checksums.
+     - `generateChecksumsTxt`: Produces standard coreutils `sha256sum` formatted checksum lists.
+     - `generateChecksumManifestJson`: Produces schema v1.0.0 JSON checksum manifests matching CDM specifications.
+     - `triggerBlobDownload`: Client-side Blob download trigger with automatic Object URL cleanup.
+  2. Author accessible `DownloadControls.svelte` component (`apps/web/src/lib/components/workspace/DownloadControls.svelte`):
+     - Batch download actions: "Download All Formats", "Checksums (.txt)", and "manifest.json".
+     - Artifact list cards with format icons, extension badges, byte sizes, truncated SHA-256 pills with one-click copy, and individual download buttons.
+     - Collapsible checksum manifest drawer rendering coreutils `checksums.txt` content.
+     - Screen reader announcement live region (`role="status"`, `aria-live="polite"`).
+  3. Export `DownloadControls` from `apps/web/src/lib/components/workspace/index.ts`.
+  4. Integrate `DownloadControls` into `apps/web/src/lib/components/workspace/JobWorkspace.svelte` positioned directly below the preview panel.
+  5. Author automated test suite `apps/web/tests/download-controls.test.ts` (11 tests) validating SHA-256 hashing, base name derivation, artifact generation, checksums.txt formatting, manifest JSON schema, and component ARIA landmarks.
+  6. Formally certify completion of **Phase 1.3: Conversion workspace** across all 4 subphases (`1.3.1` – `1.3.4` all `ACCEPTED`).
+  7. Run all quality gates: `npm run lint`, `npm run check`, `npm test`, `npm run build`, and `scripts/check-all.*`.
+- **Acceptance Criteria:**
+  - All 5 formats generate downloadable blobs with real content.
+  - SHA-256 checksums are calculated cryptographically and can be copied with visual confirmation.
+  - Checksums.txt and manifest.json match standard coreutils / CDM specifications.
+  - 100% of automated tests pass (133/133 tests across 13 test suites); `svelte-check` reports 0 errors and 0 warnings.
+  - All 5 monorepo verification gates in `scripts/check-all.*` pass.
+- **Tests:** `npm test` in `apps/web`, `npm run check`, `npm run lint`, `npm run build`, and `scripts/check-all.ps1` / `scripts/check-all.sh`.
+- **Security Considerations:** Checksums are computed using SHA-256 cryptographic standards; all filenames are sanitized against path traversal; downloaded blobs use client-side memory URLs with immediate revocation.
+- **Performance Considerations:** Asynchronous artifact generation prevents main thread blocking; staggered batch downloads avoid browser download manager throttling.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`.
+- **Validation Evidence:**
+  - `npm run check`: SvelteKit sync and svelte-check reported 0 errors and 0 warnings in `apps/web`.
+  - `npm run lint`: Prettier verified 100% code style compliance across all matched files.
+  - `npm test`: Vitest ran 13 test suites, passing 133/133 automated unit, responsive, domain model, and component invariant tests with 0 failures.
+  - `npm run build`: Production bundle generated with `@sveltejs/adapter-node` in `apps/web/build/index.js` and `.svelte-kit/output`.
+  - `scripts/check-all.ps1`: ALL 5 GATES PASSED (Gate 1: 224/224 bootstrap checks, Gate 2: 7/7 workflows, Gate 3: Rust formatting, Gate 4: Frontend lint/check/test, Gate 5: 5.27 GB / 30 GB storage ceiling).
+  - `bash scripts/check-all.sh`: ALL 5 GATES PASSED (0 failures across all 5 verification gates).
+- **Git Commit Reference:** `a0d616c`
+- **Status:** `ACCEPTED`
+
+---
+
+#### Phase 1.3 Milestone Certification
+- **Phase Name:** `Phase 1.3 — Conversion workspace`
+- **Subphases Covered:** `1.3.1` (Job workspace), `1.3.2` (Preview panels), `1.3.3` (Token statistics interface), `1.3.4` (Output & download controls).
+- **Certification Date:** 2026-11-17
+- **Certification Findings:**
+  1. Dedicated conversion job workspace route (`/workspace`) and reusable shell component (`JobWorkspace.svelte`) implemented with 4-stage pipeline execution cards and file completeness accounting invariant ($\text{discovered} = \text{extracted} + \text{excluded} + \text{failed}$).
+  2. Multi-format syntax-highlighted content preview panel (`PreviewPanel.svelte`) built with 5 format tabs (Markdown, JSON CDM schema v1.0.0, Claude XML, Plaintext, JSONL), line numbers gutter, and extracted file tree sidebar.
+  3. Token statistics interface and context window budget bar (`TokenBudgetBar.svelte`) implemented with dual-layer progress bar, savings percentage calculation, headroom buffer callouts, and dynamic preset switching across 5 major AI model architectures.
+  4. Cryptographically verified download controls (`DownloadControls.svelte`) built with SHA-256 integrity checksums, one-click copy, batch downloading, and standard checksum manifests (`checksums.txt` and `manifest.json`).
+  5. 133 automated unit, invariant, and responsive tests passing across 13 test suites with 0 failures; `svelte-check` reports 0 errors and 0 warnings.
+  6. All 5 monorepo verification gates in `scripts/check-all.ps1` and `scripts/check-all.sh` pass cleanly.
+- **Status:** `COMPLETED` / `ACCEPTED` (Certified 2026-11-17)
+
+---
+
+### Upcoming Subphase (Awaiting User Approval after Phase 1.3 Certification)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `1.3.4` | Build format selection and download controls | `1.3.3` (`ACCEPTED`) | `apps/web/src/lib/components/workspace/DownloadControls.svelte` | `NOT_STARTED` |
+| `1.4.1` | Execute keyboard navigation and accessibility audits | Phase 1.3 (`ACCEPTED`) | `apps/web/tests/a11y-audit.test.ts` | `NOT_STARTED` |
 
 ---
 

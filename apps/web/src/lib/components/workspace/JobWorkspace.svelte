@@ -3,6 +3,7 @@
   import { Mono } from '$lib/components/typography';
   import PreviewPanel from './PreviewPanel.svelte';
   import TokenBudgetBar from './TokenBudgetBar.svelte';
+  import DownloadControls from './DownloadControls.svelte';
   import type { PreviewFormat } from '$lib/types/preview';
   import {
     type ConversionJob,
@@ -371,6 +372,11 @@
       />
     {/if}
   </div>
+
+  <!-- Export Artifacts & Checksum Download Controls -->
+  <DownloadControls
+    sourceUrl={job.sourceUrl}
+  />
 
   <!-- Live Execution Log Terminal Stream -->
   <div class="rounded-2xl border border-surface-800 bg-surface-950 text-surface-100 overflow-hidden shadow-elevation-2">

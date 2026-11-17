@@ -6,6 +6,29 @@
 
 ## [Unreleased] — Stage 1: Frontend and Product Experience
 
+### 2026-11-17 — Phase 1.3: Conversion Workspace (`1.3.4`) & Phase 1.3 Certification
+
+#### Added
+- **`[1.3.4]` Export Artifact Download Controls, SHA-256 Verification & Phase 1.3 Certification:**
+  - Defined export artifact contracts and cryptographic SHA-256 generators in `apps/web/src/lib/types/download.ts`:
+    - `computeSha256Hex`: Generates standard 64-character hexadecimal digests via Web Crypto API (`crypto.subtle.digest`).
+    - `deriveArtifactBaseName`: Sanitizes filesystem-safe artifact base names from GitHub repositories and web documentation URLs.
+    - `buildExportArtifacts`: Asynchronously generates concrete `ExportArtifact` records for all 5 formats with real content, byte sizes, and SHA-256 digests.
+    - `generateChecksumsTxt`: Produces standard coreutils `sha256sum` formatted checksum lists (`<hash>  <filename>`).
+    - `generateChecksumManifestJson`: Produces schema v1.0.0 JSON checksum manifests matching CDM specifications.
+    - `triggerBlobDownload`: Client-side Blob download trigger with automatic Object URL cleanup.
+  - Authored accessible, interactive `DownloadControls.svelte` in `apps/web/src/lib/components/workspace/DownloadControls.svelte`:
+    - Region landmark (`role="region"`, `aria-label="Format Selection and Download Controls"`).
+    - Batch download controls: "Download All Formats", "Checksums (.txt)", and "manifest.json".
+    - Individual artifact cards with format icons, extension badges, byte sizes, truncated SHA-256 pills with one-click copy feedback, and download buttons.
+    - Collapsible checksum manifest drawer rendering coreutils `checksums.txt` content.
+    - Screen reader announcement live region (`role="status"`, `aria-live="polite"`).
+    - Re-exported via `apps/web/src/lib/components/workspace/index.ts`.
+  - Integrated `DownloadControls` into `JobWorkspace.svelte` directly below the preview panel.
+  - Authored comprehensive automated test suite `apps/web/tests/download-controls.test.ts` (11 tests) validating SHA-256 hashing, base name derivation, artifact generation, checksums.txt formatting, manifest JSON schema, and component ARIA landmarks.
+  - Expanded total automated test suite to 133/133 passing tests across 13 test suites.
+  - Formally certified completion of **Phase 1.3: Conversion workspace** across all 4 subphases (`1.3.1` – `1.3.4` all `ACCEPTED`).
+
 ### 2026-11-17 — Phase 1.3: Conversion Workspace (`1.3.3`)
 
 #### Added
