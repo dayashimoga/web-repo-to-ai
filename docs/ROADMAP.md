@@ -36,20 +36,20 @@
   - `2.3` Persistence (`2.3.1` [ACCEPTED], `2.3.2` [ACCEPTED], `2.3.3` [ACCEPTED], `2.3.4` [ACCEPTED — CERTIFIED])
   - `2.4` Storage (`2.4.1` [ACCEPTED], `2.4.2` [ACCEPTED], `2.4.3` [ACCEPTED], `2.4.4` [ACCEPTED — STAGE 2 CERTIFIED])
 
-### STAGE 3 — UNIVERSAL WEBPAGE EXTRACTION (`IN_PROGRESS`)
+### STAGE 3 — UNIVERSAL WEBPAGE EXTRACTION (`COMPLETED` / `ACCEPTED — CERTIFIED`)
 - **Deliverable:** Functional, SSRF-safe URL-to-clean-content conversion across static HTML and dynamic JS pages.
 - **Stage Acceptance Gate:** Actual URLs produce validated, source-traceable output with full SSRF/DNS-rebinding protection and golden regression tests.
 - **Phases:**
   - `3.1` Secure acquisition (`3.1.1` [ACCEPTED], `3.1.2` [ACCEPTED], `3.1.3` [ACCEPTED], `3.1.4` [ACCEPTED] — CERTIFIED)
   - `3.2` Static extraction (`3.2.1` [ACCEPTED], `3.2.2` [ACCEPTED], `3.2.3` [ACCEPTED], `3.2.4` [ACCEPTED — PHASE 3.2 CERTIFIED])
   - `3.3` Dynamic extraction (`3.3.1` [ACCEPTED], `3.3.2` [ACCEPTED], `3.3.3` [ACCEPTED], `3.3.4` [ACCEPTED — PHASE 3.3 CERTIFIED])
-  - `3.4` Extraction quality (`3.4.1` [ACCEPTED], `3.4.2` [ACCEPTED], `3.4.3` [ACCEPTED], `3.4.4` [NEXT])
+  - `3.4` Extraction quality (`3.4.1` [ACCEPTED], `3.4.2` [ACCEPTED], `3.4.3` [ACCEPTED], `3.4.4` [ACCEPTED — STAGE 3 CERTIFIED])
 
 ### STAGE 4 — CANONICAL MODEL AND EXPORT ENGINE
 - **Deliverable:** Versioned CDM (`crates/cdm`) and consistent multi-format output generators integrated end-to-end with `apps/web`.
 - **Stage Acceptance Gate:** A user can enter a URL in the web UI and obtain verified downloadable AI-ready content (Markdown, TXT, JSON, HTML, JSONL, ZIP).
 - **Phases:**
-  - `4.1` CDM (`4.1.1` – `4.1.4`)
+  - `4.1` CDM (`4.1.1` [NEXT], `4.1.2`, `4.1.3`, `4.1.4`)
   - `4.2` Format generators (`4.2.1` – `4.2.4`)
   - `4.3` Export (`4.3.1` – `4.3.4`)
   - `4.4` Website integration (`4.4.1` – `4.4.4`)

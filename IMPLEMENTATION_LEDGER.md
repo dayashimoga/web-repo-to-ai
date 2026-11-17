@@ -2963,14 +2963,95 @@
 
 ---
 
-### Upcoming Subphase (Stage 3 — Universal Webpage Extraction)
-
-| Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
-| :--- | :--- | :--- | :--- | :--- |
-| `3.4.4` | Golden dataset test suite for universal webpage extraction in crates/web-extractor | `3.4.3` (`ACCEPTED`) | `crates/web-extractor/*` | `NOT_STARTED` |
+#### Subphase `3.4.4` — Golden dataset test suite for universal webpage extraction in crates/web-extractor
+- **Unique ID:** `3.4.4`
+- **Objective:** Implement a comprehensive golden dataset integration test suite in `crates/web-extractor/tests/golden_dataset.rs` covering 8 real-world HTML archetypes, validating end-to-end extraction accuracy, boilerplate cleaning, code block recovery, table normalization, SPA hydration lifecycles, SimHash near-duplicate detection, and quality scoring diagnostics.
+- **Scope:** `crates/web-extractor/tests/golden_dataset.rs`, `crates/web-extractor/src/*`.
+- **Prerequisites:** `3.4.3` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/web-extractor/tests/golden_dataset.rs`
+- **Implementation Tasks:**
+  1. Author Archetype 1 (`test_golden_archetype_1_technical_blog_article`): Deep technical engineering article validating article title, author bylines, ISO-8601 publication timestamps, reading time estimation, Rust syntax highlighting, OpenGraph and JSON-LD schema parsing, and high completeness quality grading ($\ge 0.85$, `Complete`).
+  2. Author Archetype 2 (`test_golden_archetype_2_docusaurus_documentation`): Multi-version technical documentation site validating Docusaurus framework fingerprinting, 3-level hierarchical breadcrumbs, documentation admonitions (`Tip`, `Warning`), and next/prev pagination links.
+  3. Author Archetype 3 (`test_golden_archetype_3_api_specification_tables`): REST API specification validating complex HTML tables with alignment markers (`:---:`, `---:`), GFM rectangular table normalization, inline backticks, and HTTP code reference extraction.
+  4. Author Archetype 4 (`test_golden_archetype_4_polyglot_code_with_line_gutters`): Multi-language code repository page validating monotonic line number gutter stripping from Rust code, Python shebang detection, and SQL DDL syntax parsing without indentation corruption.
+  5. Author Archetype 5 (`test_golden_archetype_5_noisy_malformed_html`): Noisy real-world news layout validating unclosed markup recovery, boilerplate cleaner pruning of cookie banners, inline advertisements, social share widgets, newsletter popups, and related articles lists.
+  6. Author Archetype 6 (`test_golden_archetype_6_spa_hydration_lifecycle`): Single-page application lifecycle validating `SpaDetector` heuristic identification of low-density skeleton shells and noscript fallbacks, followed by post-render hydration verifying extraction of complete client-side telemetry markup.
+  7. Author Archetype 7 (`test_golden_archetype_7_canonical_and_simhash_dedup`): Search engine deduplication pipeline validating relative canonical URL resolution with UTM query stripping, exact URL duplicate registration, 64-bit SimHash near-duplicate clustering within Hamming distance threshold ($\le 8$), and distinct content isolation.
+  8. Author Archetype 8 (`test_golden_archetype_8_sparse_stub_diagnostics`): Malformed/sparse stub testing asserting heavy diagnostic penalty (< 0.40 score), issuance of `CONTENT_SPARSE` and missing metadata warnings, and exclusion from CDM conversion (`is_acceptable_for_cdm = false`).
+  9. Execute all 8 golden integration tests alongside 135 unit tests in `crates/web-extractor`, verifying 143 passing tests in crate and 304 total workspace tests.
+  10. Run all 5 monorepo verification gates in `scripts/check-all.ps1`.
+- **Acceptance Criteria:**
+  - All 8 real-world HTML archetypes pass end-to-end extraction and quality evaluation.
+  - Rust, Python, and SQL code snippets preserve formatting and strip monotonic line number gutters.
+  - Rectangular table formatting produces valid GFM Markdown tables with proper alignments.
+  - Docusaurus documentation extracts hierarchical breadcrumbs and typed admonition blocks.
+  - Boilerplate cleaner discards noisy banners and popups without dropping article content.
+  - SPA detector triggers fallback on empty shells and succeeds after hydration.
+  - Exact duplicates and near-duplicates are accurately classified via canonical tags and 64-bit SimHash.
+  - Sparse stubs are penalized and blocked from CDM qualification.
+  - 100% of workspace Rust tests pass (143 in web-extractor, 304 total); all 184 frontend tests pass; all 29 browser-worker tests pass; all 5 monorepo verification gates pass with 0 failures.
+- **Tests:** `cargo test --test golden_dataset -p web-repo-to-ai-web-extractor`, `cargo test -p web-repo-to-ai-web-extractor`, `cargo test --workspace`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, `npm test` (`services/browser-worker`), `npm test` (`apps/web`), `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, 01, 04, 05: Validated URL security on all golden targets; SSRF protection against malicious canonical links; safe malformed HTML parsing without unconstrained memory expansion or stack overflows.
+- **Performance Considerations:** Integration tests execute in < 0.1s total; zero external network access; all test cases evaluated in-memory with deterministic HTML fixtures.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test --test golden_dataset -p web-repo-to-ai-web-extractor`: 8/8 tests passed.
+  - `cargo test -p web-repo-to-ai-web-extractor`: 143/143 tests passed (135 unit + 8 golden).
+  - `cargo test --workspace`: 304/304 tests passed.
+  - `npm test` (`services/browser-worker`): 29/29 tests passed across 7 suites.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors.
+  - `cargo fmt --all -- --check`: 100% code style compliance.
+  - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
+  - `npm test` (`apps/web`): 184/184 tests passed across 15 suites.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
+- **Git Commit Reference:** `PENDING_COMMIT`
+- **Status:** `ACCEPTED`
 
 ---
 
-## STAGES 3 – 11 QUEUED LEDGER SUMMARY
+### Phase 3.4 Milestone Certification (`3.4.1` – `3.4.4`)
+- **Phase 3.4 Goal:** Extraction quality, metadata cascading, duplicate detection, completeness scoring, and golden dataset test suite.
+- **Subphases Completed & Accepted:**
+  - `3.4.1`: Source attribution, HTTP provenance, and metadata capture in crates/web-extractor (`ACCEPTED`, commit `f8caa8f` / `c5590c4`)
+  - `3.4.2`: Duplicate detection and canonical URL resolution in crates/web-extractor (`ACCEPTED`, commit `1a99646` / `1c859f9`)
+  - `3.4.3`: Content completeness scoring and extraction warnings in crates/web-extractor (`ACCEPTED`, commit `63c67f5` / `afbcd94`)
+  - `3.4.4`: Golden dataset test suite for universal webpage extraction in crates/web-extractor (`ACCEPTED`, commit `PENDING_COMMIT`)
+- **Certification Evidence:**
+  - Complete source attribution, HTTP header capture, dual cryptographic content hashing (SHA-256 and BLAKE3), and citation formatting.
+  - RFC-compliant canonical URL resolution with SSRF defense, 64-bit SimHash near-duplicate detection, and concurrent `DuplicateRegistry`.
+  - Empirical completeness scoring with monotonic heading gap analysis (`HEADING_HIERARCHY_GAP`) and qualitative grading (`CompletenessLevel`).
+  - End-to-end validation across 8 golden archetypes covering technical blogs, multi-version docs, API tables, polyglot code, noisy HTML, SPA lifecycles, deduplication, and sparse stubs.
+  - 100% pass rate across all 5 verification gates (304 Rust tests, 29 browser-worker tests, 184 frontend tests, 0 clippy warnings, 0 fmt diffs, 0 cargo deny errors, 5.27 GB / 30 GB storage footprint).
+- **Milestone Status:** `CERTIFIED`
 
-All subsequent subphases for **Stage 3** (`3.1.3`–`3.4.4`), **Stage 4** (`4.1.1`–`4.4.4`), **Stage 5** (`5.1.1`–`5.5.4`), **Stage 6** (`6.1.1`–`6.4.4`), **Stage 7** (`7.1.1`–`7.4.4`), **Stage 8** (`8.1.1`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.
+---
+
+### STAGE 3 COMPLETION CERTIFICATION
+
+- **Stage ID:** `STAGE 3 — UNIVERSAL WEBPAGE EXTRACTION`
+- **Total Phases Completed:** 4 (`Phase 3.1`, `Phase 3.2`, `Phase 3.3`, `Phase 3.4`)
+- **Total Subphases Completed:** 16 (`3.1.1` through `3.4.4`, all `ACCEPTED`)
+- **Stage Acceptance Gate:** End-to-end universal webpage extraction pipeline supporting static and dynamic rendering, framework detection, table/code normalization, SSRF defenses, deduplication, and quality scoring.
+- **Verification Evidence:**
+  1. **Phase 3.1 (Secure Acquisition):** WHATWG URL parsing, query canonicalization, tracking parameter stripping, comprehensive SSRF IP filtering (`crates/url-security`), DNS pinning, hop-by-hop redirect verification, connection pool isolation, and streaming decompression (`crates/web-extractor`).
+  2. **Phase 3.2 (Static Extraction):** Robust DOM parsing (`tl`), boilerplate cleaning (`BoilerplateCleaner`), structured article extraction (`ArticleExtractor`), documentation framework detection (`DocFramework` for Docusaurus, MkDocs, Sphinx, VitePress, Nextra), rectangular table normalization with alignment preservation, and language-tagged code block recovery with gutter stripping.
+  3. **Phase 3.3 (Dynamic Extraction):** Standalone unprivileged Playwright / Chromium browser worker (`services/browser-worker`) with Unix domain socket/named pipe IPC, strict resource bounds, navigation timeouts, per-request context isolation, subresource SSRF blocking, SPA shell heuristic analysis (`SpaDetector`), dynamic DOM hydration, and graceful fallback.
+  4. **Phase 3.4 (Extraction Quality):** Cryptographic provenance tracking (SHA-256 and BLAKE3), Schema.org JSON-LD extraction, citation generation, SSRF-safe canonical URL resolution, 64-bit SimHash deduplication, concurrent `DuplicateRegistry`, multidimensional completeness scoring (`QualityScorer`), and 8 real-world golden dataset archetypes.
+  5. **Automated Test Quality:** 304 automated Rust workspace tests passing (143 in `crates/web-extractor`), 29 automated Node.js browser worker tests passing across 7 suites, 184 automated frontend tests passing in `apps/web`; zero compiler/clippy warnings; 100% code style compliance; zero advisories or license bans in `cargo deny`.
+  6. **Monorepo Quality Gates:** All 5 gates pass cleanly on Windows PowerShell (`scripts/check-all.ps1`) and POSIX bash (`scripts/check-all.sh`), with Podman storage footprint at 5.27 GB / 30 GB (17.6%).
+- **Status:** `COMPLETED` / `ACCEPTED` (Stage 3 Certified 2026-11-17)
+
+---
+
+### Upcoming Subphase (Stage 4 — Canonical Model and Export Engine)
+
+| Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| `4.1.1` | Canonical Context Document Model (CDM) schema in crates/cdm | Stage 3 (`ACCEPTED`) | `crates/cdm/*` | `NOT_STARTED` |
+
+---
+
+## STAGES 4 – 11 QUEUED LEDGER SUMMARY
+
+All subsequent subphases for **Stage 4** (`4.1.1`–`4.4.4`), **Stage 5** (`5.1.1`–`5.5.4`), **Stage 6** (`6.1.1`–`6.4.4`), **Stage 7** (`7.1.1`–`7.4.4`), **Stage 8** (`8.1.1`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.

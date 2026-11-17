@@ -4,7 +4,23 @@
 
 ---
 
-## [Unreleased] — Stage 3: Universal Webpage Extraction
+## [Unreleased] — Stage 4: Canonical Model and Export Engine
+
+### 2026-11-17 — Phase 3.4: Extraction Quality (`3.4.4`) — PHASE 3.4 & STAGE 3 CERTIFIED
+
+#### Added
+- **`[3.4.4]` Implement Golden Dataset Test Suite for Universal Webpage Extraction in `crates/web-extractor` (Phase 3.4 & Stage 3 Certified):**
+  - Created comprehensive golden dataset integration test suite in `crates/web-extractor/tests/golden_dataset.rs` covering 8 real-world HTML archetypes:
+    1. `test_golden_archetype_1_technical_blog_article`: Technical blog article validating article title, author byline, publication ISO timestamp, word count, reading time estimation, Rust syntax highlighting, OpenGraph and Schema.org JSON-LD parsing, and quality completeness score ($\ge 0.85$, `Complete`).
+    2. `test_golden_archetype_2_docusaurus_documentation`: Multi-version technical documentation site validating Docusaurus framework detection, 3-level breadcrumbs navigation, typed admonitions (`Tip`, `Warning`), and next/previous pagination links.
+    3. `test_golden_archetype_3_api_specification_tables`: REST API specification validating complex HTML tables with alignment indicators (`:---:`, `---:`), GFM rectangular table normalization, backtick formatting, and HTTP reference extraction.
+    4. `test_golden_archetype_4_polyglot_code_with_line_gutters`: Multi-language code repository page validating monotonic line number gutter stripping from Rust code, Python shebang detection, and SQL DDL syntax parsing without indentation corruption.
+    5. `test_golden_archetype_5_noisy_malformed_html`: Noisy real-world news layout validating unclosed markup recovery, `BoilerplateCleaner` pruning of cookie banners, inline advertisements, social share widgets, newsletter popups, and related articles lists.
+    6. `test_golden_archetype_6_spa_hydration_lifecycle`: Single-page application lifecycle validating `SpaDetector` heuristic identification of low-density skeleton shells and noscript fallbacks, followed by post-render hydration verifying extraction of complete client-side telemetry markup.
+    7. `test_golden_archetype_7_canonical_and_simhash_dedup`: Search engine deduplication pipeline validating relative canonical URL resolution with UTM query stripping, exact URL duplicate registration, 64-bit SimHash near-duplicate clustering within Hamming distance threshold ($\le 8$), and distinct content isolation.
+    8. `test_golden_archetype_8_sparse_stub_diagnostics`: Malformed/sparse stub testing asserting heavy diagnostic penalty (< 0.40 score), issuance of `CONTENT_SPARSE` and missing metadata warnings, and exclusion from CDM conversion (`is_acceptable_for_cdm = false`).
+  - Verified 143/143 tests in `crates/web-extractor` (135 unit + 8 golden integration tests), 304/304 workspace tests, 29/29 Node.js tests in `services/browser-worker`, 184/184 frontend tests in `apps/web`, and 100% pass rate across all 5 monorepo verification gates.
+  - Formally completed and certified **Phase 3.4 (Extraction Quality)** and **Stage 3 (Universal Webpage Extraction)** across all 16 subphases (`3.1.1` through `3.4.4`).
 
 ### 2026-11-17 — Phase 3.4: Extraction Quality (`3.4.3`)
 
