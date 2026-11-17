@@ -454,7 +454,7 @@
   - `scripts/dev-status.ps1` output: 5 services reported, storage budget verified.
   - `scripts/check-all.ps1`: ALL 5 GATES PASSED (213/213 checks passed).
   - `bash scripts/check-all.sh`: ALL 5 GATES PASSED (213/213 checks passed).
-- **Git Commit Reference:** `ef43d23`
+- **Git Commit Reference:** `9b441fa`
 - **Status:** `ACCEPTED`
 
 ---
