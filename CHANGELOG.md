@@ -6,6 +6,19 @@
 
 ## [Unreleased] — Stage 3: Universal Webpage Extraction
 
+### 2026-11-17 — Phase 3.4: Extraction Quality (`3.4.3`)
+
+#### Added
+- **`[3.4.3]` Implement Content Completeness Scoring and Extraction Warnings in `crates/web-extractor`:**
+  - Implemented multidimensional completeness and quality models in `crates/web-extractor/src/quality/model.rs`: `CompletenessLevel` (`Complete`, `High`, `Moderate`, `Partial`, `Degraded`, `Empty`), `ExtractionWarningCategory`, `ExtractionWarning`, `DimensionScores`, `ContentMetrics`, and `ExtractionQualityReport`.
+  - Implemented `QualityScorer` in `crates/web-extractor/src/quality/scorer.rs` evaluating metadata completeness (title, description, author, dates, language, canonical link), content volume and density, structural fidelity (heading hierarchy, code syntax detection, table header normalization, link categorization), and acquisition provenance (hashes, HTTP status, cache validators, canonical verification, SSRF blocked subresources, unhandled JS page errors, dynamic degradation).
+  - Implemented DOM heading analysis using `tl` parser scanning heading sequences and detecting hierarchy gaps (e.g. `<h1>` jumped directly to `<h3>` or `<h4>`), emitting `HEADING_HIERARCHY_GAP` warnings.
+  - Implemented empirical content metrics extraction: word count, character count, estimated reading time, paragraph count, heading counts by level, code block and table counts, internal/external link breakdown, content density ratio, and boilerplate ratio.
+  - Integrated `ExtractionQualityReport` directly into `ExtractedWebpage` in `crates/web-extractor/src/browser/extractor.rs` across both `hydrate_static` and `render_and_hydrate` execution paths.
+  - Re-exported `quality` types in `crates/web-extractor/src/lib.rs`.
+  - Added 8 unit and integration tests covering rich article scoring, empty content critical warnings, sparse text degradation, missing metadata penalties, heading hierarchy gaps, code syntax and table header detection, subresource/page error diagnostics, and browser degradation penalties, bringing `crates/web-extractor` to 135/135 passing tests and workspace to 296/296 passing tests.
+  - Verified 135/135 tests in `crates/web-extractor`, 296/296 workspace tests, 29/29 Node.js tests in `services/browser-worker`, 184/184 frontend tests in `apps/web`, and 100% pass rate across all 5 monorepo verification gates.
+
 ### 2026-11-17 — Phase 3.4: Extraction Quality (`3.4.2`)
 
 #### Added

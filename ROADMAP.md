@@ -64,7 +64,7 @@
 - **Phase 3.1 — Secure acquisition:** `3.1.1` URL parsing & validation (`ACCEPTED`) | `3.1.2` DNS & SSRF protection (`ACCEPTED`) | `3.1.3` HTTP fetching & redirects (`ACCEPTED`) | `3.1.4` Compression, timeouts & size limits (`ACCEPTED` — **PHASE 3.1 CERTIFIED**)
 - **Phase 3.2 — Static extraction:** `3.2.1` DOM parsing (`ACCEPTED`) | `3.2.2` Article extraction (`ACCEPTED`) | `3.2.3` Documentation extraction (`ACCEPTED`) | `3.2.4` Tables, links & code extraction (`ACCEPTED` — **PHASE 3.2 CERTIFIED**)
 - **Phase 3.3 — Dynamic extraction:** `3.3.1` Browser worker architecture (`ACCEPTED`) | `3.3.2` Playwright integration (`ACCEPTED`) | `3.3.3` Resource & navigation limits (`ACCEPTED`) | `3.3.4` Dynamic DOM extraction (`ACCEPTED` — **PHASE 3.3 CERTIFIED**)
-- **Phase 3.4 — Extraction quality:** `3.4.1` Source provenance (`ACCEPTED`) | `3.4.2` Duplicate detection (`ACCEPTED`) | `3.4.3` Extraction completeness (`NEXT`) | `3.4.4` Golden dataset regression testing
+- **Phase 3.4 — Extraction quality:** `3.4.1` Source provenance (`ACCEPTED`) | `3.4.2` Duplicate detection (`ACCEPTED`) | `3.4.3` Extraction completeness (`ACCEPTED`) | `3.4.4` Golden dataset regression testing (`NEXT`)
 
 ### STAGE 4 — CANONICAL MODEL AND EXPORT ENGINE
 - **Phase 4.1 — CDM:** `4.1.1` Define schema | `4.1.2` Serialization | `4.1.3` Validation | `4.1.4` Schema versioning

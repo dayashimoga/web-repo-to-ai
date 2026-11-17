@@ -21,6 +21,7 @@ pub mod elements;
 pub mod error;
 pub mod http;
 pub mod provenance;
+pub mod quality;
 pub mod url;
 
 pub use article::{
@@ -62,6 +63,10 @@ pub use provenance::{
     BrowserDiagnostics, CapturedMetadata, ContentHashes, HttpProvenance, MetadataExtractor,
     ProvenanceBuilder, ProvenanceCitations, ProvenanceWarning, RedirectHopRecord,
     SourceAttribution, WarningSeverity,
+};
+pub use quality::{
+    CompletenessLevel, ContentMetrics, DimensionScores, ExtractionQualityReport, ExtractionWarning,
+    ExtractionWarningCategory, QualityScorer, QualityScorerOptions,
 };
 pub use url::{classify_url, WebPageType, WebTarget};
 

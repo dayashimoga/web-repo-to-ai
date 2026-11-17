@@ -2918,11 +2918,56 @@
 
 ---
 
+#### Subphase `3.4.3` — Content completeness scoring and extraction warnings in crates/web-extractor
+- **Unique ID:** `3.4.3`
+- **Objective:** Implement content completeness scoring, empirical extraction metrics, heading hierarchy gap detection, diagnostic extraction warnings, and qualitative completeness grading in `crates/web-extractor`.
+- **Scope:** `crates/web-extractor/src/quality/*`, `crates/web-extractor/src/browser/extractor.rs`, `crates/web-extractor/src/lib.rs`.
+- **Prerequisites:** `3.4.2` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/web-extractor/src/quality/mod.rs`
+  - `crates/web-extractor/src/quality/model.rs`
+  - `crates/web-extractor/src/quality/scorer.rs`
+  - `crates/web-extractor/src/browser/extractor.rs`
+  - `crates/web-extractor/src/lib.rs`
+- **Implementation Tasks:**
+  1. Implement multidimensional completeness models in `crates/web-extractor/src/quality/model.rs`: `CompletenessLevel` (`Complete`, `High`, `Moderate`, `Partial`, `Degraded`, `Empty`), `ExtractionWarningCategory`, `ExtractionWarning`, `DimensionScores`, `ContentMetrics`, and `ExtractionQualityReport`.
+  2. Implement `QualityScorer` in `crates/web-extractor/src/quality/scorer.rs` evaluating metadata completeness (title, description, author, dates, language, canonical URL), content volume and density, structural fidelity (monotonic heading hierarchy, code block syntax identification, table header normalization, link categorization), and acquisition provenance (hashes, HTTP status, cache validators, canonical verification, SSRF blocked subresources, unhandled JS errors, browser degradation).
+  3. Implement HTML heading analysis with `tl` parser scanning heading sequences and detecting hierarchy gaps (e.g. `<h1>` jumped directly to `<h3>` or `<h4>`), emitting `HEADING_HIERARCHY_GAP` warnings.
+  4. Implement quantitative content metrics extraction: word count, character count, estimated reading time, paragraph count, heading counts by level, code block and table counts, internal/external link breakdown, content density ratio, and boilerplate ratio.
+  5. Integrate `ExtractionQualityReport` directly into `ExtractedWebpage` in `crates/web-extractor/src/browser/extractor.rs` across both `hydrate_static` and `render_and_hydrate` execution paths.
+  6. Re-export `quality` types in `crates/web-extractor/src/lib.rs`.
+  7. Add 8 unit and integration tests covering rich article scoring, empty content critical warnings, sparse text degradation, missing metadata penalties, heading hierarchy gaps, code syntax and table header detection, subresource/page error diagnostics, and browser degradation penalties, bringing `crates/web-extractor` to 135 passing tests and workspace to 296 passing tests.
+  8. Run all 5 monorepo verification gates in `scripts/check-all.ps1`.
+- **Acceptance Criteria:**
+  - `CompletenessLevel` correctly categorizes extracted webpages into `Complete`, `High`, `Moderate`, `Partial`, `Degraded`, or `Empty`.
+  - Empty text documents with 0 words are classified as `Empty` with critical warning `CONTENT_EMPTY` and disallowed for CDM conversion (`is_acceptable_for_cdm = false`).
+  - Heading hierarchy skips (e.g. `h1` to `h3`) are detected and flagged with `HEADING_HIERARCHY_GAP`.
+  - Code blocks lacking syntax and tables lacking headers are flagged with diagnostic warnings.
+  - Subresources blocked by SSRF and unhandled page errors penalize provenance scores.
+  - All 135 tests in `crates/web-extractor` pass; all 296 workspace tests pass; all 5 monorepo verification gates pass with 0 failures.
+- **Tests:** `cargo test -p web-repo-to-ai-web-extractor`, `cargo test --workspace`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, `npm test` (`services/browser-worker`), `npm test` (`apps/web`), `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, 01, 04, 05: Quality scorer incorporates SSRF subresource interception counts and unhandled page errors into diagnostic reports; empty or corrupt extractions are prevented from producing false completeness certifications.
+- **Performance Considerations:** Single-pass text tokenization and heading traversal; $O(1)$ metric aggregations without heap reallocation.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-web-extractor`: 135/135 tests passed.
+  - `cargo test --workspace`: 296/296 tests passed.
+  - `npm test` (`services/browser-worker`): 29/29 tests passed across 7 suites.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors.
+  - `cargo fmt --all -- --check`: 100% code style compliance.
+  - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
+  - `npm test` (`apps/web`): 184/184 tests passed across 15 suites.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
+- **Git Commit Reference:** `PENDING_COMMIT_HASH`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 3 — Universal Webpage Extraction)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `3.4.3` | Content completeness scoring and extraction warnings in crates/web-extractor | `3.4.2` (`ACCEPTED`) | `crates/web-extractor/*` | `NOT_STARTED` |
+| `3.4.4` | Golden dataset test suite for universal webpage extraction in crates/web-extractor | `3.4.3` (`ACCEPTED`) | `crates/web-extractor/*` | `NOT_STARTED` |
 
 ---
 

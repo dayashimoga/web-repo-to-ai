@@ -24,6 +24,7 @@ use crate::elements::{ElementsExtractor, ElementsOptions, ExtractedElements};
 use crate::error::WebExtractorError;
 use crate::http::{FetchedResponse, WebFetcher};
 use crate::provenance::{ProvenanceBuilder, ProvenanceWarning, SourceAttribution, WarningSeverity};
+use crate::quality::{ExtractionQualityReport, QualityScorer};
 use crate::url::WebTarget;
 
 /// Default minimum character threshold for static text before evaluating SPA fallback.
@@ -131,6 +132,8 @@ pub struct ExtractedWebpage {
     pub provenance: DynamicProvenance,
     /// Complete source attribution, cryptographic hashes, HTTP provenance, and citations.
     pub attribution: SourceAttribution,
+    /// Multidimensional extraction completeness and quality assessment.
+    pub quality: ExtractionQualityReport,
 }
 
 /// Heuristic analyzer detecting whether a static HTML document is an SPA shell requiring browser rendering.
@@ -406,6 +409,16 @@ impl DynamicWebExtractor {
             &self.policy,
         );
 
+        let quality = QualityScorer::new().assess_components(
+            &cleaned_doc,
+            article.as_ref(),
+            documentation.as_ref(),
+            &elements,
+            &attribution,
+            &provenance,
+            &html,
+        );
+
         Ok(ExtractedWebpage {
             url: target.as_str().to_string(),
             title,
@@ -415,6 +428,7 @@ impl DynamicWebExtractor {
             elements,
             provenance,
             attribution,
+            quality,
         })
     }
 
@@ -499,6 +513,16 @@ impl DynamicWebExtractor {
             &self.policy,
         );
 
+        let quality = QualityScorer::new().assess_components(
+            &cleaned_doc,
+            article.as_ref(),
+            documentation.as_ref(),
+            &elements,
+            &attribution,
+            &provenance,
+            &resp.html,
+        );
+
         Ok(ExtractedWebpage {
             url: final_url,
             title,
@@ -508,6 +532,7 @@ impl DynamicWebExtractor {
             elements,
             provenance,
             attribution,
+            quality,
         })
     }
 }
@@ -635,6 +660,9 @@ mod tests {
         assert_eq!(result.attribution.content_hashes.raw_html_sha256.len(), 64);
         assert_eq!(result.attribution.content_hashes.raw_html_blake3.len(), 64);
         assert!(result.attribution.markdown_citation().contains("Source"));
+        assert!(result.quality.overall_score > 0.0);
+        assert!(result.quality.is_acceptable_for_cdm);
+        assert_eq!(result.quality.metrics.heading_count, 1);
     }
 
     #[tokio::test]
@@ -725,6 +753,8 @@ mod tests {
         );
         assert!(result.attribution.browser_diagnostics.is_some());
         assert_eq!(result.attribution.content_hashes.raw_html_blake3.len(), 64);
+        assert!(result.quality.overall_score > 0.0);
+        assert!(result.quality.is_acceptable_for_cdm);
     }
 
     #[tokio::test]
@@ -789,5 +819,6 @@ mod tests {
             .attribution
             .warning_codes()
             .contains(&"BROWSER_DEGRADED_TO_STATIC"));
+        assert!(result.quality.overall_score > 0.0);
     }
 }
