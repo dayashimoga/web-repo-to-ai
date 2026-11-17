@@ -78,7 +78,7 @@ $rootFiles = @(
 )
 foreach ($file in $rootFiles) {
     $exists = Test-Path -Path $file -PathType Leaf
-    $nonEmpty = $exists -and ((Get-Item $file).Length -gt 100)
+    $nonEmpty = $exists -and ((Get-Item $file -Force).Length -gt 100)
     Assert-Condition $nonEmpty "Root governance file exists and is non-empty: $file"
 }
 
@@ -99,7 +99,7 @@ $docFiles = @(
 )
 foreach ($doc in $docFiles) {
     $exists = Test-Path -Path $doc -PathType Leaf
-    $nonEmpty = $exists -and ((Get-Item $doc).Length -gt 100)
+    $nonEmpty = $exists -and ((Get-Item $doc -Force).Length -gt 100)
     Assert-Condition $nonEmpty "Documentation file exists and is non-empty: $doc"
 }
 
@@ -154,7 +154,7 @@ $rules = @(
 foreach ($rule in $rules) {
     $rulePath = ".agent/rules/$rule"
     $exists = Test-Path -Path $rulePath -PathType Leaf
-    $sizeOk = $exists -and ((Get-Item $rulePath).Length -gt 100) -and ((Get-Item $rulePath).Length -lt 24000)
+    $sizeOk = $exists -and ((Get-Item $rulePath -Force).Length -gt 100) -and ((Get-Item $rulePath -Force).Length -lt 24000)
     Assert-Condition $sizeOk "Rule exists and satisfies size bounds (<24KB): $rulePath"
 }
 
@@ -174,7 +174,7 @@ $workflows = @(
 foreach ($wf in $workflows) {
     $wfPath = ".agent/workflows/$wf"
     $exists = Test-Path -Path $wfPath -PathType Leaf
-    $nonEmpty = $exists -and ((Get-Item $wfPath).Length -gt 100)
+    $nonEmpty = $exists -and ((Get-Item $wfPath -Force).Length -gt 100)
     Assert-Condition $nonEmpty "Workflow exists and is non-empty: $wfPath"
 }
 
