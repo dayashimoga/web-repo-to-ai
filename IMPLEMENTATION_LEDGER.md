@@ -1552,14 +1552,72 @@
 
 ---
 
+#### Subphase `2.1.3` — Set up structured logging, OpenTelemetry tracing, and Prometheus metrics in crates/observability
+- **Unique ID:** `2.1.3`
+- **Objective:** Configure structured logging, OpenTelemetry distributed tracing context, Prometheus metrics, and automated secret redaction in `crates/observability`.
+- **Scope:** `crates/observability/src/{lib.rs, logging.rs, redaction.rs, metrics.rs, trace.rs}`, `crates/observability/Cargo.toml`, root `Cargo.toml`, `Cargo.lock`.
+- **Prerequisites:** `2.1.2` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `Cargo.toml`, `Cargo.lock`
+  - `crates/observability/Cargo.toml`
+  - `crates/observability/src/lib.rs`
+  - `crates/observability/src/logging.rs`
+  - `crates/observability/src/redaction.rs`
+  - `crates/observability/src/metrics.rs`
+  - `crates/observability/src/trace.rs`
+- **Implementation Tasks:**
+  1. Implement automated secret redaction in `crates/observability/src/redaction.rs` with `OnceLock<Regex>` scrubbing GitHub PATs, Bearer tokens, URL credentials, and API keys.
+  2. Implement structured logging in `crates/observability/src/logging.rs` with `LoggingConfig`, `LogFormat` (Json, Pretty, Compact), dynamic `EnvFilter`, and idempotent `init_tracing`.
+  3. Implement Prometheus metrics in `crates/observability/src/metrics.rs` with thread-safe atomic `Counter`, `CounterVec`, `Gauge`, and `Histogram`, and `render_prometheus_text()` output.
+  4. Implement W3C TraceContext propagation in `crates/observability/src/trace.rs` (`TraceContext`) with `to_traceparent()`, `from_traceparent()`, and child span derivation.
+  5. Author unit tests covering all modules asserting regex redaction, Prometheus output, traceparent roundtrip, and idempotent subscriber initialization.
+  6. Execute `cargo check --workspace`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo test --workspace`, and verify all 5 gates pass cleanly.
+- **Acceptance Criteria:**
+  - `init_tracing` initializes without panicking and can be invoked idempotently in tests.
+  - Secret redaction sanitizes GitHub PATs, Bearer tokens, OpenAI/Anthropic keys, and DB passwords from log strings and JSON values.
+  - W3C `traceparent` headers parse and serialize in compliance with W3C Trace Context specifications.
+  - `AppMetrics` tracks jobs, durations, files, tokens, and storage, and renders valid Prometheus text.
+  - 100% of Rust unit tests pass in `crates/observability` (16 tests) and workspace (50 tests).
+  - All 5 monorepo verification gates pass in `scripts/check-all.ps1` and `scripts/check-all.sh`.
+- **Tests:** `cargo test -p web-repo-to-ai-observability` (16/16 passed), `cargo test --workspace` (50/50 passed), `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, `bash scripts/check-all.sh`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 02 and Rule 05 zero-leakage security invariants: credentials, personal access tokens, and passwords in database URLs are strictly scrubbed prior to log serialization; `#![forbid(unsafe_code)]` enforced.
+- **Performance Considerations:** Lock-free atomic operations for all counter and gauge metrics; precompiled regular expressions initialized once via `OnceLock`; microsecond latency for metric increments.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-observability`: 16/16 tests passed in 0.01s.
+  - `cargo test --workspace`: 50/50 tests passed in 5.26s.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors in 1.65s.
+  - `cargo fmt --all -- --check`: 100% code style compliance.
+  - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
+  - `bash scripts/check-all.sh`: ALL 5 GATES PASSED (0 failures).
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
+- **Git Commit Reference:** `e3c3f29`
+- **Status:** `ACCEPTED`
+
+---
+
+#### Phase 2.1 Milestone Certification
+- **Phase Name:** `Phase 2.1 — Rust architecture`
+- **Subphases Covered:** `2.1.1` (Rust workspace and 17 crate structures), `2.1.2` (Typed domain errors, results, and configuration loader), `2.1.3` (Structured logging, OpenTelemetry tracing, and Prometheus metrics).
+- **Certification Date:** 2026-11-17
+- **Certification Findings:**
+  1. Crate structure and root workspace established with 17 members (`services/api`, `services/worker`, and 15 internal processing crates under `crates/*`), fully compiling with zero clippy warnings.
+  2. Domain core primitives (`crates/core`) deliver typed domain errors (`CoreError`), RFC 7807 machine-readable envelopes, strongly-typed UUID v7 domain IDs (`JobId`, `DocumentId`, `TenantId`, `RequestId`, `ArtifactId`), core traits, and hierarchical configuration loader (`AppConfig`).
+  3. Observability infrastructure (`crates/observability`) delivers automated secret redaction for GitHub PATs/Bearer tokens/passwords, W3C TraceContext distributed trace propagation, Prometheus metrics exposition, and structured JSON/compact tracing subscribers.
+  4. 50/50 automated Rust unit tests pass across the workspace; 184/184 frontend tests pass in `apps/web`.
+  5. All 5 monorepo verification gates in `scripts/check-all.ps1` and `scripts/check-all.sh` pass cleanly with 0 failures.
+- **Status:** `COMPLETED` / `ACCEPTED` (Certified 2026-11-17)
+
+---
+
 ### Upcoming Subphase
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `2.1.3` | Set up structured logging, OpenTelemetry tracing, and Prometheus metrics in crates/observability | `2.1.2` (`ACCEPTED`) | `crates/observability/src/*`, `crates/observability/Cargo.toml` | `NOT_STARTED` |
+| `2.2.1` | Implement Axum HTTP service and router scaffolding in services/api | Phase 2.1 (`ACCEPTED`) | `services/api/src/*`, `services/api/Cargo.toml` | `NOT_STARTED` |
 
 ---
 
 ## STAGES 2 – 11 QUEUED LEDGER SUMMARY
 
-All subsequent subphases for **Stage 2** (`2.1.3`–`2.4.4`), **Stage 3** (`3.1.1`–`3.4.4`), **Stage 4** (`4.1.1`–`4.4.4`), **Stage 5** (`5.1.1`–`5.5.4`), **Stage 6** (`6.1.1`–`6.4.4`), **Stage 7** (`7.1.1`–`7.4.4`), **Stage 8** (`8.1.1`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.
+All subsequent subphases for **Stage 2** (`2.2.1`–`2.4.4`), **Stage 3** (`3.1.1`–`3.4.4`), **Stage 4** (`4.1.1`–`4.4.4`), **Stage 5** (`5.1.1`–`5.5.4`), **Stage 6** (`6.1.1`–`6.4.4`), **Stage 7** (`7.1.1`–`7.4.4`), **Stage 8** (`8.1.1`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.

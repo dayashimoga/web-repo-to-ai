@@ -6,6 +6,26 @@
 
 ## [Unreleased] — Stage 2: Backend and Processing Foundation
 
+### 2026-11-17 — Phase 2.1: Rust Architecture (`2.1.3`) & Phase 2.1 Milestone Certification
+
+#### Added
+- **`[2.1.3]` Set Up Structured Logging, OpenTelemetry Tracing, and Prometheus Metrics in `crates/observability`:**
+  - Implemented automated secret redaction engine in `crates/observability/src/redaction.rs`:
+    - Sanitizes GitHub Personal Access Tokens (`ghp_*`, `gho_*`, `github_pat_*`), OAuth Bearer tokens, embedded basic auth credentials in URLs (`user:pass@host`), provider API keys (OpenAI `sk-*`, Anthropic `sk-ant-*`, AWS `AKIA*`), and private key blocks.
+    - Provided `redact_sensitive_text()`, `is_sensitive_key()`, and recursive `redact_json_value()`.
+  - Implemented OpenTelemetry and W3C TraceContext distributed trace propagation in `crates/observability/src/trace.rs`:
+    - Defined `TraceContext` representation supporting 128-bit `trace_id`, 64-bit `span_id`, and `trace_flags`.
+    - Implemented W3C `traceparent` parsing (`from_traceparent`) with all-zero rejection, formatting (`to_traceparent`), and child span context derivation (`new_child()`).
+  - Implemented Prometheus-compatible metrics registry in `crates/observability/src/metrics.rs`:
+    - Lock-free thread-safe atomic `Counter`, `CounterVec`, `Gauge`, and `Histogram` (with standard latency buckets).
+    - Defined `AppMetrics` tracking `jobs_total`, `job_duration_ms`, `extracted_files_total`, `tokens_processed_total`, `storage_bytes_current`, `active_workers`, and `ssrf_blocks_total`.
+    - Implemented `render_prometheus_text()` outputting valid Prometheus text exposition format.
+  - Implemented structured logging subscriber in `crates/observability/src/logging.rs`:
+    - Defined `LoggingConfig` and `LogFormat` (`Json`, `Pretty`, `Compact`).
+    - Implemented idempotent `init_tracing()` with dynamic `EnvFilter` from `RUST_LOG` or default level.
+  - Added 16 unit tests in `crates/observability`, expanding total automated Rust tests across the workspace to 50/50 passing.
+  - Formally certified completion of **Phase 2.1: Rust architecture** (`2.1.1` – `2.1.3` all `ACCEPTED`).
+
 ### 2026-11-17 — Phase 2.1: Rust Architecture (`2.1.2`)
 
 #### Added

@@ -57,11 +57,16 @@
 
 ## Stage 2 — Backend and Processing Foundation (`IN_PROGRESS`)
 
-### Phase 2.1 — Rust architecture (`IN_PROGRESS`)
+### Phase 2.1 — Rust architecture (`COMPLETED` / `ACCEPTED`)
 - [x] **[2.1.1]** Create Rust workspace and crate structure *(Completed 2026-11-17, root Cargo.toml, 17 workspace member crates/services, deny.toml 0.20+, rustfmt, 17/17 tests passing, all 5 gates pass)*
 - [x] **[2.1.2]** Implement typed domain errors, results, and configuration loader in `crates/core` *(Completed 2026-11-17, CoreError, ErrorCode, ApiErrorEnvelope, strongly-typed UUID v7 domain IDs, AppConfig with env/validation, Clock/Identifiable traits, 18 passing tests, 34 workspace tests)*
-- [ ] **[2.1.3]** Set up structured logging, OpenTelemetry tracing, and Prometheus metrics in `crates/observability`
-- [ ] **[2.1.4]** Create database schema, migrations, and connection pool in `crates/storage`
+- [x] **[2.1.3]** Set up structured logging, OpenTelemetry tracing, and Prometheus metrics in `crates/observability` *(Completed 2026-11-17, secret redaction engine, W3C TraceContext propagation, atomic Prometheus AppMetrics, LoggingConfig with JSON/compact tracing subscriber, 16 passing tests, 50 workspace tests, Phase 2.1 Certified)*
+
+### Phase 2.2 — API (`NOT_STARTED`)
+- [ ] **[2.2.1]** Implement Axum service and router scaffolding
+- [ ] **[2.2.2]** Implement request validation and parameter parsing
+- [ ] **[2.2.3]** Implement API error contracts and RFC 7807 problem details
+- [ ] **[2.2.4]** Implement health, readiness, and metrics endpoints
 
 ---
 
