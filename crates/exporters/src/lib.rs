@@ -8,7 +8,17 @@
 //! - RAG / Fine-tuning JSON Lines (`.jsonl`)
 //! - Streaming ZIP bundle with coreutils SHA-256 manifests
 
+#![forbid(unsafe_code)]
 #![warn(missing_docs)]
+
+pub mod error;
+pub mod markdown;
+pub mod options;
+
+// Public re-exports
+pub use error::{ExporterError, Result};
+pub use markdown::{export_markdown, export_markdown_to_writer, MarkdownExporter};
+pub use options::{CodeFenceStyle, ExportMetrics, HierarchyStyle, MarkdownOptions};
 
 /// Returns the unique crate identifier name.
 #[must_use]

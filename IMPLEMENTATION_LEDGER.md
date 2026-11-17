@@ -3264,11 +3264,69 @@
 
 ---
 
+### Phase 4.2 — Format Generators
+
+#### Subphase `4.2.1` — Markdown generator in crates/exporters
+- **Unique ID:** `4.2.1`
+- **Objective:** Implement a deterministic, high-fidelity, AI-ready Markdown export engine in `crates/exporters` converting `CdmDocument` instances into clean, structured Markdown artifacts with configurable frontmatter, metadata overview, document hierarchy / directory trees, prose sections, polyglot code blocks with escalating fences, GFM tables, callout admonitions, provenance citations, and auditable exclusion reporting.
+- **Scope:** `crates/exporters/Cargo.toml`, `crates/exporters/src/error.rs`, `crates/exporters/src/options.rs`, `crates/exporters/src/markdown.rs`, `crates/exporters/src/lib.rs`, `crates/exporters/tests/markdown_export.rs`.
+- **Prerequisites:** `4.1.4` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/exporters/Cargo.toml`
+  - `crates/exporters/src/error.rs`
+  - `crates/exporters/src/options.rs`
+  - `crates/exporters/src/markdown.rs`
+  - `crates/exporters/src/lib.rs`
+  - `crates/exporters/tests/markdown_export.rs`
+- **Implementation Tasks:**
+  1. Update `crates/exporters/Cargo.toml` to include necessary dependencies (`web-repo-to-ai-core`, `web-repo-to-ai-cdm`, `serde`, `serde_json`, `thiserror`, `chrono`).
+  2. Implement `crates/exporters/src/error.rs` providing typed domain errors (`ExporterError`, `Result<T>`).
+  3. Implement `crates/exporters/src/options.rs` providing `MarkdownOptions`, `ExportMetrics`, and configurable formatting parameters (frontmatter, metadata block, TOC, hierarchy tree, section headers, citations, exclusions, escalating code fences, token budgeting).
+  4. Implement `crates/exporters/src/markdown.rs` providing:
+     - `MarkdownExporter` engine with fluent builder API.
+     - Deterministic YAML frontmatter serialization with proper escaping and schema alignment.
+     - Document metadata overview block with source attribution, status, license, and language tags.
+     - Hierarchy / directory tree rendering with ASCII/Unicode branches (`├──`, `└──`).
+     - Section table of contents with anchor links and token/line telemetry.
+     - Polyglot section rendering covering all `SectionKind` variants (`Prose`, `CodeFile`, `CodeSnippet`, `Table`, `Admonition`, `Navigation`, `Manifest`, `Frontmatter`).
+     - Backtick fence escalation (detecting internal backticks and expanding fence markers to 4+ backticks).
+     - GFM blockquote alerts (`> [!NOTE]`, `> [!WARNING]`, etc.) for admonitions.
+     - Auditable exclusions section documenting omitted files/blocks and reasons.
+     - Sources & citations section formatting references.
+     - Streaming export support via `export_markdown_to_writer` writing to any `std::io::Write`.
+  5. Re-export public Markdown exporter types in `crates/exporters/src/lib.rs`.
+  6. Create integration test suite in `crates/exporters/tests/markdown_export.rs` verifying deterministic output, all `SectionKind` variants, fence escalation, frontmatter formatting, exclusions, citations, token budgeting, and streaming writer.
+  7. Run all 5 monorepo verification gates in `scripts/check-all.ps1`.
+- **Acceptance Criteria:**
+  - `MarkdownExporter` converts any valid `CdmDocument` into deterministic, syntactically valid Markdown.
+  - All `SectionKind` variants render accurately with appropriate markdown structures and language tags.
+  - Internal triple backticks in code blocks trigger fence escalation to 4+ backticks without breaking markdown fences.
+  - Exclusions and citations render faithfully to preserve auditability and prevent LLM hallucinations.
+  - Both in-memory `export_to_string` and streaming `export_to_writer` produce byte-identical results and report accurate `ExportMetrics`.
+  - All workspace tests pass, clippy passes with zero warnings, formatting checks clean, and cargo deny passes.
+- **Tests:** `cargo test -p web-repo-to-ai-exporters`, `cargo test --workspace`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, 01, 04, 05: Safe memory handling, bounded allocation, no panics, canonical URL citations sanitized, and complete provenance tracking.
+- **Performance Considerations:** Single-pass streaming rendering directly to writers without redundant string allocations, pre-allocated string buffers.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-exporters`: 16 passed (1 unit + 15 integration tests), 0 failed.
+  - `cargo test --workspace`: 396 passed, 0 failed across all monorepo crates.
+  - `apps/web` (SvelteKit + Vitest): 184 passed, 0 failed across 15 test suites.
+  - `services/browser-worker` (Node.js + Jest): 29 passed, 0 failed across 7 test suites.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, clean pass.
+  - `cargo fmt --all -- --check`: Clean formatting verified across all Rust crates.
+  - `cargo deny check`: Licenses, bans, advisories, and sources passed with zero violations.
+  - Monorepo 5-gate audit (`powershell scripts/check-all.ps1`): ALL 5 GATES PASSED (100% pass rate).
+- **Git Commit Reference:** PENDING_COMMIT
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 4 — Canonical Model and Export Engine)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `4.2.1` | Markdown generator in crates/exporters | `4.1.4` (`ACCEPTED`) | `crates/exporters/*` | `NOT_STARTED` |
+| `4.2.2` | Plain-text generator in crates/exporters | `4.2.1` (`ACCEPTED`) | `crates/exporters/*` | `NOT_STARTED` |
 
 ---
 

@@ -6,6 +6,38 @@
 
 ## [Unreleased] — Stage 4: Canonical Model and Export Engine
 
+### 2026-11-17 — Phase 4.2: Format Generators (`4.2.1`)
+
+#### Added
+- **`[4.2.1]` Implement Markdown Generator in `crates/exporters`:**
+  - Added `chrono` dependency to `crates/exporters/Cargo.toml` with serde support.
+  - Implemented typed domain errors in `crates/exporters/src/error.rs`:
+    - `ExporterError`: Enumerating `Io`, `Formatting`, `BudgetExceeded`, and `InvalidDocument`.
+    - `Result<T>` type alias.
+  - Implemented configuration models and telemetry metrics in `crates/exporters/src/options.rs`:
+    - `CodeFenceStyle`: `Backticks` and `Tildes` with automatic fence escalation to 4+ markers when code bodies contain backticks or tildes.
+    - `HierarchyStyle`: `UnicodeTree` (`├──`, `└──`), `AsciiTree` (`|--`, `\--`), `BulletedList` (`- **dir/**`), and `None`.
+    - `ExportMetrics`: Tracking `bytes_written`, `lines_written`, `sections_exported`, `exclusions_exported`, `citations_exported`, `estimated_tokens`, and `truncated`.
+    - `MarkdownOptions`: Comprehensive configuration controlling frontmatter, metadata block, hierarchy tree, table of contents with GFM slugs, per-section metadata, exclusions, citations, completeness accounting, heading levels, and token budget limits. Includes preset constructors `minimal()` and `compact()`.
+  - Implemented core Markdown exporter engine in `crates/exporters/src/markdown.rs`:
+    - `MarkdownExporter`: Fluent engine with `export_to_string` and streaming `export_to_writer`.
+    - `export_markdown`: In-memory deterministic Markdown generation.
+    - `export_markdown_to_writer`: Single-pass streaming renderer writing to any `std::io::Write` sink with `CountingWriter` for exact telemetry.
+    - Structured YAML frontmatter with string escaping for special characters (`:`, `"`, `#`, `\n`).
+    - Human- and AI-readable metadata summary block with source URL, type, license, and language tags.
+    - Formatted directory / outline tree in code blocks preserving file sizes and line counts.
+    - Table of contents with anchor links derived via GitHub GFM slugification rules and token/line telemetry.
+    - Polyglot section formatting covering all `SectionKind` variants (`Prose`, `CodeFile`, `CodeSnippet`, `Table`, `Admonition`, `Navigation`, `Manifest`, `Frontmatter`).
+    - Escalating code fence delimiters preventing markdown fence collisions.
+    - GFM blockquote alerts (`> [!NOTE]`, `> [!WARNING]`, etc.) for admonition callouts.
+    - Auditable exclusions table documenting skipped files, patterns, sizes, and rationale.
+    - Sources & citations section for full provenance tracking.
+    - Completeness accounting summary block.
+    - Token budget truncation defense with advisory notices when limits are exceeded.
+  - Re-exported public types in `crates/exporters/src/lib.rs`.
+  - Implemented 15 integration tests in `crates/exporters/tests/markdown_export.rs` verifying default formatting, minimal/compact presets, fence escalation, GFM alerts, line numbering, token budget truncation, streaming writer byte equivalence, hierarchy styles, YAML escaping, and empty document handling.
+  - Verification: 16 passing exporter tests, 396 total workspace Rust tests, 184 frontend tests, 29 browser-worker tests, and 100% pass rate across all 5 monorepo verification gates.
+
 ### 2026-11-17 — Phase 4.1: Canonical Context Document Model (`4.1.4`) — PHASE 4.1 CERTIFIED
 
 #### Added
