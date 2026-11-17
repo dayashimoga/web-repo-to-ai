@@ -15,6 +15,7 @@
 
 pub mod database;
 pub mod leasing;
+pub mod local_fs;
 pub mod migrations;
 pub mod repository;
 pub mod schema;
@@ -23,6 +24,7 @@ pub mod validation;
 
 pub use database::*;
 pub use leasing::*;
+pub use local_fs::*;
 pub use migrations::*;
 pub use repository::*;
 pub use schema::*;

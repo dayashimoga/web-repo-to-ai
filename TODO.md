@@ -74,8 +74,8 @@
 - [x] **[2.3.3]** Implement job state machine, transitions, and history in crates/storage *(Completed 2026-11-17, JobStateMachine transition validation, terminal state immutability, job_state_transitions migration, JobRepository row-level locked transitions, 22 passing storage tests, 109 workspace tests)*
 - [x] **[2.3.4]** Implement durable job leasing, heartbeat, and recovery in crates/storage *(Completed 2026-11-17, FOR UPDATE SKIP LOCKED worker queue polling, heartbeat lease extension, voluntary lease release, automated stale recovery, LeaseManager, 28 passing storage tests, 115 workspace tests, Phase 2.3 Certified)*
 
-### Phase 2.4 — Storage
-- [ ] **[2.4.1]** Implement local filesystem artifact storage in crates/storage
+### Phase 2.4 — Storage (`IN_PROGRESS`)
+- [x] **[2.4.1]** Implement local filesystem artifact storage in crates/storage *(Completed 2026-11-17, LocalFsStorage, atomic staging writes, path traversal guards, layout helpers, storage_capacity accounting, 36 passing storage tests, 123 workspace tests)*
 - [ ] **[2.4.2]** Implement pluggable storage backend trait in crates/storage
 - [ ] **[2.4.3]** Implement artifact retention and ephemeral cleanup policies in crates/storage
 - [ ] **[2.4.4]** Implement artifact checksum validation and verification in crates/storage

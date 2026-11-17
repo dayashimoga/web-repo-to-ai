@@ -6,6 +6,18 @@
 
 ## [Unreleased] — Stage 2: Backend and Processing Foundation
 
+### 2026-11-17 — Phase 2.4: Storage (`2.4.1`)
+
+#### Added
+- **`[2.4.1]` Implement Local Filesystem Artifact Storage in `crates/storage`:**
+  - Added `tokio` features `["fs", "io-util", "macros", "rt"]` to `crates/storage/Cargo.toml`.
+  - Implemented `LocalFsStorage` in `crates/storage/src/local_fs.rs` providing durable atomic file writes, reading, streaming handles (`open_read`), existence probing, single file deletion, recursive directory deletion, and metadata retrieval.
+  - Implemented strict defense-in-depth path traversal defenses in `resolve_path(&self, key)`: rejects null bytes, absolute paths, root/drive prefixes (`C:`), parent traversal components (`..`), Windows reserved device names (`CON`, `PRN`, `AUX`, `NUL`, `COM1-9`, `LPT1-9`), and trailing period/space characters.
+  - Implemented atomic staging writes: writes data to `.<name>.tmp.<uuid>`, flushes to physical storage with `sync_all()`, and renames atomically with Windows fallback.
+  - Implemented standard artifact key layout helpers in `layout` module (`job_artifact_key`, `job_dir_key`, `blob_key`).
+  - Implemented recursive directory capacity accounting in `storage_capacity()` returning `StorageUsage` (`total_artifact_bytes`, `artifact_count`).
+  - Added 8 unit tests in `crates/storage/src/local_fs.rs` covering CRUD lifecycle, atomic overwrite, traversal rejections, recursive directory deletion, listing, storage capacity metrics, not found errors, and payload limits, expanding storage crate tests to 36 and automated Rust workspace tests to 123/123 passing. Verified all 5 quality gates pass cleanly.
+
 ### 2026-11-17 — Phase 2.3: Persistence (`2.3.4`) & Phase 2.3 Milestone Certification
 
 #### Added

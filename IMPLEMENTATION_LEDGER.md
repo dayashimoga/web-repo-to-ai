@@ -2026,11 +2026,51 @@
 
 ---
 
+### Phase 2.4 — Storage
+
+#### Subphase `2.4.1` — Implement local filesystem artifact storage in crates/storage
+- **Unique ID:** `2.4.1`
+- **Objective:** Implement durable, atomic, and traversal-guarded local filesystem artifact storage (`LocalFsStorage`), standard job and blob layout helpers, and disk capacity accounting in `crates/storage`.
+- **Scope:** `crates/storage/Cargo.toml`, `crates/storage/src/local_fs.rs`, `crates/storage/src/lib.rs`.
+- **Prerequisites:** Phase 2.3 (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/storage/Cargo.toml`
+  - `crates/storage/src/local_fs.rs`
+  - `crates/storage/src/lib.rs`
+- **Implementation Tasks:**
+  1. Add `tokio` features `["fs", "io-util", "macros", "rt"]` to `crates/storage/Cargo.toml`.
+  2. Implement `layout` module in `crates/storage/src/local_fs.rs` defining standard relative storage keys: `job_artifact_key` (`jobs/{job_id}/artifact.{ext}`), `job_dir_key` (`jobs/{job_id}`), and two-tier sharded `blob_key` (`blobs/{prefix}/{hash}.bin`).
+  3. Implement `LocalFsStorage` struct with `base_dir`, `max_storage_bytes` limits, and constructors (`new`, `with_config`, `with_limits`).
+  4. Implement strict path traversal defenses in `resolve_path(&self, key)`: reject null bytes, absolute paths, root/drive prefixes (`C:`), parent directory components (`..`), Windows reserved device names (`CON`, `PRN`, `AUX`, `NUL`, `COM1-9`, `LPT1-9`), and trailing space/dot characters.
+  5. Implement atomic file writing in `put`: write to staging file `.<name>.tmp.<uuid>`, call `sync_all()`, drop file handle, and perform atomic replace/rename (with cross-platform Windows fallback), cleaning up temp file on any error.
+  6. Implement `get`, `open_read` (async streaming handle), `exists`, `delete`, `delete_directory`, `metadata` (`ArtifactFileMetadata`), `list`, and `storage_capacity` (`StorageUsage`).
+  7. Add 8 unit tests covering CRUD lifecycle, atomic overwrite, path traversal rejections, directory deletion, listing, storage capacity metrics, not found errors, and payload limits (expanding storage crate tests to 36 and workspace tests to 123). Verify all 5 monorepo gates pass cleanly.
+- **Acceptance Criteria:**
+  - `LocalFsStorage` enforces atomic writes preventing partial or corrupted artifact states.
+  - Path traversal attempts (`..`, `/`, `\`, drive letters, device names, null bytes) are strictly rejected with `CoreError::Security`.
+  - Stored files and directory trees are cleanly readable, streamable, and deletable.
+  - 100% of Rust tests pass (36 in `crates/storage`, 123 across workspace); zero clippy warnings; all 5 monorepo verification gates pass cleanly.
+- **Tests:** `cargo test -p web-repo-to-ai-storage` (36/36 passed), `cargo test --workspace` (123/123 passed), `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Complies with Rule 00, 02, and 05: `#![forbid(unsafe_code)]` enforced; defense-in-depth path traversal checks block arbitrary file overwrite/read outside `base_dir`; Windows reserved device names blocked preventing OS denial-of-service; temporary files cleaned up on write aborts.
+- **Performance Considerations:** Atomic rename avoids partial read locks; `sync_all()` guarantees disk durability; sharded blob path structure avoids directory filesystem inode limits on high-volume runs.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-storage`: 36/36 tests passed in 0.03s.
+  - `cargo test --workspace`: 123/123 tests passed in 13.32s.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors in 6.07s.
+  - `cargo fmt --all -- --check`: 100% code style compliance.
+  - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
+- **Git Commit Reference:** `0757d59`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `2.4.1` | Implement local filesystem artifact storage in crates/storage | Phase 2.3 (`ACCEPTED`) | `crates/storage/*` | `NOT_STARTED` |
+| `2.4.2` | Implement pluggable storage backend trait in crates/storage | `2.4.1` (`ACCEPTED`) | `crates/storage/*` | `NOT_STARTED` |
 
 ---
 
