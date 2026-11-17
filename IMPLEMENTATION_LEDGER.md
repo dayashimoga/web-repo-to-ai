@@ -510,11 +510,84 @@
 
 ---
 
-### Phase 0.3 — Upcoming Subphases (Awaiting User Approval for `0.3.5`)
+#### Subphase `0.3.5` — Document setup and recovery
+- **Unique ID:** `0.3.5`
+- **Objective:** Document container setup, complete environment variables reference, backup and restore runbooks, emergency cold disaster recovery procedures, and production hardening guidelines in `docs/DEPLOYMENT.md` and `docs/DEVELOPMENT.md`.
+- **Scope:** `docs/DEPLOYMENT.md`, `docs/DEVELOPMENT.md`, `scripts/verify-bootstrap.ps1`, `ROADMAP.md`, `docs/ROADMAP.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `IMPLEMENTATION_LEDGER.md`.
+- **Prerequisites:** `0.3.4` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `docs/DEPLOYMENT.md`
+  - `docs/DEVELOPMENT.md`
+  - `scripts/verify-bootstrap.ps1`
+  - `PROJECT_STATUS.md`
+  - `IMPLEMENTATION_LEDGER.md`
+  - `TODO.md`
+  - `CHANGELOG.md`
+  - `ROADMAP.md`
+  - `docs/ROADMAP.md`
+- **Implementation Tasks:**
+  1. Author Section 3 ("Environment Variables Reference") in `docs/DEPLOYMENT.md` documenting all 19 configuration variables with defaults, services, sensitivity levels, and usage notes.
+  2. Author Section 4 ("Backup, Restore & Disaster Recovery Runbook") in `docs/DEPLOYMENT.md` providing concrete `pg_dump`/`pg_restore` commands for Windows PowerShell and POSIX bash, artifact volume backup commands, and step-by-step cold recovery runbook (<5 minutes).
+  3. Author Section 5 ("Production Hardening Guidelines") in `docs/DEPLOYMENT.md` detailing Caddy automatic HTTPS reverse proxy configuration with TLS security headers, secret manager injection, encryption at rest, container root filesystem hardening, Linux capability dropping, and storage ceiling alerting.
+  4. Ensure complete synchronization with `docs/DEVELOPMENT.md` Section 5 (Workflow Runbooks) and Section 6 (Troubleshooting Runbook).
+  5. Expand `scripts/verify-bootstrap.ps1` Category 15 to automatically assert presence of environment variables table, disaster recovery runbooks, and production hardening sections.
+  6. Execute Stage 0 Acceptance Gate verification across all 5 monorepo gates and confirm 100% pass rate.
+- **Acceptance Criteria:**
+  - Complete environment variables table present in `docs/DEPLOYMENT.md`.
+  - Non-mock backup and restore commands for PostgreSQL and persistent volumes documented for Windows PowerShell and POSIX bash.
+  - Emergency cold disaster recovery procedure documented with clear time target (<5 minutes).
+  - Production hardening guidelines (Caddy reverse proxy, secrets, capabilities, network isolation) fully specified.
+  - All 5 monorepo verification gates pass with 0 failures, and `scripts/verify-bootstrap.ps1` passes all 223 checks.
+- **Tests:**
+  - `scripts/verify-bootstrap.ps1`: passed (223/223 checks).
+  - `scripts/check-all.ps1`: ALL 5 GATES PASSED (223/223 checks).
+  - `bash scripts/check-all.sh`: ALL 5 GATES PASSED (223/223 checks).
+  - `scripts/verify-container-builds.ps1 -Quick`: passed (21/21 checks).
+  - `scripts/check-resources.ps1`: passed (5.27 GB / 30 GB, 17.6%).
+- **Security Considerations:**
+  - Strict classification of sensitive environment variables (`POSTGRES_PASSWORD`, `DATABASE_URL`, `GITHUB_APP_PRIVATE_KEY_PATH`, `GITHUB_APP_CLIENT_SECRET`).
+  - Re-verified zero credentials in tracked files or Git history.
+  - Production hardening enforces non-root execution, `no-new-privileges:true`, read-only container root filesystems, and strict network isolation between `browser_net` and `internal_net`.
+- **Performance Considerations:**
+  - Fast disaster recovery runbook targeted for cold restoration under 5 minutes.
+  - Storage ceiling strictly bounded below 30 GB (currently 5.27 GB, 17.6%).
+- **Documentation Requirements:** Updated `docs/DEPLOYMENT.md`, `docs/DEVELOPMENT.md`, `docs/ROADMAP.md`, `ROADMAP.md`, `PROJECT_STATUS.md`, `IMPLEMENTATION_LEDGER.md`, `TODO.md`, and `CHANGELOG.md`.
+- **Validation Evidence:**
+  - `docs/DEPLOYMENT.md` verified with Sections 3, 4, and 5.
+  - `scripts/verify-bootstrap.ps1` output: 223/223 checks passed (0 failures).
+  - `scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
+  - `bash scripts/check-all.sh`: ALL 5 GATES PASSED (0 failures).
+  - Storage budget verified: 5.27 GB / 30 GB (17.6%) [HEALTHY_WITHIN_BUDGET].
+- **Git Commit Reference:** `7506b73`
+- **Status:** `ACCEPTED`
+
+---
+
+### STAGE 0 COMPLETION CERTIFICATION
+
+- **Stage ID:** `STAGE 0 — PROJECT BOOTSTRAP AND ENGINEERING FOUNDATION`
+- **Total Phases Completed:** 3 (`Phase 0.1`, `Phase 0.2`, `Phase 0.3`)
+- **Total Subphases Completed:** 15 (`0.1.1` through `0.3.5`, all `ACCEPTED`)
+- **Stage Acceptance Gate:** Repository, documentation, agents, rules, workflows, Podman config (<30 GB), and initial CI workflows are operational and verified.
+- **Verification Evidence:**
+  - Monorepo structure, 27 directories, 14 root governance files verified.
+  - 12 baseline technical specifications under `docs/` verified.
+  - 9 specialized agents, 10 engineering skills, 10 rules, and 10 workflows verified.
+  - Public GitHub repository `https://github.com/dayashimoga/web-repo-to-ai` operational with linear history and branch protection on `main`.
+  - 7 GitHub Actions workflows verified and passing on live runners.
+  - Multi-stage Containerfiles and Compose stack verified with unprivileged users and isolated networks.
+  - Podman storage ceiling strictly satisfied at 5.27 GB / 30 GB (17.6%).
+  - Full cross-platform lifecycle scripts (`dev-*.ps1` / `dev-*.sh`) and disaster recovery runbooks verified.
+  - Monorepo audit (`scripts/check-all.*`) passing all 5 gates (223/223 checks passed).
+- **Status:** `COMPLETED` / `ACCEPTED` (Certified 2026-11-17)
+
+---
+
+### Upcoming Subphase (Awaiting User Approval for Stage 1 Phase 1.1)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `0.3.5` | Document setup and recovery | `0.3.4` (`ACCEPTED`) | `docs/DEVELOPMENT.md`, `docs/DEPLOYMENT.md` | `NOT_STARTED` |
+| `1.1.1` | Visual design tokens | `0.3.5` (`ACCEPTED`) | `apps/web/src/lib/styles/*`, `apps/web/tailwind.config.js` | `NOT_STARTED` |
 
 ---
 

@@ -301,6 +301,17 @@ foreach ($cvs in $containerVerifyScripts) {
 $null = powershell -ExecutionPolicy Bypass -File scripts/verify-container-builds.ps1 -Quick 2>&1
 Assert-Condition ($LASTEXITCODE -eq 0) "scripts/verify-container-builds.ps1 -Quick executes successfully"
 
+# 15. Verify deployment documentation, runbooks, and recovery coverage
+$deployContent = Get-Content "docs/DEPLOYMENT.md" -Raw
+Assert-Condition ($deployContent -match "Environment Variables Reference") "docs/DEPLOYMENT.md contains Environment Variables Reference"
+Assert-Condition ($deployContent -match "POSTGRES_DB" -and $deployContent -match "DATABASE_URL") "docs/DEPLOYMENT.md documents database environment variables"
+Assert-Condition ($deployContent -match "Backup, Restore & Disaster Recovery Runbook") "docs/DEPLOYMENT.md contains Disaster Recovery Runbook"
+Assert-Condition ($deployContent -match "pg_dump" -and $deployContent -match "pg_restore") "docs/DEPLOYMENT.md documents pg_dump and pg_restore recovery commands"
+Assert-Condition ($deployContent -match "Production Hardening Guidelines") "docs/DEPLOYMENT.md contains Production Hardening Guidelines"
+$devContent = Get-Content "docs/DEVELOPMENT.md" -Raw
+Assert-Condition ($devContent -match "End-to-End Developer Workflow Runbook") "docs/DEVELOPMENT.md contains Developer Workflow Runbook"
+Assert-Condition ($devContent -match "Troubleshooting & Disaster Recovery Runbook") "docs/DEVELOPMENT.md contains Troubleshooting Runbook"
+
 Write-Output "=== Verification Summary: $($checks - $failures)/$checks checks passed, $failures failures ==="
 if ($failures -gt 0) {
     exit 1

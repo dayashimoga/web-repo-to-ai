@@ -10,13 +10,13 @@
 
 ## Stage Acceptance Gates & Deliverable Matrix
 
-### STAGE 0 — PROJECT BOOTSTRAP AND ENGINEERING FOUNDATION
+### STAGE 0 — PROJECT BOOTSTRAP AND ENGINEERING FOUNDATION (`COMPLETED` / `ACCEPTED`)
 - **Deliverable:** Working Git repository with all engineering governance, agent definitions, project documentation, CI workflows, and containerized development foundations.
 - **Stage Acceptance Gate:** Repository, documentation, agents, rules, workflows, Podman config (<30 GB), and initial CI workflows are operational and verified.
 - **Phases:**
-  - `0.1` Repository and governance initialization (`0.1.1` – `0.1.5`)
-  - `0.2` GitHub and CI foundation (`0.2.1` – `0.2.5`)
-  - `0.3` Containerized development foundation (`0.3.1` – `0.3.5`)
+  - `0.1` Repository and governance initialization (`0.1.1` – `0.1.5`) (`COMPLETED` / `ACCEPTED`)
+  - `0.2` GitHub and CI foundation (`0.2.1` – `0.2.5`) (`COMPLETED` / `ACCEPTED`)
+  - `0.3` Containerized development foundation (`0.3.1` – `0.3.5`) (`COMPLETED` / `ACCEPTED`)
 
 ### STAGE 1 — FRONTEND AND PRODUCT EXPERIENCE
 - **Deliverable:** Real responsive SvelteKit + Svelte 5 website foundation in `apps/web`.

@@ -2,16 +2,18 @@
 
 **Project:** `web-repo-to-ai` (Universal URL & GitHub Repository → AI-Ready Content Converter)  
 **Last Updated:** 2026-11-17  
-**Current Stage:** `STAGE 0 — PROJECT BOOTSTRAP AND ENGINEERING FOUNDATION`  
-**Current Phase:** `Phase 0.3 — Containerized development foundation` (`IN_PROGRESS`)  
-**Last Completed Subphase:** `0.3.4 — Validate reproducible container builds` (`ACCEPTED`)  
-**Next Eligible Subphase (Awaiting Explicit User Approval):** `0.3.5 — Document setup and recovery`
+**Current Stage:** `STAGE 0 — PROJECT BOOTSTRAP AND ENGINEERING FOUNDATION` (`COMPLETED` / `ACCEPTED`)  
+**Upcoming Stage:** `STAGE 1 — FRONTEND AND PRODUCT EXPERIENCE`  
+**Current Phase:** `Phase 0.3 — Containerized development foundation` (`COMPLETED` / `ACCEPTED`)  
+**Upcoming Phase:** `Phase 1.1 — Design system`  
+**Last Completed Subphase:** `0.3.5 — Document setup and recovery` (`ACCEPTED`)  
+**Next Eligible Subphase (Awaiting Explicit User Approval):** `1.1.1 — Visual design tokens` (Stage 1, Phase 1.1)
 
 ---
 
 ## 1. Executive Summary
 
-Phase `0.1` (`0.1.1` – `0.1.5`), Phase `0.2` (`0.2.1` – `0.2.5`), and Subphases `0.3.1` – `0.3.4` have been implemented, verified, and pushed to the remote GitHub repository:
+All 15 subphases across Phase `0.1` (`0.1.1` – `0.1.5`), Phase `0.2` (`0.2.1` – `0.2.5`), and Phase `0.3` (`0.3.1` – `0.3.5`) have been fully implemented, verified, committed, and pushed to the remote GitHub repository, successfully fulfilling the **Stage 0 Acceptance Gate**:
 - **Environment & Tooling (`0.1.1`):** Inspected Windows host (14 logical cores, 16.64 GB RAM, 33.51 GB free disk), verified `git 2.55.0`, `rustc/cargo 1.97.1`, `node v20.18.0`, `npm 10.8.2`, `podman 5.8.3` (WSL machine running with 30 GiB disk ceiling), `podman-compose`, and Git Credential Manager account (`dayashimoga`).
 - **Monorepo & Git (`0.1.2`):** Initialized Git repository (`main`), configured LF line-ending rules, and created all 27 monorepo directories (`apps/web`, `services/{api,worker,browser-worker}`, 15 shared `crates/*`, `docs/`, `deploy/`, `scripts/`, `.agent/*`, `.github/workflows`).
 - **Engineering Governance & Docs (`0.1.3`):** Created `GLOBAL_ENGINEERING_CONTRACT.md`, `REQUIREMENTS.md`, `DECISIONS.md` (`ADR-001`–`ADR-007`), and all 11 baseline specifications in `docs/`.
@@ -26,6 +28,7 @@ Phase `0.1` (`0.1.1` – `0.1.5`), Phase `0.2` (`0.2.1` – `0.2.5`), and Subpha
 - **Storage Ceiling Enforcement (`0.3.2`):** Authored `scripts/check-resources.ps1` and `scripts/check-resources.sh` to enforce the 30 GB container storage ceiling, host RAM, CPU, and disk space with structured JSON and non-zero exit on breach; created `scripts/clean-caches.ps1` and `scripts/clean-caches.sh` for safe cache pruning protecting persistent volumes; integrated Resource Budget Gate 5 into `scripts/check-all.*`; updated `docs/DEPLOYMENT.md`; verified 199/199 bootstrap checks.
 - **Development Lifecycle Scripts (`0.3.3`):** Authored complete cross-platform lifecycle utilities across Windows PowerShell and POSIX bash (`scripts/dev-up.*`, `scripts/dev-down.*`, `scripts/dev-logs.*`, `scripts/dev-restart.*`, `scripts/dev-status.*`); enforced pre-flight storage checks, protected data volumes during teardown, supported service subsets and image rebuilds; documented usage in `docs/DEVELOPMENT.md`; verified 213/213 checks across all gates.
 - **Reproducible Container Builds (`0.3.4`):** Authored `scripts/verify-container-builds.ps1` and `scripts/verify-container-builds.sh` auditing all Containerfiles and Compose specs for multi-stage build patterns, minimal slim/Alpine base images, unprivileged users (`appuser`, `pwuser`, `node`), sandbox isolation (`no-new-privileges:true`), and the 30 GB storage ceiling; executed live container healthcheck verification on PostgreSQL 16 Alpine and verified persistent volume retention; expanded bootstrap verification to 216/216 checks.
+- **Setup Documentation & Disaster Recovery (`0.3.5`):** Authored complete Environment Variables Reference in `docs/DEPLOYMENT.md`, documented concrete `pg_dump`/`pg_restore` commands, artifact volume backup, cold disaster recovery workflow (<5 minutes), Caddy reverse proxy HTTPS configuration, and production container hardening standards; updated `scripts/verify-bootstrap.ps1` to 223/223 automated checks.
 
 ---
 
@@ -33,12 +36,12 @@ Phase `0.1` (`0.1.1` – `0.1.5`), Phase `0.2` (`0.2.1` – `0.2.5`), and Subpha
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 14 | `0.1.1` – `0.1.5`, `0.2.1` – `0.2.5`, `0.3.1` – `0.3.4` |
+| `ACCEPTED` | 15 | `0.1.1` – `0.1.5`, `0.2.1` – `0.2.5`, `0.3.1` – `0.3.5` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 183 | `0.3.5` – `11.4.5` |
+| `NOT_STARTED` | 182 | `1.1.1` – `11.4.5` |
 | **Total** | **197** | `Stage 0` – `Stage 11` |
 
 ---

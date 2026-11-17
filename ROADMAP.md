@@ -11,7 +11,7 @@
 
 | Stage | Title | Primary Deliverable | Phases | Subphases | Current Status |
 | :--- | :--- | :--- | :---: | :---: | :--- |
-| **STAGE 0** | Project Bootstrap & Engineering Foundation | Working repository, governance, agents/skills/rules/workflows, CI, and Podman dev foundation | `0.1` – `0.3` | 15 (`0.1.1` – `0.3.5`) | `IN_PROGRESS` (Phase `0.1` `ACCEPTED`; awaiting `0.2.1`) |
+| **STAGE 0** | Project Bootstrap & Engineering Foundation | Working repository, governance, agents/skills/rules/workflows, CI, and Podman dev foundation | `0.1` – `0.3` | 15 (`0.1.1` – `0.3.5`) | `COMPLETED` / `ACCEPTED` |
 | **STAGE 1** | Frontend & Product Experience | Responsive SvelteKit + Svelte 5 website foundation and conversion workspace | `1.1` – `1.4` | 14 (`1.1.1` – `1.4.3`) | `NOT_STARTED` |
 | **STAGE 2** | Backend & Processing Foundation | Operational Rust Axum API, PostgreSQL job leasing, and artifact storage | `2.1` – `2.4` | 15 (`2.1.1` – `2.4.4`) | `NOT_STARTED` |
 | **STAGE 3** | Universal Webpage Extraction | SSRF-guarded HTTP static & Playwright dynamic URL-to-clean-content extraction | `3.1` – `3.4` | 16 (`3.1.1` – `3.4.4`) | `NOT_STARTED` |
@@ -46,10 +46,10 @@
   - `0.3.2` Enforce the 30 GB storage ceiling (`ACCEPTED`)
   - `0.3.3` Create development environment scripts (`ACCEPTED`)
   - `0.3.4` Validate reproducible container builds (`ACCEPTED`)
-  - `0.3.5` Document setup and recovery (`NOT_STARTED` — **NEXT ELIGIBLE SUBPHASE**)
+  - `0.3.5` Document setup and recovery (`ACCEPTED`)
 
 ### STAGE 1 — FRONTEND AND PRODUCT EXPERIENCE
-- **Phase 1.1 — Design system:** `1.1.1` Visual design tokens | `1.1.2` Typography, spacing & color systems | `1.1.3` Reusable accessible components
+- **Phase 1.1 — Design system:** `1.1.1` Visual design tokens (`NOT_STARTED` — **NEXT ELIGIBLE SUBPHASE**) | `1.1.2` Typography, spacing & color systems | `1.1.3` Reusable accessible components
 - **Phase 1.2 — Main website:** `1.2.1` Landing page | `1.2.2` URL input & source detection | `1.2.3` Conversion settings | `1.2.4` Responsive layouts
 - **Phase 1.3 — Conversion workspace:** `1.3.1` Job workspace | `1.3.2` Preview panels | `1.3.3` Token statistics interface | `1.3.4` Output & download controls
 - **Phase 1.4 — UX validation:** `1.4.1` Keyboard & accessibility testing | `1.4.2` Mobile/tablet/desktop testing | `1.4.3` UI performance & visual regression testing

@@ -4,7 +4,7 @@
 
 ---
 
-## Stage 0 — Project Bootstrap and Engineering Foundation
+## Stage 0 — Project Bootstrap and Engineering Foundation (`COMPLETED` / `ACCEPTED`)
 
 ### Phase 0.1 — Repository and governance initialization
 - [x] **[0.1.1]** Inspect environment, repository status, hardware budget, Podman machine limits, and available CLI tools *(Completed 2026-11-16)*
@@ -20,12 +20,12 @@
 - [x] **[0.2.4]** Configure linting, formatting, and test checks for Rust and Frontend *(Completed 2026-11-17, rustfmt.toml, .prettierrc.json, check-all.ps1/sh)*
 - [x] **[0.2.5]** Configure security and dependency scanning workflows (`security.yml`, `dependency-review.yml`, `codeql.yml`, `deny.toml`) *(Completed 2026-11-17, deny.toml & security workflows active)*
 
-### Phase 0.3 — Containerized development foundation
+### Phase 0.3 — Containerized development foundation (`COMPLETED` / `ACCEPTED`)
 - [x] **[0.3.1]** Create Podman development configuration (`deploy/podman-compose.yml` and multi-stage Containerfiles) *(Completed 2026-11-17, podman-compose.yml & 4 Containerfiles)*
 - [x] **[0.3.2]** Enforce the 30 GB storage ceiling (`scripts/check-resources.*`, `scripts/clean-caches.*`) *(Completed 2026-11-17, storage monitoring & safe cache pruning)*
 - [x] **[0.3.3]** Create development environment startup, test, and recovery scripts (`scripts/dev-*.*`) *(Completed 2026-11-17, cross-platform dev lifecycle scripts)*
 - [x] **[0.3.4]** Validate reproducible container builds (`scripts/verify-container-builds.*`) *(Completed 2026-11-17, multi-stage audit, unprivileged users, healthchecks)*
-- [ ] **[0.3.5]** Document container setup, resource management, and recovery in `docs/DEVELOPMENT.md` and `docs/DEPLOYMENT.md`
+- [x] **[0.3.5]** Document container setup, resource management, and recovery in `docs/DEVELOPMENT.md` and `docs/DEPLOYMENT.md` *(Completed 2026-11-17, env vars table, disaster recovery runbook, hardening)*
 
 ---
 

@@ -4,7 +4,23 @@
 
 ---
 
-## [Unreleased] — Stage 0: Project Bootstrap and Engineering Foundation
+## [Unreleased] — Stage 1: Frontend and Product Experience
+
+---
+
+## Stage 0: Project Bootstrap and Engineering Foundation (`COMPLETED` / `ACCEPTED`)
+
+### 2026-11-17 — Phase 0.3: Containerized Development Foundation (`0.3.5`)
+
+#### Added
+- **`[0.3.5]` Setup Documentation, Disaster Recovery Runbooks & Stage 0 Certification:**
+  - Authored comprehensive Environment Variables Reference in `docs/DEPLOYMENT.md` detailing all 19 configuration variables from `deploy/.env.example` (PostgreSQL, Axum API, Worker, Playwright, SvelteKit, and GitHub App credentials).
+  - Authored PostgreSQL Logical Backup & Restore Runbook (`pg_dump`/`pg_restore`) for both Windows PowerShell and POSIX bash with clean table recreation and volume copying.
+  - Authored Artifact Storage Volume Backup & Restore Runbook for `deploy_artifact_data`.
+  - Authored Emergency Cold Disaster Recovery Runbook guaranteeing complete system recovery from cold workstation restart or storage corruption in under 5 minutes.
+  - Authored Production Hardening Guidelines covering Caddy automatic HTTPS reverse proxy configuration with TLS headers, secret manager injection, block-level encryption at rest, AES-256-GCM token encryption, read-only container filesystems, dropped Linux capabilities, and container resource limits.
+  - Extended bootstrap verification suite (`scripts/verify-bootstrap.ps1`) to 223/223 automated checks.
+  - Formally certified completion of **Stage 0: Project Bootstrap and Engineering Foundation** (Phases `0.1`, `0.2`, `0.3`, 15 subphases `0.1.1` – `0.3.5` all `ACCEPTED`).
 
 ### 2026-11-17 — Phase 0.3: Containerized Development Foundation (`0.3.4`)
 
