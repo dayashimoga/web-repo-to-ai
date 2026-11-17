@@ -1,0 +1,14 @@
+# Containerfile for Isolated Playwright + Chromium Browser Worker
+FROM mcr.microsoft.com/playwright:v1.45.0-jammy
+WORKDIR /app
+ENV NODE_ENV=production
+COPY services/browser-worker/package*.json ./
+RUN if [ -f "package.json" ]; then \
+      npm ci --omit=dev; \
+    else \
+      echo "Scaffolded browser-worker"; \
+    fi
+COPY services/browser-worker/ .
+USER pwuser
+EXPOSE 3000
+CMD ["node", "server.js"]

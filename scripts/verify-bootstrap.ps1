@@ -229,6 +229,23 @@ foreach ($lc in $lintConfigs) {
     Assert-Condition $lcNonEmpty "Lint/format/security configuration file exists and is non-empty: $lc"
 }
 
+# 11. Verify Podman Compose and Containerfile deployment configs
+$deployConfigs = @(
+    "deploy/podman-compose.yml",
+    "deploy/Containerfile.api",
+    "deploy/Containerfile.worker",
+    "deploy/Containerfile.browser-worker",
+    "deploy/Containerfile.web",
+    "deploy/.env.example"
+)
+foreach ($dc in $deployConfigs) {
+    $dcExists = Test-Path -Path $dc -PathType Leaf
+    $dcNonEmpty = $dcExists -and ((Get-Item $dc -Force).Length -gt 10)
+    Assert-Condition $dcNonEmpty "Deployment configuration file exists and is non-empty: $dc"
+}
+$null = python -c "import yaml; yaml.safe_load(open('deploy/podman-compose.yml'))" 2>&1
+Assert-Condition ($LASTEXITCODE -eq 0) "deploy/podman-compose.yml is valid YAML"
+
 Write-Output "=== Verification Summary: $($checks - $failures)/$checks checks passed, $failures failures ==="
 if ($failures -gt 0) {
     exit 1

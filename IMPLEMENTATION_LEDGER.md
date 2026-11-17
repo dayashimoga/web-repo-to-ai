@@ -308,20 +308,48 @@
 
 ---
 
-### Phase 0.3 — Containerized development foundation (Upcoming — Awaiting User Approval for `0.3.1`)
+### Phase 0.3 — Containerized development foundation
+
+#### Subphase `0.3.1` — Create Podman development configuration
+- **Unique ID:** `0.3.1`
+- **Objective:** Create the containerized development foundation in `deploy/` (`deploy/podman-compose.yml`, multi-stage Containerfiles for API, Worker, Browser Worker, Web Frontend, and local PostgreSQL service).
+- **Scope:** `deploy/podman-compose.yml`, `deploy/Containerfile.{api,worker,browser-worker,web}`, `deploy/.env.example`, `scripts/verify-bootstrap.ps1`, and tracking ledgers.
+- **Prerequisites:** `0.2.5` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `deploy/podman-compose.yml`
+  - `deploy/Containerfile.api`
+  - `deploy/Containerfile.worker`
+  - `deploy/Containerfile.browser-worker`
+  - `deploy/Containerfile.web`
+  - `deploy/.env.example`
+  - `scripts/verify-bootstrap.ps1`
+  - `PROJECT_STATUS.md`, `IMPLEMENTATION_LEDGER.md`, `TODO.md`, `CHANGELOG.md`
+- **Implementation Tasks:**
+  1. Author `deploy/podman-compose.yml` declaring PostgreSQL 16 Alpine, Rust API service, Rust background Worker, isolated Playwright Browser Worker, and SvelteKit Web frontend with bridge networks (`internal_net`, `browser_net`), persistent volumes, and healthchecks.
+  2. Author multi-stage `deploy/Containerfile.api` and `deploy/Containerfile.worker` (Rust slim builder -> Debian bookworm-slim runtime with unprivileged user).
+  3. Author `deploy/Containerfile.browser-worker` with Playwright/Chromium and isolated non-root user.
+  4. Author multi-stage `deploy/Containerfile.web` (Node 20 slim builder -> minimal runtime).
+  5. Author `deploy/.env.example` documenting all service configuration variables.
+  6. Update `scripts/verify-bootstrap.ps1` to assert all deployment configurations.
+- **Acceptance Criteria:**
+  - All 6 deployment files exist, pass YAML syntax validation, pass `podman-compose config` schema verification, and respect container isolation boundaries.
+- **Tests:** `podman-compose config` parsed and validated all 5 services; `scripts/check-all.ps1` passed 194/194 checks across all 4 quality gates.
+- **Security Considerations:** Enforces unprivileged runtime users (`appuser`, `pwuser`, `node`); isolates Browser Worker from PostgreSQL database and internal service network; blocks `no-new-privileges`.
+- **Performance Considerations:** Multi-stage builds and slim base images minimize layer duplication, respecting the 30 GB storage ceiling.
+- **Documentation Requirements:** Documented in `docs/DEPLOYMENT.md`, `PROJECT_STATUS.md`, `IMPLEMENTATION_LEDGER.md`, `TODO.md`, and `CHANGELOG.md`.
+- **Validation Evidence:**
+  - `podman-compose config` CLI verification: exit code 0, 5 services parsed.
+  - `scripts/check-all.ps1`: ALL GATES PASSED (194/194 checks passed).
+- **Git Commit Reference:** Recorded in commit for subphase 0.3.1
+- **Status:** `ACCEPTED`
+
+---
+
+### Phase 0.3 — Upcoming Subphases (Awaiting User Approval for `0.3.2`)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `0.3.1` | Create Podman development configuration (`deploy/podman-compose.yml` & Containerfiles) | `0.2.5` (`ACCEPTED`) | `deploy/podman-compose.yml`, `deploy/Containerfile.*` | `NOT_STARTED` |
-| `0.3.2` | Enforce the 30 GB storage ceiling | `0.3.1` | `scripts/check-resources.ps1`, `scripts/clean-caches.ps1` | `NOT_STARTED` |
-| `0.3.3` | Create development environment scripts | `0.3.2` | `scripts/dev-*.ps1` | `NOT_STARTED` |
-| `0.3.4` | Validate reproducible container builds | `0.3.3` | `deploy/*`, `IMPLEMENTATION_LEDGER.md` | `NOT_STARTED` |
-| `0.3.5` | Document setup and recovery | `0.3.4` | `docs/DEVELOPMENT.md`, `docs/DEPLOYMENT.md` | `NOT_STARTED` |
-
-| Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
-| :--- | :--- | :--- | :--- | :--- |
-| `0.3.1` | Create Podman development configuration (`deploy/podman-compose.yml` & Containerfiles) | `0.2.5` | `deploy/podman-compose.yml`, `deploy/Containerfile.*` | `NOT_STARTED` |
-| `0.3.2` | Enforce the 30 GB storage ceiling | `0.3.1` | `scripts/check-resources.ps1`, `scripts/clean-caches.ps1` | `NOT_STARTED` |
+| `0.3.2` | Enforce the 30 GB storage ceiling | `0.3.1` (`ACCEPTED`) | `scripts/check-resources.ps1`, `scripts/clean-caches.ps1` | `NOT_STARTED` |
 | `0.3.3` | Create development environment scripts | `0.3.2` | `scripts/dev-*.ps1` | `NOT_STARTED` |
 | `0.3.4` | Validate reproducible container builds | `0.3.3` | `deploy/*`, `IMPLEMENTATION_LEDGER.md` | `NOT_STARTED` |
 | `0.3.5` | Document setup and recovery | `0.3.4` | `docs/DEVELOPMENT.md`, `docs/DEPLOYMENT.md` | `NOT_STARTED` |

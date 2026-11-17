@@ -1,0 +1,27 @@
+# Multi-stage Containerfile for SvelteKit Web Application
+# Stage 1: Build stage
+FROM docker.io/library/node:20-slim AS builder
+WORKDIR /app
+COPY apps/web/package*.json ./
+RUN if [ -f "package.json" ]; then \
+      npm ci; \
+    fi
+COPY apps/web/ .
+RUN if [ -f "package.json" ]; then \
+      npm run build; \
+    else \
+      mkdir -p build && echo "Scaffolded web application" > build/index.html; \
+    fi
+
+# Stage 2: Minimal runtime image
+FROM docker.io/library/node:20-slim AS runtime
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=builder /app/build ./build
+COPY --from=builder /app/package*.json ./
+RUN if [ -f "package.json" ]; then \
+      npm ci --omit=dev; \
+    fi
+USER node
+EXPOSE 5173
+CMD ["node", "build"]

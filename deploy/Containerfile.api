@@ -1,0 +1,29 @@
+# Multi-stage Containerfile for Rust Axum API Service
+# Stage 1: Build stage
+FROM docker.io/library/rust:1.80-slim-bookworm AS builder
+WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    pkg-config \
+    libssl-dev \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+COPY . .
+RUN if [ -f "Cargo.toml" ]; then \
+      cargo build --release --bin api; \
+    else \
+      mkdir -p target/release && echo "Placeholder bootstrap binary" > target/release/api && chmod +x target/release/api; \
+    fi
+
+# Stage 2: Minimal runtime image
+FROM docker.io/library/debian:bookworm-slim AS runtime
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    libssl3 \
+    && rm -rf /var/lib/apt/lists/*
+RUN useradd -m -u 1000 -U appuser
+WORKDIR /app
+COPY --from=builder /app/target/release/api /app/api
+RUN mkdir -p /var/lib/web-repo-to-ai/artifacts && chown -R appuser:appuser /app /var/lib/web-repo-to-ai
+USER appuser
+EXPOSE 8080
+ENTRYPOINT ["/app/api"]

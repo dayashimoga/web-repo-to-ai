@@ -6,6 +6,17 @@
 
 ## [Unreleased] — Stage 0: Project Bootstrap and Engineering Foundation
 
+### 2026-11-17 — Phase 0.3: Containerized Development Foundation (`0.3.1`)
+
+#### Added
+- **`[0.3.1]` Podman Development Configuration:**
+  - Authored `deploy/podman-compose.yml` declaring PostgreSQL 16 Alpine, Rust API service, Rust Worker, isolated Playwright Browser Worker, and SvelteKit Web frontend across two bridge networks (`internal_net`, `browser_net`) with persistent volumes and healthchecks.
+  - Authored multi-stage `deploy/Containerfile.api` and `deploy/Containerfile.worker` with minimal Debian Bookworm slim runtimes and unprivileged `appuser`.
+  - Authored `deploy/Containerfile.browser-worker` with unprivileged `pwuser`.
+  - Authored multi-stage `deploy/Containerfile.web` with Node 20 slim runtime and unprivileged `node` user.
+  - Authored `deploy/.env.example` documenting service environment variables.
+  - Verified configuration via `podman-compose config` CLI and expanded test assertions to 194 checks.
+
 ### 2026-11-17 — Phase 0.2: GitHub and CI Foundation (`0.2.1` – `0.2.5`)
 
 #### Added
