@@ -6,11 +6,20 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
+pub mod dto;
+pub mod extractors;
 pub mod middleware;
 pub mod routes;
 pub mod server;
 pub mod state;
 
+pub use dto::{
+    classify_source_url, ArtifactPathParams, CreateJobRequest, DetectSourcesRequest,
+    DetectSourcesResponse, DetectedSource, JobPathParams, JobResponse, JobStatus, ListJobsQuery,
+    PaginatedResponse, SourceClassification, VALID_EXPORT_FORMATS, VALID_SORT_ORDERS,
+    VALID_STATUS_FILTERS,
+};
+pub use extractors::{ValidatedJson, ValidatedPath, ValidatedQuery};
 pub use server::{build_app, run_server};
 pub use state::AppState;
 
@@ -196,5 +205,320 @@ mod tests {
             .to_str()
             .unwrap();
         assert_eq!(allow_origin, "http://localhost:5173");
+    }
+
+    #[tokio::test]
+    async fn test_detect_sources_endpoint_valid() {
+        let app = setup_test_app();
+        let payload = serde_json::json!({
+            "urls": [
+                "https://github.com/tokio-rs/tokio",
+                "https://docs.rs/axum/latest/axum/"
+            ]
+        });
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/api/v1/sources/detect")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(payload.to_string()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = body_to_string(response.into_body()).await;
+        assert!(body.contains("public_github"));
+        assert!(body.contains("web_page"));
+        assert!(body.contains("\"total\":2"));
+    }
+
+    #[tokio::test]
+    async fn test_detect_sources_empty_urls_rejected() {
+        let app = setup_test_app();
+        let payload = serde_json::json!({ "urls": [] });
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/api/v1/sources/detect")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(payload.to_string()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        let body = body_to_string(response.into_body()).await;
+        assert!(body.contains("VALIDATION_ERROR"));
+        assert!(body.contains("urls"));
+    }
+
+    #[tokio::test]
+    async fn test_detect_sources_invalid_scheme_rejected() {
+        let app = setup_test_app();
+        let payload = serde_json::json!({
+            "urls": ["ftp://archive.example.com/file.zip"]
+        });
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/api/v1/sources/detect")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(payload.to_string()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        let body = body_to_string(response.into_body()).await;
+        assert!(body.contains("UNSUPPORTED_URL_SCHEME"));
+    }
+
+    #[tokio::test]
+    async fn test_detect_sources_malformed_json_rejected() {
+        let app = setup_test_app();
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/api/v1/sources/detect")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from("{ malformed json }"))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        let body = body_to_string(response.into_body()).await;
+        assert!(body.contains("INVALID_REQUEST_SCHEMA"));
+    }
+
+    #[tokio::test]
+    async fn test_create_job_valid() {
+        let app = setup_test_app();
+        let payload = serde_json::json!({
+            "sources": ["https://github.com/rust-lang/rust"],
+            "git_ref": "master",
+            "token_budget": 50000,
+            "export_formats": ["markdown", "json"]
+        });
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/api/v1/jobs")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(payload.to_string()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::ACCEPTED);
+        let body = body_to_string(response.into_body()).await;
+        assert!(body.contains("\"status\":\"queued\""));
+        assert!(body.contains("\"job_id\""));
+    }
+
+    #[tokio::test]
+    async fn test_create_job_invalid_token_budget_rejected() {
+        let app = setup_test_app();
+        let payload = serde_json::json!({
+            "sources": ["https://github.com/rust-lang/rust"],
+            "token_budget": 500
+        });
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/api/v1/jobs")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(payload.to_string()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        let body = body_to_string(response.into_body()).await;
+        assert!(body.contains("VALIDATION_ERROR"));
+        assert!(body.contains("token_budget"));
+    }
+
+    #[tokio::test]
+    async fn test_create_job_invalid_git_ref_rejected() {
+        let app = setup_test_app();
+        let payload = serde_json::json!({
+            "sources": ["https://github.com/rust-lang/rust"],
+            "git_ref": "feature/../forbidden"
+        });
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/api/v1/jobs")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(payload.to_string()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        let body = body_to_string(response.into_body()).await;
+        assert!(body.contains("VALIDATION_ERROR"));
+        assert!(body.contains("git_ref"));
+    }
+
+    #[tokio::test]
+    async fn test_create_job_invalid_export_format_rejected() {
+        let app = setup_test_app();
+        let payload = serde_json::json!({
+            "sources": ["https://github.com/rust-lang/rust"],
+            "export_formats": ["markdown", "tar.gz", "exe"]
+        });
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/api/v1/jobs")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(payload.to_string()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        let body = body_to_string(response.into_body()).await;
+        assert!(body.contains("VALIDATION_ERROR"));
+        assert!(body.contains("export_formats"));
+    }
+
+    #[tokio::test]
+    async fn test_list_jobs_valid_query() {
+        let app = setup_test_app();
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/jobs?page=2&limit=50&status=completed&sort_order=asc")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = body_to_string(response.into_body()).await;
+        assert!(body.contains("\"page\":2"));
+        assert!(body.contains("\"limit\":50"));
+    }
+
+    #[tokio::test]
+    async fn test_list_jobs_invalid_limit_rejected() {
+        let app = setup_test_app();
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/jobs?limit=500")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        let body = body_to_string(response.into_body()).await;
+        assert!(body.contains("VALIDATION_ERROR"));
+        assert!(body.contains("limit"));
+    }
+
+    #[tokio::test]
+    async fn test_list_jobs_invalid_page_rejected() {
+        let app = setup_test_app();
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/jobs?page=0")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        let body = body_to_string(response.into_body()).await;
+        assert!(body.contains("VALIDATION_ERROR"));
+        assert!(body.contains("page"));
+    }
+
+    #[tokio::test]
+    async fn test_get_job_invalid_path_uuid() {
+        let app = setup_test_app();
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/jobs/not-a-valid-uuid")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        let body = body_to_string(response.into_body()).await;
+        assert!(body.contains("VALIDATION_ERROR"));
+    }
+
+    #[tokio::test]
+    async fn test_get_job_valid_path_not_found() {
+        let app = setup_test_app();
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/jobs/019335c4-7c20-7000-8000-000000000042")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+        let body = body_to_string(response.into_body()).await;
+        assert!(body.contains("RESOURCE_NOT_FOUND"));
+    }
+
+    #[tokio::test]
+    async fn test_get_artifact_invalid_format_rejected() {
+        let app = setup_test_app();
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/jobs/019335c4-7c20-7000-8000-000000000042/artifacts/bad_format")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        let body = body_to_string(response.into_body()).await;
+        assert!(body.contains("VALIDATION_ERROR"));
+        assert!(body.contains("format"));
     }
 }

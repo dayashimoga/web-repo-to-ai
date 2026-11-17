@@ -4,13 +4,15 @@
 //! and RFC 7807 fallback handlers.
 
 pub mod health;
+pub mod jobs;
 pub mod metrics;
+pub mod sources;
 
 use crate::state::AppState;
 use axum::extract::{OriginalUri, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
-use axum::routing::get;
+use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde_json::json;
 
@@ -52,7 +54,17 @@ pub fn create_router(state: AppState) -> Router {
     let api_v1 = Router::new()
         .route("/health", get(health::health_handler))
         .route("/ready", get(health::readiness_handler))
-        .route("/metrics", get(metrics::metrics_handler));
+        .route("/metrics", get(metrics::metrics_handler))
+        .route("/sources/detect", post(sources::detect_sources_handler))
+        .route(
+            "/jobs",
+            post(jobs::create_job_handler).get(jobs::list_jobs_handler),
+        )
+        .route("/jobs/:job_id", get(jobs::get_job_handler))
+        .route(
+            "/jobs/:job_id/artifacts/:format",
+            get(jobs::get_artifact_handler),
+        );
 
     Router::new()
         .route("/", get(root_handler))

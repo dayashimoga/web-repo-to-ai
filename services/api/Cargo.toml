@@ -34,3 +34,5 @@ tower-http = { workspace = true, features = ["cors", "trace", "timeout"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 http-body-util = { workspace = true }
+url = { workspace = true }
+chrono = { workspace = true }

@@ -64,7 +64,7 @@
 
 ### Phase 2.2 — API (`IN_PROGRESS`)
 - [x] **[2.2.1]** Implement Axum service and router scaffolding *(Completed 2026-11-17, AppState, CORS/timeout/trace middleware, health/metrics routes, RFC 7807 404 fallback, graceful shutdown, 9 passing tests, all 5 gates pass)*
-- [ ] **[2.2.2]** Implement request validation and parameter parsing
+- [x] **[2.2.2]** Implement request validation and parameter parsing *(Completed 2026-11-17, DTOs for sources/jobs/query/params, ValidatedJson/ValidatedQuery/ValidatedPath extractors, RFC 7807 validation error mapping, 28 passing tests, all 5 gates pass)*
 - [ ] **[2.2.3]** Implement API error contracts and RFC 7807 problem details
 - [ ] **[2.2.4]** Implement health, readiness, and metrics endpoints
 

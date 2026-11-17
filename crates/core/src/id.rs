@@ -80,6 +80,12 @@ macro_rules! define_domain_id {
                 id.0
             }
         }
+
+        impl $crate::traits::Validatable for $type_name {
+            fn validate(&self) -> $crate::error::Result<()> {
+                Ok(())
+            }
+        }
     };
 }
 

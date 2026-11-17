@@ -1657,7 +1657,62 @@
   - `cargo fmt --all -- --check`: 100% code style compliance.
   - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
   - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
-- **Git Commit Reference:** `0bb9798`
+- **Git Commit Reference:** `a8afbc5`
+- **Status:** `ACCEPTED`
+
+---
+
+#### Subphase `2.2.2` — Implement request validation and parameter parsing in services/api
+- **Unique ID:** `2.2.2`
+- **Objective:** Implement typed request extractors, query/path parameter parsing, and domain validation for job creation (`CreateJobRequest`), URL detection (`DetectSourcesRequest`), job listing pagination (`ListJobsQuery`), and strongly-typed path parameters (`JobPathParams`, `ArtifactPathParams`) with RFC 7807 problem details error mapping.
+- **Scope:** `services/api/src/{dto/*, extractors/*, routes/sources.rs, routes/jobs.rs, routes/mod.rs, lib.rs}`, `crates/core/src/{error.rs, id.rs}`, `Cargo.toml`, `Cargo.lock`, `services/api/Cargo.toml`.
+- **Prerequisites:** `2.2.1` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `Cargo.toml`, `Cargo.lock`
+  - `crates/core/src/error.rs`
+  - `crates/core/src/id.rs`
+  - `services/api/Cargo.toml`
+  - `services/api/src/dto/mod.rs`
+  - `services/api/src/dto/sources.rs`
+  - `services/api/src/dto/jobs.rs`
+  - `services/api/src/dto/query.rs`
+  - `services/api/src/dto/params.rs`
+  - `services/api/src/extractors/mod.rs`
+  - `services/api/src/extractors/json.rs`
+  - `services/api/src/extractors/query.rs`
+  - `services/api/src/extractors/path.rs`
+  - `services/api/src/routes/sources.rs`
+  - `services/api/src/routes/jobs.rs`
+  - `services/api/src/routes/mod.rs`
+  - `services/api/src/lib.rs`
+- **Implementation Tasks:**
+  1. Add `url` and `chrono` dependencies to workspace and `services/api/Cargo.toml`.
+  2. Implement `CoreError::InvalidRequestSchema` in `crates/core/src/error.rs` mapping to HTTP 400 and RFC 7807 envelope.
+  3. Implement `Validatable` for all strongly-typed domain IDs in `crates/core/src/id.rs`.
+  4. Implement DTOs in `services/api/src/dto/`: `DetectSourcesRequest` / `DetectSourcesResponse` (URL length <= 2048, scheme http/https, batch <= 50), `CreateJobRequest` / `JobResponse` (git_ref sanitization, path_patterns, token_budget 1000..=2M, model length, export format checks), `ListJobsQuery` / `PaginatedResponse` (page >= 1, limit 1..=100, status/sort filters), and `JobPathParams` / `ArtifactPathParams`.
+  5. Implement custom Axum extractors in `services/api/src/extractors/`: `ValidatedJson<T>`, `ValidatedQuery<T>`, and `ValidatedPath<T>` enforcing `Validatable` and returning RFC 7807 problem details with correlated `request_id`.
+  6. Implement route handlers: `POST /api/v1/sources/detect` in `services/api/src/routes/sources.rs`, and `POST /api/v1/jobs`, `GET /api/v1/jobs`, `GET /api/v1/jobs/:job_id`, `GET /api/v1/jobs/:job_id/artifacts/:format` in `services/api/src/routes/jobs.rs`.
+  7. Add 14 comprehensive integration tests in `services/api/src/lib.rs` and 5 unit tests in `services/api/src/dto/mod.rs` testing URL classification, invalid schemes, budget boundaries, git_ref security, format validation, pagination bounds, and path UUID parsing.
+  8. Run `cargo check --workspace`, `cargo test --workspace`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, and verify all 5 gates pass in `scripts/check-all.ps1`.
+- **Acceptance Criteria:**
+  - Malformed JSON bodies or syntax errors return HTTP 400 with `INVALID_REQUEST_SCHEMA` and reason details.
+  - Unsupported schemes (e.g. `ftp://...`) return HTTP 400 with `UNSUPPORTED_URL_SCHEME`.
+  - Field-level validation violations return HTTP 400 with `VALIDATION_ERROR`, invalid field name, and specific reason.
+  - Valid source detection, job creation, and paginated job listing requests succeed with appropriate 200 OK / 202 Accepted status.
+  - Path parameters parse strongly-typed UUID v7 `JobId` and validate artifact formats.
+  - 100% of Rust tests pass (28 in `services/api`, 78 across workspace); zero clippy warnings; all 5 gates pass.
+- **Tests:** `cargo test -p web-repo-to-ai-api` (28/28 passed), `cargo test --workspace` (78/78 passed), `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, 02, and 05: strict URL length ceiling (2048 chars); input size bounding (<= 50 URLs, <= 100 glob patterns); git_ref traversal/metacharacter sanitization preventing shell injection; token budget ceiling preventing unbounded resource consumption; request ID correlation on all rejection responses.
+- **Performance Considerations:** In-memory URL parsing and validation; zero extraneous allocations; lock-free metrics increment on job submission.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-api`: 27 library tests + 1 binary metadata test passed.
+  - `cargo test --workspace`: 78/78 tests passed.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors.
+  - `cargo fmt --all -- --check`: 100% code style compliance.
+  - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
+- **Git Commit Reference:** `c1af3ad`
 - **Status:** `ACCEPTED`
 
 ---
@@ -1666,7 +1721,7 @@
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `2.2.2` | Implement request validation and parameter parsing in services/api | `2.2.1` (`ACCEPTED`) | `services/api/src/*`, `crates/core/src/*` | `NOT_STARTED` |
+| `2.2.3` | Implement API error contracts and RFC 7807 problem details in services/api | `2.2.2` (`ACCEPTED`) | `services/api/src/*`, `crates/core/src/*` | `NOT_STARTED` |
 
 ---
 

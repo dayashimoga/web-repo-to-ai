@@ -6,6 +6,27 @@
 
 ## [Unreleased] — Stage 2: Backend and Processing Foundation
 
+### 2026-11-17 — Phase 2.2: API (`2.2.2`)
+
+#### Added
+- **`[2.2.2]` Implement Request Validation and Parameter Parsing in `services/api`:**
+  - Implemented typed request and response DTOs (`services/api/src/dto/`):
+    - `DetectSourcesRequest` / `DetectSourcesResponse` with URL length ceilings (<= 2048 chars), supported schemes (`http`, `https`), host presence checks, batch limit (<= 50 URLs), and `classify_source_url()` helper.
+    - `CreateJobRequest` / `JobResponse` validating 1..=50 sources, git reference sanitization (no `..`, control characters, or shell metacharacters), token budget bounds (1,000..=2,000,000), target model identifier syntax, and allowed export formats (`markdown`, `txt`, `json`, `html`, `jsonl`, `zip`, `manifest`).
+    - `ListJobsQuery` / `PaginatedResponse` enforcing page numbers (>= 1), page limits (1..=100), permitted statuses (`queued`, `processing`, `completed`, `failed`, `cancelled`), and sort orders (`asc`, `desc`).
+    - `JobPathParams` / `ArtifactPathParams` validating strongly-typed UUID v7 identifiers and artifact format strings.
+  - Implemented custom Axum extractors with automatic domain validation (`services/api/src/extractors/`):
+    - `ValidatedJson<T>`: deserializes JSON body and invokes `Validatable::validate()`, translating syntax and validation errors into machine-readable RFC 7807 problem details payloads (`INVALID_REQUEST_SCHEMA`, `VALIDATION_ERROR`, `UNSUPPORTED_URL_SCHEME`) with correlated `request_id`.
+    - `ValidatedQuery<T>`: parses query strings and validates domain invariants.
+    - `ValidatedPath<T>`: extracts and validates URI path parameters.
+  - Implemented route endpoints (`services/api/src/routes/`):
+    - `POST /api/v1/sources/detect`: classifies input URLs into `WebPage`, `PublicGitHub`, `PrivateGitHub`, or `BatchList`.
+    - `POST /api/v1/jobs`: accepts validated job specifications, creates UUID v7 `JobId`, records Prometheus metric `jobs_total`, and returns `202 Accepted`.
+    - `GET /api/v1/jobs`: returns validated paginated job collection.
+    - `GET /api/v1/jobs/:job_id` and `GET /api/v1/jobs/:job_id/artifacts/:format`: path parameter validation endpoints.
+  - Added `CoreError::InvalidRequestSchema` to `crates/core/src/error.rs` and implemented `Validatable` for all domain IDs in `crates/core/src/id.rs`.
+  - Added 14 integration tests in `services/api/src/lib.rs` and 5 unit tests in `services/api/src/dto/mod.rs`, expanding workspace tests to 78/78 passing. Verified all 5 quality gates pass.
+
 ### 2026-11-17 — Phase 2.2: API (`2.2.1`)
 
 #### Added

@@ -91,6 +91,10 @@ pub enum CoreError {
     #[error("Configuration error: {0}")]
     Config(String),
 
+    /// Request schema, parameters, or JSON body is malformed or invalid.
+    #[error("Invalid request schema: {0}")]
+    InvalidRequestSchema(String),
+
     /// Input or domain model validation failed for a specific field.
     #[error("Validation error for field '{field}': {reason}")]
     Validation {
@@ -185,6 +189,7 @@ impl CoreError {
     pub const fn error_code(&self) -> ErrorCode {
         match self {
             Self::Config(_) => ErrorCode::ConfigError,
+            Self::InvalidRequestSchema(_) => ErrorCode::InvalidRequestSchema,
             Self::Validation { .. } => ErrorCode::ValidationError,
             Self::Security(_) | Self::SsrfBlocked { .. } => ErrorCode::SsrfAddressBlocked,
             Self::UnsupportedUrlScheme(_) => ErrorCode::UnsupportedUrlScheme,
@@ -211,6 +216,9 @@ impl CoreError {
     #[must_use]
     pub fn to_api_error(&self, request_id: Option<String>) -> ApiErrorEnvelope {
         let details = match self {
+            Self::InvalidRequestSchema(reason) => Some(serde_json::json!({
+                "reason": reason,
+            })),
             Self::Validation { field, reason } => Some(serde_json::json!({
                 "field": field,
                 "reason": reason,
@@ -309,5 +317,21 @@ mod tests {
         assert!(json.contains("RESOURCE_NOT_FOUND"));
         assert!(json.contains("job-0193"));
         assert!(!json.contains("request_id")); // Skipped when None
+    }
+
+    #[test]
+    fn test_invalid_request_schema_envelope() {
+        let err = CoreError::InvalidRequestSchema(
+            "Failed to parse JSON body at line 1 column 5".to_string(),
+        );
+        assert_eq!(err.error_code(), ErrorCode::InvalidRequestSchema);
+        assert_eq!(err.http_status(), 400);
+        let envelope = err.to_api_error(Some("req-test".to_string()));
+        assert_eq!(envelope.error.code, "INVALID_REQUEST_SCHEMA");
+        let details = envelope.error.details.expect("Details should exist");
+        assert!(details["reason"]
+            .as_str()
+            .unwrap()
+            .contains("line 1 column 5"));
     }
 }

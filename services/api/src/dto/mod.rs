@@ -1,0 +1,155 @@
+//! Data Transfer Objects (DTOs) and request/response models.
+
+pub mod jobs;
+pub mod params;
+pub mod query;
+pub mod sources;
+
+pub use jobs::{CreateJobRequest, JobResponse, JobStatus, VALID_EXPORT_FORMATS};
+pub use params::{ArtifactPathParams, JobPathParams};
+pub use query::{ListJobsQuery, PaginatedResponse, VALID_SORT_ORDERS, VALID_STATUS_FILTERS};
+pub use sources::{
+    classify_source_url, DetectSourcesRequest, DetectSourcesResponse, DetectedSource,
+    SourceClassification,
+};
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use web_repo_to_ai_core::{JobId, Validatable};
+
+    #[test]
+    fn test_detect_sources_request_validation() {
+        // Valid
+        let req = DetectSourcesRequest {
+            urls: vec!["https://github.com/rust-lang/rust".to_string()],
+        };
+        assert!(req.validate().is_ok());
+
+        // Empty URLs
+        let req_empty = DetectSourcesRequest { urls: vec![] };
+        assert!(req_empty.validate().is_err());
+
+        // Invalid URL scheme
+        let req_scheme = DetectSourcesRequest {
+            urls: vec!["ftp://files.example.com".to_string()],
+        };
+        assert!(req_scheme.validate().is_err());
+
+        // Malformed URL
+        let req_malformed = DetectSourcesRequest {
+            urls: vec!["not a url".to_string()],
+        };
+        assert!(req_malformed.validate().is_err());
+
+        // > 50 URLs
+        let too_many = (0..51)
+            .map(|i| format!("https://example.com/{i}"))
+            .collect();
+        let req_overflow = DetectSourcesRequest { urls: too_many };
+        assert!(req_overflow.validate().is_err());
+    }
+
+    #[test]
+    fn test_source_classification() {
+        let gh = classify_source_url("https://github.com/tokio-rs/tokio/tree/master/tokio");
+        assert_eq!(gh.classification, SourceClassification::PublicGitHub);
+        assert_eq!(gh.repo_owner.as_deref(), Some("tokio-rs"));
+        assert_eq!(gh.repo_name.as_deref(), Some("tokio"));
+        assert_eq!(gh.git_ref.as_deref(), Some("master"));
+        assert_eq!(gh.subpath.as_deref(), Some("tokio"));
+
+        let web = classify_source_url("https://docs.rs/axum/latest/axum/");
+        assert_eq!(web.classification, SourceClassification::WebPage);
+        assert_eq!(web.repo_owner, None);
+    }
+
+    #[test]
+    fn test_create_job_request_validation() {
+        let valid_job = CreateJobRequest {
+            sources: vec!["https://github.com/owner/repo".to_string()],
+            git_ref: Some("main".to_string()),
+            path_patterns: Some(vec!["src/**/*.rs".to_string()]),
+            token_budget: Some(100_000),
+            target_model: Some("claude-3-5-sonnet".to_string()),
+            export_formats: Some(vec!["markdown".to_string(), "json".to_string()]),
+            deduplicate_exact: Some(true),
+            deduplicate_semantic: Some(true),
+            remove_comments: Some(false),
+        };
+        assert!(valid_job.validate().is_ok());
+
+        // Invalid git_ref
+        let bad_ref = CreateJobRequest {
+            git_ref: Some("feature/../bad".to_string()),
+            ..valid_job.clone()
+        };
+        assert!(bad_ref.validate().is_err());
+
+        // Token budget too small
+        let bad_budget_low = CreateJobRequest {
+            token_budget: Some(500),
+            ..valid_job.clone()
+        };
+        assert!(bad_budget_low.validate().is_err());
+
+        // Token budget too high
+        let bad_budget_high = CreateJobRequest {
+            token_budget: Some(5_000_000),
+            ..valid_job.clone()
+        };
+        assert!(bad_budget_high.validate().is_err());
+
+        // Invalid export format
+        let bad_format = CreateJobRequest {
+            export_formats: Some(vec!["exe".to_string()]),
+            ..valid_job
+        };
+        assert!(bad_format.validate().is_err());
+    }
+
+    #[test]
+    fn test_list_jobs_query_validation() {
+        let valid_query = ListJobsQuery {
+            page: Some(1),
+            limit: Some(20),
+            status: Some("completed".to_string()),
+            sort_order: Some("desc".to_string()),
+        };
+        assert!(valid_query.validate().is_ok());
+
+        let invalid_page = ListJobsQuery {
+            page: Some(0),
+            ..Default::default()
+        };
+        assert!(invalid_page.validate().is_err());
+
+        let invalid_limit = ListJobsQuery {
+            limit: Some(200),
+            ..Default::default()
+        };
+        assert!(invalid_limit.validate().is_err());
+
+        let invalid_status = ListJobsQuery {
+            status: Some("unknown_status".to_string()),
+            ..Default::default()
+        };
+        assert!(invalid_status.validate().is_err());
+    }
+
+    #[test]
+    fn test_artifact_path_params_validation() {
+        let job_id = JobId::new();
+        let valid = ArtifactPathParams {
+            job_id,
+            format: "markdown".to_string(),
+        };
+        assert!(valid.validate().is_ok());
+
+        let invalid = ArtifactPathParams {
+            job_id,
+            format: "unknown".to_string(),
+        };
+        assert!(invalid.validate().is_err());
+    }
+}
