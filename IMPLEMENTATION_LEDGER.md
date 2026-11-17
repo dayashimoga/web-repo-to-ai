@@ -892,16 +892,72 @@
   - `npm run build`: Production bundle generated with `@sveltejs/adapter-node` in `apps/web/build/index.js`.
   - `scripts/check-all.ps1`: ALL 5 GATES PASSED (Gate 1: 224/224 bootstrap checks, Gate 2: 7/7 workflows, Gate 3: Rust formatting, Gate 4: Frontend lint/check/test, Gate 5: 5.27 GB / 30 GB storage ceiling).
   - `bash scripts/check-all.sh`: ALL 5 GATES PASSED (0 failures across all 5 verification gates).
-- **Git Commit Reference:** `878c791`
+- **Git Commit Reference:** `f94e8f9`
 - **Status:** `ACCEPTED`
 
 ---
 
-### Upcoming Subphase (Awaiting User Approval after 1.2.2)
+#### Subphase `1.2.3` — Conversion settings panel
+- **Unique ID:** `1.2.3`
+- **Objective:** Implement an accessible, collapsible conversion settings panel enabling users to configure target AI model context window limits (Gemini 1M/2M, Claude 200k, GPT-4o 128k, Local 32k/128k), customize token budget thresholds with an interactive slider, toggle content inclusion filters (strip boilerplate, strip code comments, exclude test files), and control dynamic Chromium rendering fallback.
+- **Scope:** `apps/web/src/lib/types/settings.ts`, `apps/web/src/lib/components/settings/ConversionSettings.svelte`, `apps/web/src/lib/components/settings/index.ts`, `apps/web/src/routes/+page.svelte`, `apps/web/tests/conversion-settings.test.ts`, `PROJECT_STATUS.md`, `IMPLEMENTATION_LEDGER.md`.
+- **Prerequisites:** `1.2.2` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `apps/web/src/lib/types/settings.ts`
+  - `apps/web/src/lib/components/settings/ConversionSettings.svelte`
+  - `apps/web/src/lib/components/settings/index.ts`
+  - `apps/web/src/routes/+page.svelte`
+  - `apps/web/tests/conversion-settings.test.ts`
+  - `PROJECT_STATUS.md`
+  - `IMPLEMENTATION_LEDGER.md`
+- **Implementation Tasks:**
+  1. Define strong TypeScript settings contracts `apps/web/src/lib/types/settings.ts` matching `docs/API.md` and CDM specifications:
+     - Target AI model presets: `gemini-1.5-pro` (1,000,000 tokens), `gemini-1.5-flash` (1,000,000 tokens), `claude-3.5-sonnet` (200,000 tokens), `gpt-4o` (128,000 tokens), `local-llm` (32,000 tokens), and `custom`.
+     - Ingestion and normalization flags: `stripBoilerplate`, `stripCodeComments`, `excludeTests`, `enableDynamicRendering`, `maxFileSizeKb`.
+     - Default conversion settings generator and validator.
+  2. Author accessible `ConversionSettings.svelte` component (`apps/web/src/lib/components/settings/ConversionSettings.svelte`):
+     - Collapsible disclosure panel with `aria-expanded`, `aria-controls`, and smooth CSS transitions.
+     - Target model preset selector pills with calibrated token ceilings.
+     - Interactive token budget range slider with dynamic token count formatting and WCAG AA contrast.
+     - Accessible switches (`Toggle` primitive) for content inclusion filters.
+     - Dynamic JavaScript rendering fallback toggle with isolated container notice.
+  3. Export via `apps/web/src/lib/components/settings/index.ts`.
+  4. Integrate `ConversionSettings` into `apps/web/src/routes/+page.svelte` in `#convert`, binding settings state directly to conversion execution feedback.
+  5. Author automated test suite `apps/web/tests/conversion-settings.test.ts`:
+     - Test model presets and calibrated token limits.
+     - Test settings validation and defaults.
+     - Test ARIA contracts (`aria-expanded`, `aria-controls`, `role="region"`).
+     - Test component reactive bindings and toggle states.
+  6. Run all quality gates: `npm run lint`, `npm run check`, `npm test`, `npm run build`, `scripts/check-all.*`.
+- **Acceptance Criteria:**
+  - `ConversionSettings.svelte` provides accessible collapsible controls with clear visual indicator.
+  - Model presets accurately update the target token ceiling.
+  - Custom token slider allows manual fine-tuning between 8,000 and 2,000,000 tokens.
+  - All content filter toggles modify real reactive state without stubbed or inactive buttons.
+  - Automated test suite passes with 100% success.
+  - Svelte diagnostics report 0 errors and 0 warnings.
+  - All 5 monorepo verification gates in `scripts/check-all.*` pass cleanly.
+- **Tests:** `npm test` in `apps/web`, `npm run check`, `npm run lint`, `npm run build`, and monorepo runners `scripts/check-all.ps1` / `scripts/check-all.sh`.
+- **Security Considerations:** Settings are sanitized and validated against safe bounds (min 1,000 tokens, max 2,000,000 tokens, max 10 MB per file).
+- **Performance Considerations:** State changes compute reactively using Svelte 5 runes with zero unnecessary DOM re-renders.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`.
+- **Validation Evidence:**
+  - `npm run check`: SvelteKit sync and svelte-check reported 0 errors and 0 warnings in `apps/web`.
+  - `npm run lint`: Prettier verified 100% code style compliance across all matched files.
+  - `npm test`: Vitest ran 8 test suites (`tokens.test.ts`, `color-utils.test.ts`, `url-detector.test.ts`, `typography.test.ts`, `ui-components.test.ts`, `url-input-component.test.ts`, `conversion-settings.test.ts`, `landing-page.test.ts`), passing 69/69 automated unit and invariant tests with 0 failures.
+  - `npm run build`: Production bundle generated with `@sveltejs/adapter-node` in `apps/web/build/index.js`.
+  - `scripts/check-all.ps1`: ALL 5 GATES PASSED (Gate 1: 224/224 bootstrap checks, Gate 2: 7/7 workflows, Gate 3: Rust formatting, Gate 4: Frontend lint/check/test, Gate 5: 5.27 GB / 30 GB storage ceiling).
+  - `bash scripts/check-all.sh`: ALL 5 GATES PASSED (0 failures across all 5 verification gates).
+- **Git Commit Reference:** `207e0a7`
+- **Status:** `ACCEPTED`
+
+---
+
+### Upcoming Subphase (Awaiting User Approval after 1.2.3)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `1.2.3` | Conversion settings panel | `1.2.2` (`ACCEPTED`) | `apps/web/src/lib/components/settings/*` | `NOT_STARTED` |
+| `1.2.4` | Responsive layouts (mobile, tablet, desktop) | `1.2.3` (`ACCEPTED`) | `apps/web/src/routes/*`, `apps/web/src/lib/components/*` | `NOT_STARTED` |
 
 ---
 

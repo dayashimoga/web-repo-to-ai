@@ -2,8 +2,13 @@
   import { Header, Footer } from '$lib/components/navigation';
   import { Hero, WorkflowSteps, SupportedSources, FeatureHighlights } from '$lib/components/landing';
   import { UrlInput } from '$lib/components/input';
+  import { ConversionSettings } from '$lib/components/settings';
   import { Badge } from '$lib/components/ui';
   import type { UrlDetectionResult } from '$lib/utils/url-detector';
+  import {
+    getDefaultConversionSettings,
+    type ConversionSettingsConfig
+  } from '$lib/types/settings';
 
   let isDark = $state(true);
 
@@ -14,6 +19,10 @@
   let conversionFeedback = $state<string | null>(null);
   let feedbackType = $state<'success' | 'error' | 'info'>('info');
   let currentDetection = $state<UrlDetectionResult | null>(null);
+
+  // Conversion settings state
+  let settings = $state<ConversionSettingsConfig>(getDefaultConversionSettings());
+  let isSettingsOpen = $state(false);
 
   let detectedSource = $derived(currentDetection?.label ?? 'Awaiting URL...');
 
@@ -40,7 +49,7 @@
       const targetDesc = detection.githubMetadata
         ? `${detection.githubMetadata.owner}/${detection.githubMetadata.repo}`
         : detection.domain || detection.normalizedUrl;
-      conversionFeedback = `Verified ${detection.label}: '${targetDesc}'. Destination validated against zero-trust SSRF policies. Prepared for canonical ${selectedFormat.toUpperCase()} extraction pipeline.`;
+      conversionFeedback = `Verified ${detection.label}: '${targetDesc}'. Destination validated against zero-trust SSRF policies. Configured for ${settings.selectedPreset} (${settings.maxTokenBudget.toLocaleString()} tokens ceiling) in ${selectedFormat.toUpperCase()} format. Ready for extraction pipeline.`;
     }, 500);
   }
 </script>
@@ -81,6 +90,9 @@
           onchange={handleUrlChange}
           onsubmit={handleStartConversion}
         />
+
+        <!-- Advanced Conversion Settings & Token Budget Drawer -->
+        <ConversionSettings bind:settings bind:isOpen={isSettingsOpen} />
 
         <!-- Target Output Format Selector -->
         <div class="space-y-2 pt-2 border-t border-theme-subtle">

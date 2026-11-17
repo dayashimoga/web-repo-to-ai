@@ -6,6 +6,24 @@
 
 ## [Unreleased] — Stage 1: Frontend and Product Experience
 
+### 2026-11-17 — Phase 1.2: Main Website (`1.2.3`)
+
+#### Added
+- **`[1.2.3]` Conversion Settings Panel, AI Model Presets & Content Normalization Toggles:**
+  - Defined conversion settings contracts and calibrated AI model presets in `apps/web/src/lib/types/settings.ts`:
+    - Model presets for Gemini 1.5 Pro (2M window), Gemini 1.5 Flash (1M window), Claude 3.5 Sonnet (200k window), GPT-4o (128k window), Local LLMs (32k/128k windows), and Custom budget.
+    - CDM normalization and filtering options: `stripBoilerplate`, `stripCodeComments`, `excludeTests`, `enableDynamicRendering`, `semanticDeduplication`, `maxFileSizeKb`.
+    - Validation utility enforcing budget bounds (1,000 to 2,000,000 tokens) and file size bounds (64 to 10,240 KB).
+  - Authored accessible conversion settings component in `apps/web/src/lib/components/settings/ConversionSettings.svelte`:
+    - Collapsible disclosure panel with `aria-expanded`, `aria-controls`, and `role="region"`.
+    - Preset selection grid updating calibrated token ceilings.
+    - Context window token budget range slider with live percentage progress bar and tabular number formatting.
+    - Accessible switches (`Toggle`) for boilerplate stripping, code comment stripping, test exclusion, and MinHash semantic deduplication.
+    - Dynamic Chromium rendering fallback toggle and file size threshold number input.
+    - Exported component via `apps/web/src/lib/components/settings/index.ts`.
+  - Integrated `ConversionSettings` into `apps/web/src/routes/+page.svelte` in `#convert`, binding settings state directly to conversion job feedback.
+  - Authored automated unit and component invariant test suite `apps/web/tests/conversion-settings.test.ts` (6 tests), expanding total test suite count to 69/69 passing tests.
+
 ### 2026-11-17 — Phase 1.2: Main Website (`1.2.2`)
 
 #### Added
