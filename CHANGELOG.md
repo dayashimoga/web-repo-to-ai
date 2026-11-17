@@ -6,6 +6,30 @@
 
 ## [Unreleased] — Stage 1: Frontend and Product Experience
 
+### 2026-11-17 — Phase 1.3: Conversion Workspace (`1.3.2`)
+
+#### Added
+- **`[1.3.2]` Syntax-Highlighted Content Preview Panel & Multi-Format Exporters:**
+  - Defined preview domain contracts and multi-format exporters in `apps/web/src/lib/types/preview.ts`:
+    - 5 standard export formats: Markdown (`.md`), JSON CDM schema v1.0.0 (`.json`), Claude XML (`.xml`), Plaintext (`.txt`), and JSONL (`.jsonl`).
+    - Canonical Context Document Model (CDM) serializer matching `docs/DATA_MODEL.md` with completeness accounting.
+    - Claude context XML hierarchy serializer with `<documents>`, `<document index="...">`, and `<document_content>`.
+    - Deterministic token estimation heuristic `estimateTokens` and sample extracted repository/article generator `generateSampleExtractedFiles`.
+  - Authored zero-dependency, high-performance syntax highlighter in `apps/web/src/lib/utils/syntax-highlighter.ts`:
+    - Strict HTML escaping (`escapeHtml`) preventing cross-site scripting (XSS).
+    - Syntax token classification and styling for JSON (keys, strings, numbers, booleans, null), XML (tags, attributes, values, comments), Markdown (headings, blockquotes, code blocks, lists), and general code (keywords, comments, strings, numbers).
+    - Line splitter `highlightLines` with 1-based line numbers.
+  - Authored accessible, interactive `PreviewPanel.svelte` in `apps/web/src/lib/components/workspace/PreviewPanel.svelte`:
+    - Accessible tablist (`role="tablist"`, `role="tab"`, `aria-selected`, `aria-controls`, `role="tabpanel"`).
+    - Extracted files sidebar with instant path filtering, file icons, byte size, token counts, and full concatenated context mode.
+    - Copy to clipboard button with animated visual confirmation (`✓ Copied!`) and polite ARIA announcement (`role="status"`, `aria-live="polite"`).
+    - Line numbers gutter with `aria-hidden="true"`, word wrap toggle, search within preview text, and direct format download.
+    - Context metrics banner displaying estimated tokens, line counts, and byte sizes.
+    - Re-exported via `apps/web/src/lib/components/workspace/index.ts`.
+  - Integrated `PreviewPanel` into `JobWorkspace.svelte` with toggleable visibility and automatic target format synchronization.
+  - Authored comprehensive automated test suite `apps/web/tests/preview-panel.test.ts` (17 tests) validating domain models, exporters, syntax highlighters, ARIA accessibility, and workspace integration.
+  - Expanded total automated test suite to 107/107 passing tests across 11 test suites.
+
 ### 2026-11-17 — Phase 1.3: Conversion Workspace (`1.3.1`)
 
 #### Added

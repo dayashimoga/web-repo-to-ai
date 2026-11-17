@@ -51,7 +51,7 @@
 ### STAGE 1 — FRONTEND AND PRODUCT EXPERIENCE (`IN_PROGRESS`)
 - **Phase 1.1 — Design system:** `1.1.1` Visual design tokens (`ACCEPTED`) | `1.1.2` Typography, spacing & color systems (`ACCEPTED`) | `1.1.3` Reusable accessible components (`ACCEPTED`)
 - **Phase 1.2 — Main website:** `1.2.1` Landing page (`ACCEPTED`) | `1.2.2` URL input & source detection (`ACCEPTED`) | `1.2.3` Conversion settings (`ACCEPTED`) | `1.2.4` Responsive layouts (`ACCEPTED`)
-- **Phase 1.3 — Conversion workspace:** `1.3.1` Job workspace (`ACCEPTED`) | `1.3.2` Preview panels (`NOT_STARTED` — **NEXT ELIGIBLE SUBPHASE**) | `1.3.3` Token statistics interface | `1.3.4` Output & download controls
+- **Phase 1.3 — Conversion workspace:** `1.3.1` Job workspace (`ACCEPTED`) | `1.3.2` Preview panels (`ACCEPTED`) | `1.3.3` Token statistics interface (`NOT_STARTED` — **NEXT ELIGIBLE SUBPHASE**) | `1.3.4` Output & download controls
 - **Phase 1.4 — UX validation:** `1.4.1` Keyboard & accessibility testing | `1.4.2` Mobile/tablet/desktop testing | `1.4.3` UI performance & visual regression testing
 
 ### STAGE 2 — BACKEND AND PROCESSING FOUNDATION

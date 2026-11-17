@@ -1,6 +1,8 @@
 <script lang="ts">
   import { Badge, Button } from '$lib/components/ui';
   import { Mono } from '$lib/components/typography';
+  import PreviewPanel from './PreviewPanel.svelte';
+  import type { PreviewFormat } from '$lib/types/preview';
   import {
     type ConversionJob,
     type JobStatus,
@@ -32,8 +34,14 @@
     onnavigateHome
   }: Props = $props();
 
+  let isPreviewVisible = $state(true);
   let overallPct = $derived(job.overallProgress ?? calculateOverallProgress(job.stages));
   let isCompleteInvariant = $derived(verifyCompletenessInvariant(job.completeness));
+
+  function getPreviewFormat(fmt: string): PreviewFormat {
+    if (fmt === 'zip') return 'markdown';
+    return (fmt as PreviewFormat) || 'markdown';
+  }
 
   const statusVariantMap: Record<JobStatus, 'default' | 'brand' | 'success' | 'warning' | 'error' | 'info'> = {
     queued: 'default',
@@ -332,6 +340,29 @@
         <div class="text-[10px] text-theme-muted mt-0.5">Unparseable / timeout</div>
       </div>
     </div>
+  </div>
+
+  <!-- Extracted Content Multi-Format Preview Section -->
+  <div class="space-y-3">
+    <div class="flex items-center justify-between">
+      <div class="text-xs font-semibold uppercase tracking-wider text-theme-muted">
+        Extracted Content & Multi-Format Preview
+      </div>
+      <button
+        type="button"
+        class="text-xs font-medium text-brand-500 hover:text-brand-400 focus-visible:outline-none focus-visible:underline"
+        onclick={() => (isPreviewVisible = !isPreviewVisible)}
+      >
+        {isPreviewVisible ? 'Hide Preview ▲' : 'Show Preview ▼'}
+      </button>
+    </div>
+
+    {#if isPreviewVisible}
+      <PreviewPanel
+        sourceUrl={job.sourceUrl}
+        selectedFormat={getPreviewFormat(job.targetFormat)}
+      />
+    {/if}
   </div>
 
   <!-- Live Execution Log Terminal Stream -->

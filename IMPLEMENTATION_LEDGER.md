@@ -1082,11 +1082,68 @@
 
 ---
 
-### Upcoming Subphase (Awaiting User Approval after 1.3.1)
+#### Subphase `1.3.2` — Build syntax-highlighted content preview panels
+- **Unique ID:** `1.3.2`
+- **Objective:** Implement accessible syntax-highlighted content preview panel (`PreviewPanel.svelte`) with multi-format export tablist (`Markdown`, `JSON CDM`, `Claude XML`, `Plaintext`, `JSONL`), line numbers gutter, word wrap toggle, live copy-to-clipboard control, and file tree viewer.
+- **Scope:** `apps/web/src/lib/types/preview.ts`, `apps/web/src/lib/utils/syntax-highlighter.ts`, `apps/web/src/lib/components/workspace/PreviewPanel.svelte`, `apps/web/src/lib/components/workspace/JobWorkspace.svelte`, `apps/web/src/lib/components/workspace/index.ts`, `apps/web/tests/preview-panel.test.ts`, `PROJECT_STATUS.md`, `IMPLEMENTATION_LEDGER.md`.
+- **Prerequisites:** `1.3.1` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `apps/web/src/lib/types/preview.ts`
+  - `apps/web/src/lib/utils/syntax-highlighter.ts`
+  - `apps/web/src/lib/components/workspace/PreviewPanel.svelte`
+  - `apps/web/src/lib/components/workspace/JobWorkspace.svelte`
+  - `apps/web/src/lib/components/workspace/index.ts`
+  - `apps/web/tests/preview-panel.test.ts`
+  - `PROJECT_STATUS.md`
+  - `IMPLEMENTATION_LEDGER.md`
+- **Implementation Tasks:**
+  1. Author preview domain types and export formatters in `apps/web/src/lib/types/preview.ts`:
+     - Multi-format definitions (`Markdown`, `JSON CDM`, `Claude XML`, `Plaintext`, `JSONL`).
+     - CDM format serializer conforming to `schema_version: "1.0.0"` in `docs/DATA_MODEL.md`.
+     - Claude XML serializer with `<documents>`, `<document index="...">`, `<document_content>`.
+     - Token estimation heuristic `estimateTokens`.
+     - Deterministic sample extracted files generator `generateSampleExtractedFiles`.
+  2. Author safe, zero-dependency syntax highlighter in `apps/web/src/lib/utils/syntax-highlighter.ts`:
+     - Strict HTML escaping to prevent XSS.
+     - Lexers for JSON, XML, Markdown, and general programming code (Rust, TOML, TS).
+     - Line splitter `highlightLines` with 1-based line numbering.
+  3. Author accessible `PreviewPanel.svelte`:
+     - Accessible tablist (`role="tablist"`, `role="tab"`, `aria-selected`, `aria-controls`, `role="tabpanel"`).
+     - File selection sidebar with file search and full-context concatenation mode.
+     - Copy-to-clipboard button with visual feedback and screen reader live region (`role="status"`, `aria-live="polite"`).
+     - Line numbers gutter with `aria-hidden="true"`, word wrap toggle, search within preview.
+     - Download current format action.
+  4. Integrate `PreviewPanel` into `apps/web/src/lib/components/workspace/JobWorkspace.svelte` and export via `apps/web/src/lib/components/workspace/index.ts`.
+  5. Author automated test suite `apps/web/tests/preview-panel.test.ts` (17 tests) validating domain models, serializers, syntax tokenizers, ARIA contracts, and workspace integration.
+  6. Run all quality gates: `npm run lint`, `npm run check`, `npm test`, `npm run build`, and `scripts/check-all.*`.
+- **Acceptance Criteria:**
+  - Format switcher toggles cleanly across Markdown, JSON CDM, Claude XML, Plaintext, and JSONL.
+  - Line numbers gutter can be toggled; word wrap can be toggled.
+  - Copy button copies content to clipboard and announces via polite live region.
+  - File sidebar enables filtering and selecting specific files or full concatenated context.
+  - 100% of automated tests pass (107/107 tests across 11 test suites); `svelte-check` reports 0 errors and 0 warnings.
+  - All 5 monorepo verification gates in `scripts/check-all.*` pass.
+- **Tests:** `npm test` in `apps/web`, `npm run check`, `npm run lint`, `npm run build`, and `scripts/check-all.ps1` / `scripts/check-all.sh`.
+- **Security Considerations:** All user input and file content is strictly HTML-escaped before injection into preview HTML; zero raw unsanitized HTML is rendered; download uses client-side object URLs with explicit revocations.
+- **Performance Considerations:** Syntax tokenization runs synchronously in memory without heavy external syntax highlighters; windowed rendering and clean DOM footprint.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`.
+- **Validation Evidence:**
+  - `npm run check`: SvelteKit sync and svelte-check reported 0 errors and 0 warnings in `apps/web`.
+  - `npm run lint`: Prettier verified 100% code style compliance across all matched files.
+  - `npm test`: Vitest ran 11 test suites, passing 107/107 automated unit, responsive, domain model, and component invariant tests with 0 failures.
+  - `npm run build`: Production bundle generated with `@sveltejs/adapter-node` in `apps/web/build/index.js` and `.svelte-kit/output`.
+  - `scripts/check-all.ps1`: ALL 5 GATES PASSED (Gate 1: 224/224 bootstrap checks, Gate 2: 7/7 workflows, Gate 3: Rust formatting, Gate 4: Frontend lint/check/test, Gate 5: 5.27 GB / 30 GB storage ceiling).
+  - `bash scripts/check-all.sh`: ALL 5 GATES PASSED (0 failures across all 5 verification gates).
+- **Git Commit Reference:** `eda28f4`
+- **Status:** `ACCEPTED`
+
+---
+
+### Upcoming Subphase (Awaiting User Approval after 1.3.2)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `1.3.2` | Build syntax-highlighted content preview panels | `1.3.1` (`ACCEPTED`) | `apps/web/src/lib/components/workspace/PreviewPanel.svelte` | `NOT_STARTED` |
+| `1.3.3` | Build token statistics interface and budget bar | `1.3.2` (`ACCEPTED`) | `apps/web/src/lib/components/workspace/TokenBudgetBar.svelte` | `NOT_STARTED` |
 
 ---
 

@@ -44,7 +44,7 @@
 
 ### Phase 1.3 — Conversion workspace
 - [x] **[1.3.1]** Build conversion job workspace *(Completed 2026-11-17, JobWorkspace.svelte, job domain model, completeness invariant matrix, 4-stage pipeline tracker, 90 passing tests)*
-- [ ] **[1.3.2]** Build syntax-highlighted content preview panels
+- [x] **[1.3.2]** Build syntax-highlighted content preview panels *(Completed 2026-11-17, PreviewPanel.svelte, 5 export formats, safe syntax highlighter, line numbers gutter, copy/download, 107 passing tests)*
 - [ ] **[1.3.3]** Build token statistics interface and budget bar
 - [ ] **[1.3.4]** Build format selection and download controls
 
