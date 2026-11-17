@@ -23,3 +23,5 @@ uuid = { workspace = true, features = ["v4", "serde"] }
 sqlx = { workspace = true }
 tokio = { workspace = true, features = ["fs", "io-util", "macros", "rt"] }
 tracing = { workspace = true }
+sha2 = { workspace = true }
+blake3 = { workspace = true }

@@ -2138,16 +2138,90 @@
   - `cargo fmt --all -- --check`: 100% code style compliance.
   - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
   - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
-- **Git Commit Reference:** `9df8180`
+- **Git Commit Reference:** `23ab840`
 - **Status:** `ACCEPTED`
 
 ---
 
-### Upcoming Subphase
+#### Subphase `2.4.4` — Implement artifact checksum validation and verification in crates/storage
+- **Unique ID:** `2.4.4`
+- **Objective:** Implement cryptographic checksum generation, validation, dual-digest verification (SHA-256 and BLAKE3), streaming digest calculation for unbounded files, relational integrity auditing on `job_artifacts`, and standard BSD/GNU `checksums.sha256` manifest generation/parsing in `crates/storage`.
+- **Scope:** `Cargo.toml`, `crates/storage/Cargo.toml`, `crates/storage/src/checksum.rs`, `crates/storage/src/lib.rs`.
+- **Prerequisites:** `2.4.3` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `Cargo.toml`
+  - `crates/storage/Cargo.toml`
+  - `crates/storage/src/checksum.rs`
+  - `crates/storage/src/lib.rs`
+- **Implementation Tasks:**
+  1. Add `sha2` (v0.10) and `blake3` (v1.5) to root `Cargo.toml` workspace dependencies and `crates/storage/Cargo.toml`.
+  2. Implement `ChecksumAlgorithm` enum supporting `Sha256` and `Blake3` with string representations, parse traits, and digest length constants.
+  3. Implement `ArtifactDigests` computing both SHA-256 and BLAKE3 simultaneously in a single slice pass (`compute`) and over asynchronous streaming readers (`compute_streaming`) in 64 KB chunks to bound RAM usage. Add case-insensitive hash matching and invariant validations.
+  4. Implement `ChecksumVerificationStatus` (`Verified`, `Mismatch`, `Missing`, `Corrupted`) and structured `ArtifactIntegrityReport` tracking expected vs actual hashes, byte sizes, and error details.
+  5. Implement `StorageIntegrityAuditSummary` with health checks and success rate calculations.
+  6. Implement `ArtifactVerifier` coordinating storage backends and PostgreSQL: `verify_bytes`, `verify_storage_file`, `verify_artifact_record`, `verify_job_artifact`, `verify_all_job_artifacts`, and `audit_storage_integrity`.
+  7. Implement BSD/GNU-compatible `checksums.sha256` manifest generator `generate_sha256_manifest` and robust parser `parse_sha256_manifest`.
+  8. Re-export `checksum` in `crates/storage/src/lib.rs`.
+  9. Add 7 unit tests in `crates/storage/src/checksum.rs` covering empty vectors, hash matching/validation, streaming vs slice parity, verifier outcomes, relational artifact verification, manifest round-trips, and audit summary health. Expand storage tests to 55/55 and automated workspace tests to 142/142 passing.
+  10. Formally certify completion of **Phase 2.4: Storage** (`2.4.1` – `2.4.4` all `ACCEPTED`) and **Stage 2: Backend and Processing Foundation** (15 subphases `2.1.1` – `2.4.4` all `ACCEPTED`).
+- **Acceptance Criteria:**
+  - Streaming and in-memory digest computations produce exact, identical cryptographic SHA-256 and BLAKE3 digests.
+  - Verifier detects valid files, missing files, corrupted streams, and hash/size mismatches.
+  - Standard `checksums.sha256` manifest round-trip correctly handles spacing, filenames with spaces, and comment lines.
+  - 100% of Rust tests pass (55 in `crates/storage`, 142 across workspace); zero clippy warnings; all 5 monorepo verification gates pass cleanly.
+- **Tests:** `cargo test -p web-repo-to-ai-storage` (55/55 passed), `cargo test --workspace` (142/142 passed), `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Complies with Rule 00, 02, and 05: `#![forbid(unsafe_code)]` enforced; dual cryptographic hashing (SHA-256 + BLAKE3) provides defense against collision attacks; streaming bounds heap allocations preventing memory exhaustion on multi-GB artifacts; manifests strictly validate hash lengths and avoid path injection.
+- **Performance Considerations:** Single-pass streaming computes SHA-256 and BLAKE3 concurrently in a 64 KB buffer; BLAKE3 leverages SIMD/AVX assembly routines where available.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-storage`: 55/55 tests passed in 0.03s.
+  - `cargo test --workspace`: 142/142 tests passed.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors.
+  - `cargo fmt --all -- --check`: 100% code style compliance.
+  - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
+- **Git Commit Reference:** `96d31fb`
+- **Status:** `ACCEPTED`
+
+---
+
+#### Phase 2.4 Milestone Certification
+- **Phase Name:** `Phase 2.4 — Storage`
+- **Subphases Covered:** `2.4.1` (Local filesystem artifact storage), `2.4.2` (Pluggable storage backend trait), `2.4.3` (Artifact retention and ephemeral cleanup policies), `2.4.4` (Artifact checksum validation and verification).
+- **Certification Date:** 2026-11-17
+- **Certification Findings:**
+  1. Atomic, traversal-safe local filesystem storage `LocalFsStorage` with staging writes (`.<name>.tmp.<uuid>`) and physical disk synchronization (`sync_all()`).
+  2. Pluggable, object-safe asynchronous storage abstraction `StorageBackend` (`DynStorage`) with implementations for `LocalFsStorage` and in-memory `InMemoryStorage`.
+  3. Bounded retention policies `RetentionPolicy`, structured audit reporting `CleanupReport`, transactional relational repository `ArtifactRepository` (`FOR UPDATE SKIP LOCKED`), and central coordinator `RetentionManager` executing DB sweeps, staging purges, and watermark capacity enforcement.
+  4. Cryptographic checksum calculation `ArtifactDigests` (SHA-256 and BLAKE3), streaming digestion, verification engine `ArtifactVerifier`, and BSD/GNU `checksums.sha256` manifest generation/parsing.
+  5. 142 automated Rust unit tests pass across the workspace (55 in `crates/storage`); 184/184 frontend tests pass in `apps/web`.
+  6. All 5 monorepo verification gates in `scripts/check-all.ps1` and `scripts/check-all.sh` pass cleanly with 0 failures.
+- **Status:** `COMPLETED` / `ACCEPTED` (Phase 2.4 Certified 2026-11-17)
+
+---
+
+### STAGE 2 COMPLETION CERTIFICATION
+
+- **Stage ID:** `STAGE 2 — BACKEND AND PROCESSING FOUNDATION`
+- **Total Phases Completed:** 4 (`Phase 2.1`, `Phase 2.2`, `Phase 2.3`, `Phase 2.4`)
+- **Total Subphases Completed:** 15 (`2.1.1` through `2.4.4`, all `ACCEPTED`)
+- **Stage Acceptance Gate:** Operational Rust Axum API, persistent PostgreSQL job management, and artifact storage infrastructure.
+- **Verification Evidence:**
+  1. **Phase 2.1 (Rust Architecture):** Root workspace with 17 member crates/services, strongly-typed domain errors/UUIDs/configs (`crates/core`), and structured logging/tracing/metrics with secret redaction (`crates/observability`).
+  2. **Phase 2.2 (API):** Modular Axum router, parameter validation extractors, RFC 7807 problem details contracts, liveness `/health`, subsystem readiness `/ready`, and Prometheus `/metrics` exposition.
+  3. **Phase 2.3 (Persistence):** PostgreSQL 16 relational DDL schema, compile-time embedded SQLx migrations (`MIGRATOR`), runtime catalog introspection (`validate_schema`), deterministic state machine (`JobStateMachine`), and durable worker leasing (`FOR UPDATE SKIP LOCKED`).
+  4. **Phase 2.4 (Storage):** Atomic filesystem storage (`LocalFsStorage`), pluggable backend trait (`StorageBackend`), in-memory storage (`InMemoryStorage`), retention policies and cleanup (`RetentionManager`), dual SHA-256/BLAKE3 checksum validation (`ArtifactVerifier`), and checksum manifests.
+  5. **Automated Test Quality:** 142 automated Rust workspace tests passing (55 in `crates/storage`), 184 automated frontend tests passing in `apps/web`; zero compiler/clippy warnings; 100% code style compliance; zero advisories or license bans in `cargo deny`.
+  6. **Monorepo Quality Gates:** All 5 gates pass cleanly on Windows PowerShell (`scripts/check-all.ps1`) and POSIX bash (`scripts/check-all.sh`), with Podman storage footprint at 5.27 GB / 30 GB (17.6%).
+- **Status:** `COMPLETED` / `ACCEPTED` (Stage 2 Certified 2026-11-17)
+
+---
+
+### Upcoming Subphase (Stage 3 — Universal Webpage Extraction)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `2.4.4` | Implement artifact checksum validation and verification in crates/storage | `2.4.3` (`ACCEPTED`) | `crates/storage/*` | `NOT_STARTED` |
+| `3.1.1` | URL parsing, normalization, and validation in crates/url-security and crates/web-extractor | Stage 2 (`ACCEPTED`) | `crates/url-security/*`, `crates/web-extractor/*` | `NOT_STARTED` |
 
 ---
 

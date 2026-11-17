@@ -55,7 +55,7 @@
 
 ---
 
-## Stage 2 — Backend and Processing Foundation (`IN_PROGRESS`)
+## Stage 2 — Backend and Processing Foundation (`COMPLETED` / `ACCEPTED`)
 
 ### Phase 2.1 — Rust architecture (`COMPLETED` / `ACCEPTED`)
 - [x] **[2.1.1]** Create Rust workspace and crate structure *(Completed 2026-11-17, root Cargo.toml, 17 workspace member crates/services, deny.toml 0.20+, rustfmt, 17/17 tests passing, all 5 gates pass)*
@@ -74,11 +74,11 @@
 - [x] **[2.3.3]** Implement job state machine, transitions, and history in crates/storage *(Completed 2026-11-17, JobStateMachine transition validation, terminal state immutability, job_state_transitions migration, JobRepository row-level locked transitions, 22 passing storage tests, 109 workspace tests)*
 - [x] **[2.3.4]** Implement durable job leasing, heartbeat, and recovery in crates/storage *(Completed 2026-11-17, FOR UPDATE SKIP LOCKED worker queue polling, heartbeat lease extension, voluntary lease release, automated stale recovery, LeaseManager, 28 passing storage tests, 115 workspace tests, Phase 2.3 Certified)*
 
-### Phase 2.4 — Storage (`IN_PROGRESS`)
+### Phase 2.4 — Storage (`COMPLETED` / `ACCEPTED`)
 - [x] **[2.4.1]** Implement local filesystem artifact storage in crates/storage *(Completed 2026-11-17, LocalFsStorage, atomic staging writes, path traversal guards, layout helpers, storage_capacity accounting, 36 passing storage tests, 123 workspace tests)*
 - [x] **[2.4.2]** Implement pluggable storage backend trait in crates/storage *(Completed 2026-11-17, StorageBackend trait, DynStorage, AsyncReadStream, LocalFsStorage impl, InMemoryStorage impl, create_storage_backend factory, 41 passing storage tests, 128 workspace tests)*
 - [x] **[2.4.3]** Implement artifact retention and ephemeral cleanup policies in crates/storage *(Completed 2026-11-17, RetentionPolicy, CleanupReport, ArtifactRepository with FOR UPDATE SKIP LOCKED, RetentionManager with expired DB sweep, staging file purge, and watermark capacity enforcement, 48 passing storage tests, 135 workspace tests)*
-- [ ] **[2.4.4]** Implement artifact checksum validation and verification in crates/storage
+- [x] **[2.4.4]** Implement artifact checksum validation and verification in crates/storage *(Completed 2026-11-17, ArtifactDigests dual SHA-256 and BLAKE3, streaming digester in 64 KB buffers, ArtifactVerifier, checksums.sha256 manifest generator and parser, 55 passing storage tests, 142 workspace tests, Phase 2.4 & Stage 2 Certified)*
 
 ---
 

@@ -4,7 +4,22 @@
 
 ---
 
-## [Unreleased] — Stage 2: Backend and Processing Foundation
+## [Unreleased] — Stage 3: Universal Webpage Extraction
+
+### 2026-11-17 — Phase 2.4: Storage (`2.4.4`), Phase 2.4 Milestone Certification & Stage 2 Completion Certification
+
+#### Added
+- **`[2.4.4]` Implement Artifact Checksum Validation and Verification in `crates/storage`:**
+  - Added `sha2` (v0.10) and `blake3` (v1.5) to root `Cargo.toml` and `crates/storage/Cargo.toml`.
+  - Implemented `ChecksumAlgorithm` enum supporting `Sha256` and `Blake3` with string representations, parse traits, and digest length constants.
+  - Implemented `ArtifactDigests` computing SHA-256 and BLAKE3 concurrently over in-memory slices (`compute`) and over asynchronous streaming readers (`compute_streaming`) in 64 KB chunks to bound RAM usage.
+  - Implemented `ChecksumVerificationStatus` (`Verified`, `Mismatch`, `Missing`, `Corrupted`) and structured `ArtifactIntegrityReport` tracking expected vs actual hashes, byte sizes, and error details.
+  - Implemented `StorageIntegrityAuditSummary` with health checks and success rate calculations.
+  - Implemented `ArtifactVerifier` coordinating storage backends and PostgreSQL: `verify_bytes`, `verify_storage_file`, `verify_artifact_record`, `verify_job_artifact`, `verify_all_job_artifacts`, and `audit_storage_integrity`.
+  - Implemented BSD/GNU-compatible `checksums.sha256` manifest generator `generate_sha256_manifest` and robust parser `parse_sha256_manifest`.
+  - Added 7 unit tests in `crates/storage/src/checksum.rs` verifying empty vectors, hash matching/validation, streaming vs slice parity, verifier outcomes, relational artifact verification, manifest round-trips, and audit summary health, expanding storage crate tests to 55 and automated Rust workspace tests to 142/142 passing. Verified all 5 monorepo gates pass cleanly.
+  - Formally certified completion of **Phase 2.4: Storage** (`2.4.1` – `2.4.4` all `ACCEPTED`).
+  - Formally certified completion of **Stage 2: Backend and Processing Foundation** (15 subphases across `Phase 2.1`, `Phase 2.2`, `Phase 2.3`, `Phase 2.4` all `ACCEPTED`).
 
 ### 2026-11-17 — Phase 2.4: Storage (`2.4.3`)
 

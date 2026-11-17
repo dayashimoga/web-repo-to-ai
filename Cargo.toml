@@ -85,5 +85,9 @@ chrono = { version = "0.4", default-features = false }
 uuid = { version = "1.10", default-features = false }
 url = "2.5"
 
+# Cryptography & hashing
+sha2 = "0.10"
+blake3 = "1.5"
+
 # Database & persistence
 sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "postgres", "chrono", "uuid", "json", "macros", "migrate"] }
