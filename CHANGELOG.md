@@ -6,6 +6,34 @@
 
 ## [Unreleased] — Stage 4: Canonical Model and Export Engine
 
+### 2026-11-17 — Phase 4.3: Export (`4.3.2`)
+
+#### Added
+- **`[4.3.2]` Implement Standalone Manifest & Checksums Generation in `crates/exporters`:**
+  - Added `blake3 = { workspace = true }` to `crates/exporters/Cargo.toml`.
+  - Implemented standalone cryptographic checksum engine in `crates/exporters/src/checksum.rs`:
+    - `ChecksumAlgorithm`: `Sha256`, `Blake3` with `as_str()`, `Display`, and `compute_hex()`.
+    - `compute_sha256_hex` and `compute_blake3_hex` for deterministic 64-character lowercase hex digest computation.
+    - `ChecksumEntry`: Path, hash, algorithm, and constructor helpers `sha256`, `blake3`, `from_sha256_bytes`, and `from_blake3_bytes`.
+    - BSD/GNU coreutils standard generation: `generate_checksums_manifest` and streaming `export_checksums_to_writer` formatting lines as `<hash>  <path>\n`.
+    - Coreutils parser: `parse_checksums_manifest` parsing standard and binary `*` mode lines, ignoring comment lines (`#`) and whitespace, and verifying 64-hex character syntax.
+    - Checksum verifier: `verify_checksums` returning a `ChecksumVerificationReport` with `matched_files`, `mismatched_files` (`ChecksumMismatch`), `missing_files`, and `is_valid()` verification status.
+  - Implemented standalone package manifest and quality report generator in `crates/exporters/src/manifest.rs`:
+    - `detect_mime_type`: Zero-dependency IANA MIME media type detector mapping file extensions (`.md`, `.txt`, `.json`, `.jsonl`, `.html`, `.zip`, `.rs`, `.ts`, `.js`, `.py`, `.go`, `.css`, etc.).
+    - `PackageFileEntry`: Inventory item capturing relative path, uncompressed byte size, dual SHA-256 and BLAKE3 digests, format descriptor, canonical MIME type, line count, and token estimates (`div_ceil(4)`).
+    - `PackageManifest`: Root manifest schema v1.0 with generator version, document ID, schema version, creation timestamp, canonical URL, source type, file count, total uncompressed bytes, and file entries.
+    - `PackageProvenance`: Provenance schema capturing canonical URL, source identity, revision info, and citations list.
+    - `PackageQualityReport`: Quality report schema capturing completeness ratio, formatted percentage, discovered/extracted/excluded/failed/unsupported counts, and exclusion logs.
+    - Builders: `build_manifest`, `build_provenance`, `build_quality_report`.
+    - Exporters: `export_manifest`, `export_provenance`, `export_quality_report` and their respective single-pass streaming writer functions.
+    - `ManifestExporter`: Fluent builder API supporting in-memory and streaming generation.
+  - Refactored `crates/exporters/src/zip.rs` to reuse `PackageFileEntry`, `PackageManifest`, `PackageProvenance`, and `PackageQualityReport` from `crate::manifest`, and checksum generation from `crate::checksum`.
+  - Added `ManifestOptions` and `ChecksumOptions` models and presets in `crates/exporters/src/options.rs`.
+  - Added `ExporterError::ChecksumValidation` error variant in `crates/exporters/src/error.rs`.
+  - Re-exported public types in `crates/exporters/src/lib.rs`.
+  - Created integration test suite `crates/exporters/tests/manifest_checksums.rs` (11 tests) verifying manifest generation, provenance, quality report, MIME detection, checksum formatting, parsing, corrupt file detection, missing file detection, and streaming equivalence.
+  - Verification: 73 passing exporter tests (up from 62), 453 total workspace Rust tests (up from 442), 184 frontend tests, 29 browser-worker tests, and 100% pass rate across all 5 monorepo verification gates.
+
 ### 2026-11-17 — Phase 4.3: Export (`4.3.1`)
 
 #### Added

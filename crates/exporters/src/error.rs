@@ -31,6 +31,10 @@ pub enum ExporterError {
     /// The CDM document is structurally invalid or missing required elements.
     #[error("Invalid CDM document: {0}")]
     InvalidDocument(String),
+
+    /// A checksum or manifest validation error occurred.
+    #[error("Checksum validation error: {0}")]
+    ChecksumValidation(String),
 }
 
 /// Convenience result type for exporter operations.

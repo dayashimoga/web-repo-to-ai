@@ -10,102 +10,22 @@
 
 use std::io::{Cursor, Seek, Write};
 
-use chrono::{SecondsFormat, Utc};
-use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
-use web_repo_to_ai_cdm::{CdmDocument, Citation, ExclusionRecord, RevisionInfo, SourceIdentity};
+use web_repo_to_ai_cdm::CdmDocument;
 use zip::write::SimpleFileOptions;
 use zip::{CompressionMethod, ZipWriter};
 
+pub use crate::checksum::{compute_sha256_hex, ChecksumEntry};
 use crate::error::{ExporterError, Result};
 use crate::html::export_html;
 use crate::json::export_json;
 use crate::jsonl::export_jsonl;
+pub use crate::manifest::{
+    build_manifest, build_provenance, build_quality_report, PackageFileEntry, PackageManifest,
+    PackageProvenance, PackageQualityReport,
+};
 use crate::markdown::export_markdown;
 use crate::options::{JsonExportOptions, ZipPackageMetrics, ZipPackageOptions};
 use crate::plain_text::export_plain_text;
-
-/// Entry record for a file within `manifest.json`.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct PackageFileEntry {
-    /// Relative archive path (e.g. `"context.md"` or `"sources/src/lib.rs"`).
-    pub path: String,
-    /// Uncompressed file size in bytes.
-    pub size_bytes: u64,
-    /// Cryptographic SHA-256 hex digest of file contents.
-    pub sha256: String,
-    /// Format descriptor (e.g. `"markdown"`, `"json"`, `"source_code"`).
-    pub format: String,
-}
-
-/// Root schema for `manifest.json` embedded in the package.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct PackageManifest {
-    /// Manifest schema specification version.
-    pub manifest_version: String,
-    /// Name and version of the package generating engine.
-    pub package_generator: String,
-    /// Parent document UUID identifier.
-    pub document_id: String,
-    /// CDM schema version.
-    pub schema_version: String,
-    /// UTC ISO-8601 creation timestamp.
-    pub created_at: String,
-    /// Authoritative canonical source URL.
-    pub source_url: String,
-    /// Source classification type.
-    pub source_type: String,
-    /// Total count of files contained in this archive.
-    pub file_count: usize,
-    /// Detailed listing of archived files.
-    pub files: Vec<PackageFileEntry>,
-}
-
-/// Root schema for `provenance.json` embedded in the package.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct PackageProvenance {
-    /// Document UUID identifier.
-    pub document_id: String,
-    /// Canonical source URL.
-    pub canonical_url: String,
-    /// Detailed source origin identity.
-    pub source_identity: SourceIdentity,
-    /// Source classification type.
-    pub source_type: String,
-    /// UTC timestamp of acquisition.
-    pub retrieved_at: String,
-    /// Git revision and cache validation hashes.
-    pub revision: RevisionInfo,
-    /// Total count of authoritative citations.
-    pub citations_count: usize,
-    /// List of provenance citations.
-    pub citations: Vec<Citation>,
-}
-
-/// Root schema for `quality-report.json` embedded in the package.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct PackageQualityReport {
-    /// Document UUID identifier.
-    pub document_id: String,
-    /// Numerical extraction yield ratio (0.0 to 1.0).
-    pub completeness_ratio: f64,
-    /// Formatted percentage string (e.g. `"100.0%"`).
-    pub completeness_percentage: String,
-    /// Items discovered during crawl or tree traversal.
-    pub discovered_count: u64,
-    /// Items successfully converted into CDM sections.
-    pub extracted_count: u64,
-    /// Items skipped due to rules, size, or binary filters.
-    pub excluded_count: u64,
-    /// Items that failed during acquisition or extraction.
-    pub failed_count: u64,
-    /// Items skipped due to unsupported media types.
-    pub unsupported_count: u64,
-    /// Total count of exclusion records.
-    pub exclusions_count: usize,
-    /// Detailed auditable exclusion logs.
-    pub exclusions: Vec<ExclusionRecord>,
-}
 
 /// High-performance deterministic ZIP package exporter.
 #[derive(Debug, Clone, Default)]
@@ -147,13 +67,6 @@ impl ZipPackageExporter {
     }
 }
 
-/// Computes the SHA-256 hex digest of a byte slice.
-fn compute_sha256(bytes: &[u8]) -> String {
-    let mut hasher = Sha256::new();
-    hasher.update(bytes);
-    format!("{:x}", hasher.finalize())
-}
-
 /// Sanitizes a file path to prevent directory traversal attacks in ZIP archives.
 fn sanitize_zip_path(path: &str) -> String {
     let normalized = path.replace('\\', "/");
@@ -184,7 +97,7 @@ pub fn export_zip_package(
     let mut metrics = export_zip_package_to_writer(doc, options, &mut buffer)?;
     let bytes = buffer.into_inner();
     metrics.total_bytes_written = bytes.len();
-    metrics.sha256_checksum = compute_sha256(&bytes);
+    metrics.sha256_checksum = compute_sha256_hex(&bytes);
     Ok((bytes, metrics))
 }
 
@@ -210,13 +123,12 @@ pub fn export_zip_package_to_writer<W: Write + Seek>(
     if options.include_markdown {
         let md_str = export_markdown(doc, &options.markdown_options)?;
         let md_bytes = md_str.into_bytes();
-        let sha = compute_sha256(&md_bytes);
-        file_entries.push(PackageFileEntry {
-            path: options.markdown_path.clone(),
-            size_bytes: md_bytes.len() as u64,
-            sha256: sha,
-            format: "markdown".to_string(),
-        });
+        file_entries.push(PackageFileEntry::from_bytes(
+            &options.markdown_path,
+            &md_bytes,
+            "markdown",
+            true,
+        ));
         zip.start_file(&options.markdown_path, file_opts)
             .map_err(map_zip_err)?;
         zip.write_all(&md_bytes)?;
@@ -227,13 +139,12 @@ pub fn export_zip_package_to_writer<W: Write + Seek>(
     if options.include_plain_text {
         let txt_str = export_plain_text(doc, &options.plain_text_options)?;
         let txt_bytes = txt_str.into_bytes();
-        let sha = compute_sha256(&txt_bytes);
-        file_entries.push(PackageFileEntry {
-            path: options.plain_text_path.clone(),
-            size_bytes: txt_bytes.len() as u64,
-            sha256: sha,
-            format: "plain_text".to_string(),
-        });
+        file_entries.push(PackageFileEntry::from_bytes(
+            &options.plain_text_path,
+            &txt_bytes,
+            "plain_text",
+            true,
+        ));
         zip.start_file(&options.plain_text_path, file_opts)
             .map_err(map_zip_err)?;
         zip.write_all(&txt_bytes)?;
@@ -245,13 +156,12 @@ pub fn export_zip_package_to_writer<W: Write + Seek>(
         let json_opts = JsonExportOptions::canonical();
         let json_str = export_json(doc, &json_opts)?;
         let json_bytes = json_str.into_bytes();
-        let sha = compute_sha256(&json_bytes);
-        file_entries.push(PackageFileEntry {
-            path: options.json_canonical_path.clone(),
-            size_bytes: json_bytes.len() as u64,
-            sha256: sha,
-            format: "cdm_json_schema_v1".to_string(),
-        });
+        file_entries.push(PackageFileEntry::from_bytes(
+            &options.json_canonical_path,
+            &json_bytes,
+            "cdm_json_schema_v1",
+            true,
+        ));
         zip.start_file(&options.json_canonical_path, file_opts)
             .map_err(map_zip_err)?;
         zip.write_all(&json_bytes)?;
@@ -263,13 +173,12 @@ pub fn export_zip_package_to_writer<W: Write + Seek>(
         let json_opts = JsonExportOptions::structured();
         let json_str = export_json(doc, &json_opts)?;
         let json_bytes = json_str.into_bytes();
-        let sha = compute_sha256(&json_bytes);
-        file_entries.push(PackageFileEntry {
-            path: options.json_structured_path.clone(),
-            size_bytes: json_bytes.len() as u64,
-            sha256: sha,
-            format: "structured_context_json".to_string(),
-        });
+        file_entries.push(PackageFileEntry::from_bytes(
+            &options.json_structured_path,
+            &json_bytes,
+            "structured_context_json",
+            true,
+        ));
         zip.start_file(&options.json_structured_path, file_opts)
             .map_err(map_zip_err)?;
         zip.write_all(&json_bytes)?;
@@ -280,13 +189,12 @@ pub fn export_zip_package_to_writer<W: Write + Seek>(
     if options.include_html {
         let (html_str, _) = export_html(doc, &options.html_options)?;
         let html_bytes = html_str.into_bytes();
-        let sha = compute_sha256(&html_bytes);
-        file_entries.push(PackageFileEntry {
-            path: options.html_path.clone(),
-            size_bytes: html_bytes.len() as u64,
-            sha256: sha,
-            format: "html".to_string(),
-        });
+        file_entries.push(PackageFileEntry::from_bytes(
+            &options.html_path,
+            &html_bytes,
+            "html",
+            true,
+        ));
         zip.start_file(&options.html_path, file_opts)
             .map_err(map_zip_err)?;
         zip.write_all(&html_bytes)?;
@@ -297,13 +205,12 @@ pub fn export_zip_package_to_writer<W: Write + Seek>(
     if options.include_jsonl {
         let (jsonl_str, _) = export_jsonl(doc, &options.jsonl_options)?;
         let jsonl_bytes = jsonl_str.into_bytes();
-        let sha = compute_sha256(&jsonl_bytes);
-        file_entries.push(PackageFileEntry {
-            path: options.jsonl_path.clone(),
-            size_bytes: jsonl_bytes.len() as u64,
-            sha256: sha,
-            format: "jsonl_rag_chunks".to_string(),
-        });
+        file_entries.push(PackageFileEntry::from_bytes(
+            &options.jsonl_path,
+            &jsonl_bytes,
+            "jsonl_rag_chunks",
+            true,
+        ));
         zip.start_file(&options.jsonl_path, file_opts)
             .map_err(map_zip_err)?;
         zip.write_all(&jsonl_bytes)?;
@@ -328,13 +235,12 @@ pub fn export_zip_package_to_writer<W: Write + Seek>(
             };
 
             let body_bytes = sec.body.as_bytes();
-            let sha = compute_sha256(body_bytes);
-            file_entries.push(PackageFileEntry {
-                path: final_path.clone(),
-                size_bytes: body_bytes.len() as u64,
-                sha256: sha,
-                format: sec.language.clone().unwrap_or_else(|| "text".to_string()),
-            });
+            file_entries.push(PackageFileEntry::from_bytes(
+                &final_path,
+                body_bytes,
+                sec.language.clone().unwrap_or_else(|| "text".to_string()),
+                true,
+            ));
 
             zip.start_file(&final_path, file_opts)
                 .map_err(map_zip_err)?;
@@ -345,24 +251,14 @@ pub fn export_zip_package_to_writer<W: Write + Seek>(
 
     // 8. Provenance Report (`provenance.json`)
     if options.include_provenance {
-        let prov = PackageProvenance {
-            document_id: doc.document_id.to_string(),
-            canonical_url: doc.canonical_url.clone(),
-            source_identity: doc.source_identity.clone(),
-            source_type: doc.source_type.as_str().to_string(),
-            retrieved_at: doc.retrieved_at.to_rfc3339_opts(SecondsFormat::Secs, true),
-            revision: doc.revision.clone(),
-            citations_count: doc.citations.len(),
-            citations: doc.citations.clone(),
-        };
+        let prov = build_provenance(doc);
         let prov_bytes = serde_json::to_vec_pretty(&prov)?;
-        let sha = compute_sha256(&prov_bytes);
-        file_entries.push(PackageFileEntry {
-            path: "provenance.json".to_string(),
-            size_bytes: prov_bytes.len() as u64,
-            sha256: sha,
-            format: "json_provenance".to_string(),
-        });
+        file_entries.push(PackageFileEntry::from_bytes(
+            "provenance.json",
+            &prov_bytes,
+            "json_provenance",
+            true,
+        ));
         zip.start_file("provenance.json", file_opts)
             .map_err(map_zip_err)?;
         zip.write_all(&prov_bytes)?;
@@ -371,27 +267,14 @@ pub fn export_zip_package_to_writer<W: Write + Seek>(
 
     // 9. Completeness & Quality Report (`quality-report.json`)
     if options.include_quality_report {
-        let comp = &doc.completeness;
-        let qr = PackageQualityReport {
-            document_id: doc.document_id.to_string(),
-            completeness_ratio: comp.extraction_ratio(),
-            completeness_percentage: format!("{:.1}%", comp.extraction_ratio() * 100.0),
-            discovered_count: comp.discovered_count,
-            extracted_count: comp.extracted_count,
-            excluded_count: comp.excluded_count,
-            failed_count: comp.failed_count,
-            unsupported_count: comp.unsupported_count,
-            exclusions_count: doc.exclusions.len(),
-            exclusions: doc.exclusions.clone(),
-        };
+        let qr = build_quality_report(doc);
         let qr_bytes = serde_json::to_vec_pretty(&qr)?;
-        let sha = compute_sha256(&qr_bytes);
-        file_entries.push(PackageFileEntry {
-            path: "quality-report.json".to_string(),
-            size_bytes: qr_bytes.len() as u64,
-            sha256: sha,
-            format: "json_quality_report".to_string(),
-        });
+        file_entries.push(PackageFileEntry::from_bytes(
+            "quality-report.json",
+            &qr_bytes,
+            "json_quality_report",
+            true,
+        ));
         zip.start_file("quality-report.json", file_opts)
             .map_err(map_zip_err)?;
         zip.write_all(&qr_bytes)?;
@@ -400,25 +283,15 @@ pub fn export_zip_package_to_writer<W: Write + Seek>(
 
     // 10. Manifest (`manifest.json`)
     if options.include_manifest {
-        let manifest = PackageManifest {
-            manifest_version: "1.0.0".to_string(),
-            package_generator: "web-repo-to-ai v0.1.0".to_string(),
-            document_id: doc.document_id.to_string(),
-            schema_version: doc.schema_version.clone(),
-            created_at: Utc::now().to_rfc3339_opts(SecondsFormat::Secs, true),
-            source_url: doc.canonical_url.clone(),
-            source_type: doc.source_type.as_str().to_string(),
-            file_count: file_entries.len() + if options.include_checksums { 2 } else { 1 },
-            files: file_entries.clone(),
-        };
+        let mut manifest = build_manifest(doc, file_entries.clone());
+        manifest.file_count = file_entries.len() + if options.include_checksums { 2 } else { 1 };
         let manifest_bytes = serde_json::to_vec_pretty(&manifest)?;
-        let sha = compute_sha256(&manifest_bytes);
-        file_entries.push(PackageFileEntry {
-            path: "manifest.json".to_string(),
-            size_bytes: manifest_bytes.len() as u64,
-            sha256: sha,
-            format: "json_manifest".to_string(),
-        });
+        file_entries.push(PackageFileEntry::from_bytes(
+            "manifest.json",
+            &manifest_bytes,
+            "json_manifest",
+            true,
+        ));
         zip.start_file("manifest.json", file_opts)
             .map_err(map_zip_err)?;
         zip.write_all(&manifest_bytes)?;
@@ -427,10 +300,11 @@ pub fn export_zip_package_to_writer<W: Write + Seek>(
 
     // 11. Coreutils Checksums Manifest (`checksums.sha256`)
     if options.include_checksums {
-        let mut checksums_content = String::new();
-        for entry in &file_entries {
-            checksums_content.push_str(&format!("{}  {}\n", entry.sha256, entry.path));
-        }
+        let checksum_entries: Vec<ChecksumEntry> = file_entries
+            .iter()
+            .map(|e| ChecksumEntry::sha256(&e.path, &e.sha256))
+            .collect();
+        let checksums_content = crate::checksum::generate_checksums_manifest(&checksum_entries);
         let cs_bytes = checksums_content.into_bytes();
         zip.start_file("checksums.sha256", file_opts)
             .map_err(map_zip_err)?;

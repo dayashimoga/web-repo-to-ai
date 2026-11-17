@@ -1062,3 +1062,84 @@ impl ZipPackageOptions {
         self
     }
 }
+
+/// Configuration options controlling package manifest generation.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ManifestOptions {
+    /// Whether to pretty-print the JSON output with multi-line indentation.
+    pub pretty_print: bool,
+    /// Whether to calculate and include BLAKE3 digests alongside SHA-256 in file entries.
+    pub include_blake3: bool,
+}
+
+impl Default for ManifestOptions {
+    fn default() -> Self {
+        Self {
+            pretty_print: true,
+            include_blake3: true,
+        }
+    }
+}
+
+impl ManifestOptions {
+    /// Creates a compact (single-line) manifest export configuration.
+    #[must_use]
+    pub fn compact() -> Self {
+        Self {
+            pretty_print: false,
+            include_blake3: true,
+        }
+    }
+
+    /// Configures pretty-printing indentation.
+    #[must_use]
+    pub const fn with_pretty_print(mut self, enabled: bool) -> Self {
+        self.pretty_print = enabled;
+        self
+    }
+
+    /// Configures BLAKE3 inclusion.
+    #[must_use]
+    pub const fn with_blake3(mut self, enabled: bool) -> Self {
+        self.include_blake3 = enabled;
+        self
+    }
+}
+
+/// Configuration options controlling checksum manifest generation.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ChecksumOptions {
+    /// Algorithm to use for checksum calculation.
+    pub algorithm: crate::checksum::ChecksumAlgorithm,
+}
+
+impl Default for ChecksumOptions {
+    fn default() -> Self {
+        Self {
+            algorithm: crate::checksum::ChecksumAlgorithm::Sha256,
+        }
+    }
+}
+
+impl ChecksumOptions {
+    /// Creates a SHA-256 checksum configuration.
+    #[must_use]
+    pub fn sha256() -> Self {
+        Self::default()
+    }
+
+    /// Creates a BLAKE3 checksum configuration.
+    #[must_use]
+    pub fn blake3() -> Self {
+        Self {
+            algorithm: crate::checksum::ChecksumAlgorithm::Blake3,
+        }
+    }
+
+    /// Configures the checksum algorithm.
+    #[must_use]
+    pub const fn with_algorithm(mut self, algorithm: crate::checksum::ChecksumAlgorithm) -> Self {
+        self.algorithm = algorithm;
+        self
+    }
+}

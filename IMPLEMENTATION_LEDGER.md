@@ -3521,11 +3521,70 @@
 
 ---
 
+#### Subphase `4.3.2` — Manifest & checksums generation in crates/exporters
+- **Unique ID:** `4.3.2`
+- **Objective:** Implement standalone manifest and checksums generator modules in `crates/exporters`, delivering strongly-typed models, builders, serializers, parsers, and verifiers for package manifests (`manifest.json`), provenance reports (`provenance.json`), quality reports (`quality-report.json`), and BSD/GNU coreutils-compatible checksum files (`checksums.sha256`, `checksums.blake3`) with streaming writer support, dual SHA-256 and BLAKE3 cryptographic digests, MIME type detection, file entry inventory accounting, and integrity verification.
+- **Scope:** `crates/exporters/src/manifest.rs`, `crates/exporters/src/checksum.rs`, `crates/exporters/src/options.rs`, `crates/exporters/src/error.rs`, `crates/exporters/src/zip.rs`, `crates/exporters/src/lib.rs`, `crates/exporters/tests/manifest_checksums.rs`.
+- **Prerequisites:** `4.3.1` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/exporters/Cargo.toml`
+  - `crates/exporters/src/manifest.rs`
+  - `crates/exporters/src/checksum.rs`
+  - `crates/exporters/src/options.rs`
+  - `crates/exporters/src/error.rs`
+  - `crates/exporters/src/zip.rs`
+  - `crates/exporters/src/lib.rs`
+  - `crates/exporters/tests/manifest_checksums.rs`
+- **Implementation Tasks:**
+  1. Add `blake3 = { workspace = true }` to `crates/exporters/Cargo.toml`.
+  2. Implement `crates/exporters/src/checksum.rs`:
+     - `ChecksumAlgorithm`: `Sha256`, `Blake3`.
+     - `ChecksumEntry`: `(path, hash, algorithm)`.
+     - Core functions: `compute_sha256_hex`, `compute_blake3_hex`, `generate_sha256_checksums`, `generate_blake3_checksums`, `parse_sha256_checksums`.
+     - Checksum verifier: `verify_sha256_checksums` and `ChecksumVerificationReport` checking for matched, mismatched, and missing files against a byte/file provider.
+     - Streaming writer: `export_checksums_to_writer`.
+  3. Implement `crates/exporters/src/manifest.rs`:
+     - Standalone `PackageFileEntry`, `PackageManifest`, `PackageProvenance`, and `PackageQualityReport` schemas with dual SHA-256 and BLAKE3 hashes, MIME type classification, line count, and token estimations.
+     - `ManifestExporter` and `export_manifest` / `export_manifest_to_writer`.
+     - `export_provenance` / `export_provenance_to_writer`.
+     - `export_quality_report` / `export_quality_report_to_writer`.
+     - `build_manifest_from_cdm` generating package file entries for all standard multi-format artifacts and extracted source files.
+  4. Refactor `crates/exporters/src/zip.rs` to leverage `manifest.rs` and `checksum.rs`.
+  5. Add `ManifestOptions` and `ChecksumOptions` to `crates/exporters/src/options.rs`.
+  6. Add `ChecksumValidation` error variant to `crates/exporters/src/error.rs`.
+  7. Re-export public manifest and checksum types in `crates/exporters/src/lib.rs`.
+  8. Implement integration tests in `crates/exporters/tests/manifest_checksums.rs` verifying manifest generation, provenance, quality report, checksum formatting, parsing, corrupt file detection, and streaming equivalence.
+  9. Run all 5 monorepo verification gates in `scripts/check-all.ps1`.
+- **Acceptance Criteria:**
+  - Standalone manifest JSON, provenance JSON, and quality-report JSON accurately serialize from `CdmDocument` and arbitrary file entry sets.
+  - Checksums manifest adheres strictly to BSD/GNU coreutils standard (`<64-hex-hash>  <relative_path>\n`).
+  - `parse_sha256_checksums` parses standard checksum files, ignoring comments and whitespace, and reporting syntax errors.
+  - `verify_sha256_checksums` accurately detects matching files, hash mismatches (tampering), and missing files.
+  - Streaming writer implementations emit byte-identical output to in-memory string generators.
+  - All workspace tests pass, clippy has 0 warnings, formatting is clean, and cargo deny passes.
+- **Tests:** `cargo test -p web-repo-to-ai-exporters`, `cargo test --workspace`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, 01, 04, 05: Cryptographically robust hashes (SHA-256 and BLAKE3), path sanitization preventing directory traversal, memory bounded parsing, no panics.
+- **Performance Considerations:** Single-pass hash computation directly during export, zero-copy parsing where feasible, streaming writer sinks.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-exporters`: 73 passed (1 unit + 10 html + 8 json + 9 jsonl + 11 manifest & checksums + 15 markdown + 10 plain text + 9 zip integration tests), 0 failed.
+  - `cargo test --workspace`: 453 passed, 0 failed across all monorepo crates.
+  - `apps/web` (SvelteKit + Vitest): 184 passed, 0 failed across 15 test suites.
+  - `services/browser-worker` (Node.js + Jest): 29 passed, 0 failed across 7 test suites.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, clean pass.
+  - `cargo fmt --all -- --check`: Clean formatting verified across all Rust crates.
+  - `cargo deny check`: Licenses, bans, advisories, and sources passed with zero violations.
+  - Monorepo 5-gate audit (`powershell scripts/check-all.ps1`): ALL 5 GATES PASSED (100% pass rate).
+- **Git Commit Reference:** PENDING_COMMIT
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 4 — Canonical Model and Export Engine)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `4.3.2` | Manifest & checksums generation in crates/exporters | `4.3.1` (`ACCEPTED`) | `crates/exporters/*` | `NOT_STARTED` |
+| `4.3.3` | Streaming downloads in services/api | `4.3.2` (`ACCEPTED`) | `services/api/*` | `NOT_STARTED` |
 
 ---
 
