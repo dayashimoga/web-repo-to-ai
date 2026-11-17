@@ -6,6 +6,30 @@
 
 ## [Unreleased] — Stage 1: Frontend and Product Experience
 
+### 2026-11-17 — Phase 1.3: Conversion Workspace (`1.3.1`)
+
+#### Added
+- **`[1.3.1]` Conversion Job Workspace, Pipeline Tracker & File Completeness Accounting:**
+  - Defined conversion job domain model, state transitions, and file completeness invariant in `apps/web/src/lib/types/job.ts`:
+    - Strict lifecycle states: `queued`, `leased`, `running`, `completed`, `partial`, `failed`, `cancelled`.
+    - Standard 4-stage pipeline definitions: Acquisition & SSRF Defense, CDM Canonicalization, MinHash Deduplication, Export & Token Fit.
+    - Verified invariant helper `verifyCompletenessInvariant` enforcing $\text{discovered} = \text{extracted} + \text{excluded} + \text{failed}$ per `docs/DATA_MODEL.md` to prevent silent file drops.
+    - Weighted progress calculator `calculateOverallProgress` and deterministic mock-free factory `createInitialJob`.
+  - Authored accessible, responsive `JobWorkspace.svelte` component in `apps/web/src/lib/components/workspace/JobWorkspace.svelte`:
+    - Overall progress bar landmark (`role="progressbar"`, `aria-valuenow`, `aria-valuemin="0"`, `aria-valuemax="100"`).
+    - 4-stage execution cards highlighting active, completed, failed, and pending stages with step numbers and status badges.
+    - Repository completeness accounting matrix displaying discovered, extracted, excluded, and failed counts with verification badge.
+    - Live execution telemetry log terminal with windowed DOM slice (most recent 200 items per Rule 03 bounded memory) and `role="log"`, `aria-live="polite"`.
+    - Failure recovery alert banner (`role="alert"`) with error diagnostics and interactive retry trigger.
+    - Action buttons for interactive job cancellation and pipeline retry.
+  - Exported component via `apps/web/src/lib/components/workspace/index.ts`.
+  - Authored dedicated workspace route in `apps/web/src/routes/workspace/+page.svelte`:
+    - Reads query parameters (`?url=...&format=...&preset=...&budget=...`) on client load with fallback to initial verified target.
+    - Integrated with site `Header`, `Footer`, breadcrumbs navigation, and SEO meta tags.
+  - Updated `apps/web/src/routes/+page.svelte` to provide direct "Open Workspace →" action in conversion feedback banner.
+  - Authored comprehensive automated test suite `apps/web/tests/job-workspace.test.ts` (14 tests) validating pipeline stages, job factories, completeness invariants, weighted progress math, ARIA attributes, and route integration.
+  - Expanded total automated unit and invariant test suite to 90/90 passing tests across 10 test suites.
+
 ### 2026-11-17 — Phase 1.2: Main Website (`1.2.4`) & Phase 1.2 Certification
 
 #### Added

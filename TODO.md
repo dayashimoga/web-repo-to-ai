@@ -43,7 +43,7 @@
 - [x] **[1.2.4]** Implement responsive layouts (mobile, tablet, desktop) *(Completed 2026-11-17, mobile touch targets >=44px, overflow containment, 76 passing tests, Phase 1.2 certified)*
 
 ### Phase 1.3 — Conversion workspace
-- [ ] **[1.3.1]** Build conversion job workspace
+- [x] **[1.3.1]** Build conversion job workspace *(Completed 2026-11-17, JobWorkspace.svelte, job domain model, completeness invariant matrix, 4-stage pipeline tracker, 90 passing tests)*
 - [ ] **[1.3.2]** Build syntax-highlighted content preview panels
 - [ ] **[1.3.3]** Build token statistics interface and budget bar
 - [ ] **[1.3.4]** Build format selection and download controls

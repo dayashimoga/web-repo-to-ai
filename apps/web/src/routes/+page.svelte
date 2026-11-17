@@ -126,16 +126,26 @@
         {#if conversionFeedback}
           <div
             role="alert"
-            class="p-4 rounded-xl text-sm border flex items-start gap-3 {feedbackType === 'success'
+            class="p-4 rounded-xl text-sm border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 {feedbackType === 'success'
               ? 'bg-status-success/10 border-status-success/30 text-green-700 dark:text-green-300'
               : feedbackType === 'error'
                 ? 'bg-status-error/10 border-status-error/30 text-red-700 dark:text-red-300'
                 : 'bg-status-info/10 border-status-info/30 text-blue-700 dark:text-blue-300'}"
           >
-            <span class="font-bold text-base" aria-hidden="true">
-              {feedbackType === 'success' ? '✓' : feedbackType === 'error' ? '⚠' : 'ℹ'}
-            </span>
-            <span class="flex-1">{conversionFeedback}</span>
+            <div class="flex items-start gap-3">
+              <span class="font-bold text-base" aria-hidden="true">
+                {feedbackType === 'success' ? '✓' : feedbackType === 'error' ? '⚠' : 'ℹ'}
+              </span>
+              <span>{conversionFeedback}</span>
+            </div>
+            {#if feedbackType === 'success'}
+              <a
+                href={`/workspace?url=${encodeURIComponent(inputUrl)}&format=${selectedFormat}&preset=${settings.selectedPreset}&budget=${settings.maxTokenBudget}`}
+                class="shrink-0 px-3.5 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-medium text-xs transition-colors shadow-elevation-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+              >
+                Open Workspace →
+              </a>
+            {/if}
           </div>
         {/if}
       </div>

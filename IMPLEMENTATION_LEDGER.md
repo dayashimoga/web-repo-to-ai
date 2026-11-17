@@ -999,7 +999,7 @@
   - `npm run build`: Production bundle generated with `@sveltejs/adapter-node` in `apps/web/build/index.js`.
   - `scripts/check-all.ps1`: ALL 5 GATES PASSED (Gate 1: 224/224 bootstrap checks, Gate 2: 7/7 workflows, Gate 3: Rust formatting, Gate 4: Frontend lint/check/test, Gate 5: 5.27 GB / 30 GB storage ceiling).
   - `bash scripts/check-all.sh`: ALL 5 GATES PASSED (0 failures across all 5 verification gates).
-- **Git Commit Reference:** `82f75e0`
+- **Git Commit Reference:** `e990456`
 - **Status:** `ACCEPTED`
 
 ---
@@ -1019,13 +1019,74 @@
 
 ---
 
-### Upcoming Phase: Phase 1.3 — Conversion workspace
+### Phase 1.3 — Conversion workspace
 
-#### Upcoming Subphase (Awaiting User Approval for Phase 1.3)
+#### Subphase `1.3.1` — Build conversion job workspace
+- **Unique ID:** `1.3.1`
+- **Objective:** Implement dedicated conversion job workspace route (`/workspace` and reusable workspace component) providing real-time pipeline stage progress tracking (Acquisition -> Normalization -> Deduplication -> Export), phase step cards, live log stream terminal, completeness file accounting, and interactive cancel/retry controls.
+- **Scope:** `apps/web/src/lib/types/job.ts`, `apps/web/src/lib/components/workspace/JobWorkspace.svelte`, `apps/web/src/lib/components/workspace/index.ts`, `apps/web/src/routes/workspace/+page.svelte`, `apps/web/src/routes/+page.svelte`, `apps/web/tests/job-workspace.test.ts`, `PROJECT_STATUS.md`, `IMPLEMENTATION_LEDGER.md`.
+- **Prerequisites:** `1.2.4` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `apps/web/src/lib/types/job.ts`
+  - `apps/web/src/lib/components/workspace/JobWorkspace.svelte`
+  - `apps/web/src/lib/components/workspace/index.ts`
+  - `apps/web/src/routes/workspace/+page.svelte`
+  - `apps/web/src/routes/+page.svelte`
+  - `apps/web/tests/job-workspace.test.ts`
+  - `PROJECT_STATUS.md`
+  - `IMPLEMENTATION_LEDGER.md`
+- **Implementation Tasks:**
+  1. Author job domain contracts `apps/web/src/lib/types/job.ts` matching `docs/API.md` and `docs/DATA_MODEL.md`:
+     - `JobStatus`: `'queued' | 'leased' | 'running' | 'completed' | 'partial' | 'failed' | 'cancelled'`
+     - `JobPhase`: `'pending' | 'acquisition' | 'normalization' | 'deduplication' | 'export' | 'completed'`
+     - Pipeline phase metadata, step status indicators (`idle`, `active`, `completed`, `failed`).
+     - Completeness report structure (`discoveredCount`, `extractedCount`, `excludedCount`, `failedCount`).
+     - Token metrics and real-time log event models.
+     - Deterministic mock-free job state transition helper for testing and offline execution.
+  2. Author accessible `JobWorkspace.svelte` component (`apps/web/src/lib/components/workspace/JobWorkspace.svelte`):
+     - Overall progress bar with ARIA progressbar attributes (`role="progressbar"`, `aria-valuenow`, `aria-valuemin="0"`, `aria-valuemax="100"`).
+     - 4-stage pipeline visualization cards (Acquisition, Normalization, Deduplication, Export) with live stage status badges.
+     - Completeness file accounting counter ($discovered = extracted + excluded + failed$).
+     - Live execution log terminal with auto-scroll and `aria-live="polite"` region.
+     - Interactive cancel job button and retry button wired to real state transitions.
+  3. Export via `apps/web/src/lib/components/workspace/index.ts`.
+  4. Author dedicated workspace route `apps/web/src/routes/workspace/+page.svelte`:
+     - Navigation breadcrumbs (Home -> Workspace), Header, JobWorkspace shell, and Footer.
+     - URL query param support (`?url=...&format=...&budget=...`) connecting landing page triggers to live workspace execution.
+  5. Author automated test suite `apps/web/tests/job-workspace.test.ts`:
+     - Test job state transitions and pipeline phase progress calculations.
+     - Test completeness accounting invariants ($discovered = extracted + excluded + failed$).
+     - Test semantic landmarks, ARIA progressbar, live regions, and interactive cancel/retry handlers.
+  6. Run all quality gates: `npm run lint`, `npm run check`, `npm test`, `npm run build`, and `scripts/check-all.*`.
+- **Acceptance Criteria:**
+  - Dedicated `/workspace` route renders cleanly and accepts query parameter initialization.
+  - Job progress bar accurately reflects overall completion percentage with WCAG AA compliance.
+  - 4 pipeline stages update dynamically with appropriate active/completed/failed states.
+  - Cancel and retry controls perform real state updates without mock or dead buttons.
+  - Automated test suite passes with 100% success.
+  - Svelte diagnostics report 0 errors and 0 warnings.
+  - All 5 monorepo verification gates in `scripts/check-all.*` pass.
+- **Tests:** `npm test` in `apps/web`, `npm run check`, `npm run lint`, `npm run build`, and monorepo runners `scripts/check-all.ps1` / `scripts/check-all.sh`.
+- **Security Considerations:** All displayed URL and log data are HTML-escaped to prevent XSS; SSRF validation status is surfaced explicitly.
+- **Performance Considerations:** Log streaming uses windowed line capping (max 200 entries in DOM) to keep browser memory bounded.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`.
+- **Validation Evidence:**
+  - `npm run check`: SvelteKit sync and svelte-check reported 0 errors and 0 warnings in `apps/web`.
+  - `npm run lint`: Prettier verified 100% code style compliance across all matched files.
+  - `npm test`: Vitest ran 10 test suites (`tokens.test.ts`, `color-utils.test.ts`, `responsive-layout.test.ts`, `url-detector.test.ts`, `typography.test.ts`, `ui-components.test.ts`, `url-input-component.test.ts`, `conversion-settings.test.ts`, `landing-page.test.ts`, `job-workspace.test.ts`), passing 90/90 automated unit, responsive, domain model, and component invariant tests with 0 failures.
+  - `npm run build`: Production bundle generated with `@sveltejs/adapter-node` in `apps/web/build/index.js` and `.svelte-kit/output`.
+  - `scripts/check-all.ps1`: ALL 5 GATES PASSED (Gate 1: 224/224 bootstrap checks, Gate 2: 7/7 workflows, Gate 3: Rust formatting, Gate 4: Frontend lint/check/test, Gate 5: 5.27 GB / 30 GB storage ceiling).
+  - `bash scripts/check-all.sh`: ALL 5 GATES PASSED (0 failures across all 5 verification gates).
+- **Git Commit Reference:** `7d58403`
+- **Status:** `ACCEPTED`
+
+---
+
+### Upcoming Subphase (Awaiting User Approval after 1.3.1)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `1.3.1` | Build conversion job workspace | `1.2.4` (`ACCEPTED`) | `apps/web/src/lib/components/workspace/*`, `apps/web/src/routes/workspace/*` | `NOT_STARTED` |
+| `1.3.2` | Build syntax-highlighted content preview panels | `1.3.1` (`ACCEPTED`) | `apps/web/src/lib/components/workspace/PreviewPanel.svelte` | `NOT_STARTED` |
 
 ---
 
