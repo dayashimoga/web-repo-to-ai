@@ -38,7 +38,7 @@
 
 ### Phase 1.2 — Main website
 - [x] **[1.2.1]** Implement landing page with conversion flow *(Completed 2026-11-17, Header, Hero, WorkflowSteps, SupportedSources, FeatureHighlights, Footer, 46 passing tests)*
-- [ ] **[1.2.2]** Implement URL input with instant source detection
+- [x] **[1.2.2]** Implement URL input with instant source detection *(Completed 2026-11-17, UrlInput, url-detector, SSRF pre-check, 63 passing tests)*
 - [ ] **[1.2.3]** Implement conversion settings panel
 - [ ] **[1.2.4]** Implement responsive layouts (mobile, tablet, desktop)
 

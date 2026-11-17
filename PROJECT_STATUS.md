@@ -4,20 +4,18 @@
 **Last Updated:** 2026-11-17  
 **Current Stage:** `STAGE 1 — FRONTEND AND PRODUCT EXPERIENCE` (`IN_PROGRESS`)  
 **Current Phase:** `Phase 1.2 — Main website` (`IN_PROGRESS`)  
-**Active Subphase:** None (Awaiting user approval for `1.2.2`)  
-**Last Completed Subphase:** `1.2.1 — Landing page` (`ACCEPTED`)  
-**Next Eligible Subphase (Awaiting Explicit User Approval):** `1.2.2 — URL input & source detection` (Phase 1.2)
+**Active Subphase:** None (Awaiting user approval for `1.2.3`)  
+**Last Completed Subphase:** `1.2.2 — URL input & source detection` (`ACCEPTED`)  
+**Next Eligible Subphase (Awaiting Explicit User Approval):** `1.2.3 — Conversion settings panel` (Phase 1.2)
 
 ---
 
 ## 1. Executive Summary
 
-Stage 0 (`0.1.1` – `0.3.5`, 15 subphases) and Phase 1.1 (`1.1.1` – `1.1.3`, 3 subphases) are certified and accepted. Phase 1.2 ("Main website") Subphase `1.2.1` ("Landing page") is completed and accepted:
-- **Navigation & Semantic Landmarks:** Authored sticky semantic `Header.svelte` with branding, stage badge, desktop & mobile navigation drawers, and accessible theme switcher; authored semantic `Footer.svelte` with architecture specifications links, compliance badges, and MIT license.
-- **Production Hero & Value Proposition:** Authored `Hero.svelte` communicating the core product proposition, supporting 6 multi-format exporter pills (`.md`, `.json`, `.xml`, `.txt`, `.jsonl`, `.zip`), and displaying hardware/cost operational bounds (CPU-only 16 GB, <= 30 GB Podman, $0 / zero API keys).
-- **Pipeline & Ingestion Matrix:** Authored `WorkflowSteps.svelte` showcasing the 3-step canonical pipeline (Acquisition & SSRF Defense, CDM Canonicalization & Optimization, Multi-Format Export & Token Fit); authored `SupportedSources.svelte` covering all 4 input modalities (Static Documentation, Dynamic JavaScript SPAs, Public GitHub Repositories, Private Repositories via GitHub Apps).
-- **Architectural Highlights & Conversion Entry:** Authored `FeatureHighlights.svelte` detailing 6 core pillars (SSRF defense, AST code intelligence, zero mandatory paid APIs, 30 GB storage ceiling, deterministic token budgeting, privacy-first zero retention); assembled root `+page.svelte` with interactive conversion entry and dynamic source detection.
-- **Automated Verification:** Verified 46 automated tests across 5 test suites (`tokens`, `color-utils`, `typography`, `ui-components`, `landing-page`) with 0 failures; `svelte-check` reports 0 errors and 0 warnings; all 5 monorepo verification gates in `scripts/check-all.*` passed.
+Stage 0 (`0.1.1` – `0.3.5`, 15 subphases) and Phase 1.1 (`1.1.1` – `1.1.3`, 3 subphases) are certified and accepted. Phase 1.2 Subphases `1.2.1` ("Landing page") and `1.2.2` ("URL input & source detection") are completed and accepted:
+- **URL Classification & SSRF Pre-validation Engine (`url-detector.ts`):** Authored deterministic URL classifier detecting standard public GitHub repositories, branch/tree subpaths, file blobs, XML sitemaps, and generic web documentation; implements client-side zero-trust SSRF pre-check against loopback (`127.0.0.0/8`, `::1`), RFC 1918 private subnets (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), cloud metadata (`169.254.169.254`), and non-HTTP protocols (`file:`, `javascript:`, `data:`, `ftp:`).
+- **Dedicated Accessible URL Input Component (`UrlInput.svelte`):** Authored accessible search form component (`role="search"`) with dynamic status badge, ARIA live region (`role="status"`, `aria-live="polite"`), leading icons matching detected source modalities, clear control (`aria-label="Clear URL input"`), error alert banner (`role="alert"`), and GitHub AST preview chips.
+- **Automated Verification:** Verified 63 automated tests across 7 test suites with 0 failures; `svelte-check` reports 0 errors and 0 warnings; production build bundled cleanly with `@sveltejs/adapter-node`; all 5 monorepo verification gates in `scripts/check-all.*` passed.
 
 ---
 
@@ -25,12 +23,12 @@ Stage 0 (`0.1.1` – `0.3.5`, 15 subphases) and Phase 1.1 (`1.1.1` – `1.1.3`, 
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 19 | `0.1.1` – `0.3.5`, `1.1.1` – `1.2.1` |
+| `ACCEPTED` | 20 | `0.1.1` – `0.3.5`, `1.1.1` – `1.2.2` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 178 | `1.2.2` – `11.4.5` |
+| `NOT_STARTED` | 177 | `1.2.3` – `11.4.5` |
 | **Total** | **197** | `Stage 0` – `Stage 11` |
 
 ---

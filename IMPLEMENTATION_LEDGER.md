@@ -837,16 +837,71 @@
   - `npm run build`: Production bundle generated with `@sveltejs/adapter-node` in `apps/web/build/index.js`.
   - `scripts/check-all.ps1`: ALL 5 GATES PASSED (Gate 1: 224/224 bootstrap checks, Gate 2: 7/7 workflows, Gate 3: Rust formatting, Gate 4: Frontend lint/check/test, Gate 5: 5.27 GB / 30 GB storage ceiling).
   - `bash scripts/check-all.sh`: ALL 5 GATES PASSED (0 failures).
-- **Git Commit Reference:** `6172f79`
+- **Git Commit Reference:** `9eb17e7`
 - **Status:** `ACCEPTED`
 
 ---
 
-### Upcoming Subphase (Awaiting User Approval after 1.2.1)
+#### Subphase `1.2.2` — URL input & source detection
+- **Unique ID:** `1.2.2`
+- **Objective:** Implement a dedicated URL input component with real-time source detection (GitHub repository vs. web page/documentation vs. sitemap), protocol and SSRF pre-validation, parsed repository metadata (owner, repo, branch, path), and responsive accessible UI feedback.
+- **Scope:** `apps/web/src/lib/utils/url-detector.ts`, `apps/web/src/lib/components/input/UrlInput.svelte`, `apps/web/src/lib/components/input/index.ts`, `apps/web/src/routes/+page.svelte`, `apps/web/tests/url-detector.test.ts`, `apps/web/tests/url-input-component.test.ts`, `PROJECT_STATUS.md`, `IMPLEMENTATION_LEDGER.md`.
+- **Prerequisites:** `1.2.1` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `apps/web/src/lib/utils/url-detector.ts`
+  - `apps/web/src/lib/components/input/UrlInput.svelte`
+  - `apps/web/src/lib/components/input/index.ts`
+  - `apps/web/src/routes/+page.svelte`
+  - `apps/web/tests/url-detector.test.ts`
+  - `apps/web/tests/url-input-component.test.ts`
+  - `PROJECT_STATUS.md`
+  - `IMPLEMENTATION_LEDGER.md`
+- **Implementation Tasks:**
+  1. Author URL detection and validation engine `apps/web/src/lib/utils/url-detector.ts`:
+     - Standard URL parsing with RFC-compliant validation.
+     - GitHub URL recognition: public repos, organization repos, branch/tree URLs (`/tree/<branch>`), blob URLs (`/blob/<branch>/<path>`), and subtree paths.
+     - Sitemap recognition: `.xml`, `sitemap.xml`, `sitemap-index.xml`.
+     - Generic web documentation and article detection with domain extraction.
+     - Client-side SSRF safety pre-check: flag loopback (`127.0.0.1`, `localhost`, `::1`), private CIDRs (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), cloud metadata (`169.254.169.254`), and non-HTTP protocols (`file:`, `javascript:`, `data:`, `ftp:`).
+  2. Author accessible `UrlInput.svelte` component (`apps/web/src/lib/components/input/UrlInput.svelte`):
+     - Protocol indicator, clear button, submit button with loading spinner.
+     - Dynamic source badge (`GitHub Repo`, `Web Doc`, `Sitemap`, `Invalid / Disallowed`) with ARIA live region (`aria-live="polite"`).
+     - Contextual metadata chips for GitHub URLs (Owner, Repo, Branch, Subtree).
+     - Real-time client error messages for invalid syntax and blocked destinations.
+  3. Export via `apps/web/src/lib/components/input/index.ts`.
+  4. Integrate `UrlInput` into `apps/web/src/routes/+page.svelte` in place of the quick convert prototype.
+  5. Author automated test suites:
+     - `apps/web/tests/url-detector.test.ts`: test cases covering all source types, GitHub variants, sitemaps, private IP blocks, and malformed inputs.
+     - `apps/web/tests/url-input-component.test.ts`: verify component exports, ARIA attributes, reactive states, and event dispatch.
+  6. Run all quality gates: `npm run lint`, `npm run check`, `npm test`, `npm run build`, `scripts/check-all.*`.
+- **Acceptance Criteria:**
+  - `url-detector.ts` accurately classifies GitHub repositories, web documentation, and sitemaps.
+  - Client-side SSRF pre-check flags loopback, private IPs, and cloud metadata immediately.
+  - `UrlInput.svelte` provides responsive visual indicators, clear controls, and accessible ARIA attributes.
+  - Integration into root page functions seamlessly across desktop and mobile.
+  - 100% of automated tests pass; `svelte-check` reports 0 errors and 0 warnings.
+  - All 5 monorepo gates in `scripts/check-all.*` pass cleanly.
+- **Tests:** `npm test` in `apps/web`, `npm run check`, `npm run lint`, `npm run build`, and `scripts/check-all.ps1` / `scripts/check-all.sh`.
+- **Security Considerations:** Enforces client-side validation against SSRF targets prior to network submission; sanitizes all displayed URL parts.
+- **Performance Considerations:** Detection runs synchronously in memory without blocking input typing; zero heavy dependencies.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`.
+- **Validation Evidence:**
+  - `npm run check`: SvelteKit sync and svelte-check reported 0 errors and 0 warnings in `apps/web`.
+  - `npm run lint`: Prettier verified 100% code style compliance across all matched files.
+  - `npm test`: Vitest ran 7 test suites (`tokens.test.ts`, `color-utils.test.ts`, `url-detector.test.ts`, `typography.test.ts`, `ui-components.test.ts`, `url-input-component.test.ts`, `landing-page.test.ts`), passing 63/63 automated unit and invariant tests with 0 failures.
+  - `npm run build`: Production bundle generated with `@sveltejs/adapter-node` in `apps/web/build/index.js`.
+  - `scripts/check-all.ps1`: ALL 5 GATES PASSED (Gate 1: 224/224 bootstrap checks, Gate 2: 7/7 workflows, Gate 3: Rust formatting, Gate 4: Frontend lint/check/test, Gate 5: 5.27 GB / 30 GB storage ceiling).
+  - `bash scripts/check-all.sh`: ALL 5 GATES PASSED (0 failures across all 5 verification gates).
+- **Git Commit Reference:** `878c791`
+- **Status:** `ACCEPTED`
+
+---
+
+### Upcoming Subphase (Awaiting User Approval after 1.2.2)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `1.2.2` | URL input & source detection | `1.2.1` (`ACCEPTED`) | `apps/web/src/lib/components/input/*` | `NOT_STARTED` |
+| `1.2.3` | Conversion settings panel | `1.2.2` (`ACCEPTED`) | `apps/web/src/lib/components/settings/*` | `NOT_STARTED` |
 
 ---
 

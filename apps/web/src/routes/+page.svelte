@@ -1,36 +1,33 @@
 <script lang="ts">
   import { Header, Footer } from '$lib/components/navigation';
   import { Hero, WorkflowSteps, SupportedSources, FeatureHighlights } from '$lib/components/landing';
-  import { Button, Input, Badge } from '$lib/components/ui';
+  import { UrlInput } from '$lib/components/input';
+  import { Badge } from '$lib/components/ui';
+  import type { UrlDetectionResult } from '$lib/utils/url-detector';
 
   let isDark = $state(true);
 
-  // Conversion quick entry state (expanded in Subphase 1.2.2)
+  // Conversion entry state
   let inputUrl = $state('https://github.com/dayashimoga/web-repo-to-ai');
   let selectedFormat = $state<'markdown' | 'json' | 'xml' | 'txt' | 'jsonl' | 'zip'>('markdown');
   let isConverting = $state(false);
   let conversionFeedback = $state<string | null>(null);
   let feedbackType = $state<'success' | 'error' | 'info'>('info');
+  let currentDetection = $state<UrlDetectionResult | null>(null);
 
-  let detectedSource = $derived.by(() => {
-    const trimmed = inputUrl.trim();
-    if (!trimmed) return 'Awaiting URL...';
-    if (trimmed.includes('github.com')) return 'GitHub Repository';
-    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return 'Web Documentation / Article';
-    return 'Invalid Protocol';
-  });
+  let detectedSource = $derived(currentDetection?.label ?? 'Awaiting URL...');
 
-  function handleStartConversion(e?: Event) {
-    if (e) e.preventDefault();
-    const trimmed = inputUrl.trim();
-    if (!trimmed) {
-      feedbackType = 'error';
-      conversionFeedback = 'Please enter a valid HTTP(S) documentation URL or GitHub repository.';
-      return;
+  function handleUrlChange(detection: UrlDetectionResult) {
+    currentDetection = detection;
+    if (detection.suggestedFormat && !conversionFeedback) {
+      selectedFormat = detection.suggestedFormat;
     }
-    if (!trimmed.startsWith('https://') && !trimmed.startsWith('http://')) {
+  }
+
+  function handleStartConversion(detection: UrlDetectionResult) {
+    if (!detection.isValid || !detection.isSafe) {
       feedbackType = 'error';
-      conversionFeedback = 'URL must begin with http:// or https:// for zero-trust security validation.';
+      conversionFeedback = detection.errorMessage || 'Please provide a valid, safe URL to proceed.';
       return;
     }
 
@@ -40,7 +37,10 @@
     setTimeout(() => {
       isConverting = false;
       feedbackType = 'success';
-      conversionFeedback = `URL verified (${detectedSource}). Target format set to ${selectedFormat.toUpperCase()}. Prepared for canonical extraction pipeline.`;
+      const targetDesc = detection.githubMetadata
+        ? `${detection.githubMetadata.owner}/${detection.githubMetadata.repo}`
+        : detection.domain || detection.normalizedUrl;
+      conversionFeedback = `Verified ${detection.label}: '${targetDesc}'. Destination validated against zero-trust SSRF policies. Prepared for canonical ${selectedFormat.toUpperCase()} extraction pipeline.`;
     }, 500);
   }
 </script>
@@ -53,7 +53,7 @@
   <!-- Hero Section -->
   <Hero />
 
-  <!-- Quick Conversion Entry Section -->
+  <!-- URL Input & Conversion Entry Section -->
   <section
     id="convert"
     aria-labelledby="convert-heading"
@@ -61,7 +61,7 @@
   >
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="text-center mb-8">
-        <Badge variant="brand" size="sm" class="mb-3">Quick Conversion Entry</Badge>
+        <Badge variant="brand" size="sm" class="mb-3">Content Ingestion</Badge>
         <h2
           id="convert-heading"
           class="text-3xl sm:text-4xl font-extrabold tracking-tight text-theme-primary"
@@ -73,53 +73,16 @@
         </p>
       </div>
 
-      <form
-        onsubmit={handleStartConversion}
-        class="p-6 sm:p-8 rounded-2xl bg-theme-panel border border-theme-subtle shadow-elevation-2 space-y-6"
-      >
-        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-          <label for="url-input" class="text-sm font-semibold text-theme-primary">
-            Target URL or Repository
-          </label>
-          <span class="text-xs font-mono text-theme-secondary flex items-center gap-1.5">
-            <span>Detected:</span>
-            <Badge
-              variant={detectedSource === 'Invalid Protocol'
-                ? 'error'
-                : detectedSource === 'Awaiting URL...'
-                  ? 'default'
-                  : 'success'}
-              size="sm"
-            >
-              {detectedSource}
-            </Badge>
-          </span>
-        </div>
+      <div class="p-6 sm:p-8 rounded-2xl bg-theme-panel border border-theme-subtle shadow-elevation-2 space-y-6">
+        <!-- Dedicated UrlInput Component with Instant Source & SSRF Detection -->
+        <UrlInput
+          bind:value={inputUrl}
+          loading={isConverting}
+          onchange={handleUrlChange}
+          onsubmit={handleStartConversion}
+        />
 
-        <div class="flex flex-col sm:flex-row gap-3">
-          <div class="flex-1">
-            <Input
-              id="url-input"
-              placeholder="https://github.com/owner/repo or https://docs.example.com"
-              bind:value={inputUrl}
-              clearable
-              required
-              ariaLabel="Target URL or GitHub Repository"
-            />
-          </div>
-          <Button
-            type="submit"
-            variant="primary"
-            size="md"
-            loading={isConverting}
-            ariaLabel="Start Conversion Job"
-            class="sm:self-start whitespace-nowrap min-w-[140px]"
-          >
-            {isConverting ? 'Verifying...' : 'Convert URL'}
-          </Button>
-        </div>
-
-        <!-- Format Selector Options -->
+        <!-- Target Output Format Selector -->
         <div class="space-y-2 pt-2 border-t border-theme-subtle">
           <div class="text-xs font-semibold uppercase tracking-wider text-theme-muted">
             Target Output Format
@@ -147,7 +110,7 @@
           </div>
         </div>
 
-        <!-- Interactive Feedback Banner -->
+        <!-- Live Conversion / Verification Feedback Banner -->
         {#if conversionFeedback}
           <div
             role="alert"
@@ -163,7 +126,7 @@
             <span class="flex-1">{conversionFeedback}</span>
           </div>
         {/if}
-      </form>
+      </div>
     </div>
   </section>
 

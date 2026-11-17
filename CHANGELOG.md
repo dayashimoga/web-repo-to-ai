@@ -6,6 +6,24 @@
 
 ## [Unreleased] — Stage 1: Frontend and Product Experience
 
+### 2026-11-17 — Phase 1.2: Main Website (`1.2.2`)
+
+#### Added
+- **`[1.2.2]` URL Input Component, Real-Time Source Detection & SSRF Pre-validation Engine:**
+  - Authored URL detection and classification utility `apps/web/src/lib/utils/url-detector.ts`:
+    - Full classification supporting standard public GitHub repositories, branch/tree subpaths, file blobs, XML sitemaps, sitemap indexes, and generic web documentation.
+    - Implemented client-side zero-trust SSRF pre-check (`isBlockedHost`) preventing submission to loopback addresses (`127.0.0.0/8`, `::1`), RFC 1918 private subnets (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), cloud metadata endpoints (`169.254.169.254`, `metadata.google.internal`), and non-HTTP protocols (`file:`, `javascript:`, `data:`, `ftp:`).
+    - Extracted GitHub metadata including owner, repo, ref, and subpath.
+  - Authored dedicated accessible URL input component in `apps/web/src/lib/components/input/UrlInput.svelte`:
+    - Accessible search form landmark (`role="search"`, `aria-label="URL Ingestion Form"`).
+    - Dynamic source badge with ARIA live region (`role="status"`, `aria-live="polite"`).
+    - Contextual leading icons matching detected source modalities (GitHub Octocat, Sitemap XML, Security Warning Shield, Globe).
+    - Clear button control (`aria-label="Clear URL input"`), `Escape` key handling, and submit button with SVG loading spinner.
+    - Accessible error alert banner (`role="alert"`) rendering explicit SSRF and syntax error diagnostics.
+    - Exported component via `apps/web/src/lib/components/input/index.ts`.
+  - Integrated `UrlInput` into `apps/web/src/routes/+page.svelte` replacing the prototype input in `#convert` with real-time classification, dynamic target format suggestion, and verified submission feedback.
+  - Authored automated unit test suites `apps/web/tests/url-detector.test.ts` (14 tests) and `apps/web/tests/url-input-component.test.ts` (3 tests), expanding total test suite count to 63/63 passing tests.
+
 ### 2026-11-17 — Phase 1.2: Main Website (`1.2.1`)
 
 #### Added
