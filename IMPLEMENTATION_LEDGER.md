@@ -392,7 +392,7 @@
   - `scripts/check-resources.ps1` output: `[HEALTHY_WITHIN_BUDGET] Podman storage footprint (4.95 GB / 30 GB, 16.5%) is within budget.`
   - `scripts/check-all.ps1`: ALL 5 GATES PASSED (199/199 checks passed).
   - `scripts/check-all.sh`: ALL 5 GATES PASSED (199/199 checks passed).
-- **Git Commit Reference:** `8a13ca6`
+- **Git Commit Reference:** `0f67467`
 - **Status:** `ACCEPTED`
 
 ---
