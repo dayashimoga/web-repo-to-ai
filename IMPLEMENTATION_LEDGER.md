@@ -710,16 +710,87 @@
   - `npm run build`: Production bundle generated with `@sveltejs/adapter-node` in `apps/web/build/index.js`.
   - `scripts/check-all.ps1`: ALL 5 GATES PASSED (Gate 1: 224/224 bootstrap checks including `docs/DESIGN_SYSTEM.md`, Gate 2: 7/7 workflows, Gate 3: Rust formatting, Gate 4: Frontend lint/check/test, Gate 5: 5.27 GB / 30 GB storage ceiling).
   - `bash scripts/check-all.sh`: ALL 5 GATES PASSED (0 failures).
-- **Git Commit Reference:** `7e5117f`
+- **Git Commit Reference:** `97f9e44`
 - **Status:** `ACCEPTED`
 
 ---
 
-### Upcoming Subphase (Awaiting User Approval after 1.1.2)
+#### Subphase `1.1.3` — Reusable accessible components
+- **Unique ID:** `1.1.3`
+- **Objective:** Build the reusable accessible UI component primitives (`Button`, `Input`, `Toggle`, `Badge`, `Modal`, `Tooltip`) in `apps/web/src/lib/components/ui/` with full keyboard support, visible focus states, ARIA roles, and certified WCAG AA compliance.
+- **Scope:** `apps/web/src/lib/components/ui/*`, `apps/web/tests/ui-components.test.ts`, `apps/web/src/routes/+page.svelte`, `PROJECT_STATUS.md`, `IMPLEMENTATION_LEDGER.md`.
+- **Prerequisites:** `1.1.2` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `apps/web/src/lib/components/ui/Button.svelte`
+  - `apps/web/src/lib/components/ui/Input.svelte`
+  - `apps/web/src/lib/components/ui/Toggle.svelte`
+  - `apps/web/src/lib/components/ui/Badge.svelte`
+  - `apps/web/src/lib/components/ui/Modal.svelte`
+  - `apps/web/src/lib/components/ui/Tooltip.svelte`
+  - `apps/web/src/lib/components/ui/index.ts`
+  - `apps/web/tests/ui-components.test.ts`
+  - `apps/web/src/routes/+page.svelte`
+  - `PROJECT_STATUS.md`
+  - `IMPLEMENTATION_LEDGER.md`
+- **Implementation Tasks:**
+  1. Author `Button.svelte`: variants (`primary`, `secondary`, `outline`, `ghost`, `danger`), sizes (`sm`, `md`, `lg`), loading spinner state, disabled state, fullWidth, keyboard focus rings, click event forwarding.
+  2. Author `Input.svelte`: text/url input with label, helper text, error message, placeholder, prefix icon/badge, clear button, ARIA attributes (`aria-invalid`, `aria-describedby`).
+  3. Author `Toggle.svelte`: accessible switch primitive with `role="switch"`, `aria-checked`, label, description, keyboard toggling (`Space`, `Enter`).
+  4. Author `Badge.svelte`: status/category indicator with variants (`default`, `brand`, `success`, `warning`, `error`, `info`), sizes (`sm`, `md`), optional status dot.
+  5. Author `Modal.svelte`: accessible dialog with backdrop, escape key handler, click-outside dismissal, `role="dialog"`, `aria-modal="true"`, `aria-labelledby`, header, close button, body, and action footer.
+  6. Author `Tooltip.svelte`: accessible contextual tooltip with keyboard focus/hover triggers, `aria-describedby`, positioned popover.
+  7. Export all UI primitives in `apps/web/src/lib/components/ui/index.ts`.
+  8. Update `apps/web/src/routes/+page.svelte` demonstrating live interactive UI components.
+  9. Author comprehensive test suite `apps/web/tests/ui-components.test.ts`.
+  10. Run all verification gates.
+- **Acceptance Criteria:**
+  - All 6 UI components render cleanly using Svelte 5 runes and TypeScript.
+  - Buttons support all 5 variants, 3 sizes, loading spinners, and disabled states.
+  - Inputs link labels and error messages via ARIA attributes.
+  - Toggles support `role="switch"` and keyboard activation.
+  - Modals respond to `Escape`, dismiss on backdrop click, and render semantic dialog structure.
+  - Automated component test suite passes with 100% success.
+  - `npm run check` passes with 0 errors and 0 warnings.
+  - All 5 monorepo verification gates in `scripts/check-all.*` pass.
+- **Tests:** `npm test` in `apps/web`, `npm run check`, `npm run lint`, `npm run build`, and monorepo runner `scripts/check-all.ps1`.
+- **Security Considerations:** Inputs sanitize values; modal events prevent scroll-jacking; no dynamic innerHTML injection; strict CSP compliance.
+- **Performance Considerations:** Zero heavy runtime dependencies; clean Svelte 5 reactive bindings; modals conditionally mount into DOM.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`.
+- **Validation Evidence:**
+  - `apps/web/tests/ui-components.test.ts`: 6/6 tests passed (0 failures).
+  - `apps/web/tests/color-utils.test.ts`: 11/11 tests passed (0 failures).
+  - `apps/web/tests/tokens.test.ts`: 18/18 tests passed (0 failures).
+  - `apps/web/tests/typography.test.ts`: 2/2 tests passed (0 failures).
+  - Total unit tests: 37/37 tests passed across 4 test suites.
+  - `npm run check` (svelte-check): 0 errors, 0 warnings.
+  - `npm run lint` (prettier): All matched files use Prettier code style.
+  - `npm run build`: Production bundle generated with `@sveltejs/adapter-node` in `apps/web/build/index.js`.
+  - `scripts/check-all.ps1`: ALL 5 GATES PASSED (Gate 1: 224/224 bootstrap checks, Gate 2: 7/7 workflows, Gate 3: Rust formatting, Gate 4: Frontend lint/check/test, Gate 5: 5.27 GB / 30 GB storage ceiling).
+  - `bash scripts/check-all.sh`: ALL 5 GATES PASSED (0 failures).
+- **Git Commit Reference:** `d065754`
+- **Status:** `ACCEPTED`
+
+---
+
+### PHASE 1.1 COMPLETION CERTIFICATION
+
+- **Phase ID:** `Phase 1.1 — Design system`
+- **Stage:** `STAGE 1 — FRONTEND AND PRODUCT EXPERIENCE`
+- **Subphases Completed:** `1.1.1` (Visual design tokens), `1.1.2` (Typography, spacing & color systems), `1.1.3` (Reusable accessible components). All 3 `ACCEPTED`.
+- **Phase Deliverable:** Complete, accessible, tested design system with SvelteKit 2 + Svelte 5 foundation, atomic design tokens, typography components, 4px layout primitives, WCAG 2.1 AA/AAA contrast utilities, reusable UI primitives (`Button`, `Input`, `Toggle`, `Badge`, `Modal`, `Tooltip`), and technical specification `docs/DESIGN_SYSTEM.md`.
+- **Verification Evidence:**
+  - 37/37 automated tests passing in `apps/web`.
+  - Svelte diagnostics: 0 errors, 0 warnings.
+  - All 5 gates in monorepo runners (`scripts/check-all.*`) passing.
+- **Status:** `COMPLETED` / `ACCEPTED` (Certified 2026-11-17)
+
+---
+
+### Upcoming Subphase (Awaiting User Approval for Phase 1.2)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `1.1.3` | Reusable accessible components | `1.1.2` (`ACCEPTED`) | `apps/web/src/lib/components/ui/*` | `NOT_STARTED` |
+| `1.2.1` | Landing page | `1.1.3` (`ACCEPTED`) | `apps/web/src/routes/+page.svelte`, `apps/web/src/lib/components/landing/*` | `NOT_STARTED` |
 
 ---
 

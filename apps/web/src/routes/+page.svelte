@@ -3,10 +3,16 @@
   import { getTokenBudgetClasses } from '$lib/tokens/color-utils';
   import { Heading, Text, Code, Mono } from '$lib/components/typography';
   import { Container, Stack, Grid } from '$lib/components/layout';
+  import { Button, Input, Toggle, Badge, Modal, Tooltip } from '$lib/components/ui';
 
   let isDark = $state(true);
   let sampleTokens = $state(75000);
   const maxTokens = 100000;
+
+  let testInput = $state('https://github.com/dayashimoga/web-repo-to-ai');
+  let testToggle = $state(true);
+  let isModalOpen = $state(false);
+  let isButtonLoading = $state(false);
 
   let budgetStatus = $derived(getTokenBudgetStatus(sampleTokens, maxTokens));
   let budgetClasses = $derived(getTokenBudgetClasses(budgetStatus.ratio));
@@ -17,6 +23,13 @@
       document.documentElement.classList.toggle('dark', isDark);
     }
   }
+
+  function simulateLoad() {
+    isButtonLoading = true;
+    setTimeout(() => {
+      isButtonLoading = false;
+    }, 1500);
+  }
 </script>
 
 <header class="border-b border-theme-subtle bg-theme-panel px-6 py-4 flex items-center justify-between shadow-elevation-1">
@@ -25,18 +38,11 @@
       AI
     </div>
     <span class="font-bold text-lg tracking-tight">web-repo-to-ai</span>
-    <span class="text-xs px-2 py-0.5 rounded-full bg-brand-100 dark:bg-brand-950 text-brand-700 dark:text-brand-300 font-mono">
-      v0.1.0-system
-    </span>
+    <Badge variant="brand" size="sm" dot>Stage 1 Design System</Badge>
   </div>
-  <button
-    type="button"
-    onclick={toggleTheme}
-    class="px-3 py-1.5 rounded-md text-sm border border-theme-subtle hover:bg-theme-subtle transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-    aria-label="Toggle color theme"
-  >
-    {isDark ? '☀️ Light' : '🌙 Dark'}
-  </button>
+  <Button variant="secondary" size="sm" onclick={toggleTheme} ariaLabel="Toggle color theme">
+    {isDark ? '☀️ Light Mode' : '🌙 Dark Mode'}
+  </Button>
 </header>
 
 <main class="flex-1 py-8">
@@ -44,76 +50,105 @@
     <Stack gap={8}>
       <!-- Page Header -->
       <Stack gap={2}>
-        <Heading level={1}>Typography, Spacing & Color Systems</Heading>
+        <Heading level={1}>Design System & UI Component Primitives</Heading>
         <Text size="lg" tone="secondary">
-          Design system foundation for high-density, accessible AI context conversion interfaces.
+          Accessible, keyboard-navigable components built with Svelte 5 and Tailwind CSS.
         </Text>
       </Stack>
 
-      <!-- Typography Scale Showcase -->
-      <section class="bg-theme-panel p-6 rounded-xl border border-theme-subtle shadow-elevation-1 space-y-4">
-        <Heading level={2} size="2xl">Typography Scale</Heading>
-        <Stack gap={4}>
-          <Heading level={3} size="xl">Heading 3 (20px / 1.25rem)</Heading>
-          <Heading level={4} size="lg">Heading 4 (18px / 1.125rem)</Heading>
-          <Text size="base">
-            Body base text (<Code>text-base leading-6</Code>) with standard 16px size for dense repository manifests and article excerpts.
-          </Text>
-          <Text size="sm" tone="secondary">
-            Body small text (<Code>text-sm leading-5</Code>) for file metadata, timestamps, and AST node descriptions.
-          </Text>
-          <div class="flex items-center space-x-3 text-sm">
-            <span>Inline Monospace:</span>
-            <Code>crates/tokenizer/src/bpe.rs:142</Code>
-            <span>Token Counter:</span>
-            <Mono size="sm" class="font-bold text-brand-600 dark:text-brand-400">128,450 tokens</Mono>
+      <!-- UI Component Primitives Showcase -->
+      <section class="bg-theme-panel p-6 rounded-xl border border-theme-subtle shadow-elevation-1 space-y-6">
+        <Heading level={2} size="2xl">Interactive UI Primitives</Heading>
+
+        <!-- Buttons -->
+        <Stack gap={3}>
+          <Heading level={4} size="lg">Buttons & States</Heading>
+          <div class="flex flex-wrap items-center gap-3">
+            <Button variant="primary">Primary Button</Button>
+            <Button variant="secondary">Secondary</Button>
+            <Button variant="outline">Outline</Button>
+            <Button variant="ghost">Ghost</Button>
+            <Button variant="danger">Danger</Button>
+            <Button variant="primary" loading={isButtonLoading} onclick={simulateLoad}>
+              {isButtonLoading ? 'Processing...' : 'Click to Load'}
+            </Button>
+            <Button variant="secondary" disabled>Disabled</Button>
+          </div>
+        </Stack>
+
+        <!-- Badges -->
+        <Stack gap={3}>
+          <Heading level={4} size="lg">Status Badges</Heading>
+          <div class="flex flex-wrap items-center gap-2">
+            <Badge variant="default">Default</Badge>
+            <Badge variant="brand" dot>Brand AI</Badge>
+            <Badge variant="success" dot>Extracted</Badge>
+            <Badge variant="warning" dot>Budget &gt;80%</Badge>
+            <Badge variant="error" dot>SSRF Blocked</Badge>
+            <Badge variant="info" dot>Playwright</Badge>
+          </div>
+        </Stack>
+
+        <!-- Form Inputs & Toggles -->
+        <Grid cols={2} gap={6}>
+          <Stack gap={3}>
+            <Heading level={4} size="lg">Accessible Inputs</Heading>
+            <Input
+              label="Source URL / GitHub Repository"
+              placeholder="https://github.com/org/repo"
+              bind:value={testInput}
+              helperText="Valid URLs are checked against the SSRF security policy."
+              clearable
+              required
+            />
+          </Stack>
+
+          <Stack gap={3}>
+            <Heading level={4} size="lg">Switch Toggles & Tooltips</Heading>
+            <div class="p-4 rounded-lg bg-theme-subtle border border-theme-subtle space-y-4">
+              <Toggle
+                label="Dynamic JavaScript Rendering"
+                description="Fall back to isolated Chromium browser worker when static HTML is incomplete."
+                bind:checked={testToggle}
+              />
+              <div class="flex items-center gap-2 text-sm text-theme-secondary">
+                <span>Hover or tab for details:</span>
+                <Tooltip content="SSRF protection revalidates DNS on every redirect hop.">
+                  <Badge variant="brand" size="sm">Hover Info</Badge>
+                </Tooltip>
+              </div>
+            </div>
+          </Stack>
+        </Grid>
+
+        <!-- Modal Trigger -->
+        <Stack gap={3}>
+          <Heading level={4} size="lg">Accessible Dialog Modal</Heading>
+          <div>
+            <Button variant="primary" onclick={() => (isModalOpen = true)}>
+              Open Sample Modal Dialog
+            </Button>
           </div>
         </Stack>
       </section>
 
-      <!-- Layout Primitives Showcase -->
-      <section class="bg-theme-panel p-6 rounded-xl border border-theme-subtle shadow-elevation-1 space-y-4">
-        <Heading level={2} size="2xl">4px Grid Layout Primitives</Heading>
-        <Text tone="secondary">
-          Responsive CSS Grid and Flexbox Stacks adhering to the 4px baseline rhythm (<Code>gap-1</Code> to <Code>gap-12</Code>).
-        </Text>
-
-        <Grid cols={3} gap={4}>
-          <div class="p-4 rounded-lg bg-theme-subtle border border-theme-subtle space-y-1">
-            <Heading level={5} size="base">Grid Col 1</Heading>
-            <Text size="sm" tone="secondary">SSRF URL Validation Gateway</Text>
-          </div>
-          <div class="p-4 rounded-lg bg-theme-subtle border border-theme-subtle space-y-1">
-            <Heading level={5} size="base">Grid Col 2</Heading>
-            <Text size="sm" tone="secondary">Playwright Browser Worker</Text>
-          </div>
-          <div class="p-4 rounded-lg bg-theme-subtle border border-theme-subtle space-y-1">
-            <Heading level={5} size="base">Grid Col 3</Heading>
-            <Text size="sm" tone="secondary">Canonical Model & Tokenizer</Text>
-          </div>
-        </Grid>
-      </section>
-
-      <!-- Interactive Token Budget Indicator -->
+      <!-- Token Budget Indicator Showcase -->
       <section class="bg-theme-panel p-6 rounded-xl border border-theme-subtle shadow-elevation-1 space-y-4">
         <div class="flex justify-between items-center">
-          <Heading level={2} size="2xl">Interactive Context Budget Indicator</Heading>
+          <Heading level={2} size="2xl">AI Context Token Budget Indicator</Heading>
           <span class="px-2.5 py-1 rounded text-xs font-semibold uppercase border {budgetClasses.badgeClass}">
             {budgetStatus.status} ({(budgetStatus.ratio * 100).toFixed(1)}%)
           </span>
         </div>
 
         <Text tone="secondary" size="sm">
-          Dynamic context usage slider demonstrating automatic WCAG status transitions:
-          <span class="text-status-success font-medium"> Safe (&le; 80%)</span>,
-          <span class="text-status-warning font-medium"> Warning (80%–100%)</span>,
-          <span class="text-status-error font-medium"> Critical (&gt; 100%)</span>.
+          Dynamic context window tracker adhering to WCAG 2.1 contrast guidelines.
         </Text>
 
         <div class="space-y-3 pt-2">
           <div class="flex justify-between items-center text-sm font-mono">
-            <span>Consumed Tokens: <Mono class="font-bold">{sampleTokens.toLocaleString()}</Mono></span>
-            <span>Target Budget: <Mono class="font-bold">{maxTokens.toLocaleString()}</Mono></span>
+            <span>Tokens: <Mono class="font-bold">{sampleTokens.toLocaleString()}</Mono></span>
+            <span>Ceiling: <Mono class="font-bold">{maxTokens.toLocaleString()}</Mono></span>
           </div>
 
           <input
@@ -137,3 +172,27 @@
     </Stack>
   </Container>
 </main>
+
+<!-- Sample Dialog Modal -->
+<Modal
+  bind:open={isModalOpen}
+  title="Conversion Parameters"
+  description="Configure CDM Canonical Context Model settings for extraction."
+>
+  <Stack gap={4}>
+    <Text size="sm">
+      Adjust target model context parameters. The extraction worker will automatically normalize whitespace, strip tracking tags, and generate labeled token maps.
+    </Text>
+    <Input
+      label="Max Token Budget"
+      type="number"
+      value="128000"
+      helperText="Context window ceiling for selected AI model."
+    />
+  </Stack>
+
+  {#snippet footer()}
+    <Button variant="outline" size="sm" onclick={() => (isModalOpen = false)}>Cancel</Button>
+    <Button variant="primary" size="sm" onclick={() => (isModalOpen = false)}>Save Settings</Button>
+  {/snippet}
+</Modal>

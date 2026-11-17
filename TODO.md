@@ -31,10 +31,10 @@
 
 ## Stage 1 — Frontend and Product Experience (`IN_PROGRESS`)
 
-### Phase 1.1 — Design system (`IN_PROGRESS`)
+### Phase 1.1 — Design system (`COMPLETED` / `ACCEPTED`)
 - [x] **[1.1.1]** Scaffold SvelteKit + Svelte 5 + TypeScript + Tailwind CSS application in `apps/web` and establish visual design token system *(Completed 2026-11-17, brand/accent/surface palettes, token budget indicators, tokens.css, Tailwind theme)*
 - [x] **[1.1.2]** Implement typography scale, spacing system, and accessible color contrast utilities *(Completed 2026-11-17, Heading/Text/Code/Mono, Container/Stack/Grid, color-utils, docs/DESIGN_SYSTEM.md)*
-- [ ] **[1.1.3]** Build reusable accessible UI component primitives (Button, Input, Toggle, Badge, Modal, Tooltip)
+- [x] **[1.1.3]** Build reusable accessible UI component primitives (Button, Input, Toggle, Badge, Modal, Tooltip) *(Completed 2026-11-17, Button/Input/Toggle/Badge/Modal/Tooltip, ARIA roles, 37 passing tests)*
 
 ### Phase 1.2 — Main website
 - [ ] **[1.2.1]** Implement landing page with conversion flow

@@ -6,6 +6,22 @@
 
 ## [Unreleased] — Stage 1: Frontend and Product Experience
 
+### 2026-11-17 — Phase 1.1: Design System (`1.1.3`)
+
+#### Added
+- **`[1.1.3]` Reusable Accessible UI Component Primitives & Phase 1.1 Completion:**
+  - Authored accessible UI components in `apps/web/src/lib/components/ui/`:
+    - `Button.svelte`: 5 variants (`primary`, `secondary`, `outline`, `ghost`, `danger`), 3 sizes (`sm`, `md`, `lg`), SVG loading spinner (`aria-busy`), disabled state, keyboard focus rings.
+    - `Input.svelte`: accessible text/url input with label, helper text, error message, clear button, and ARIA described-by linkage.
+    - `Toggle.svelte`: accessible switch primitive with `role="switch"`, `aria-checked`, label, description, and keyboard toggle (`Space`, `Enter`).
+    - `Badge.svelte`: status badge with 6 semantic variants and optional status dot.
+    - `Modal.svelte`: accessible dialog with backdrop overlay, `Escape` key dismissal, click-outside dismissal, `role="dialog"`, `aria-modal="true"`, and header/footer action slots.
+    - `Tooltip.svelte`: contextual popover appearing on hover and keyboard focus (`role="tooltip"`).
+  - Exported all UI primitives via `apps/web/src/lib/components/ui/index.ts`.
+  - Updated showcase page `apps/web/src/routes/+page.svelte` demonstrating live interactive UI components.
+  - Authored unit test suite `apps/web/tests/ui-components.test.ts`, expanding total test suite count to 37/37 passed tests.
+  - Formally certified completion of **Phase 1.1: Design System** (Subphases `1.1.1`, `1.1.2`, `1.1.3` all `ACCEPTED`).
+
 ### 2026-11-17 — Phase 1.1: Design System (`1.1.2`)
 
 #### Added

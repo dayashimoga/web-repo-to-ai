@@ -12,7 +12,7 @@
 | Stage | Title | Primary Deliverable | Phases | Subphases | Current Status |
 | :--- | :--- | :--- | :---: | :---: | :--- |
 | **STAGE 0** | Project Bootstrap & Engineering Foundation | Working repository, governance, agents/skills/rules/workflows, CI, and Podman dev foundation | `0.1` – `0.3` | 15 (`0.1.1` – `0.3.5`) | `COMPLETED` / `ACCEPTED` |
-| **STAGE 1** | Frontend & Product Experience | Responsive SvelteKit + Svelte 5 website foundation and conversion workspace | `1.1` – `1.4` | 14 (`1.1.1` – `1.4.3`) | `IN_PROGRESS` (Subphases `1.1.1`, `1.1.2` `ACCEPTED`) |
+| **STAGE 1** | Frontend & Product Experience | Responsive SvelteKit + Svelte 5 website foundation and conversion workspace | `1.1` – `1.4` | 14 (`1.1.1` – `1.4.3`) | `IN_PROGRESS` (Phase `1.1` `COMPLETED` / `ACCEPTED`) |
 | **STAGE 2** | Backend & Processing Foundation | Operational Rust Axum API, PostgreSQL job leasing, and artifact storage | `2.1` – `2.4` | 15 (`2.1.1` – `2.4.4`) | `NOT_STARTED` |
 | **STAGE 3** | Universal Webpage Extraction | SSRF-guarded HTTP static & Playwright dynamic URL-to-clean-content extraction | `3.1` – `3.4` | 16 (`3.1.1` – `3.4.4`) | `NOT_STARTED` |
 | **STAGE 4** | Canonical Model & Export Engine | Versioned CDM (`v1.0`), Markdown/TXT/JSON/HTML/JSONL/ZIP exporters, and end-to-end web integration | `4.1` – `4.4` | 16 (`4.1.1` – `4.4.4`) | `NOT_STARTED` |
@@ -49,8 +49,8 @@
   - `0.3.5` Document setup and recovery (`ACCEPTED`)
 
 ### STAGE 1 — FRONTEND AND PRODUCT EXPERIENCE (`IN_PROGRESS`)
-- **Phase 1.1 — Design system:** `1.1.1` Visual design tokens (`ACCEPTED`) | `1.1.2` Typography, spacing & color systems (`ACCEPTED`) | `1.1.3` Reusable accessible components (`NOT_STARTED` — **NEXT ELIGIBLE SUBPHASE**)
-- **Phase 1.2 — Main website:** `1.2.1` Landing page | `1.2.2` URL input & source detection | `1.2.3` Conversion settings | `1.2.4` Responsive layouts
+- **Phase 1.1 — Design system:** `1.1.1` Visual design tokens (`ACCEPTED`) | `1.1.2` Typography, spacing & color systems (`ACCEPTED`) | `1.1.3` Reusable accessible components (`ACCEPTED`)
+- **Phase 1.2 — Main website:** `1.2.1` Landing page (`NOT_STARTED` — **NEXT ELIGIBLE SUBPHASE**) | `1.2.2` URL input & source detection | `1.2.3` Conversion settings | `1.2.4` Responsive layouts
 - **Phase 1.3 — Conversion workspace:** `1.3.1` Job workspace | `1.3.2` Preview panels | `1.3.3` Token statistics interface | `1.3.4` Output & download controls
 - **Phase 1.4 — UX validation:** `1.4.1` Keyboard & accessibility testing | `1.4.2` Mobile/tablet/desktop testing | `1.4.3` UI performance & visual regression testing
 
