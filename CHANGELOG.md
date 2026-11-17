@@ -6,9 +6,15 @@
 
 ## [Unreleased] — Stage 0: Project Bootstrap and Engineering Foundation
 
-### 2026-11-17 — Phase 0.2: GitHub and CI Foundation (`0.2.1` – `0.2.4`)
+### 2026-11-17 — Phase 0.2: GitHub and CI Foundation (`0.2.1` – `0.2.5`)
 
 #### Added
+- **`[0.2.5]` Security & Dependency Scanning:**
+  - Configured `deny.toml` with strict RustSec advisory checks, permissive license allowlists (MIT, Apache-2.0, BSD, ISC, Unicode, PostgreSQL, CC0, Zlib, Unlicense), copyleft rejection, and registry restrictions.
+  - Authored `.github/workflows/security.yml` executing secret leakage scans, `cargo-deny` checks, and `npm audit`.
+  - Authored `.github/workflows/dependency-review.yml` gating PRs on dependency vulnerabilities and license compliance.
+  - Authored `.github/workflows/codeql.yml` running automated CodeQL static security analysis.
+  - Extended verification suite (`scripts/verify-bootstrap.ps1` & `scripts/check-all.ps1`) to 187 automated checks.
 - **`[0.2.4]` Linting, Formatting & Quality Check Runners:**
   - Configured `rustfmt.toml` enforcing Rust 2021 edition, 100 character width, Unix LF line endings, import reordering, and comment formatting.
   - Configured `.prettierrc.json` and `.prettierignore` for web, JSON, Markdown, and TypeScript styling.

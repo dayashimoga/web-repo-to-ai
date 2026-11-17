@@ -3,15 +3,15 @@
 **Project:** `web-repo-to-ai` (Universal URL & GitHub Repository → AI-Ready Content Converter)  
 **Last Updated:** 2026-11-17  
 **Current Stage:** `STAGE 0 — PROJECT BOOTSTRAP AND ENGINEERING FOUNDATION`  
-**Current Phase:** `Phase 0.2 — GitHub and CI foundation` (`IN_PROGRESS`)  
-**Last Completed Subphase:** `0.2.4 — Configure linting, formatting and test checks across Rust and Frontend` (`ACCEPTED`)  
-**Next Eligible Subphase (Awaiting Explicit User Approval):** `0.2.5 — Configure security and dependency scanning`
+**Current Phase:** `Phase 0.2 — GitHub and CI foundation` (`COMPLETED` / `ACCEPTED`)  
+**Last Completed Subphase:** `0.2.5 — Configure security and dependency scanning` (`ACCEPTED`)  
+**Next Eligible Subphase (Awaiting Explicit User Approval):** `0.3.1 — Create Podman development configuration`
 
 ---
 
 ## 1. Executive Summary
 
-Phase `0.1` (`0.1.1` through `0.1.5`) and Subphases `0.2.1` – `0.2.4` have been implemented, verified, and pushed to the remote GitHub repository:
+Phase `0.1` (`0.1.1` through `0.1.5`) and Phase `0.2` (`0.2.1` through `0.2.5`) have been completely implemented, verified, and pushed to the remote GitHub repository:
 - **Environment & Tooling (`0.1.1`):** Inspected Windows host (14 logical cores, 16.64 GB RAM, 33.51 GB free disk), verified `git 2.55.0`, `rustc/cargo 1.97.1`, `node v20.18.0`, `npm 10.8.2`, `podman 5.8.3` (WSL machine running with 30 GiB disk ceiling), `podman-compose`, and Git Credential Manager account (`dayashimoga`).
 - **Monorepo & Git (`0.1.2`):** Initialized Git repository (`main`), configured LF line-ending rules, and created all 27 monorepo directories (`apps/web`, `services/{api,worker,browser-worker}`, 15 shared `crates/*`, `docs/`, `deploy/`, `scripts/`, `.agent/*`, `.github/workflows`).
 - **Engineering Governance & Docs (`0.1.3`):** Created `GLOBAL_ENGINEERING_CONTRACT.md`, `REQUIREMENTS.md`, `DECISIONS.md` (`ADR-001`–`ADR-007`), and all 11 baseline specifications in `docs/`.
@@ -21,6 +21,7 @@ Phase `0.1` (`0.1.1` through `0.1.5`) and Subphases `0.2.1` – `0.2.4` have bee
 - **Repository Governance & Protection (`0.2.2`):** Configured repository settings (linear history via squash/rebase merges, merge commits disabled, automatic branch pruning on merge, Dependabot vulnerability alerts and automated security fixes) and active branch protection on `main` (force pushes blocked, deletions blocked, conversation resolution required). Documented in `docs/DEVELOPMENT.md`.
 - **GitHub Actions CI/CD Workflows (`0.2.3`):** Created executable workflows (`ci.yml`, `build.yml`, `container.yml`, `release.yml`) with least-privilege permissions, concurrency controls, standalone artifact uploads (frontend build, backend binaries, checksums), 30 GB container ceiling audit, CycloneDX SBOM generation, and verified execution on live GitHub runners.
 - **Linting, Formatting & Quality Check Runners (`0.2.4`):** Created `rustfmt.toml` (Rust 2021, 100 max width, Unix LF), `.prettierrc.json`, `.prettierignore`, and cross-platform quality audit scripts (`scripts/check-all.ps1` and `scripts/check-all.sh`). All 4 verification gates passed cleanly with 0 failures.
+- **Security & Dependency Scanning (`0.2.5`):** Created `deny.toml` (RustSec vulnerability enforcement, permissive license whitelist), `.github/workflows/security.yml` (secret scan, cargo-deny, npm audit), `.github/workflows/dependency-review.yml` (PR dependency license gate), and `.github/workflows/codeql.yml` (CodeQL static security analysis). Verified across 187 checks.
 
 ---
 
@@ -28,12 +29,12 @@ Phase `0.1` (`0.1.1` through `0.1.5`) and Subphases `0.2.1` – `0.2.4` have bee
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 9 | `0.1.1`, `0.1.2`, `0.1.3`, `0.1.4`, `0.1.5`, `0.2.1`, `0.2.2`, `0.2.3`, `0.2.4` |
+| `ACCEPTED` | 10 | `0.1.1` – `0.1.5`, `0.2.1` – `0.2.5` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 188 | `0.2.5` – `11.4.5` |
+| `NOT_STARTED` | 187 | `0.3.1` – `11.4.5` |
 | **Total** | **197** | `Stage 0` – `Stage 11` |
 
 ---

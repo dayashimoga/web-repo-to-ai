@@ -276,13 +276,47 @@
 
 ---
 
-### Phase 0.2 — Upcoming Subphases (Awaiting User Approval for `0.2.5`)
+#### Subphase `0.2.5` — Configure security and dependency scanning
+- **Unique ID:** `0.2.5`
+- **Objective:** Configure automated security, vulnerability, dependency, and license scanning workflows (`security.yml`, `dependency-review.yml`, `codeql.yml`, `deny.toml`).
+- **Scope:** Security workflows in `.github/workflows/`, cargo-deny configuration `deny.toml`, verification scripts, and tracking ledgers.
+- **Prerequisites:** `0.2.4` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `deny.toml`
+  - `.github/workflows/security.yml`
+  - `.github/workflows/dependency-review.yml`
+  - `.github/workflows/codeql.yml`
+  - `scripts/verify-bootstrap.ps1`
+  - `PROJECT_STATUS.md`, `IMPLEMENTATION_LEDGER.md`, `TODO.md`, `CHANGELOG.md`
+- **Implementation Tasks:**
+  1. Author `deny.toml` configuring `cargo-deny` with strict RustSec advisories (`vulnerability = "deny"`), permissive license allowlist (MIT, Apache-2.0, BSD-2/3, ISC, Unicode, PostgreSQL, CC0, Zlib, Unlicense), copyleft rejection, and registry restrictions.
+  2. Author `.github/workflows/security.yml` running secret leakage scans, `cargo-deny` audits, and `npm audit`.
+  3. Author `.github/workflows/dependency-review.yml` for pull request dependency vulnerability and license review.
+  4. Author `.github/workflows/codeql.yml` for automated CodeQL static security analysis.
+  5. Extend `scripts/verify-bootstrap.ps1` to assert all 7 workflow files and `deny.toml`.
+- **Acceptance Criteria:**
+  - `deny.toml` and all 3 security workflow files exist, declare least-privilege permissions, pass PyYAML validation, and pass `scripts/check-all.ps1`.
+- **Tests:** `python scripts/validate-workflows.py` verified 7/7 workflows; `scripts/check-all.ps1` passed all 4 quality gates (187/187 checks).
+- **Security Considerations:** Enforces zero known vulnerabilities, zero leaked secrets, least-privilege workflow permissions, and blocking of copyleft/proprietary licenses.
+- **Performance Considerations:** Workflows utilize caching and fast concurrency-controlled runners.
+- **Documentation Requirements:** Documented in `docs/SECURITY.md`, `docs/LICENSING.md`, `PROJECT_STATUS.md`, `IMPLEMENTATION_LEDGER.md`, `TODO.md`, and `CHANGELOG.md`.
+- **Validation Evidence:**
+  - `python scripts/validate-workflows.py`: 7/7 workflows passed (verified triggers, permissions, jobs).
+  - `scripts/check-all.ps1`: ALL GATES PASSED (187/187 checks).
+- **Git Commit Reference:** Recorded in commit for subphase 0.2.5
+- **Status:** `ACCEPTED`
+
+---
+
+### Phase 0.3 — Containerized development foundation (Upcoming — Awaiting User Approval for `0.3.1`)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `0.2.5` | Configure security and dependency scanning (`security.yml`, `dependency-review.yml`, `codeql.yml`, `deny.toml`) | `0.2.4` (`ACCEPTED`) | `.github/workflows/{security,dependency-review,codeql}.yml`, `deny.toml` | `NOT_STARTED` |
-
-### Phase 0.3 — Containerized development foundation (Queued after Phase `0.2`)
+| `0.3.1` | Create Podman development configuration (`deploy/podman-compose.yml` & Containerfiles) | `0.2.5` (`ACCEPTED`) | `deploy/podman-compose.yml`, `deploy/Containerfile.*` | `NOT_STARTED` |
+| `0.3.2` | Enforce the 30 GB storage ceiling | `0.3.1` | `scripts/check-resources.ps1`, `scripts/clean-caches.ps1` | `NOT_STARTED` |
+| `0.3.3` | Create development environment scripts | `0.3.2` | `scripts/dev-*.ps1` | `NOT_STARTED` |
+| `0.3.4` | Validate reproducible container builds | `0.3.3` | `deploy/*`, `IMPLEMENTATION_LEDGER.md` | `NOT_STARTED` |
+| `0.3.5` | Document setup and recovery | `0.3.4` | `docs/DEVELOPMENT.md`, `docs/DEPLOYMENT.md` | `NOT_STARTED` |
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |

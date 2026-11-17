@@ -18,7 +18,7 @@
 - [x] **[0.2.2]** Configure branch protection and repository settings where authorized *(Completed 2026-11-17, linear history, Dependabot alerts/fixes, main protection)*
 - [x] **[0.2.3]** Create executable GitHub Actions CI workflows (`ci.yml`, `build.yml`, `release.yml`, `container.yml`) *(Completed 2026-11-17, workflows created & validated on GitHub runners)*
 - [x] **[0.2.4]** Configure linting, formatting, and test checks for Rust and Frontend *(Completed 2026-11-17, rustfmt.toml, .prettierrc.json, check-all.ps1/sh)*
-- [ ] **[0.2.5]** Configure security and dependency scanning workflows (`security.yml`, `dependency-review.yml`, `codeql.yml`, `deny.toml`)
+- [x] **[0.2.5]** Configure security and dependency scanning workflows (`security.yml`, `dependency-review.yml`, `codeql.yml`, `deny.toml`) *(Completed 2026-11-17, deny.toml & security workflows active)*
 
 ### Phase 0.3 — Containerized development foundation (Pending Approval)
 - [ ] **[0.3.1]** Create Podman development configuration (`deploy/podman-compose.yml` and multi-stage Containerfiles)
