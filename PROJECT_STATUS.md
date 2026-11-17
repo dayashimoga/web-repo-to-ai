@@ -3,16 +3,16 @@
 **Project:** `web-repo-to-ai` (Universal URL & GitHub Repository → AI-Ready Content Converter)  
 **Last Updated:** 2026-11-17  
 **Current Stage:** `STAGE 4 — CANONICAL MODEL AND EXPORT ENGINE` (`IN_PROGRESS`)  
-**Current Phase:** `Phase 4.4 — Export frontend` (`NOT_STARTED`)  
-**Active Subphase:** `None (Phase 4.3 Certified; awaiting approval for 4.4.1)`  
-**Last Completed Subphase:** `4.3.4 — Export integrity tests in crates/exporters` (`ACCEPTED`)  
-**Next Upcoming Subphase:** `4.4.1 — Connect actual conversion API in apps/web`
+**Current Phase:** `Phase 4.4 — Export frontend` (`IN_PROGRESS`)  
+**Active Subphase:** `None (awaiting approval for 4.4.2)`  
+**Last Completed Subphase:** `4.4.1 — Connect actual conversion API in apps/web` (`ACCEPTED`)  
+**Next Upcoming Subphase:** `4.4.2 — Real progress streaming (SSE) in apps/web`
 
 ---
 
 ## 1. Executive Summary
 
-Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 subphases), Stage 2 (`2.1.1` – `2.4.4`, 15 subphases), and Stage 3 (`3.1.1` – `3.4.4`, 16 subphases) are 100% complete, verified, certified, and accepted. In Stage 4, Phase 4.1 ("Canonical Context Document Model (CDM)"), Phase 4.2 ("Format generators"), and **Phase 4.3 ("Export")** are 100% complete, verified, certified, and accepted across 12 subphases (`4.1.1` through `4.3.4`). Subphase `4.3.4` ("Export integrity tests in crates/exporters") delivered the package integrity verification engine, diagnostic reports, and 9 comprehensive integration tests with zero clippy warnings. **Phase 4.3 is formally certified.** Subphase `4.4.1` ("Connect actual conversion API in apps/web") is queued next.
+Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 subphases), Stage 2 (`2.1.1` – `2.4.4`, 15 subphases), and Stage 3 (`3.1.1` – `3.4.4`, 16 subphases) are 100% complete, verified, certified, and accepted. In Stage 4, Phase 4.1 ("Canonical Context Document Model (CDM)"), Phase 4.2 ("Format generators"), and Phase 4.3 ("Export") are 100% complete, verified, certified, and accepted across 12 subphases (`4.1.1` through `4.3.4`). Phase 4.4 ("Export frontend") is active with Subphase `4.4.1` ("Connect actual conversion API in apps/web") accepted, connecting the SvelteKit frontend to the live Axum API via a strongly-typed REST client with zero placeholder timeouts, RFC 7807 error decoding, and 195 passing Vitest tests. Subphase `4.4.2` ("Real progress streaming (SSE) in apps/web") is queued next.
 
 ---
 
@@ -20,12 +20,12 @@ Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 su
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 72 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.1.4`, `4.2.1` – `4.2.4`, `4.3.1` – `4.3.4` |
+| `ACCEPTED` | 73 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.1.4`, `4.2.1` – `4.2.4`, `4.3.1` – `4.3.4`, `4.4.1` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 125 | `4.4.1` – `11.4.5` |
+| `NOT_STARTED` | 124 | `4.4.2` – `11.4.5` |
 | **Total** | **197** | `Stage 0` – `Stage 11` |
 
 ---

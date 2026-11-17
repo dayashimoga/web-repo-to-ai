@@ -3694,11 +3694,55 @@
 
 ---
 
+#### Subphase `4.4.1` — Connect actual conversion API in apps/web
+- **Unique ID:** `4.4.1`
+- **Objective:** Connect the SvelteKit frontend in `apps/web` to the live backend Axum API (`services/api`), replacing mock `setTimeout` transitions with real strongly-typed REST client interactions (`POST /api/v1/jobs`, `GET /api/v1/jobs/{job_id}`, `POST /api/v1/sources/detect`), RFC 7807 problem details error handling, and bidirectional domain model adapters.
+- **Scope:** `apps/web/src/lib/api/types.ts`, `apps/web/src/lib/api/client.ts`, `apps/web/src/lib/api/adapter.ts`, `apps/web/src/lib/api/index.ts`, `apps/web/src/routes/+page.svelte`, `apps/web/src/routes/workspace/+page.svelte`, `apps/web/tests/api-client.test.ts`.
+- **Prerequisites:** `4.3.4` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `apps/web/src/lib/api/types.ts`
+  - `apps/web/src/lib/api/client.ts`
+  - `apps/web/src/lib/api/adapter.ts`
+  - `apps/web/src/lib/api/index.ts`
+  - `apps/web/src/routes/+page.svelte`
+  - `apps/web/src/routes/workspace/+page.svelte`
+  - `apps/web/tests/api-client.test.ts`
+- **Implementation Tasks:**
+  1. Implement strongly-typed API client contracts and DTOs in `apps/web/src/lib/api/types.ts` matching `services/api/src/dto/jobs.rs` and `services/api/src/dto/sources.rs`.
+  2. Implement `ApiClient` and `ApiClientError` in `apps/web/src/lib/api/client.ts` handling `POST /api/v1/jobs`, `GET /api/v1/jobs/{job_id}`, `POST /api/v1/sources/detect`, RFC 7807 decoding, and download URL generation.
+  3. Implement domain adapter in `apps/web/src/lib/api/adapter.ts` mapping backend `ApiJobResponse` into `ConversionJob`.
+  4. Update `apps/web/src/routes/+page.svelte` to submit conversion jobs to `defaultApiClient.createJob(...)` and redirect with real server-generated UUID v7 job IDs.
+  5. Update `apps/web/src/routes/workspace/+page.svelte` to retrieve job metadata using `defaultApiClient.getJob(...)` and map it into workspace state.
+  6. Implement comprehensive Vitest unit and integration test suite in `apps/web/tests/api-client.test.ts`.
+  7. Run full monorepo quality audit via `scripts/check-all.ps1`.
+- **Acceptance Criteria:**
+  - Form submission dispatches a verified `POST /api/v1/jobs` request containing user settings, target formats, and token budget.
+  - Zero placeholder `setTimeout` transitions in conversion submission path.
+  - RFC 7807 problem details are parsed and displayed gracefully on error.
+  - All 195 frontend tests pass across 16 suites; `svelte-check` reports 0 errors and 0 warnings; Prettier confirms formatting.
+  - All 5 gates in `scripts/check-all.ps1` pass cleanly.
+- **Tests:** `npm --prefix apps/web test`, `npm --prefix apps/web run check`, `npm --prefix apps/web run lint`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, 03, 05, 09: Input validation, zero unescaped strings, RFC 7807 sanitization without leaking stack traces, SSRF validation prior to job submission.
+- **Performance Considerations:** Lightweight zero-dependency API client, reusable singleton instance, non-blocking asynchronous fetch execution.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`.
+- **Validation Evidence:**
+  - `npm --prefix apps/web test`: 195/195 tests passed across 16 test files (11 new tests in `api-client.test.ts`).
+  - `npm --prefix apps/web run check`: 0 errors, 0 warnings.
+  - `npm --prefix apps/web run lint`: 100% Prettier formatting compliance.
+  - `cargo test --workspace`: 330/330 tests passed.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors.
+  - `cargo fmt --all -- --check`: 100% clean formatting.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (224/224 bootstrap checks, 7/7 workflows, Rust checks, Frontend checks, Podman storage 5.27 GB / 30 GB, 17.6%).
+- **Git Commit Reference:** PENDING_COMMIT
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 4 — Canonical Model and Export Engine)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `4.4.1` | Connect actual conversion API in apps/web | `4.3.4` (`ACCEPTED`) | `apps/web/*` | `NOT_STARTED` |
+| `4.4.2` | Real progress streaming (SSE) in apps/web | `4.4.1` (`ACCEPTED`) | `apps/web/*` | `NOT_STARTED` |
 
 ---
 

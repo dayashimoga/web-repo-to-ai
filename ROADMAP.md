@@ -70,7 +70,7 @@
 - **Phase 4.1 — CDM:** `4.1.1` Define schema (`ACCEPTED`) | `4.1.2` Serialization (`ACCEPTED`) | `4.1.3` Validation (`ACCEPTED`) | `4.1.4` Schema versioning (`ACCEPTED` — **PHASE 4.1 CERTIFIED**)
 - **Phase 4.2 — Format generators:** `4.2.1` Markdown generator (`ACCEPTED`) | `4.2.2` Plain-text generator (`ACCEPTED`) | `4.2.3` JSON generator (`ACCEPTED`) | `4.2.4` HTML & JSONL generators (`ACCEPTED` — **PHASE 4.2 CERTIFIED**)
 - **Phase 4.3 — Export:** `4.3.1` ZIP package generation (`ACCEPTED`) | `4.3.2` Manifest & checksums (`ACCEPTED`) | `4.3.3` Streaming downloads (`ACCEPTED`) | `4.3.4` Export integrity tests (`ACCEPTED` — **PHASE 4.3 CERTIFIED**)
-- **Phase 4.4 — Website integration:** `4.4.1` Connect actual conversion API (`NEXT`) | `4.4.2` Real progress (SSE) | `4.4.3` Preview & copy | `4.4.4` Downloads
+- **Phase 4.4 — Website integration:** `4.4.1` Connect actual conversion API (`ACCEPTED`) | `4.4.2` Real progress (SSE) (`NEXT`) | `4.4.3` Preview & copy | `4.4.4` Downloads
 
 ### STAGE 5 — PUBLIC GITHUB REPOSITORY EXTRACTION
 - **Phase 5.1 — GitHub metadata:** `5.1.1` Repository identification | `5.1.2` Branch & tag discovery | `5.1.3` Commit selection | `5.1.4` Repository metadata extraction

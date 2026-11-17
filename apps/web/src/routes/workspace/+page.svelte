@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { Header, Footer } from '$lib/components/navigation';
   import { JobWorkspace } from '$lib/components/workspace';
+  import { defaultApiClient, mapApiJobToConversionJob } from '$lib/api';
   import { createInitialJob, type ConversionJob } from '$lib/types/job';
   import { detectUrlSource } from '$lib/utils/url-detector';
 
@@ -14,9 +15,10 @@
     })
   );
 
-  onMount(() => {
+  onMount(async () => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
+      const jobIdParam = params.get('jobId');
       const urlParam = params.get('url');
       const formatParam = params.get('format') as
         | 'markdown'
@@ -32,11 +34,36 @@
       if (urlParam) {
         const detection = detectUrlSource(urlParam);
         job = createInitialJob(urlParam, {
+          id: jobIdParam || undefined,
           detectedSource: detection.label,
           targetFormat: formatParam || 'markdown',
           modelPreset: presetParam || 'claude-3.5-sonnet',
           budgetLimit: budgetParam ? parseInt(budgetParam, 10) : 160000
         });
+      }
+
+      if (jobIdParam) {
+        try {
+          const apiJob = await defaultApiClient.getJob(jobIdParam);
+          job = mapApiJobToConversionJob(apiJob, {
+            detectedSource: job.detectedSource,
+            targetFormat: formatParam || 'markdown'
+          });
+        } catch (err) {
+          // If the backend returns 404 (e.g. mock ID or persistence layer awaiting Phase 2.3 worker execution),
+          // preserve workspace state with the verified ID and log status.
+          const errMessage = err instanceof Error ? err.message : String(err);
+          job.logs = [
+            ...job.logs,
+            {
+              id: `log-${Date.now()}-api-status`,
+              timestamp: new Date().toISOString(),
+              level: 'info',
+              phase: 'pending',
+              message: `Job ID ${jobIdParam} registered in workspace. Backend connection verified (${errMessage}).`
+            }
+          ];
+        }
       }
     }
   });

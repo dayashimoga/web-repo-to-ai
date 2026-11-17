@@ -6,6 +6,30 @@
 
 ## [Unreleased] — Stage 4: Canonical Model and Export Engine
 
+### 2026-11-17 — Phase 4.4: Export Frontend (`4.4.1`)
+
+#### Added
+- **`[4.4.1]` Connect Live Conversion API in `apps/web`:**
+  - Implemented strongly-typed REST API client contracts in `apps/web/src/lib/api/types.ts`:
+    - `CreateJobPayload`: source URLs, target Git ref, glob patterns, token budget, target model, export formats, and deduplication flags.
+    - `ApiJobResponse`: strongly-typed UUID v7 `job_id`, status enum (`queued`, `processing`, `completed`, `failed`, `cancelled`), source list, budget, model, and export formats.
+    - `DetectSourcesPayload` and `DetectSourcesResponse`: source URL classification.
+    - `ApiProblemDetails`: RFC 7807 specification error envelope decoding (`status`, `title`, `detail`, `request_id`, `invalid_params`).
+  - Implemented `ApiClient` and `ApiClientError` in `apps/web/src/lib/api/client.ts`:
+    - `createJob`: asynchronous `POST /api/v1/jobs` dispatch returning `202 Accepted` job descriptor.
+    - `getJob`: `GET /api/v1/jobs/{job_id}` query with URL sanitization.
+    - `detectSources`: `POST /api/v1/sources/detect` endpoint query.
+    - `getArtifactUrl`: deterministic artifact download URL generation (`/api/v1/jobs/{job_id}/artifacts/{format}`).
+    - `getStreamUrl`: SSE progress stream URL generation (`/api/v1/jobs/{job_id}/stream`).
+    - Robust error parsing with RFC 7807 problem details decoding.
+    - Reusable singleton `defaultApiClient`.
+  - Implemented API domain adapter in `apps/web/src/lib/api/adapter.ts`:
+    - `mapApiStatusToJobStatus`, `mapStatusToPhase`, and `mapApiJobToConversionJob` translating backend DTOs into frontend `ConversionJob` domain models with full stage progression and token budgeting integrity.
+  - Replaced mock `setTimeout` transitions in `apps/web/src/routes/+page.svelte` with live `defaultApiClient.createJob(...)` submission and redirect to `/workspace?jobId=...`.
+  - Wired `apps/web/src/routes/workspace/+page.svelte` to query `defaultApiClient.getJob(jobId)` on mount and map server state.
+  - Added comprehensive Vitest test suite in `apps/web/tests/api-client.test.ts` (11 tests) verifying client transport, HTTP headers, RFC 7807 error decoding, adapter mapping, and SvelteKit route contract wiring.
+  - Verification: 195 passing Vitest tests (16 test files), 0 `svelte-check` errors/warnings, 100% Prettier compliance, and all 5 monorepo verification gates passing cleanly.
+
 ### 2026-11-17 — Phase 4.3 Certification & Subphase `4.3.4`
 
 #### Added

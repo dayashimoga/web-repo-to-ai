@@ -4,6 +4,7 @@
   import { UrlInput } from '$lib/components/input';
   import { ConversionSettings } from '$lib/components/settings';
   import { Badge } from '$lib/components/ui';
+  import { defaultApiClient, ApiClientError } from '$lib/api';
   import type { UrlDetectionResult } from '$lib/utils/url-detector';
   import {
     getDefaultConversionSettings,
@@ -33,7 +34,7 @@
     }
   }
 
-  function handleStartConversion(detection: UrlDetectionResult) {
+  async function handleStartConversion(detection: UrlDetectionResult) {
     if (!detection.isValid || !detection.isSafe) {
       feedbackType = 'error';
       conversionFeedback = detection.errorMessage || 'Please provide a valid, safe URL to proceed.';
@@ -43,14 +44,37 @@
     isConverting = true;
     conversionFeedback = null;
 
-    setTimeout(() => {
-      isConverting = false;
+    try {
+      const response = await defaultApiClient.createJob({
+        sources: [detection.normalizedUrl || inputUrl],
+        token_budget: settings.maxTokenBudget,
+        target_model: settings.selectedPreset,
+        export_formats: [selectedFormat],
+        deduplicate_exact: settings.exactDeduplication,
+        deduplicate_semantic: settings.semanticDeduplication,
+        remove_comments: settings.stripCodeComments
+      });
+
       feedbackType = 'success';
       const targetDesc = detection.githubMetadata
         ? `${detection.githubMetadata.owner}/${detection.githubMetadata.repo}`
         : detection.domain || detection.normalizedUrl;
-      conversionFeedback = `Verified ${detection.label}: '${targetDesc}'. Destination validated against zero-trust SSRF policies. Configured for ${settings.selectedPreset} (${settings.maxTokenBudget.toLocaleString()} tokens ceiling) in ${selectedFormat.toUpperCase()} format. Ready for extraction pipeline.`;
-    }, 500);
+      conversionFeedback = `Verified ${detection.label}: '${targetDesc}'. Job ${response.job_id} submitted to conversion API (${response.status.toUpperCase()}). Redirecting to workspace...`;
+
+      const workspaceUrl = `/workspace?jobId=${encodeURIComponent(response.job_id)}&url=${encodeURIComponent(detection.normalizedUrl || inputUrl)}&format=${selectedFormat}&preset=${encodeURIComponent(settings.selectedPreset)}&budget=${settings.maxTokenBudget}`;
+
+      if (typeof window !== 'undefined') {
+        window.location.href = workspaceUrl;
+      }
+    } catch (err) {
+      isConverting = false;
+      feedbackType = 'error';
+      if (err instanceof ApiClientError) {
+        conversionFeedback = `API Error (${err.status}): ${err.message}`;
+      } else {
+        conversionFeedback = `Failed to create conversion job: ${String(err)}`;
+      }
+    }
   }
 </script>
 

@@ -131,7 +131,7 @@
 - [x] **[4.3.4]** Export integrity tests in crates/exporters *(Completed 2026-11-17, PackageIntegrityReport, verify_zip_package_bytes, verify_zip_package_integrity, format syntax verifiers, zip-slip defense, 9 integration tests, 82 exporter tests, 330 workspace tests, Phase 4.3 Certified)*
 
 ### Phase 4.4 — Website integration
-- [ ] **[4.4.1]** Connect actual conversion API in apps/web
+- [x] **[4.4.1]** Connect actual conversion API in apps/web *(Completed 2026-11-17, ApiClient, ApiClientError, RFC 7807 problem details parsing, mapApiJobToConversionJob adapter, +page.svelte API submission replacing setTimeout, workspace/+page.svelte getJob wiring, 11 new Vitest tests, 195 passing frontend tests)*
 - [ ] **[4.4.2]** Real progress streaming (SSE) in apps/web
 - [ ] **[4.4.3]** Content preview and copy controls in apps/web
 - [ ] **[4.4.4]** Multi-format downloads in apps/web
