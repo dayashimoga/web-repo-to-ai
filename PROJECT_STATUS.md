@@ -4,15 +4,15 @@
 **Last Updated:** 2026-11-17  
 **Current Stage:** `STAGE 4 — CANONICAL MODEL AND EXPORT ENGINE` (`IN_PROGRESS`)  
 **Current Phase:** `Phase 4.4 — Export frontend` (`IN_PROGRESS`)  
-**Active Subphase:** `None (awaiting approval for 4.4.3)`  
-**Last Completed Subphase:** `4.4.2 — Real progress streaming (SSE) in apps/web` (`ACCEPTED`)  
-**Next Upcoming Subphase:** `4.4.3 — Content preview and copy controls in apps/web`
+**Active Subphase:** `None (awaiting approval for 4.4.4)`  
+**Last Completed Subphase:** `4.4.3 — Content preview and copy controls in apps/web` (`ACCEPTED`)  
+**Next Upcoming Subphase:** `4.4.4 — Multi-format downloads in apps/web`
 
 ---
 
 ## 1. Executive Summary
 
-Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 subphases), Stage 2 (`2.1.1` – `2.4.4`, 15 subphases), and Stage 3 (`3.1.1` – `3.4.4`, 16 subphases) are 100% complete, verified, certified, and accepted. In Stage 4, Phase 4.1 ("Canonical Context Document Model (CDM)"), Phase 4.2 ("Format generators"), and Phase 4.3 ("Export") are 100% complete, verified, certified, and accepted across 12 subphases (`4.1.1` through `4.3.4`). Phase 4.4 ("Export frontend") is active with Subphase `4.4.1` and Subphase `4.4.2` accepted: Subphase `4.4.2` ("Real progress streaming (SSE) in apps/web") connected the conversion workspace to the live backend SSE stream (`GET /api/v1/jobs/{job_id}/events`) with exponential backoff reconnection, heartbeat monitoring, clean `onDestroy` closure, and 206 passing Vitest tests. Subphase `4.4.3` ("Content preview and copy controls in apps/web") is queued next.
+Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 subphases), Stage 2 (`2.1.1` – `2.4.4`, 15 subphases), and Stage 3 (`3.1.1` – `3.4.4`, 16 subphases) are 100% complete, verified, certified, and accepted. In Stage 4, Phase 4.1 ("Canonical Context Document Model (CDM)"), Phase 4.2 ("Format generators"), and Phase 4.3 ("Export") are 100% complete, verified, certified, and accepted across 12 subphases (`4.1.1` through `4.3.4`). Phase 4.4 ("Export frontend") is active with Subphases `4.4.1`, `4.4.2`, and `4.4.3` accepted: Subphase `4.4.3` ("Content preview and copy controls in apps/web") implemented `GET /api/v1/jobs/{job_id}/preview`, connected live preview querying with local fallback degradation, accessible clipboard copy controls with live ARIA announcements, line number/word wrap toggles, truncation alerts, and 211 passing Vitest tests. Subphase `4.4.4` ("Multi-format downloads in apps/web") is queued next.
 
 ---
 
@@ -20,12 +20,12 @@ Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 su
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 74 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.1.4`, `4.2.1` – `4.2.4`, `4.3.1` – `4.3.4`, `4.4.1`, `4.4.2` |
+| `ACCEPTED` | 75 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.1.4`, `4.2.1` – `4.2.4`, `4.3.1` – `4.3.4`, `4.4.1`, `4.4.2`, `4.4.3` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 123 | `4.4.3` – `11.4.5` |
+| `NOT_STARTED` | 122 | `4.4.4` – `11.4.5` |
 | **Total** | **197** | `Stage 0` – `Stage 11` |
 
 ---

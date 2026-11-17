@@ -285,3 +285,90 @@ impl JobResponse {
         }
     }
 }
+
+/// Allowed formats for preview generation.
+pub const VALID_PREVIEW_FORMATS: &[&str] = &[
+    "markdown", "md", "txt", "text", "json", "html", "htm", "jsonl", "ndjson", "xml",
+];
+
+/// Query parameters for retrieving a job preview (`GET /api/v1/jobs/{job_id}/preview`).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct PreviewQuery {
+    /// Format to preview (`markdown`, `json`, `html`, `txt`, `jsonl`, `xml`). Defaults to `markdown`.
+    pub format: Option<String>,
+    /// Maximum rendered lines to return in preview slice (1 to 50,000, defaults to 1,000).
+    pub max_lines: Option<usize>,
+    /// Optional specific file path or section identifier to preview.
+    pub file_path: Option<String>,
+}
+
+impl Validatable for PreviewQuery {
+    fn validate(&self) -> Result<()> {
+        if let Some(ref fmt) = self.format {
+            let lower = fmt.trim().to_ascii_lowercase();
+            if !VALID_PREVIEW_FORMATS.contains(&lower.as_str()) {
+                return Err(CoreError::Validation {
+                    field: "format".to_string(),
+                    reason: format!(
+                        "Unsupported preview format '{fmt}': permitted formats are {:?}",
+                        VALID_PREVIEW_FORMATS
+                    ),
+                });
+            }
+        }
+
+        if let Some(max) = self.max_lines {
+            if max == 0 || max > 50_000 {
+                return Err(CoreError::Validation {
+                    field: "max_lines".to_string(),
+                    reason: format!("max_lines must be between 1 and 50000 (received {max})"),
+                });
+            }
+        }
+
+        Ok(())
+    }
+}
+
+/// Metadata and statistics for a single file within a preview.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PreviewFileItem {
+    /// Unique section identifier.
+    pub id: String,
+    /// Repository-relative or document path.
+    pub path: String,
+    /// Programming or markup language identifier.
+    pub language: String,
+    /// Content size in raw bytes.
+    pub byte_size: usize,
+    /// Estimated token count.
+    pub token_count: usize,
+    /// Total lines in section body.
+    pub line_count: usize,
+}
+
+/// Paginated and formatted preview of converted job content.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct JobPreviewResponse {
+    /// Strongly-typed UUID v7 job identifier.
+    pub job_id: JobId,
+    /// Output export format rendered.
+    pub format: String,
+    /// Formatted content text for the requested preview slice.
+    pub content: String,
+    /// Total lines in the rendered export.
+    pub total_lines: usize,
+    /// Estimated token count for the export.
+    pub total_tokens: usize,
+    /// Total bytes in the rendered export.
+    pub total_bytes: usize,
+    /// Whether content was truncated to fit `max_lines`.
+    pub truncated: bool,
+    /// Maximum lines configured for this preview slice.
+    pub max_lines: usize,
+    /// List of constituent files with metrics.
+    pub files: Vec<PreviewFileItem>,
+    /// Optional hierarchy outline from the document.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hierarchy: Option<web_repo_to_ai_cdm::hierarchy::HierarchyNode>,
+}

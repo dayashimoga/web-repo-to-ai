@@ -367,6 +367,7 @@
 
     {#if isPreviewVisible}
       <PreviewPanel
+        jobId={job.id}
         sourceUrl={job.sourceUrl}
         selectedFormat={getPreviewFormat(job.targetFormat)}
       />

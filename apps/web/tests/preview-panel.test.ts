@@ -226,9 +226,17 @@ describe("PreviewPanel Component Invariants & Accessibility", () => {
     expect(content).toContain("handleDownload");
     expect(content).toContain("showLineNumbers");
     expect(content).toContain("wrapText");
+    expect(content).toContain("handleSelectFile");
+    expect(content).toContain("handleSelectFormat");
+
+    // Live API preview wiring
+    expect(content).toContain("defaultApiClient.getJobPreview");
+    expect(content).toContain("isBackendLive");
+    expect(content).toContain("isTruncated");
+    expect(content).toContain("jobId");
   });
 
-  it("validates JobWorkspace.svelte integrates PreviewPanel", () => {
+  it("validates JobWorkspace.svelte integrates PreviewPanel with jobId binding", () => {
     const workspacePath = resolve(
       process.cwd(),
       "src/lib/components/workspace/JobWorkspace.svelte"
@@ -238,6 +246,45 @@ describe("PreviewPanel Component Invariants & Accessibility", () => {
     expect(content).toContain("PreviewPanel");
     expect(content).toContain("isPreviewVisible");
     expect(content).toContain("getPreviewFormat");
+    expect(content).toContain("jobId={job.id}");
     expect(content).toContain("Extracted Content & Multi-Format Preview");
+  });
+
+  it("validates clipboard copy implementation with executive fallback", () => {
+    const sveltePath = resolve(process.cwd(), "src/lib/components/workspace/PreviewPanel.svelte");
+    const content = readFileSync(sveltePath, "utf-8");
+
+    // Navigator clipboard API
+    expect(content).toContain("navigator.clipboard.writeText");
+    // Fallback textarea execCommand
+    expect(content).toContain("execCommand('copy')");
+    // Feedback timeout
+    expect(content).toContain("setTimeout");
+    expect(content).toContain("isCopied = true");
+  });
+
+  it("validates accessible line numbers and word wrap controls", () => {
+    const sveltePath = resolve(process.cwd(), "src/lib/components/workspace/PreviewPanel.svelte");
+    const content = readFileSync(sveltePath, "utf-8");
+
+    // Line number toggle
+    expect(content).toContain('aria-label="Toggle line numbers"');
+    expect(content).toContain("aria-pressed={showLineNumbers}");
+
+    // Word wrap toggle
+    expect(content).toContain('aria-label="Toggle word wrap"');
+    expect(content).toContain("aria-pressed={wrapText}");
+
+    // Filter input
+    expect(content).toContain('aria-label="Filter preview content lines"');
+  });
+
+  it("validates truncation warning banner contract", () => {
+    const sveltePath = resolve(process.cwd(), "src/lib/components/workspace/PreviewPanel.svelte");
+    const content = readFileSync(sveltePath, "utf-8");
+
+    expect(content).toContain("isTruncated");
+    expect(content).toContain('aria-label="Preview truncation notice"');
+    expect(content).toContain("Preview windowed to first");
   });
 });

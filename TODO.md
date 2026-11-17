@@ -133,7 +133,7 @@
 ### Phase 4.4 — Website integration
 - [x] **[4.4.1]** Connect actual conversion API in apps/web *(Completed 2026-11-17, ApiClient, ApiClientError, RFC 7807 problem details parsing, mapApiJobToConversionJob adapter, +page.svelte API submission replacing setTimeout, workspace/+page.svelte getJob wiring, 11 new Vitest tests, 195 passing frontend tests)*
 - [x] **[4.4.2]** Real progress streaming (SSE) in apps/web *(Completed 2026-11-17, JobEventStream, connectJobEventStream, GET /api/v1/jobs/{job_id}/events Axum SSE endpoint, phase/log/completeness/tokens/artifact/done events, exponential backoff, heartbeat watchdog, onDestroy cleanup, 11 new Vitest tests, 206 passing frontend tests)*
-- [ ] **[4.4.3]** Content preview and copy controls in apps/web
+- [x] **[4.4.3]** Content preview and copy controls in apps/web *(Completed 2026-11-17, GET /api/v1/jobs/{job_id}/preview endpoint, JobPreviewResponse, PreviewQuery, ApiClient.getJobPreview, PreviewPanel live querying with local fallback, accessible clipboard copy controls with live ARIA announcements, line number/word wrap toggles, truncation alert banner, 5 new Vitest tests, 211 passing frontend tests, 335 workspace tests)*
 - [ ] **[4.4.4]** Multi-format downloads in apps/web
 
 ---

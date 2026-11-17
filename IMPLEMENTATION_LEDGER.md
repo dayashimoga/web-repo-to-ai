@@ -3784,11 +3784,64 @@
 
 ---
 
+#### Subphase `4.4.3` — Content preview and copy controls in apps/web
+- **Unique ID:** `4.4.3`
+- **Objective:** Implement content preview endpoint `GET /api/v1/jobs/{job_id}/preview` and connect live preview, format selection, code line filtering, line number and word wrap toggling, truncation alert banners, and accessible clipboard copy controls in `apps/web`.
+- **Scope:** `services/api/src/dto/jobs.rs`, `services/api/src/dto/mod.rs`, `services/api/src/routes/jobs.rs`, `services/api/src/routes/mod.rs`, `services/api/src/lib.rs`, `apps/web/src/lib/api/types.ts`, `apps/web/src/lib/api/client.ts`, `apps/web/src/lib/components/workspace/PreviewPanel.svelte`, `apps/web/src/lib/components/workspace/JobWorkspace.svelte`, `apps/web/tests/api-client.test.ts`, `apps/web/tests/preview-panel.test.ts`.
+- **Prerequisites:** `4.4.2` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `services/api/src/dto/jobs.rs`
+  - `services/api/src/dto/mod.rs`
+  - `services/api/src/routes/jobs.rs`
+  - `services/api/src/routes/mod.rs`
+  - `services/api/src/lib.rs`
+  - `apps/web/src/lib/api/types.ts`
+  - `apps/web/src/lib/api/client.ts`
+  - `apps/web/src/lib/components/workspace/PreviewPanel.svelte`
+  - `apps/web/src/lib/components/workspace/JobWorkspace.svelte`
+  - `apps/web/tests/api-client.test.ts`
+  - `apps/web/tests/preview-panel.test.ts`
+- **Implementation Tasks:**
+  1. Define DTOs `JobPreviewResponse`, `PreviewFileItem`, and `PreviewQuery` in `services/api/src/dto/jobs.rs`, implementing `Validatable` with format validation and `max_lines` bounds (1 to 50,000).
+  2. Implement `get_preview_handler` in `services/api/src/routes/jobs.rs` and register route `/jobs/:job_id/preview` in `services/api/src/routes/mod.rs`: retrieves stored `CdmDocument`, generates requested export format slice (`markdown`, `json`, `html`, `txt`, `jsonl`, `xml`), applies `max_lines` windowing, extracts file section metrics, and returns RFC 7807 problem details when not found.
+  3. Add backend integration tests in `services/api/src/lib.rs`: `test_get_preview_not_found`, `test_get_preview_invalid_format_rejected`, `test_get_preview_success_from_cdm` (verifying markdown, JSON, file-specific filtering, and `max_lines` truncation).
+  4. Define frontend interfaces `PreviewFileItem` and `JobPreviewResponse` in `apps/web/src/lib/api/types.ts` matching backend schema.
+  5. Add `getJobPreview(jobId, options)` method to `ApiClient` in `apps/web/src/lib/api/client.ts` with strongly-typed query parameters and error decoding.
+  6. Enhance `PreviewPanel.svelte`: accept `jobId`, query live preview from API via Svelte 5 runes `$state` / `$effect`, provide graceful fallback to local preview formatting on offline/pending states, implement robust clipboard copy (`navigator.clipboard.writeText` with `document.execCommand` fallback), add accessible ARIA live status announcement region, truncation warning banner, line search filtering, line numbers toggle, and word wrap toggle.
+  7. Pass `jobId={job.id}` from `JobWorkspace.svelte` to `PreviewPanel.svelte`.
+  8. Expand Vitest test suites in `apps/web/tests/api-client.test.ts` (13 tests) and `apps/web/tests/preview-panel.test.ts` (20 tests), achieving 211 passing frontend tests.
+  9. Run full verification gates via `scripts/check-all.ps1`.
+- **Acceptance Criteria:**
+  - `GET /api/v1/jobs/{job_id}/preview` endpoint serves format-specific content preview with truncation flags and file metrics.
+  - PreviewPanel connects to live backend preview when `jobId` is provided, degrading gracefully to local preview formatting on pending or offline states.
+  - Clipboard copy control writes formatted content to clipboard with accessible ARIA live feedback.
+  - Line number gutter, word wrap, line filtering, and truncation notice work seamlessly.
+  - All 211 frontend tests pass; `svelte-check` reports 0 errors and 0 warnings; Prettier confirms formatting.
+  - All 335 workspace Rust tests pass with zero clippy warnings.
+  - All 5 gates in `scripts/check-all.ps1` pass cleanly.
+- **Tests:** `cargo test -p web-repo-to-ai-api`, `cargo test --workspace`, `npm --prefix apps/web test`, `npm --prefix apps/web run check`, `npm --prefix apps/web run lint`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, 03, 05: Validated job UUID and format query parameters, bounded line limits (<= 50,000) preventing memory exhaustion, safe HTML escaping in syntax highlighter and truncation banners preventing XSS.
+- **Performance Considerations:** Windowed preview (default 1,000 / 2,000 lines) prevents DOM lag on large multi-megabyte repositories, zero polling, minimal memory allocation during on-demand slice generation.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-api`: 45/45 tests passed.
+  - `cargo test --workspace`: 335/335 tests passed across all 17 crates and services.
+  - `npm --prefix apps/web test`: 211/211 tests passed across 17 test files.
+  - `npm --prefix apps/web run check`: 0 errors, 0 warnings.
+  - `npm --prefix apps/web run lint`: 100% Prettier formatting compliance.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors.
+  - `cargo fmt --all -- --check`: 100% clean formatting.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (224/224 bootstrap checks, 7/7 workflows, Rust checks, Frontend checks, Podman storage 5.27 GB / 30 GB, 17.6%).
+- **Git Commit Reference:** `PENDING_COMMIT_SHA`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 4 — Canonical Model and Export Engine)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `4.4.3` | Content preview and copy controls in apps/web | `4.4.2` (`ACCEPTED`) | `apps/web/*` | `NOT_STARTED` |
+| `4.4.4` | Multi-format downloads in apps/web | `4.4.3` (`ACCEPTED`) | `apps/web/*` | `NOT_STARTED` |
 
 ---
 

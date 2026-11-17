@@ -10,8 +10,10 @@
     estimateTokens
   } from '$lib/types/preview';
   import { highlightLines, type HighlightedLine } from '$lib/utils/syntax-highlighter';
+  import { defaultApiClient } from '$lib/api';
 
   interface Props {
+    jobId?: string;
     files?: PreviewFile[];
     sourceUrl?: string;
     selectedFormat?: PreviewFormat;
@@ -21,6 +23,7 @@
   }
 
   let {
+    jobId,
     files = $bindable(
       generateSampleExtractedFiles('https://github.com/dayashimoga/web-repo-to-ai')
     ),
@@ -40,6 +43,15 @@
   let wrapText = $state(false);
   let isSidebarOpen = $state(true);
 
+  // Live backend preview state
+  let isLoading = $state(false);
+  let isBackendLive = $state(false);
+  let isTruncated = $state(false);
+  let serverTotalLines = $state<number | null>(null);
+  let serverTotalTokens = $state<number | null>(null);
+  let serverTotalBytes = $state<number | null>(null);
+  let serverContent = $state<string | null>(null);
+
   // Filtered files for the sidebar
   let filteredFiles = $derived(
     files.filter((f) =>
@@ -54,9 +66,11 @@
       : files.filter((f) => f.id === selectedFileId)
   );
 
-  // Raw generated export text
+  // Raw generated export text (uses server preview if loaded, else local fallback)
   let rawContent = $derived(
-    formatContentForExport(activeFiles, selectedFormat, { sourceUrl })
+    serverContent !== null
+      ? serverContent
+      : formatContentForExport(activeFiles, selectedFormat, { sourceUrl })
   );
 
   // Filtered lines for preview search
@@ -74,27 +88,105 @@
   });
 
   // Dynamic token and byte metrics
-  let totalTokens = $derived(estimateTokens(rawContent));
-  let totalBytes = $derived(new Blob([rawContent]).size);
-  let totalLines = $derived(rawContent.split('\n').length);
+  let totalTokens = $derived(serverTotalTokens ?? estimateTokens(rawContent));
+  let totalBytes = $derived(serverTotalBytes ?? new Blob([rawContent]).size);
+  let totalLines = $derived(serverTotalLines ?? rawContent.split('\n').length);
+
+  // Asynchronously query live preview from API when jobId is available
+  async function fetchBackendPreview(targetJobId: string, format: PreviewFormat, fileId: string | 'all') {
+    if (!targetJobId) return;
+    isLoading = true;
+
+    try {
+      const targetFilePath = fileId !== 'all' ? files.find((f) => f.id === fileId)?.path : undefined;
+      const res = await defaultApiClient.getJobPreview(targetJobId, {
+        format,
+        maxLines: 2000,
+        filePath: targetFilePath
+      });
+
+      if (res && res.content) {
+        serverContent = res.content;
+        isTruncated = res.truncated;
+        serverTotalLines = res.total_lines;
+        serverTotalTokens = res.total_tokens;
+        serverTotalBytes = res.total_bytes;
+        isBackendLive = true;
+
+        if (res.files && res.files.length > 0 && files.length <= 3) {
+          files = res.files.map((rf) => ({
+            id: rf.id,
+            path: rf.path,
+            language: rf.language,
+            sizeBytes: rf.byte_size,
+            tokenCount: rf.token_count,
+            content: '',
+            lineCount: rf.line_count
+          }));
+        }
+      }
+    } catch {
+      // Graceful degradation to local preview
+      serverContent = null;
+      isBackendLive = false;
+      isTruncated = false;
+      serverTotalLines = null;
+      serverTotalTokens = null;
+      serverTotalBytes = null;
+    } finally {
+      isLoading = false;
+    }
+  }
+
+  $effect(() => {
+    if (jobId) {
+      fetchBackendPreview(jobId, selectedFormat, selectedFileId);
+    }
+  });
 
   function handleSelectFormat(fmt: PreviewFormat) {
     selectedFormat = fmt;
     onformatChange?.(fmt);
+    if (jobId) {
+      fetchBackendPreview(jobId, fmt, selectedFileId);
+    }
+  }
+
+  function handleSelectFile(fileId: string | 'all') {
+    selectedFileId = fileId;
+    if (jobId) {
+      fetchBackendPreview(jobId, selectedFormat, fileId);
+    }
   }
 
   async function handleCopy() {
+    let success = false;
     try {
-      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(rawContent);
+        success = true;
+      } else if (typeof document !== 'undefined') {
+        const textArea = document.createElement('textarea');
+        textArea.value = rawContent;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-9999px';
+        textArea.style.top = '0';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        success = document.execCommand('copy');
+        document.body.removeChild(textArea);
       }
+    } catch (err) {
+      console.warn('Copy to clipboard failed:', err);
+    }
+
+    if (success || typeof navigator === 'undefined') {
       isCopied = true;
       oncopy?.(selectedFormat, rawContent);
       setTimeout(() => {
         isCopied = false;
       }, 2000);
-    } catch (err) {
-      console.warn('Copy failed, falling back:', err);
     }
   }
 
@@ -272,6 +364,22 @@
       <Badge variant="default" size="sm">
         {(totalBytes / 1024).toFixed(1)} KB
       </Badge>
+
+      {#if isBackendLive}
+        <Badge variant="success" size="sm" dot>
+          Live API Preview
+        </Badge>
+      {:else if jobId}
+        <Badge variant="default" size="sm">
+          Local Preview
+        </Badge>
+      {/if}
+
+      {#if isLoading}
+        <span class="text-brand-500 font-mono text-[11px] animate-pulse">
+          Loading preview...
+        </span>
+      {/if}
     </div>
 
     <!-- Active Selection Indicator -->
@@ -284,6 +392,22 @@
       </span>
     </div>
   </div>
+
+  <!-- Truncation Banner -->
+  {#if isTruncated}
+    <div
+      role="status"
+      aria-label="Preview truncation notice"
+      class="px-5 py-2 bg-status-warning/15 border-b border-status-warning/30 text-status-warning text-xs flex items-center justify-between"
+    >
+      <div class="flex items-center gap-2 font-medium">
+        <span>⚠</span>
+        <span>
+          Preview windowed to first {serverTotalLines ?? 2000} lines for smooth rendering. Download complete artifact to view full export.
+        </span>
+      </div>
+    </div>
+  {/if}
 
   <!-- Main Body: File Tree Sidebar + Syntax-Highlighted Code Editor -->
   <div class="grid grid-cols-1 md:grid-cols-12 min-h-[460px]">
@@ -313,7 +437,7 @@
             'all'
               ? 'bg-brand-600/10 text-brand-500 border border-brand-500/30'
               : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-subtle'}"
-            onclick={() => (selectedFileId = 'all')}
+            onclick={() => handleSelectFile('all')}
           >
             <span class="flex items-center gap-1.5 truncate">
               <span>📦</span>
@@ -332,7 +456,7 @@
               file.id
                 ? 'bg-brand-600/10 text-brand-500 border border-brand-500/30 font-semibold'
                 : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-subtle'}"
-              onclick={() => (selectedFileId = file.id)}
+              onclick={() => handleSelectFile(file.id)}
             >
               <span class="flex items-center gap-1.5 truncate">
                 <span class="text-theme-muted text-[11px]">

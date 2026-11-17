@@ -5,7 +5,10 @@ pub mod params;
 pub mod query;
 pub mod sources;
 
-pub use jobs::{CreateJobRequest, JobResponse, JobStatus, VALID_EXPORT_FORMATS};
+pub use jobs::{
+    CreateJobRequest, JobPreviewResponse, JobResponse, JobStatus, PreviewFileItem, PreviewQuery,
+    VALID_EXPORT_FORMATS, VALID_PREVIEW_FORMATS,
+};
 pub use params::{ArtifactPathParams, JobPathParams};
 pub use query::{ListJobsQuery, PaginatedResponse, VALID_SORT_ORDERS, VALID_STATUS_FILTERS};
 pub use sources::{
@@ -151,5 +154,33 @@ mod tests {
             format: "unknown".to_string(),
         };
         assert!(invalid.validate().is_err());
+    }
+
+    #[test]
+    fn test_preview_query_validation() {
+        let valid = PreviewQuery {
+            format: Some("markdown".to_string()),
+            max_lines: Some(500),
+            file_path: Some("src/main.rs".to_string()),
+        };
+        assert!(valid.validate().is_ok());
+
+        let invalid_fmt = PreviewQuery {
+            format: Some("exe".to_string()),
+            ..Default::default()
+        };
+        assert!(invalid_fmt.validate().is_err());
+
+        let invalid_max = PreviewQuery {
+            max_lines: Some(0),
+            ..Default::default()
+        };
+        assert!(invalid_max.validate().is_err());
+
+        let too_high_max = PreviewQuery {
+            max_lines: Some(100_000),
+            ..Default::default()
+        };
+        assert!(too_high_max.validate().is_err());
     }
 }

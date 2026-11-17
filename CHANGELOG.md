@@ -6,6 +6,31 @@
 
 ## [Unreleased] — Stage 4: Canonical Model and Export Engine
 
+### 2026-11-17 — Phase 4.4: Export Frontend (`4.4.3`)
+
+#### Added
+- **`[4.4.3]` Content Preview and Copy Controls in `apps/web` and `services/api`:**
+  - Implemented preview endpoint `GET /api/v1/jobs/{job_id}/preview` in `services/api/src/routes/jobs.rs` and registered it in `services/api/src/routes/mod.rs`:
+    - Validates strongly-typed UUID v7 `job_id` and query parameters `format`, `max_lines` (1 to 50,000, default 1,000), and `file_path`.
+    - Retrieves stored `CdmDocument` from storage and generates format-specific preview representation (`markdown`, `json`, `html`, `txt`, `jsonl`, `xml`).
+    - Extracts per-file metrics (`PreviewFileItem`: path, language, byte size, token count, line count) and hierarchy outline.
+    - Windows content to `max_lines` slice and sets `truncated: true` when content exceeds ceiling.
+    - Returns RFC 7807 Problem Details `RESOURCE_NOT_FOUND` on missing job and `VALIDATION_ERROR` on malformed parameters.
+    - Added backend integration tests in `services/api/src/lib.rs`: `test_get_preview_not_found`, `test_get_preview_invalid_format_rejected`, `test_get_preview_success_from_cdm` (markdown, JSON, file-specific filter, max_lines windowing).
+  - Implemented typed frontend client methods and models:
+    - Added `PreviewFileItem` and `JobPreviewResponse` interfaces to `apps/web/src/lib/api/types.ts`.
+    - Added `ApiClient.getJobPreview(jobId, options)` to `apps/web/src/lib/api/client.ts`.
+  - Enhanced `PreviewPanel.svelte` in `apps/web/src/lib/components/workspace/PreviewPanel.svelte`:
+    - Accepted `jobId` prop and connected live preview querying via Svelte 5 runes (`$state`, `$derived`, `$effect`).
+    - Gracefully degrades to local preview formatting and sample files when API returns 404 or offline.
+    - Implemented robust clipboard copy with `navigator.clipboard.writeText` and `document.execCommand('copy')` fallback.
+    - Added accessible ARIA live status announcement region (`role="status"`, `aria-live="polite"`) for copy confirmation ("Copied to clipboard!").
+    - Added truncation notice banner informing users when preview is windowed to the first 2,000 lines.
+    - Connected line number toggle, word wrap toggle, and real-time line search filtering.
+  - Connected `jobId={job.id}` binding from `JobWorkspace.svelte` to `PreviewPanel.svelte`.
+  - Expanded Vitest test suite in `apps/web/tests/api-client.test.ts` and `apps/web/tests/preview-panel.test.ts` (211 passing tests across 17 test suites).
+  - Verified 100% passing gates in `powershell scripts/check-all.ps1` (0 failures across all 5 monorepo gates, 335 workspace Rust tests).
+
 ### 2026-11-17 — Phase 4.4: Export Frontend (`4.4.2`)
 
 #### Added

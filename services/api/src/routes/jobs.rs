@@ -24,8 +24,8 @@ use web_repo_to_ai_storage::layout;
 use web_repo_to_ai_storage::schema::ArtifactFormat;
 
 use crate::dto::{
-    ArtifactPathParams, CreateJobRequest, JobPathParams, JobResponse, ListJobsQuery,
-    PaginatedResponse,
+    ArtifactPathParams, CreateJobRequest, JobPathParams, JobPreviewResponse, JobResponse,
+    ListJobsQuery, PaginatedResponse, PreviewFileItem, PreviewQuery,
 };
 use crate::error::not_found_problem;
 use crate::extractors::{ValidatedJson, ValidatedPath, ValidatedQuery};
@@ -416,4 +416,172 @@ fn build_download_response(
         )
             .into_response()
     })
+}
+
+/// Handles `GET /api/v1/jobs/{job_id}/preview`.
+///
+/// Retrieves paginated / windowed preview of the converted output for the specified format
+/// and repository hierarchy.
+pub async fn get_preview_handler(
+    State(state): State<AppState>,
+    Extension(request_id): Extension<RequestId>,
+    ValidatedPath(params): ValidatedPath<JobPathParams>,
+    ValidatedQuery(query): ValidatedQuery<PreviewQuery>,
+) -> Response {
+    let job_uuid = *params.job_id.as_uuid();
+    let cdm_keys = [
+        layout::job_artifact_key(job_uuid, ArtifactFormat::CdmJson),
+        format!("jobs/{job_uuid}/artifact.cdm.json"),
+        format!("jobs/{job_uuid}/cdm.json"),
+    ];
+
+    let mut found_cdm_key = None;
+    for key in &cdm_keys {
+        if state.storage.exists(key).await.unwrap_or(false) {
+            found_cdm_key = Some(key.clone());
+            break;
+        }
+    }
+
+    let cdm_key = match found_cdm_key {
+        Some(k) => k,
+        None => {
+            return not_found_problem("Job", &params.job_id.to_string(), Some(request_id));
+        }
+    };
+
+    let cdm_bytes = match state.storage.get(&cdm_key).await {
+        Ok(b) => b,
+        Err(err) => {
+            tracing::warn!(%err, key = %cdm_key, "Failed to read CDM document for preview");
+            return not_found_problem("Job", &params.job_id.to_string(), Some(request_id));
+        }
+    };
+
+    let doc = match serde_json::from_slice::<CdmDocument>(&cdm_bytes) {
+        Ok(d) => d,
+        Err(err) => {
+            tracing::error!(%err, "Corrupted CDM document in storage");
+            return not_found_problem("Job", &params.job_id.to_string(), Some(request_id));
+        }
+    };
+
+    let files: Vec<PreviewFileItem> = doc
+        .sections
+        .iter()
+        .enumerate()
+        .map(|(idx, s)| {
+            let path = s
+                .original_path
+                .clone()
+                .or_else(|| s.title.clone())
+                .unwrap_or_else(|| format!("section-{}", idx + 1));
+            let language = s.language.clone().unwrap_or_else(|| "text".to_string());
+            let byte_size = s.body.len();
+            let token_count = s
+                .token_metrics
+                .as_ref()
+                .map(|m| m.estimated_tokens)
+                .unwrap_or_else(|| (s.body.len() / 4).max(1));
+            let line_count = s.body.lines().count();
+            PreviewFileItem {
+                id: s.section_id.clone(),
+                path,
+                language,
+                byte_size,
+                token_count,
+                line_count,
+            }
+        })
+        .collect();
+
+    let raw_format = query
+        .format
+        .as_deref()
+        .unwrap_or("markdown")
+        .trim()
+        .to_ascii_lowercase();
+
+    // Render preview content
+    let full_content = if let Some(ref target_path) = query.file_path {
+        let section = doc.sections.iter().find(|s| {
+            s.original_path.as_deref() == Some(target_path)
+                || s.section_id == *target_path
+                || s.title.as_deref() == Some(target_path)
+        });
+
+        match section {
+            Some(s) => match raw_format.as_str() {
+                "json" => serde_json::to_string_pretty(s).unwrap_or_else(|_| s.body.clone()),
+                "xml" => format!(
+                    "<document>\n  <source>{}</source>\n  <language>{}</language>\n  <content>\n{}\n  </content>\n</document>",
+                    s.original_path.as_deref().unwrap_or(&s.section_id),
+                    s.language.as_deref().unwrap_or("text"),
+                    s.body
+                ),
+                _ => s.body.clone(),
+            },
+            None => render_full_cdm_format(&doc, &raw_format),
+        }
+    } else {
+        render_full_cdm_format(&doc, &raw_format)
+    };
+
+    let all_lines: Vec<&str> = full_content.lines().collect();
+    let total_lines = all_lines.len();
+    let max = query.max_lines.unwrap_or(1000);
+    let (content, truncated) = if total_lines > max {
+        (all_lines[..max].join("\n"), true)
+    } else {
+        (full_content, false)
+    };
+
+    let total_tokens = doc.total_estimated_tokens();
+    let total_bytes = content.len();
+
+    let response = JobPreviewResponse {
+        job_id: params.job_id,
+        format: raw_format,
+        content,
+        total_lines,
+        total_tokens,
+        total_bytes,
+        truncated,
+        max_lines: max,
+        files,
+        hierarchy: Some(doc.hierarchy.clone()),
+    };
+
+    (StatusCode::OK, Json(response)).into_response()
+}
+
+fn render_full_cdm_format(doc: &CdmDocument, format: &str) -> String {
+    match format {
+        "markdown" | "md" => export_markdown(doc, &MarkdownOptions::default()).unwrap_or_default(),
+        "txt" | "text" => export_plain_text(doc, &PlainTextOptions::default()).unwrap_or_default(),
+        "json" => export_json(doc, &JsonExportOptions::canonical()).unwrap_or_default(),
+        "html" | "htm" => export_html(doc, &HtmlOptions::default())
+            .map(|(s, _)| s)
+            .unwrap_or_default(),
+        "jsonl" | "ndjson" => export_jsonl(doc, &JsonlOptions::default())
+            .map(|(s, _)| s)
+            .unwrap_or_default(),
+        "xml" => {
+            let mut out = format!(
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<documents source=\"{}\">\n",
+                doc.canonical_url
+            );
+            for (idx, sec) in doc.sections.iter().enumerate() {
+                out.push_str(&format!(
+                    "  <document index=\"{}\">\n    <source>{}</source>\n    <content>\n{}\n    </content>\n  </document>\n",
+                    idx + 1,
+                    sec.original_path.as_deref().unwrap_or(&sec.section_id),
+                    sec.body
+                ));
+            }
+            out.push_str("</documents>");
+            out
+        }
+        _ => export_markdown(doc, &MarkdownOptions::default()).unwrap_or_default(),
+    }
 }

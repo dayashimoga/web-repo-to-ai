@@ -256,6 +256,73 @@ describe("API Data Adapter (mapApiJobToConversionJob)", () => {
     expect(runningJob.currentPhase).toBe("acquisition");
     expect(runningJob.stages[0].state).toBe("in_progress");
   });
+
+  it("dispatches getJobPreview with query parameters and decodes preview payload", async () => {
+    const mockPreview = {
+      job_id: "018f2345-6789-7000-8000-000000000099",
+      format: "markdown",
+      content: "# Live Preview\n```rust\nfn main() {}\n```",
+      total_lines: 3,
+      total_tokens: 12,
+      total_bytes: 45,
+      truncated: false,
+      max_lines: 500,
+      files: [
+        {
+          id: "sec-1",
+          path: "src/main.rs",
+          language: "rust",
+          byte_size: 45,
+          token_count: 12,
+          line_count: 3,
+        },
+      ],
+    };
+
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({ "content-type": "application/json" }),
+      json: async () => mockPreview,
+    });
+
+    const client = new ApiClient({ fetchFn: mockFetch });
+    const result = await client.getJobPreview("018f2345-6789-7000-8000-000000000099", {
+      format: "markdown",
+      maxLines: 500,
+      filePath: "src/main.rs",
+    });
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      "/api/v1/jobs/018f2345-6789-7000-8000-000000000099/preview?format=markdown&max_lines=500&file_path=src%2Fmain.rs",
+      expect.objectContaining({ method: "GET" })
+    );
+    expect(result.job_id).toBe("018f2345-6789-7000-8000-000000000099");
+    expect(result.format).toBe("markdown");
+    expect(result.content).toContain("Live Preview");
+    expect(result.files).toHaveLength(1);
+    expect(result.files[0].path).toBe("src/main.rs");
+  });
+
+  it("throws ApiClientError when getJobPreview returns 404 Problem Details", async () => {
+    const notFoundProblem: ApiProblemDetails = {
+      type: "https://errors.web-repo-to-ai.org/not-found",
+      title: "Resource Not Found",
+      status: 404,
+      detail: "Job not found",
+      request_id: "req-preview-404",
+    };
+
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      headers: new Headers({ "content-type": "application/problem+json" }),
+      json: async () => notFoundProblem,
+    });
+
+    const client = new ApiClient({ fetchFn: mockFetch });
+    await expect(client.getJobPreview("non-existent-id")).rejects.toThrow("Job not found");
+  });
 });
 
 describe("SvelteKit Route API Wiring Verification", () => {

@@ -1029,4 +1029,136 @@ mod tests {
             "application/zip"
         );
     }
+
+    #[tokio::test]
+    async fn test_get_preview_not_found() {
+        let app = setup_test_app();
+        let job_id = web_repo_to_ai_core::JobId::new();
+        let uri = format!("/api/v1/jobs/{job_id}/preview");
+
+        let response = app
+            .oneshot(Request::builder().uri(&uri).body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+        let body = body_to_string(response.into_body()).await;
+        assert!(body.contains("RESOURCE_NOT_FOUND"));
+    }
+
+    #[tokio::test]
+    async fn test_get_preview_invalid_format_rejected() {
+        let app = setup_test_app();
+        let job_id = web_repo_to_ai_core::JobId::new();
+        let uri = format!("/api/v1/jobs/{job_id}/preview?format=invalid_fmt");
+
+        let response = app
+            .oneshot(Request::builder().uri(&uri).body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        let body = body_to_string(response.into_body()).await;
+        assert!(body.contains("VALIDATION_ERROR"));
+        assert!(body.contains("format"));
+    }
+
+    #[tokio::test]
+    async fn test_get_preview_success_from_cdm() {
+        use web_repo_to_ai_storage::layout;
+        use web_repo_to_ai_storage::schema::ArtifactFormat;
+        use web_repo_to_ai_storage::InMemoryStorage;
+
+        let storage = std::sync::Arc::new(InMemoryStorage::new());
+        let job_id = web_repo_to_ai_core::JobId::new();
+        let cdm_doc = create_test_cdm();
+        let cdm_bytes = serde_json::to_vec(&cdm_doc).unwrap();
+
+        let cdm_key = layout::job_artifact_key(*job_id.as_uuid(), ArtifactFormat::CdmJson);
+        storage.put(&cdm_key, &cdm_bytes).await.unwrap();
+
+        let config = AppConfig::default();
+        let state = AppState::with_storage(config, storage);
+        let app = build_app(state);
+
+        // 1. Default preview (markdown)
+        let uri = format!("/api/v1/jobs/{job_id}/preview");
+        let res = app
+            .clone()
+            .oneshot(Request::builder().uri(&uri).body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+
+        assert_eq!(res.status(), StatusCode::OK);
+        let body = body_to_string(res.into_body()).await;
+        let preview: serde_json::Value = serde_json::from_str(&body).unwrap();
+
+        assert_eq!(preview["job_id"], job_id.to_string());
+        assert_eq!(preview["format"], "markdown");
+        assert_eq!(preview["truncated"], false);
+        assert!(preview["content"]
+            .as_str()
+            .unwrap()
+            .contains("Hello Stream!"));
+        assert_eq!(preview["files"].as_array().unwrap().len(), 1);
+        assert_eq!(preview["files"][0]["path"], "src/main.rs");
+        assert_eq!(preview["files"][0]["language"], "rust");
+
+        // 2. Truncated preview with max_lines = 1
+        let uri_trunc = format!("/api/v1/jobs/{job_id}/preview?max_lines=1");
+        let res_trunc = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri(&uri_trunc)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(res_trunc.status(), StatusCode::OK);
+        let body_trunc = body_to_string(res_trunc.into_body()).await;
+        let preview_trunc: serde_json::Value = serde_json::from_str(&body_trunc).unwrap();
+        assert_eq!(preview_trunc["truncated"], true);
+        assert_eq!(preview_trunc["max_lines"], 1);
+
+        // 3. JSON format preview
+        let uri_json = format!("/api/v1/jobs/{job_id}/preview?format=json");
+        let res_json = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri(&uri_json)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(res_json.status(), StatusCode::OK);
+        let body_json = body_to_string(res_json.into_body()).await;
+        let preview_json: serde_json::Value = serde_json::from_str(&body_json).unwrap();
+        assert_eq!(preview_json["format"], "json");
+
+        // 4. File-specific preview
+        let uri_file = format!("/api/v1/jobs/{job_id}/preview?file_path=src/main.rs");
+        let res_file = app
+            .oneshot(
+                Request::builder()
+                    .uri(&uri_file)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(res_file.status(), StatusCode::OK);
+        let body_file = body_to_string(res_file.into_body()).await;
+        let preview_file: serde_json::Value = serde_json::from_str(&body_file).unwrap();
+        assert!(preview_file["content"]
+            .as_str()
+            .unwrap()
+            .contains("println!"));
+    }
 }

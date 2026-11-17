@@ -15,6 +15,7 @@ import type {
   CreateJobPayload,
   DetectSourcesPayload,
   DetectSourcesResponse,
+  JobPreviewResponse,
 } from "./types";
 
 /** Strongly-typed error representing an RFC 7807 API failure or transport error. */
@@ -112,6 +113,26 @@ export class ApiClient {
   getStreamUrl(jobId: string): string {
     const sanitizedId = encodeURIComponent(jobId.trim());
     return `${this.baseUrl}/jobs/${sanitizedId}/stream`;
+  }
+
+  /**
+   * Retrieves a paginated / windowed preview for a conversion job (`GET /api/v1/jobs/{job_id}/preview`).
+   *
+   * @throws {ApiClientError} on RFC 7807 error or network failure.
+   */
+  async getJobPreview(
+    jobId: string,
+    options?: { format?: string; maxLines?: number; filePath?: string }
+  ): Promise<JobPreviewResponse> {
+    const sanitizedId = encodeURIComponent(jobId.trim());
+    const params = new URLSearchParams();
+    if (options?.format) params.set("format", options.format);
+    if (options?.maxLines) params.set("max_lines", String(options.maxLines));
+    if (options?.filePath) params.set("file_path", options.filePath);
+
+    const queryStr = params.toString();
+    const endpoint = `/jobs/${sanitizedId}/preview${queryStr ? `?${queryStr}` : ""}`;
+    return this.request<JobPreviewResponse>(endpoint, { method: "GET" });
   }
 
   /**

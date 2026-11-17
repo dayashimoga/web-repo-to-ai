@@ -84,3 +84,25 @@ export interface ApiProblemDetails {
   request_id?: string;
   invalid_params?: InvalidParam[];
 }
+
+export interface PreviewFileItem {
+  id: string;
+  path: string;
+  language: string;
+  byte_size: number;
+  token_count: number;
+  line_count: number;
+}
+
+export interface JobPreviewResponse {
+  job_id: string;
+  format: string;
+  content: string;
+  total_lines: number;
+  total_tokens: number;
+  total_bytes: number;
+  truncated: boolean;
+  max_lines: number;
+  files: PreviewFileItem[];
+  hierarchy?: unknown;
+}
