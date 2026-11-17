@@ -386,3 +386,150 @@ impl PlainTextOptions {
         self
     }
 }
+
+/// Flavor or target schema style of JSON export.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum JsonFormatFlavor {
+    /// Full Canonical Context Document Model v1.0 schema (`cdm_json`).
+    #[default]
+    CanonicalCdm,
+    /// Token-optimized structured envelope tailored for direct LLM context injection.
+    StructuredContext,
+    /// Minified single-line compact JSON without indentation or superfluous whitespace.
+    Minified,
+}
+
+/// Configuration options controlling JSON document generation.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct JsonExportOptions {
+    /// Flavor or target schema style of the exported JSON.
+    pub flavor: JsonFormatFlavor,
+    /// Whether to format JSON with multi-line indentation (ignored when flavor is `Minified`).
+    pub pretty: bool,
+    /// Whether to include document metadata in structured context export.
+    pub include_metadata: bool,
+    /// Whether to include hierarchy tree in structured context export.
+    pub include_hierarchy: bool,
+    /// Whether to include sections array in structured context export.
+    pub include_sections: bool,
+    /// Whether to include citations array in structured context export.
+    pub include_citations: bool,
+    /// Whether to include exclusions array in structured context export.
+    pub include_exclusions: bool,
+    /// Whether to include completeness accounting in structured context export.
+    pub include_completeness: bool,
+    /// Maximum allowed token budget ceiling.
+    pub max_token_budget: Option<usize>,
+}
+
+impl Default for JsonExportOptions {
+    fn default() -> Self {
+        Self {
+            flavor: JsonFormatFlavor::CanonicalCdm,
+            pretty: true,
+            include_metadata: true,
+            include_hierarchy: true,
+            include_sections: true,
+            include_citations: true,
+            include_exclusions: true,
+            include_completeness: true,
+            max_token_budget: None,
+        }
+    }
+}
+
+impl JsonExportOptions {
+    /// Creates a canonical CDM v1.0 export configuration (pretty-printed).
+    #[must_use]
+    pub fn canonical() -> Self {
+        Self {
+            flavor: JsonFormatFlavor::CanonicalCdm,
+            pretty: true,
+            ..Default::default()
+        }
+    }
+
+    /// Creates a structured context export configuration tailored for LLMs.
+    #[must_use]
+    pub fn structured() -> Self {
+        Self {
+            flavor: JsonFormatFlavor::StructuredContext,
+            pretty: true,
+            ..Default::default()
+        }
+    }
+
+    /// Creates a compact/minified export configuration.
+    #[must_use]
+    pub fn compact() -> Self {
+        Self {
+            flavor: JsonFormatFlavor::Minified,
+            pretty: false,
+            ..Default::default()
+        }
+    }
+
+    /// Configures the JSON flavor.
+    #[must_use]
+    pub const fn with_flavor(mut self, flavor: JsonFormatFlavor) -> Self {
+        self.flavor = flavor;
+        self
+    }
+
+    /// Configures pretty-printing indentation.
+    #[must_use]
+    pub const fn with_pretty(mut self, pretty: bool) -> Self {
+        self.pretty = pretty;
+        self
+    }
+
+    /// Configures metadata inclusion in structured context.
+    #[must_use]
+    pub const fn with_metadata(mut self, enabled: bool) -> Self {
+        self.include_metadata = enabled;
+        self
+    }
+
+    /// Configures hierarchy tree inclusion in structured context.
+    #[must_use]
+    pub const fn with_hierarchy(mut self, enabled: bool) -> Self {
+        self.include_hierarchy = enabled;
+        self
+    }
+
+    /// Configures sections inclusion in structured context.
+    #[must_use]
+    pub const fn with_sections(mut self, enabled: bool) -> Self {
+        self.include_sections = enabled;
+        self
+    }
+
+    /// Configures citations inclusion in structured context.
+    #[must_use]
+    pub const fn with_citations(mut self, enabled: bool) -> Self {
+        self.include_citations = enabled;
+        self
+    }
+
+    /// Configures exclusions inclusion in structured context.
+    #[must_use]
+    pub const fn with_exclusions(mut self, enabled: bool) -> Self {
+        self.include_exclusions = enabled;
+        self
+    }
+
+    /// Configures completeness accounting inclusion in structured context.
+    #[must_use]
+    pub const fn with_completeness(mut self, enabled: bool) -> Self {
+        self.include_completeness = enabled;
+        self
+    }
+
+    /// Configures the maximum token budget cap.
+    #[must_use]
+    pub const fn with_max_token_budget(mut self, budget: Option<usize>) -> Self {
+        self.max_token_budget = budget;
+        self
+    }
+}

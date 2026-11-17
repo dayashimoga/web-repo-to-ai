@@ -12,6 +12,7 @@
 #![warn(missing_docs)]
 
 pub mod error;
+pub mod json;
 pub mod markdown;
 pub mod options;
 pub mod plain_text;
@@ -19,9 +20,15 @@ pub(crate) mod util;
 
 // Public re-exports
 pub use error::{ExporterError, Result};
+pub use json::{
+    export_json, export_json_to_writer, JsonExporter, StructuredCitation, StructuredCompleteness,
+    StructuredContextEnvelope, StructuredExclusion, StructuredHierarchyNode, StructuredMetrics,
+    StructuredSection,
+};
 pub use markdown::{export_markdown, export_markdown_to_writer, MarkdownExporter};
 pub use options::{
-    CodeFenceStyle, ExportMetrics, HierarchyStyle, MarkdownOptions, PlainTextOptions,
+    CodeFenceStyle, ExportMetrics, HierarchyStyle, JsonExportOptions, JsonFormatFlavor,
+    MarkdownOptions, PlainTextOptions,
 };
 pub use plain_text::{export_plain_text, export_plain_text_to_writer, PlainTextExporter};
 

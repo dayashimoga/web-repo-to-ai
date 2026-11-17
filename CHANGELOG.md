@@ -6,6 +6,22 @@
 
 ## [Unreleased] — Stage 4: Canonical Model and Export Engine
 
+### 2026-11-17 — Phase 4.2: Format Generators (`4.2.3`)
+
+#### Added
+- **`[4.2.3]` Implement Multi-Flavor JSON Generator in `crates/exporters`:**
+  - Implemented `JsonFormatFlavor` and `JsonExportOptions` configuration models in `crates/exporters/src/options.rs`:
+    - `JsonFormatFlavor`: `CanonicalCdm` (full schema v1.0), `StructuredContext` (token-optimized flat envelope tailored for LLM system prompts and RAG embeddings), and `Minified` (compact single-line JSON without whitespace).
+    - `JsonExportOptions`: Options controlling pretty-printing, field filtering (`include_metadata`, `include_hierarchy`, `include_sections`, `include_citations`, `include_exclusions`, `include_completeness`), and token budgeting (`max_token_budget`). Includes preset constructors `canonical()`, `structured()`, and `compact()`.
+  - Implemented core JSON exporter engine in `crates/exporters/src/json.rs`:
+    - `JsonExporter`: Fluent builder API supporting in-memory `export_to_string` and streaming `export_to_writer`.
+    - `export_json` and `export_json_to_writer`: High-performance deterministic serializing functions writing directly to any `std::io::Write` sink with `CountingWriter` for exact telemetry.
+    - Token-optimized Structured Context envelope models: `StructuredContextEnvelope`, `StructuredMetrics`, `StructuredCompleteness`, `StructuredHierarchyNode`, `StructuredSection`, `StructuredCitation`, and `StructuredExclusion` with `#[serde(default)]` and `#[derive(Default)]` for seamless deserialization.
+    - Dynamic section filtering and token budget caps that prune overflow sections while marking output with `truncated: true` telemetry.
+  - Re-exported public types in `crates/exporters/src/lib.rs`.
+  - Created integration test suite in `crates/exporters/tests/json_export.rs` (8 tests) verifying Canonical CDM serialization, Structured Context envelopes, Minified single-line output, token budget truncation, field filtering, streaming writer byte equivalence, empty document handling, and serde roundtrips.
+  - Verification: 34 passing exporter tests, 414 total workspace Rust tests, 184 frontend tests, 29 browser-worker tests, and 100% pass rate across all 5 monorepo verification gates.
+
 ### 2026-11-17 — Phase 4.2: Format Generators (`4.2.2`)
 
 #### Added

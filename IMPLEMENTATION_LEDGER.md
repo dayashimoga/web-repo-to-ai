@@ -3374,11 +3374,60 @@
 
 ---
 
+#### Subphase `4.2.3` — JSON generator in crates/exporters
+- **Unique ID:** `4.2.3`
+- **Objective:** Implement a deterministic, multi-flavor JSON export engine in `crates/exporters` converting `CdmDocument` instances into machine-readable JSON artifacts, supporting: (1) `CanonicalCdm` (the full versioned CDM schema v1.0), (2) `StructuredContext` (token-optimized, high-signal structured envelope tailored for LLM system/context prompts and RAG embeddings), and (3) `Minified` (compact single-line JSON without whitespace), complete with field selection, token budgeting, and streaming writer support.
+- **Scope:** `crates/exporters/src/json.rs`, `crates/exporters/src/options.rs`, `crates/exporters/src/lib.rs`, `crates/exporters/tests/json_export.rs`.
+- **Prerequisites:** `4.2.2` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/exporters/src/json.rs`
+  - `crates/exporters/src/options.rs`
+  - `crates/exporters/src/lib.rs`
+  - `crates/exporters/tests/json_export.rs`
+- **Implementation Tasks:**
+  1. Extend `crates/exporters/src/options.rs` with `JsonFormatFlavor` (`CanonicalCdm`, `StructuredContext`, `Minified`) and `JsonExportOptions`:
+     - Options for flavor selection, pretty-printing (2-space indentation), metadata inclusion, hierarchy tree inclusion, sections array, citations array, exclusions array, completeness reporting, and token budget ceiling.
+     - Preset constructors: `canonical()`, `structured()`, `compact()`.
+  2. Implement `crates/exporters/src/json.rs`:
+     - `JsonExporter` struct with fluent builder API.
+     - `export_json` for in-memory string generation.
+     - `export_json_to_writer` for single-pass streaming rendering to any `std::io::Write` sink with `CountingWriter` for exact telemetry.
+     - Structured context models: `StructuredContextEnvelope`, `StructuredSection`, `StructuredHierarchyNode`, `StructuredCitation`, `StructuredExclusion`, `StructuredCompleteness`.
+     - Canonical CDM serialization utilizing `to_writer` and `to_writer_pretty` with budget pruning when configured.
+     - Token budget enforcement omitting excess sections with `truncated: true` telemetry.
+  3. Re-export public JSON exporter types in `crates/exporters/src/lib.rs`.
+  4. Implement integration tests in `crates/exporters/tests/json_export.rs` verifying Canonical CDM, Structured Context, Minified format, token budget truncation, field filtering, streaming writer byte equivalence, empty document handling, and serde roundtrips.
+  5. Run all 5 monorepo verification gates in `scripts/check-all.ps1`.
+- **Acceptance Criteria:**
+  - `JsonExporter` converts any valid `CdmDocument` into valid JSON according to the selected flavor.
+  - `CanonicalCdm` produces schema-valid CDM v1.0 JSON matching `CdmValidator` invariants.
+  - `StructuredContext` produces clean, token-efficient envelopes ready for direct LLM injection.
+  - Both pretty-printed and compact/minified outputs are supported.
+  - Streaming writer and in-memory export produce byte-identical results and report accurate `ExportMetrics`.
+  - All workspace tests pass, clippy passes with zero warnings, formatting checks clean, and cargo deny passes.
+- **Tests:** `cargo test -p web-repo-to-ai-exporters`, `cargo test --workspace`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, 01, 04, 05: Safe memory handling, bounded allocation, no panics, canonical URL citations sanitized, and complete provenance tracking.
+- **Performance Considerations:** Single-pass streaming rendering directly to writers without redundant string allocations, pre-allocated string buffers.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-exporters`: 34 passed (1 unit + 15 markdown + 10 plain text + 8 json integration tests), 0 failed.
+  - `cargo test --workspace`: 414 passed, 0 failed across all monorepo crates.
+  - `apps/web` (SvelteKit + Vitest): 184 passed, 0 failed across 15 test suites.
+  - `services/browser-worker` (Node.js + Jest): 29 passed, 0 failed across 7 test suites.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, clean pass.
+  - `cargo fmt --all -- --check`: Clean formatting verified across all Rust crates.
+  - `cargo deny check`: Licenses, bans, advisories, and sources passed with zero violations.
+  - Monorepo 5-gate audit (`powershell scripts/check-all.ps1`): ALL 5 GATES PASSED (100% pass rate).
+- **Git Commit Reference:** PENDING_COMMIT
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 4 — Canonical Model and Export Engine)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `4.2.3` | JSON generator in crates/exporters | `4.2.2` (`ACCEPTED`) | `crates/exporters/*` | `NOT_STARTED` |
+| `4.2.4` | HTML & JSONL generators in crates/exporters | `4.2.3` (`ACCEPTED`) | `crates/exporters/*` | `NOT_STARTED` |
 
 ---
 
