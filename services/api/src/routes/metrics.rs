@@ -2,11 +2,11 @@
 //!
 //! Provides [`metrics_handler`] serving metrics in Prometheus text exposition format.
 
+use crate::state::AppState;
 use axum::extract::State;
 use axum::http::header::CONTENT_TYPE;
 use axum::http::{HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
-use crate::state::AppState;
 
 /// Standard Prometheus exposition media type.
 pub const PROMETHEUS_MEDIA_TYPE: &str = "text/plain; version=0.0.4; charset=utf-8";

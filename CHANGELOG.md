@@ -6,6 +6,25 @@
 
 ## [Unreleased] — Stage 2: Backend and Processing Foundation
 
+### 2026-11-17 — Phase 2.3: Persistence (`2.3.1`)
+
+#### Added
+- **`[2.3.1]` Design and Implement PostgreSQL Relational Schema in `crates/storage`:**
+  - Added `sqlx` (v0.8, runtime-tokio, postgres, chrono, uuid, json, macros, migrate) and `serde`/`chrono`/`uuid` dependencies to workspace and `crates/storage/Cargo.toml`.
+  - Authored standalone production-grade PostgreSQL 16 DDL script (`crates/storage/src/schema/ddl.sql`):
+    - Table `jobs`: supports `kind` (web & GitHub variants), `status` (queued, leased, running, completed, partial, failed, cancelled), `progress_phase`, `progress_pct` (0..=100), `attempt_count`, `leased_by`, `lease_expires_at`, and `owner_session_id`.
+    - Table `job_artifacts`: foreign key referencing `jobs(id)` with `ON DELETE CASCADE`, unique `(job_id, format)`, strict 64-char hex SHA256 and BLAKE3 digests, byte size, and expiration timestamps.
+    - Table `github_installations`: unique `(owner_session_id, github_installation_id)`, encrypted token and 12-byte nonce storage, and token revocation timestamps.
+    - Table `content_cache_index`: content-addressed cache mapping blob signatures to storage keys with LRU `last_accessed_at` timestamps.
+    - Performance indexes: `idx_jobs_status_lease`, `idx_jobs_owner_session`, `idx_jobs_created_at`, `idx_job_artifacts_job_id`, `idx_job_artifacts_expires_at`, `idx_github_installations_owner`, and `idx_content_cache_last_accessed`.
+    - Triggers: `fn_set_updated_at()` auto-updating `updated_at` timestamps on row modifications.
+  - Implemented strongly-typed Rust entity models deriving `sqlx::FromRow` and Serde (`crates/storage/src/schema/`):
+    - `JobKind`, `JobStatus` (with `can_transition_to` transition validation), `JobProgressPhase`, and `JobRow`.
+    - `ArtifactFormat` (with MIME types and file extensions) and `JobArtifactRow`.
+    - `GitHubInstallationRow` (with active and revocation status helpers).
+    - `ContentCacheIndexRow` (with `touch()` method).
+  - Implemented `split_ddl_statements()` parser in `crates/storage/src/schema/mod.rs` and added 10 unit tests in `crates/storage`, expanding total automated Rust workspace tests to 97/97 passing. Verified all 5 quality gates pass cleanly.
+
 ### 2026-11-17 — Phase 2.2: API (`2.2.4`) & Phase 2.2 Milestone Certification
 
 #### Added

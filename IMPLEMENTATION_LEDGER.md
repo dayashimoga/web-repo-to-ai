@@ -1823,11 +1823,63 @@
 
 ---
 
+### Phase 2.3 — Persistence
+
+#### Subphase `2.3.1` — Design and implement PostgreSQL relational schema in crates/storage
+- **Unique ID:** `2.3.1`
+- **Objective:** Design and implement the production PostgreSQL relational schema, DDL definitions, table constraints, check constraints, foreign keys with cascade deletion, performance indexes, triggers, and strongly-typed Rust entity models in `crates/storage`.
+- **Scope:** `crates/storage/src/schema/{ddl.sql, jobs.rs, artifacts.rs, github.rs, cache.rs, mod.rs}`, `crates/storage/src/lib.rs`, `Cargo.toml`, `Cargo.lock`, `crates/storage/Cargo.toml`.
+- **Prerequisites:** Phase 2.2 (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `Cargo.toml`, `Cargo.lock`
+  - `crates/storage/Cargo.toml`
+  - `crates/storage/src/lib.rs`
+  - `crates/storage/src/schema/ddl.sql`
+  - `crates/storage/src/schema/jobs.rs`
+  - `crates/storage/src/schema/artifacts.rs`
+  - `crates/storage/src/schema/github.rs`
+  - `crates/storage/src/schema/cache.rs`
+  - `crates/storage/src/schema/mod.rs`
+  - `services/api/src/routes/health.rs`
+  - `services/api/src/routes/metrics.rs`
+- **Implementation Tasks:**
+  1. Add `sqlx` (v0.8 runtime-tokio, postgres, chrono, uuid, json, macros, migrate) and Serde dependencies to workspace and `crates/storage/Cargo.toml`.
+  2. Author production PostgreSQL 16 DDL script `crates/storage/src/schema/ddl.sql` defining `jobs`, `job_artifacts`, `github_installations`, `content_cache_index`, check constraints, foreign keys (`ON DELETE CASCADE`), indexes (`idx_jobs_status_lease`, `idx_jobs_owner_session`, `idx_jobs_created_at`, `idx_job_artifacts_job_id`, `idx_job_artifacts_expires_at`, `uq_job_artifacts_job_format`, `uq_github_installations_owner_gh_id`, `idx_github_installations_owner`, `idx_content_cache_last_accessed`), and `fn_set_updated_at()` trigger.
+  3. Implement typed domain models in `crates/storage/src/schema/`:
+     - `jobs.rs`: `JobKind` enum (web and GitHub variants), `JobStatus` enum with transition validation (`can_transition_to`), `JobProgressPhase` enum, and `JobRow` struct deriving `sqlx::FromRow`.
+     - `artifacts.rs`: `ArtifactFormat` enum with MIME type and file extension mappings, and `JobArtifactRow` struct deriving `sqlx::FromRow` with 64-char SHA256 and BLAKE3 hex validation.
+     - `github.rs`: `GitHubInstallationRow` struct deriving `sqlx::FromRow` with AES-256-GCM encrypted token/nonce storage and active/revoked lifecycle methods.
+     - `cache.rs`: `ContentCacheIndexRow` struct deriving `sqlx::FromRow` with LRU `touch()` method and BLAKE3 digest validation.
+  4. Implement `crates/storage/src/schema/mod.rs` exposing schema constants (`POSTGRES_SCHEMA_DDL`, `EXPECTED_TABLES`, `EXPECTED_INDEXES`), `split_ddl_statements()` parser, and comprehensive test suite.
+  5. Add 9 schema integration and unit tests covering DDL parsing, statement splitting, enum round-tripping, state transitions, domain conversions, and validation error branches.
+  6. Verify `cargo test --workspace` (97 tests passing, 10 in `crates/storage`), `cargo clippy`, `cargo fmt`, `cargo deny check`, and all 5 gates in `scripts/check-all.ps1`.
+- **Acceptance Criteria:**
+  - Relational schema accurately mirrors `docs/DATA_MODEL.md` Section 2 and ADR-005.
+  - All 4 core tables, constraints, cascade rules, and indexes are defined in `ddl.sql` and verified by automated tests.
+  - Rust entity structs implement `sqlx::FromRow`, Serde serialization, domain identifier conversions, and constraint validation.
+  - Status state machine validates allowed and disallowed transitions.
+  - 100% of Rust tests pass (97 across workspace); zero clippy warnings; all 5 quality gates pass.
+- **Tests:** `cargo test -p web-repo-to-ai-storage` (10/10 passed), `cargo test --workspace` (97/97 passed), `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Complies with Rule 00, 02, and 05: `#![forbid(unsafe_code)]` enforced; GitHub installation table isolates AES-256-GCM encrypted tokens and prevents plaintext token leakage; strict cryptographic hash validation (64 hex characters) prevents malformed digests; foreign key cascade deletion ensures zero orphaned artifact records.
+- **Performance Considerations:** Specialized composite indexes (`idx_jobs_status_lease` for `FOR UPDATE SKIP LOCKED` worker queue polling, `idx_job_artifacts_expires_at` for TTL pruning, `idx_content_cache_last_accessed` for LRU cache eviction) ensure low-latency relational queries without full table scans.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-storage`: 10/10 tests passed in 0.00s.
+  - `cargo test --workspace`: 97/97 tests passed in 57.03s.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors in 2.80s.
+  - `cargo fmt --all -- --check`: 100% code style compliance.
+  - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
+- **Git Commit Reference:** `a933684`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `2.3.1` | Design and implement PostgreSQL relational schema in crates/storage | Phase 2.2 (`ACCEPTED`) | `crates/storage/*` | `NOT_STARTED` |
+| `2.3.2` | Implement database migrations and schema validation in crates/storage | `2.3.1` (`ACCEPTED`) | `crates/storage/*` | `NOT_STARTED` |
 
 ---
 

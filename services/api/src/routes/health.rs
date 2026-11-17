@@ -3,18 +3,16 @@
 //! Provides [`health_handler`] and [`readiness_handler`] for container orchestrators
 //! and load balancer health checks following IETF healthcheck recommendations.
 
+use crate::state::AppState;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
 use chrono::Utc;
 use serde_json::json;
-use crate::state::AppState;
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::Path;
-
-use crate::state::AppState;
 
 /// Handles `GET /api/v1/health` (process liveness probe).
 ///
