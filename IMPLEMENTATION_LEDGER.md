@@ -345,12 +345,63 @@
 
 ---
 
-### Phase 0.3 — Upcoming Subphases (Awaiting User Approval for `0.3.2`)
+#### Subphase `0.3.2` — Enforce the 30 GB storage ceiling
+- **Unique ID:** `0.3.2`
+- **Objective:** Enforce the 30 GB container storage ceiling for containerized development by authoring resource inspection and safe cache cleanup scripts (`scripts/check-resources.ps1`, `scripts/check-resources.sh`, `scripts/clean-caches.ps1`, `scripts/clean-caches.sh`), integrating them with monorepo quality audit gates, and documenting operational procedures.
+- **Scope:** `scripts/check-resources.ps1`, `scripts/check-resources.sh`, `scripts/clean-caches.ps1`, `scripts/clean-caches.sh`, `scripts/check-all.ps1`, `scripts/check-all.sh`, `scripts/verify-bootstrap.ps1`, `docs/DEPLOYMENT.md`, and tracking ledgers.
+- **Prerequisites:** `0.3.1` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `scripts/check-resources.ps1`
+  - `scripts/check-resources.sh`
+  - `scripts/clean-caches.ps1`
+  - `scripts/clean-caches.sh`
+  - `scripts/check-all.ps1`
+  - `scripts/check-all.sh`
+  - `scripts/verify-bootstrap.ps1`
+  - `docs/DEPLOYMENT.md`
+  - `PROJECT_STATUS.md`
+  - `IMPLEMENTATION_LEDGER.md`
+  - `TODO.md`
+  - `CHANGELOG.md`
+  - `ROADMAP.md`
+- **Implementation Tasks:**
+  1. Author `scripts/check-resources.ps1` to query host CPU cores, RAM, free disk space, and Podman storage breakdown (`podman system df --format json`), calculating total usage against the 30 GB ceiling with 80% warning threshold and non-zero exit code on breach.
+  2. Author `scripts/check-resources.sh` for POSIX systems (Linux, macOS, CI) supporting `--ceiling-gb`, `--warn-percent`, `--json`, `--quiet`, and `--fail-on-warn`.
+  3. Author `scripts/clean-caches.ps1` and `scripts/clean-caches.sh` providing safe cache pruning (`podman image prune --build-cache -f`, `podman system prune --build -f`, `podman image prune -f`), with dry-run inspection, before-and-after reclaimed byte calculation, and guaranteed retention of persistent database volumes.
+  4. Integrate Gate 5 ("Resource Budget & 30 GB Storage Ceiling") into `scripts/check-all.ps1` and `scripts/check-all.sh`.
+  5. Update `scripts/verify-bootstrap.ps1` with resource script assertions and ceiling verification.
+  6. Document storage limits, monitoring commands, safety guarantees, and pruning workflows in `docs/DEPLOYMENT.md`.
+- **Acceptance Criteria:**
+  - Resource inspection scripts execute on Windows and POSIX, query `podman system df`, enforce 30 GB ceiling, and return exit code 0 under ceiling or 1 on breach.
+  - Cache cleanup scripts safely prune build caches and dangling layers without modifying persistent database volumes or source files.
+  - All quality audit gates in `scripts/check-all.ps1` and `scripts/check-all.sh` pass with 0 failures, and `scripts/verify-bootstrap.ps1` passes all 199 checks.
+- **Tests:**
+  - `powershell -ExecutionPolicy Bypass -File scripts/check-resources.ps1`: verified host resources and Podman storage (4.95 GB / 30 GB, 16.5% used).
+  - `powershell -ExecutionPolicy Bypass -File scripts/check-resources.ps1 -Json`: verified valid JSON payload.
+  - `powershell -ExecutionPolicy Bypass -File scripts/check-resources.ps1 -CeilingGB 1`: verified non-zero exit code on ceiling breach.
+  - `bash scripts/check-resources.sh`: verified POSIX resource check.
+  - `powershell -ExecutionPolicy Bypass -File scripts/clean-caches.ps1 -DryRun`: verified dry-run reporting and volume protection.
+  - `powershell -ExecutionPolicy Bypass -File scripts/clean-caches.ps1`: verified safe cache pruning and post-cleanup verification.
+  - `bash scripts/clean-caches.sh`: verified POSIX safe cache pruning.
+  - `scripts/check-all.ps1` and `bash scripts/check-all.sh`: all 5 gates passed (0 failures).
+  - `scripts/verify-bootstrap.ps1`: 199/199 checks passed (0 failures).
+- **Security Considerations:** Scripts execute with least privilege; persistent database volumes (`postgres_data`) are protected from accidental pruning; volume pruning requires explicit flag and interactive confirmation or force flag; no secrets or credentials printed or manipulated.
+- **Performance Considerations:** Inspection scripts complete in < 2 seconds; JSON output allows low-overhead CI automation; safe pruning prevents disk exhaustion on developer machines.
+- **Documentation Requirements:** Updated `docs/DEPLOYMENT.md`, `PROJECT_STATUS.md`, `IMPLEMENTATION_LEDGER.md`, `TODO.md`, `CHANGELOG.md`, and `ROADMAP.md`.
+- **Validation Evidence:**
+  - `scripts/check-resources.ps1` output: `[HEALTHY_WITHIN_BUDGET] Podman storage footprint (4.95 GB / 30 GB, 16.5%) is within budget.`
+  - `scripts/check-all.ps1`: ALL 5 GATES PASSED (199/199 checks passed).
+  - `scripts/check-all.sh`: ALL 5 GATES PASSED (199/199 checks passed).
+- **Git Commit Reference:** `8a13ca6`
+- **Status:** `ACCEPTED`
+
+---
+
+### Phase 0.3 — Upcoming Subphases (Awaiting User Approval for `0.3.3`)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `0.3.2` | Enforce the 30 GB storage ceiling | `0.3.1` (`ACCEPTED`) | `scripts/check-resources.ps1`, `scripts/clean-caches.ps1` | `NOT_STARTED` |
-| `0.3.3` | Create development environment scripts | `0.3.2` | `scripts/dev-*.ps1` | `NOT_STARTED` |
+| `0.3.3` | Create development environment scripts | `0.3.2` (`ACCEPTED`) | `scripts/dev-*.ps1` | `NOT_STARTED` |
 | `0.3.4` | Validate reproducible container builds | `0.3.3` | `deploy/*`, `IMPLEMENTATION_LEDGER.md` | `NOT_STARTED` |
 | `0.3.5` | Document setup and recovery | `0.3.4` | `docs/DEVELOPMENT.md`, `docs/DEPLOYMENT.md` | `NOT_STARTED` |
 

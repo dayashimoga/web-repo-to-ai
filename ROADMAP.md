@@ -36,15 +36,15 @@
   - `0.1.4` Create agent skills, rules and workflows (`ACCEPTED`)
   - `0.1.5` Create stage/phase/subphase roadmap and ledger (`ACCEPTED`)
 - **Phase 0.2 — GitHub and CI foundation**
-  - `0.2.1` Create or connect GitHub repository (`NOT_STARTED` — **NEXT ELIGIBLE SUBPHASE**)
-  - `0.2.2` Configure branch protection and repository settings where authorized (`NOT_STARTED`)
-  - `0.2.3` Create GitHub Actions CI workflows (`NOT_STARTED`)
-  - `0.2.4` Configure linting, formatting and test checks (`NOT_STARTED`)
-  - `0.2.5` Configure security and dependency scanning (`NOT_STARTED`)
+  - `0.2.1` Create or connect GitHub repository (`ACCEPTED`)
+  - `0.2.2` Configure branch protection and repository settings where authorized (`ACCEPTED`)
+  - `0.2.3` Create GitHub Actions CI workflows (`ACCEPTED`)
+  - `0.2.4` Configure linting, formatting and test checks (`ACCEPTED`)
+  - `0.2.5` Configure security and dependency scanning (`ACCEPTED`)
 - **Phase 0.3 — Containerized development foundation**
-  - `0.3.1` Create Podman development configuration (`NOT_STARTED`)
-  - `0.3.2` Enforce the 30 GB storage ceiling (`NOT_STARTED`)
-  - `0.3.3` Create development environment scripts (`NOT_STARTED`)
+  - `0.3.1` Create Podman development configuration (`ACCEPTED`)
+  - `0.3.2` Enforce the 30 GB storage ceiling (`ACCEPTED`)
+  - `0.3.3` Create development environment scripts (`NOT_STARTED` — **NEXT ELIGIBLE SUBPHASE**)
   - `0.3.4` Validate reproducible container builds (`NOT_STARTED`)
   - `0.3.5` Document setup and recovery (`NOT_STARTED`)
 

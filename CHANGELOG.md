@@ -6,6 +6,17 @@
 
 ## [Unreleased] — Stage 0: Project Bootstrap and Engineering Foundation
 
+### 2026-11-17 — Phase 0.3: Containerized Development Foundation (`0.3.2`)
+
+#### Added
+- **`[0.3.2]` 30 GB Storage Ceiling Enforcement & Safe Cache Pruning:**
+  - Authored `scripts/check-resources.ps1` and `scripts/check-resources.sh` to monitor host CPU cores, RAM (against 16 GB baseline), available disk space, and Podman storage breakdown (`Images`, `Containers`, `Local Volumes`) via `podman system df --format json`.
+  - Enforced the 30 GB container storage ceiling (`NFR-PERF-02`, Rule 08) with automated 80% warning alerts and non-zero exit code on ceiling breach.
+  - Authored `scripts/clean-caches.ps1` and `scripts/clean-caches.sh` for safe cache pruning (build caches, stopped build containers, dangling untagged layers) with dry-run inspection, before-and-after reclaimed byte calculation, and guaranteed retention of persistent database volumes (`postgres_data`).
+  - Integrated Gate 5 (Resource Budget & 30 GB Storage Ceiling) into monorepo quality audit runners `scripts/check-all.ps1` and `scripts/check-all.sh`.
+  - Updated `docs/DEPLOYMENT.md` with complete resource monitoring commands, safety guarantees, and pruning workflows.
+  - Extended bootstrap verification suite (`scripts/verify-bootstrap.ps1`) to 199/199 automated checks.
+
 ### 2026-11-17 — Phase 0.3: Containerized Development Foundation (`0.3.1`)
 
 #### Added

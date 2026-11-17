@@ -21,8 +21,22 @@ run_gate() {
 
 echo "Starting web-repo-to-ai monorepo quality audit..."
 
+# Resolve PowerShell binary (pwsh / powershell / powershell.exe)
+PWSH_BIN=""
+if command -v pwsh >/dev/null 2>&1; then
+  PWSH_BIN="pwsh"
+elif command -v powershell >/dev/null 2>&1; then
+  PWSH_BIN="powershell"
+elif command -v powershell.exe >/dev/null 2>&1; then
+  PWSH_BIN="powershell.exe"
+fi
+
 # 1. Bootstrap & Governance Integrity Gate
-run_gate "Bootstrap & Governance Integrity" "pwsh scripts/verify-bootstrap.ps1"
+if [ -n "$PWSH_BIN" ]; then
+  run_gate "Bootstrap & Governance Integrity" "$PWSH_BIN -ExecutionPolicy Bypass -File scripts/verify-bootstrap.ps1"
+else
+  echo "Notice: Neither pwsh nor powershell found. Skipping PowerShell verification script in POSIX-only shell."
+fi
 
 # 2. GitHub Actions Workflows Validation Gate
 run_gate "GitHub Actions Workflow Validation" "python3 scripts/validate-workflows.py"
@@ -56,6 +70,9 @@ run_gate "Frontend Web Quality Checks" '
     echo "Notice: apps/web package.json scheduled for Stage 1 (Frontend Experience). .prettierrc verified."
   fi
 '
+
+# 5. Resource Budget & 30 GB Storage Ceiling Gate
+run_gate "Resource Budget & 30 GB Storage Ceiling" "bash scripts/check-resources.sh --quiet"
 
 echo ""
 echo "=========================================="

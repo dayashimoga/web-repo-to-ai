@@ -22,7 +22,7 @@
 
 ### Phase 0.3 — Containerized development foundation
 - [x] **[0.3.1]** Create Podman development configuration (`deploy/podman-compose.yml` and multi-stage Containerfiles) *(Completed 2026-11-17, podman-compose.yml & 4 Containerfiles)*
-- [ ] **[0.3.2]** Enforce the 30 GB storage ceiling (`scripts/check-resources.ps1`, `scripts/clean-caches.ps1`)
+- [x] **[0.3.2]** Enforce the 30 GB storage ceiling (`scripts/check-resources.*`, `scripts/clean-caches.*`) *(Completed 2026-11-17, storage monitoring & safe cache pruning)*
 - [ ] **[0.3.3]** Create development environment startup, test, and recovery scripts
 - [ ] **[0.3.4]** Validate reproducible container builds
 - [ ] **[0.3.5]** Document container setup, resource management, and recovery in `docs/DEVELOPMENT.md` and `docs/DEPLOYMENT.md`

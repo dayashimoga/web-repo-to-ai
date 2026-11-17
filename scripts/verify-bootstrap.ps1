@@ -246,6 +246,21 @@ foreach ($dc in $deployConfigs) {
 $null = python -c "import yaml; yaml.safe_load(open('deploy/podman-compose.yml'))" 2>&1
 Assert-Condition ($LASTEXITCODE -eq 0) "deploy/podman-compose.yml is valid YAML"
 
+# 12. Verify resource management and 30 GB ceiling scripts
+$resourceScripts = @(
+    "scripts/check-resources.ps1",
+    "scripts/check-resources.sh",
+    "scripts/clean-caches.ps1",
+    "scripts/clean-caches.sh"
+)
+foreach ($rs in $resourceScripts) {
+    $rsExists = Test-Path -Path $rs -PathType Leaf
+    $rsNonEmpty = $rsExists -and ((Get-Item $rs -Force).Length -gt 10)
+    Assert-Condition $rsNonEmpty "Resource management script exists and is non-empty: $rs"
+}
+$null = powershell -ExecutionPolicy Bypass -File scripts/check-resources.ps1 -Quiet 2>&1
+Assert-Condition ($LASTEXITCODE -eq 0) "scripts/check-resources.ps1 executes successfully and satisfies 30 GB ceiling"
+
 Write-Output "=== Verification Summary: $($checks - $failures)/$checks checks passed, $failures failures ==="
 if ($failures -gt 0) {
     exit 1

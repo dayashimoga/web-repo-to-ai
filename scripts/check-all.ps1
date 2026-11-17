@@ -76,6 +76,12 @@ Run-Gate "Frontend Web Quality Checks" {
     }
 }
 
+# 5. Resource Budget & 30 GB Storage Ceiling Gate
+Run-Gate "Resource Budget & 30 GB Storage Ceiling" {
+    powershell -ExecutionPolicy Bypass -File scripts/check-resources.ps1 -Quiet
+    if ($LASTEXITCODE -ne 0) { throw "Resource budget check failed with exit code $LASTEXITCODE" }
+}
+
 Write-Output "`n=========================================="
 if ($failedGates -eq 0) {
     Write-Output "ALL GATES PASSED (0 failures)."
