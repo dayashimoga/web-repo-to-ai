@@ -235,7 +235,11 @@
 - **Validation Evidence:**
   - `python scripts/validate-workflows.py`: 4/4 workflows passed (verified triggers, permissions, jobs).
   - `scripts/verify-bootstrap.ps1`: 178/178 checks passed (0 failures).
-- **Git Commit Reference:** `40453f1`
+  - Real GitHub Actions execution on GitHub runners:
+    - `CI` workflow: `success` (jobs `bootstrap-governance`, `frontend-ci`, `rust-ci` all green).
+    - `Build Artifacts` workflow: `success` (jobs `build-frontend`, `build-backend` all green; separate artifacts `frontend-build`, `backend-binaries`, `build-checksums` uploaded).
+    - `Container Build & Verification` workflow: `success` (job `validate-containers` green; artifact `container-audit-manifest` uploaded).
+- **Git Commit Reference:** `ca0e9c2`
 - **Status:** `ACCEPTED`
 
 ---
