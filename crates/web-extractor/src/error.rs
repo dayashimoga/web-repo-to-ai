@@ -93,6 +93,8 @@ pub enum WebExtractorError {
         /// Failure details.
         details: String,
     },
+    /// Browser worker dynamic rendering or IPC failure.
+    BrowserWorker(String),
 }
 
 impl fmt::Display for WebExtractorError {
@@ -144,6 +146,7 @@ impl fmt::Display for WebExtractorError {
                 f,
                 "Content-Length mismatch: expected {expected} bytes, received {actual} bytes"
             ),
+            Self::BrowserWorker(details) => write!(f, "Browser worker error: {details}"),
         }
     }
 }
@@ -232,6 +235,15 @@ impl From<WebExtractorError> for CoreError {
             WebExtractorError::ExtractionFailed { details } => {
                 CoreError::Extraction(format!("Extraction error: {details}"))
             }
+            WebExtractorError::BrowserWorker(details) => {
+                CoreError::Extraction(format!("Browser worker error: {details}"))
+            }
         }
+    }
+}
+
+impl From<crate::browser::BrowserWorkerError> for WebExtractorError {
+    fn from(err: crate::browser::BrowserWorkerError) -> Self {
+        Self::BrowserWorker(err.to_string())
     }
 }

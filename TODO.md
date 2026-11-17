@@ -96,8 +96,8 @@
 - [x] **[3.2.3]** Technical documentation and navigation hierarchy extraction in crates/web-extractor *(Completed 2026-11-17, ExtractedDocumentation, DocFramework, detect_framework, Admonition, AdmonitionType, BreadcrumbItem, TocItem, DocLink, DocPagination, DocVersionInfo, DocSection, extract_table_of_contents, DocNavigationExtractor, AdmonitionExtractor, DocExtractor, BoilerplateCleaner admonition protection & ad boundary fix, isolated health probe naming, 87 passing web-extractor tests, 248 workspace tests)*
 - [x] **[3.2.4]** Tables, code blocks, syntax detection, and link extraction in crates/web-extractor *(Completed 2026-11-17, ExtractedTable with rectangular normalization & GFM Markdown table generator, ExtractedCodeBlock with language tagging & monotonic line number stripping, detect_syntax heuristics across 14 languages, ExtractedLink with canonical resolution, rel attribute parsing & asset/special classification, ElementsExtractor coordinator, 107 passing web-extractor tests, 268 workspace tests — PHASE 3.2 CERTIFIED)*
 
-### Phase 3.3 — Dynamic extraction (`NOT_STARTED`)
-- [ ] **[3.3.1]** Browser worker architecture and IPC protocol in services/browser-worker
+### Phase 3.3 — Dynamic extraction (`IN_PROGRESS`)
+- [x] **[3.3.1]** Browser worker architecture and IPC protocol in services/browser-worker *(Completed 2026-11-17, Node.js HTTP service on port 3000, validateRenderRequest, createProblemDetails, createRenderResponse, BrowserWorkerClient async Rust client, BrowserRenderRequest/Response, BrowserWorkerHealth, error mapping to CoreError, 13 passing Node.js tests, 110 passing web-extractor tests, 271 workspace tests)*
 - [ ] **[3.3.2]** Playwright/Chromium dynamic fallback integration in services/browser-worker
 - [ ] **[3.3.3]** Resource limits, navigation timeouts, and sandbox isolation in services/browser-worker
 - [ ] **[3.3.4]** Dynamic DOM extraction and post-render hydration in crates/web-extractor

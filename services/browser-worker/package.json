@@ -1,0 +1,23 @@
+{
+  "name": "@web-repo-to-ai/browser-worker",
+  "version": "0.1.0",
+  "description": "Isolated Playwright + Chromium dynamic webpage rendering and DOM extraction service",
+  "private": true,
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/**/*.test.js"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "keywords": [
+    "playwright",
+    "browser-worker",
+    "web-extraction",
+    "crawler"
+  ],
+  "author": "web-repo-to-ai contributors",
+  "license": "MIT"
+}

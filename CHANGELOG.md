@@ -6,6 +6,20 @@
 
 ## [Unreleased] — Stage 3: Universal Webpage Extraction
 
+### 2026-11-17 — Phase 3.3: Dynamic Extraction (`3.3.1`)
+
+#### Added
+- **`[3.3.1]` Implement Browser Worker Architecture and IPC Protocol in `services/browser-worker` and `crates/web-extractor`:**
+  - Initialized isolated Node.js microservice in `services/browser-worker` with `package.json`, Node >=20 engine, and standard library HTTP server.
+  - Implemented strongly typed IPC/RPC protocol in `services/browser-worker/src/protocol.js` validating render requests (`url`, `wait_until`, `timeout_ms`, `wait_for_selector`, `viewport`, `user_agent`, `headers`, `javascript_enabled`, `block_subresource_ips`) and generating RFC 7807 problem details error envelopes and standard response payloads.
+  - Implemented HTTP dispatcher in `services/browser-worker/src/routes.js` handling `GET /health` (liveness), `GET /ready` (readiness), and `POST /render` (dynamic rendering RPC).
+  - Implemented standalone daemon in `services/browser-worker/server.js` with graceful shutdown signal handling on `SIGINT`/`SIGTERM`.
+  - Added 13 unit and integration tests in `services/browser-worker/test/protocol.test.js` using Node.js built-in `node:test`.
+  - Defined strongly typed Rust IPC models in `crates/web-extractor/src/browser/model.rs`: `BrowserRenderRequest`, `BrowserRenderResponse`, `BrowserRedirect`, `ConsoleMessage`, `PageError`, `BlockedSubresource`, `WaitUntil`, `Viewport`, `BrowserTiming`, and `BrowserWorkerHealth`.
+  - Implemented `BrowserWorkerError` in `crates/web-extractor/src/browser/error.rs` and mapped into `WebExtractorError::BrowserWorker` and `CoreError::Extraction`.
+  - Implemented asynchronous `BrowserWorkerClient` in `crates/web-extractor/src/browser/client.rs` executing `check_health`, `check_readiness`, and `render` RPC calls over HTTP with connection timeouts and RFC 7807 error parsing.
+  - Added 3 unit and integration tests in `crates/web-extractor` (110 total in crate), expanding workspace tests to 271 passing across all 17 crates with 100% pass rate across all 5 monorepo verification gates.
+
 ### 2026-11-17 — Phase 3.2: Static Extraction (`3.2.4`) & Phase 3.2 Milestone Certification
 
 #### Added

@@ -18,6 +18,7 @@ web-repo-to-ai-url-security = { workspace = true }
 thiserror = { workspace = true }
 url = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
 reqwest = { workspace = true }
 async-trait = { workspace = true }
 bytes = { workspace = true }

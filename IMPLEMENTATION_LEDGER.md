@@ -2605,11 +2605,63 @@
 
 ---
 
+### Phase 3.3 — Dynamic extraction
+
+#### Subphase `3.3.1` — Browser worker architecture and IPC protocol in services/browser-worker
+- **Unique ID:** `3.3.1`
+- **Objective:** Establish the architecture of `services/browser-worker` and define the strongly typed IPC/RPC protocol between the Rust backend (`crates/web-extractor` / `services/worker`) and the isolated Node.js browser rendering service, implementing liveness and readiness health checks, request schema validation, error envelopes, and the asynchronous Rust client `BrowserWorkerClient`.
+- **Scope:** `services/browser-worker/*`, `crates/web-extractor/src/browser/*`, `crates/web-extractor/src/lib.rs`.
+- **Prerequisites:** `3.2.4` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `services/browser-worker/package.json`
+  - `services/browser-worker/server.js`
+  - `services/browser-worker/src/protocol.js`
+  - `services/browser-worker/src/routes.js`
+  - `services/browser-worker/test/protocol.test.js`
+  - `crates/web-extractor/src/browser/mod.rs`
+  - `crates/web-extractor/src/browser/model.rs`
+  - `crates/web-extractor/src/browser/error.rs`
+  - `crates/web-extractor/src/browser/client.rs`
+  - `crates/web-extractor/src/lib.rs`
+- **Implementation Tasks:**
+  1. Initialize `services/browser-worker/package.json` with npm test and start lifecycle scripts, Node >=20 engines, and zero-dependency HTTP server core.
+  2. Implement IPC schema validation and default normalization in `services/browser-worker/src/protocol.js` supporting `url`, `wait_until`, `timeout_ms`, `wait_for_selector`, `viewport`, `user_agent`, `headers`, `javascript_enabled`, and `block_subresource_ips`.
+  3. Implement HTTP routing and health/readiness endpoints in `services/browser-worker/src/routes.js` and standalone server in `services/browser-worker/server.js`.
+  4. Write Node.js unit tests in `services/browser-worker/test/protocol.test.js` verifying schema validation, default parameter resolution, error envelopes, and endpoint handling.
+  5. Define strongly typed Rust IPC models in `crates/web-extractor/src/browser/model.rs` and `error.rs`: `BrowserRenderRequest`, `BrowserRenderResponse`, `BrowserRedirect`, `ConsoleMessage`, `PageError`, `BlockedSubresource`, `WaitUntil`, `Viewport`, `BrowserTiming`, `BrowserWorkerHealth`.
+  6. Implement async `BrowserWorkerClient` in `crates/web-extractor/src/browser/client.rs` providing `check_health`, `check_readiness`, and `render` RPC calls over HTTP with connection timeouts and error mapping.
+  7. Expose `browser` module in `crates/web-extractor/src/lib.rs`.
+  8. Add Rust unit and wire-mock tests verifying IPC message serialization, deserialization, and HTTP error handling.
+  9. Run all 5 monorepo verification gates in `scripts/check-all.ps1`.
+- **Acceptance Criteria:**
+  - `services/browser-worker` responds to `GET /health` with 200 OK and liveness payload.
+  - `services/browser-worker` responds to `GET /ready` with 200 OK and readiness status.
+  - `POST /render` validates request payloads, rejects malformed URLs or invalid options with 400 Bad Request and RFC 7807 problem details, and echoes valid protocol payloads.
+  - Rust `BrowserWorkerClient` serializes requests and deserializes responses with complete fidelity.
+  - 100% of workspace Rust tests pass, Node.js tests pass, clippy passes with 0 warnings, and all 5 monorepo verification gates pass.
+- **Tests:** `node --test services/browser-worker/test/protocol.test.js`, `cargo test -p web-repo-to-ai-web-extractor`, `cargo test --workspace`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, `pnpm --filter web test:unit`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, 01, 05: `services/browser-worker` isolated from internal database and GitHub App credentials; strict schema validation on all inputs; reject non-HTTP(S) schemes.
+- **Performance Considerations:** Lightweight, zero-runtime-dependency Node.js HTTP server; non-blocking async IO in Rust; connection reuse via `reqwest::Client`.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-web-extractor`: 110/110 tests passed.
+  - `cargo test --workspace`: 271/271 tests passed.
+  - `node --test services/browser-worker/test/protocol.test.js`: 13/13 tests passed.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors.
+  - `cargo fmt --all -- --check`: 100% code style compliance.
+  - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
+  - `npm test` (`apps/web`): 184/184 tests passed.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
+- **Git Commit Reference:** `c76ad45`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 3 — Universal Webpage Extraction)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `3.3.1` | Browser worker architecture and IPC protocol in services/browser-worker | `3.2.4` (`ACCEPTED`) | `services/browser-worker/*` | `NOT_STARTED` |
+| `3.3.2` | Playwright/Chromium dynamic fallback integration in services/browser-worker | `3.3.1` (`ACCEPTED`) | `services/browser-worker/*` | `NOT_STARTED` |
 
 ---
 

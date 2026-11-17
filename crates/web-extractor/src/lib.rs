@@ -12,6 +12,7 @@
 #![warn(missing_docs)]
 
 pub mod article;
+pub mod browser;
 pub mod compression;
 pub mod docs;
 pub mod dom;
@@ -22,6 +23,11 @@ pub mod url;
 
 pub use article::{
     ArticleExtractor, ExtractedArticle, ReadabilityMetrics, ReadabilityOptions, ReadabilityScorer,
+};
+pub use browser::{
+    BlockedSubresource, BrowserRedirect, BrowserRenderRequest, BrowserRenderResponse,
+    BrowserTiming, BrowserWorkerClient, BrowserWorkerError, BrowserWorkerHealth, ConsoleMessage,
+    PageError, Viewport, WaitUntil, DEFAULT_CLIENT_TIMEOUT,
 };
 pub use compression::{BodyLimits, BoundedDecompressor, ContentEncoding};
 pub use docs::{
@@ -1636,5 +1642,38 @@ async def call_api(token: str):
         assert_eq!(elements.links.len(), 2);
         assert_eq!(elements.links[0].link_type, LinkType::Internal);
         assert_eq!(elements.links[1].link_type, LinkType::Asset);
+    }
+
+    #[test]
+    fn test_browser_worker_ipc_protocol_and_error_mapping() {
+        use web_repo_to_ai_core::error::CoreError;
+
+        let req = BrowserRenderRequest::new("https://spa.example.com/dashboard")
+            .with_wait_until(WaitUntil::NetworkIdle)
+            .with_timeout_ms(25000)
+            .with_wait_for_selector("#dashboard-root")
+            .with_viewport(1440, 900)
+            .with_user_agent("Mozilla/5.0 web-repo-to-ai")
+            .with_header("X-Client-Id", "worker-1")
+            .with_javascript(true)
+            .with_block_subresource_ips(true);
+
+        let json = serde_json::to_string(&req).unwrap();
+        assert!(json.contains("spa.example.com"));
+        assert!(json.contains("networkidle"));
+        assert!(json.contains("25000"));
+        assert!(json.contains("dashboard-root"));
+
+        let deserialized: BrowserRenderRequest = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized, req);
+
+        // Verify error mapping hierarchy
+        let browser_err = BrowserWorkerError::BlockedUrl("127.0.0.1 blocked by SSRF".to_string());
+        let web_err: WebExtractorError = browser_err.into();
+        assert!(matches!(web_err, WebExtractorError::BrowserWorker(_)));
+
+        let core_err: CoreError = web_err.into();
+        assert!(matches!(core_err, CoreError::Extraction(_)));
+        assert!(core_err.to_string().contains("SSRF"));
     }
 }
