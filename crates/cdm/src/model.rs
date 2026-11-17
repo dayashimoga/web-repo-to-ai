@@ -315,4 +315,40 @@ impl CdmDocument {
     pub fn from_reader<R: std::io::Read>(reader: R) -> crate::error::Result<Self> {
         crate::json::from_reader(reader)
     }
+
+    /// Evaluates schema and model invariants, returning a detailed [`crate::validator::ValidationReport`].
+    #[must_use]
+    pub fn validation_report(&self) -> crate::validator::ValidationReport {
+        crate::validator::CdmValidator::new().validate(self)
+    }
+
+    /// Evaluates schema and model invariants using a custom [`crate::validator::ValidationConfig`].
+    #[must_use]
+    pub fn validate_with_config(
+        &self,
+        config: &crate::validator::ValidationConfig,
+    ) -> crate::validator::ValidationReport {
+        crate::validator::CdmValidator::with_config(config.clone()).validate(self)
+    }
+
+    /// Verifies all invariants with default configuration, returning `Ok(())` or a fatal [`crate::error::CdmError`].
+    ///
+    /// # Errors
+    /// Returns [`crate::error::CdmError::ValidationFailed`] if any invariant is violated.
+    pub fn validate(&self) -> crate::error::Result<()> {
+        let report = self.validation_report();
+        if report.is_valid() {
+            Ok(())
+        } else {
+            Err(crate::error::CdmError::from_report(&report))
+        }
+    }
+
+    /// Verifies all invariants in strict mode where warnings are treated as fatal errors.
+    ///
+    /// # Errors
+    /// Returns [`crate::error::CdmError::ValidationFailed`] if any invariant error or warning is detected.
+    pub fn validate_strict(&self) -> crate::error::Result<()> {
+        crate::validator::CdmValidator::validate_document_strict(self)
+    }
 }

@@ -55,9 +55,29 @@ pub enum CdmError {
     #[error("CDM validation failure: {0}")]
     Validation(String),
 
+    /// Structured validation failures aggregating one or more schema or invariant violations.
+    #[error("CDM validation failed with {error_count} error(s):\n{summary}")]
+    ValidationFailed {
+        /// Number of fatal errors.
+        error_count: usize,
+        /// Formatted human-readable summary of issues.
+        summary: String,
+    },
+
     /// Standard I/O error during streaming read or write.
     #[error("CDM I/O error: {0}")]
     Io(#[from] std::io::Error),
+}
+
+impl CdmError {
+    /// Constructs a [`CdmError::ValidationFailed`] from an aggregate validation report.
+    #[must_use]
+    pub fn from_report(report: &crate::validator::ValidationReport) -> Self {
+        Self::ValidationFailed {
+            error_count: report.error_count(),
+            summary: report.summary(),
+        }
+    }
 }
 
 impl From<CdmError> for CoreError {
@@ -83,6 +103,13 @@ impl From<CdmError> for CoreError {
             CdmError::Validation(reason) => Self::Validation {
                 field: "cdm_document".to_string(),
                 reason,
+            },
+            CdmError::ValidationFailed {
+                error_count,
+                summary,
+            } => Self::Validation {
+                field: "cdm_document".to_string(),
+                reason: format!("{error_count} validation error(s): {summary}"),
             },
             CdmError::Io(e) => Self::Io(e),
         }

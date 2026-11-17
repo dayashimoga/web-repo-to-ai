@@ -110,6 +110,13 @@ impl CdmDocumentBuilder {
         self
     }
 
+    /// Sets the document title within metadata.
+    #[must_use]
+    pub fn title(mut self, title: impl Into<String>) -> Self {
+        self.metadata.title = Some(title.into());
+        self
+    }
+
     /// Sets the root structural hierarchy node.
     #[must_use]
     pub fn hierarchy(mut self, hierarchy: HierarchyNode) -> Self {

@@ -20,6 +20,7 @@ pub mod metadata;
 pub mod model;
 pub mod relationships;
 pub mod section;
+pub mod validator;
 
 // Primary re-exports
 pub use builder::{CdmDocumentBuilder, CdmSectionBuilder};
@@ -38,6 +39,9 @@ pub use model::{
 };
 pub use relationships::{Relationship, RelationshipKind};
 pub use section::{ByteRange, CdmSection, LineRange, SectionKind, SectionTokenMetrics};
+pub use validator::{
+    CdmValidator, ValidationConfig, ValidationIssue, ValidationReport, ValidationSeverity,
+};
 
 /// Canonical Context Document Model (CDM) schema version constant.
 pub const SCHEMA_VERSION: &str = "1.0.0";

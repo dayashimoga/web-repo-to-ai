@@ -3154,11 +3154,69 @@
 
 ---
 
+#### Subphase `4.1.3` — CDM schema validation and invariant checks in crates/cdm
+- **Unique ID:** `4.1.3`
+- **Objective:** Implement comprehensive structural, semantic, and cryptographic validation engine for `CdmDocument` in `crates/cdm`, enforcing document-level, section-level, tree hierarchy, relationship referential integrity, cryptographic hash verification, and repository completeness invariants with structured `ValidationReport` diagnostics.
+- **Scope:** `crates/cdm/Cargo.toml`, `crates/cdm/src/validator.rs`, `crates/cdm/src/error.rs`, `crates/cdm/src/model.rs`, `crates/cdm/src/lib.rs`, `crates/cdm/tests/validation_invariants.rs`.
+- **Prerequisites:** `4.1.2` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/cdm/Cargo.toml`
+  - `crates/cdm/src/validator.rs`
+  - `crates/cdm/src/error.rs`
+  - `crates/cdm/src/model.rs`
+  - `crates/cdm/src/lib.rs`
+  - `crates/cdm/tests/validation_invariants.rs`
+- **Implementation Tasks:**
+  1. Add `url = { workspace = true }` to `crates/cdm/Cargo.toml` for standard URL validation.
+  2. Implement `crates/cdm/src/validator.rs` providing:
+     - `ValidationConfig`: Configuration options (`strict_mode`, `verify_hashes`, `enforce_completeness`, `check_referential_integrity`, `check_tree_acyclicity`, `max_tree_depth`).
+     - `ValidationSeverity`: `Error` and `Warning`.
+     - `ValidationIssue`: Strongly-typed validation issue containing error code, human-readable message, JSON/structural path, and severity.
+     - `ValidationReport`: Aggregate report collecting all issues, with methods `is_valid()`, `has_errors()`, `has_warnings()`, `error_count()`, `warning_count()`, `errors()`, `warnings()`, `filter_by_path()`, `to_summary_string()`.
+     - `CdmValidator`: Stateful validator running modular validation passes:
+       - Document metadata & schema version validation (non-empty ID, matching major version, non-empty title, valid canonical URL, source identity checks).
+       - Section validation (non-empty unique IDs, valid URLs, line range monotonic validity `1 <= start <= end`, byte range validity `start <= end`, token metric consistency).
+       - Cryptographic hash validation (optional or strict: BLAKE3 digest recomputation against section body).
+       - Tree hierarchy validation (unique node IDs, acyclicity check via visited set & DFS cycle detection, tree depth bound, referential integrity ensuring every node's `section_id` exists in document sections).
+       - Relationship validation (referential integrity ensuring `from_section_id` and `to_section_id` both exist in document sections).
+       - Completeness invariant validation ($\text{discovered} = \text{extracted} + \text{excluded} + \text{failed} + \text{unsupported}$, verifying complete status implies `is_complete() == true`).
+  3. Integrate validation into `CdmDocument` in `crates/cdm/src/model.rs`:
+     - `doc.validate() -> Result<ValidationReport>`
+     - `doc.validate_strict() -> Result<(), CdmError>`
+     - `doc.validate_with_config(&ValidationConfig) -> ValidationReport`
+  4. Extend `CdmError` in `crates/cdm/src/error.rs` with `ValidationFailed(Box<ValidationReport>)` or enhanced `Validation` formatting.
+  5. Re-export validator primitives in `crates/cdm/src/lib.rs`.
+  6. Create comprehensive integration test suite `crates/cdm/tests/validation_invariants.rs` covering all invariant checks, cycle detection, referential integrity violations, duplicate IDs, invalid line/byte ranges, tampered hashes, completeness matrix violations, and diagnostic reports.
+  7. Run all 5 monorepo verification gates in `scripts/check-all.ps1`.
+- **Acceptance Criteria:**
+  - Valid `CdmDocument` passes validation with zero errors (`is_valid() == true`).
+  - Corrupted, duplicated, or invalid sections/hierarchy trees/relationships produce precise `ValidationIssue` entries with correct paths.
+  - Cycle detection reliably identifies and prevents loops in hierarchy trees.
+  - Completeness invariant is strictly enforced according to mathematical formula.
+  - All workspace tests, clippy, fmt, and all 5 monorepo gates pass with zero errors.
+- **Tests:** `cargo test -p web-repo-to-ai-cdm`, `cargo test --workspace`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, 01, 04, 05: Acyclicity checks and tree depth bounds prevent stack overflow / denial of service on maliciously crafted recursive trees; URL format validation prevents malformed schemes; cryptographic hash checks verify content authenticity.
+- **Performance Considerations:** Single-pass validation checks using `HashSet` lookups ($O(1)$) for section IDs and node IDs; avoid redundant allocations.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-cdm`: 60 passed (29 unit + 7 JSON serde integration + 8 schema validation integration + 16 validation invariants integration), 0 failed.
+  - `cargo test --workspace`: 363 passed, 0 failed across all monorepo crates.
+  - `apps/web` (SvelteKit + Vitest): 184 passed, 0 failed across 15 test suites.
+  - `services/browser-worker` (Node.js + Jest): 29 passed, 0 failed across 7 test suites.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, clean pass.
+  - `cargo fmt --all -- --check`: Clean formatting verified across all Rust crates.
+  - `cargo deny check`: Licenses, bans, advisories, and sources passed with zero violations.
+  - Monorepo 5-gate audit (`powershell scripts/check-all.ps1`): ALL 5 GATES PASSED (100% pass rate).
+- **Git Commit Reference:** PENDING_COMMIT
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 4 — Canonical Model and Export Engine)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `4.1.3` | CDM schema validation and invariant checks in crates/cdm | `4.1.2` (`ACCEPTED`) | `crates/cdm/*` | `NOT_STARTED` |
+| `4.1.4` | Schema versioning and migration framework in crates/cdm | `4.1.3` (`ACCEPTED`) | `crates/cdm/*` | `NOT_STARTED` |
 
 ---
 

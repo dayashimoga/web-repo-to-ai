@@ -19,3 +19,4 @@ chrono = { workspace = true, features = ["serde"] }
 uuid = { workspace = true, features = ["v4", "v7", "serde"] }
 blake3 = { workspace = true }
 thiserror = { workspace = true }
+url = { workspace = true }

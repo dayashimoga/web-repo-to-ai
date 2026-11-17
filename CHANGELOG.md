@@ -6,6 +6,35 @@
 
 ## [Unreleased] — Stage 4: Canonical Model and Export Engine
 
+### 2026-11-17 — Phase 4.1: Canonical Context Document Model (`4.1.3`)
+
+#### Added
+- **`[4.1.3]` Implement CDM Schema Validation and Invariant Checks in `crates/cdm`:**
+  - Added dependency to `crates/cdm/Cargo.toml`: `url = { workspace = true }` for standard URL validation.
+  - Implemented comprehensive validation engine in `crates/cdm/src/validator.rs`:
+    - `ValidationSeverity`: `Error` (fatal violation) and `Warning` (advisory finding).
+    - `ValidationIssue`: Strongly-typed validation issue tracking invariant code, human-readable message, structural path coordinate, and severity level.
+    - `ValidationConfig`: Configurable validation rules (`strict_mode`, `verify_hashes`, `enforce_completeness`, `check_referential_integrity`, `check_tree_acyclicity`, `max_tree_depth`), with fluent constructors `strict()`, `permissive()`, and builder methods.
+    - `ValidationReport`: Aggregate report collecting issues across sections, hierarchy nodes, relationships, and completeness, with methods `is_valid()`, `has_errors()`, `has_warnings()`, `error_count()`, `warning_count()`, `filter_by_code()`, `filter_by_path_prefix()`, and human-readable `summary()`.
+    - `CdmValidator`: Stateful validator running 8 modular validation passes:
+      1. Major schema version compatibility against `SCHEMA_VERSION` (`1.0.0`).
+      2. Document identity & metadata invariants (non-nil `document_id`, HTTP/HTTPS `canonical_url` validation via `url::Url::parse`, `raw_input` non-empty, GitHub/web coordinate checks, 64-char hex format checks on BLAKE3/SHA-256 hashes, descriptive title warning).
+      3. Section-level invariants (non-empty unique `section_id`s, valid `source_url`s, 1-indexed monotonic `line_range` `1 <= start <= end`, `byte_range` `start <= end`, BLAKE3 content hash recomputation against `body`, and token metrics consistency).
+      4. Hierarchy tree acyclicity & integrity (depth bounding to `max_tree_depth`, duplicate node ID cycle detection, and referential integrity verifying every node's `section_id` exists in document sections).
+      5. Relationships referential integrity (`source_id` and internal `target_id` existence in document sections, self-referential cycle warnings).
+      6. Authoritative citations validity (URL parse verification, section ID referential integrity).
+      7. Completeness accounting invariants (strict formula $\text{discovered} = \text{extracted} + \text{excluded} + \text{failed} + \text{unsupported}$, verifying complete extraction status requires `is_complete() == true`).
+      8. Warning records and exclusions integrity (non-empty warning codes, messages, and exclusion paths).
+  - Extended `CdmError` in `crates/cdm/src/error.rs` with `ValidationFailed { error_count, summary }` and helper `CdmError::from_report(&ValidationReport)`, mapped cleanly to workspace `CoreError::Validation`.
+  - Added convenience validation methods to `CdmDocument` in `crates/cdm/src/model.rs`:
+    - `doc.validation_report() -> ValidationReport`
+    - `doc.validate_with_config(&ValidationConfig) -> ValidationReport`
+    - `doc.validate() -> Result<(), CdmError>`
+    - `doc.validate_strict() -> Result<(), CdmError>`
+  - Re-exported validation types in `crates/cdm/src/lib.rs`.
+  - Added 12 unit tests in `src/validator.rs` and 16 integration tests in `crates/cdm/tests/validation_invariants.rs` covering all invariant checks, cycle detection, referential integrity violations, duplicate IDs, invalid line/byte ranges, tampered hashes, completeness matrix violations, and diagnostic reports.
+  - Verified 60/60 tests in `crates/cdm`, 363/363 workspace tests, 29/29 Node.js tests in `services/browser-worker`, 184/184 frontend tests in `apps/web`, and 100% pass rate across all 5 monorepo verification gates.
+
 ### 2026-11-17 — Phase 4.1: Canonical Context Document Model (`4.1.2`)
 
 #### Added
