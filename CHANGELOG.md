@@ -6,6 +6,23 @@
 
 ## [Unreleased] — Stage 4: Canonical Model and Export Engine
 
+### 2026-11-17 — Phase 4.3: Export (`4.3.3`)
+
+#### Added
+- **`[4.3.3]` Implement Asynchronous Streaming Downloads in `services/api`:**
+  - Added `tokio-util = { version = "0.7", default-features = false }` to root workspace dependencies and `tokio-util = { workspace = true, features = ["io"] }`, `web-repo-to-ai-exporters = { workspace = true }` to `services/api/Cargo.toml`.
+  - Added `"checksums"` to `VALID_EXPORT_FORMATS` in `services/api/src/dto/jobs.rs`.
+  - Integrated `DynStorage` into `AppState` in `services/api/src/state.rs` with automatic instantiation via `create_storage_backend(&config.storage)` and test/memory injection constructors `with_storage` and `with_metrics_and_storage`.
+  - Implemented `get_artifact_handler` in `services/api/src/routes/jobs.rs`:
+    - Handles `GET /api/v1/jobs/{job_id}/artifacts/{format}` for all supported formats (`markdown`, `txt`, `json`, `html`, `jsonl`, `zip`, `manifest`, `checksums`, `cdm_json`).
+    - Storage lookup with fallback keys matching standard layout (`jobs/{job_id}/artifact.{ext}`).
+    - Direct chunked streaming from storage using `ReaderStream` and Axum `Body::from_stream`, preventing large file RAM exhaustion.
+    - On-demand rendering fallback: If a pre-rendered artifact does not exist in storage, looks for the stored parent CDM document (`jobs/{job_id}/artifact.cdm.json`), renders the requested format on the fly, caches it to storage, and streams it.
+    - Standard RFC compliance headers: `Content-Type` matching format MIME, `Content-Disposition: attachment; filename="web-repo-to-ai-{job_id}.{ext}"`, `Content-Length`, `x-content-type-options: nosniff`, `cache-control: private, no-transform, max-age=86400`, and correlated `x-request-id`.
+    - Returns standard RFC 7807 problem details (`404 Not Found`, `application/problem+json`) if neither artifact nor CDM exists.
+  - Added integration test suites in `services/api/src/lib.rs` verifying streaming markdown downloads, zip streaming, manifest & checksums downloads, on-demand CDM rendering fallback, headers integrity, and 404/400 validation.
+  - Verification: 41 passing API tests (up from 37), 457 total workspace Rust tests (up from 453), 184 frontend tests, 29 browser-worker tests, and 100% pass rate across all 5 monorepo verification gates.
+
 ### 2026-11-17 — Phase 4.3: Export (`4.3.2`)
 
 #### Added

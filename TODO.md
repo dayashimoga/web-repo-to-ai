@@ -127,7 +127,7 @@
 ### Phase 4.3 — Export
 - [x] **[4.3.1]** ZIP package generation in crates/exporters *(Completed 2026-11-17, ZipPackageExporter, ZipPackageOptions, zip v9.6.1 deflate/zlib-rs, deterministic timestamps, manifest/provenance/quality reports, checksums.sha256, path traversal defense, 9 passing tests, 62 exporter tests, 442 workspace tests)*
 - [x] **[4.3.2]** Manifest & checksums generation in crates/exporters *(Completed 2026-11-17, PackageManifest, PackageFileEntry with dual SHA-256 and BLAKE3 digests, PackageProvenance, PackageQualityReport, ManifestExporter, generate/parse/verify coreutils checksums, ChecksumVerificationReport, 11 passing tests, 73 exporter tests, 453 workspace tests)*
-- [ ] **[4.3.3]** Streaming downloads in services/api
+- [x] **[4.3.3]** Streaming downloads in services/api *(Completed 2026-11-17, get_artifact_handler in services/api/src/routes/jobs.rs, ReaderStream async chunk streaming from StorageBackend, on-demand CDM rendering fallback, standard headers nosniff/cache-control/content-disposition, 4 new test suites, 41 api tests, 457 workspace tests)*
 - [ ] **[4.3.4]** Export integrity tests in crates/exporters
 
 ### Phase 4.4 — Website integration

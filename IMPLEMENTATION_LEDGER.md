@@ -3580,11 +3580,61 @@
 
 ---
 
+#### Subphase `4.3.3` — Streaming downloads in services/api
+- **Unique ID:** `4.3.3`
+- **Objective:** Implement production-grade asynchronous streaming artifact downloads in `services/api` for `GET /api/v1/jobs/{job_id}/artifacts/{format}` (`markdown`, `txt`, `json`, `html`, `jsonl`, `zip`, `manifest`, `checksums`), streaming directly from pluggable storage (`StorageBackend::open_read`) or performing on-demand CDM format generation with bounded chunked HTTP bodies, RFC 7807 problem details for missing or unready artifacts, accurate MIME content types, and standard `Content-Disposition`, `Content-Length`, `ETag`, and `X-Content-Type-Options` headers.
+- **Scope:** `services/api/src/routes/jobs.rs`, `services/api/src/state.rs`, `services/api/src/dto/jobs.rs`, `services/api/src/dto/params.rs`, `services/api/src/lib.rs`, `services/api/Cargo.toml`, `Cargo.toml`.
+- **Prerequisites:** `4.3.2` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `Cargo.toml`
+  - `services/api/Cargo.toml`
+  - `services/api/src/state.rs`
+  - `services/api/src/routes/jobs.rs`
+  - `services/api/src/dto/jobs.rs`
+  - `services/api/src/dto/params.rs`
+  - `services/api/src/lib.rs`
+- **Implementation Tasks:**
+  1. Add `tokio-util = { version = "0.7", default-features = false, features = ["io"] }` to root `Cargo.toml` and `[dependencies]` in `services/api/Cargo.toml`. Add `web-repo-to-ai-exporters = { workspace = true }` to `services/api/Cargo.toml`.
+  2. Expand `VALID_EXPORT_FORMATS` in `services/api/src/dto/jobs.rs` to include `"checksums"`.
+  3. Wire `DynStorage` into `AppState` in `services/api/src/state.rs` with `create_storage_backend(&config.storage)` and test/memory injection constructors (`with_storage`, `with_metrics_and_storage`).
+  4. Implement `get_artifact_handler` in `services/api/src/routes/jobs.rs`:
+     - Parse format via `ArtifactFormat::from_str`.
+     - Inspect storage for pre-rendered artifact (`jobs/{job_id}/artifact.{ext}`).
+     - If not pre-rendered, check for parent CDM (`jobs/{job_id}/artifact.cdm.json`), deserialize, and stream format on-demand.
+     - Stream chunks asynchronously using `ReaderStream` and Axum `Body::from_stream`.
+     - Set standard headers: `Content-Type`, `Content-Disposition`, `Content-Length`, `ETag`, `x-content-type-options: nosniff`, `cache-control: private, no-transform, max-age=86400`, and `x-request-id`.
+     - If neither artifact nor CDM exists, return RFC 7807 404 Problem Details.
+  5. Add integration tests in `services/api/src/lib.rs` verifying streaming downloads for each supported format (`markdown`, `txt`, `json`, `html`, `jsonl`, `zip`, `manifest`, `checksums`), non-existent job 404 handling, invalid format 400 rejection, and headers validation.
+  6. Run all 5 monorepo verification gates in `scripts/check-all.ps1`.
+- **Acceptance Criteria:**
+  - `GET /api/v1/jobs/{job_id}/artifacts/{format}` streams artifacts for all supported formats without buffering the entire payload into RAM.
+  - Correct MIME type and `Content-Disposition` attachment filename headers are emitted for each format.
+  - On-demand rendering from stored CDM is supported when pre-rendered artifact does not yet exist.
+  - Missing artifacts return RFC 7807 problem details with `application/problem+json` media type.
+  - All workspace tests pass, clippy has 0 warnings, formatting is clean, and cargo deny passes.
+- **Tests:** `cargo test -p web-repo-to-ai-api`, `cargo test --workspace`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, 01, 04, 05: Safe memory handling, bounded chunk streams preventing OOM, nosniff header, no directory traversal via `job_id` (enforced by typed `JobId` UUID v7).
+- **Performance Considerations:** Single-pass streaming directly from `StorageBackend::open_read` or exporter writers without buffering into redundant vectors.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-api`: 41 passed (40 lib tests + 1 binary metadata test, including 4 new streaming download suites covering direct storage streaming, on-demand CDM rendering, manifest/checksums downloads, and 404/400 validation), 0 failed.
+  - `cargo test --workspace`: 457 passed, 0 failed across all monorepo crates.
+  - `apps/web` (SvelteKit + Vitest): 184 passed, 0 failed across 15 test suites.
+  - `services/browser-worker` (Node.js + Jest): 29 passed, 0 failed across 7 test suites.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, clean pass.
+  - `cargo fmt --all -- --check`: Clean formatting verified across all Rust crates.
+  - `cargo deny check`: Licenses, bans, advisories, and sources passed with zero violations.
+  - Monorepo 5-gate audit (`powershell scripts/check-all.ps1`): ALL 5 GATES PASSED (100% pass rate).
+- **Git Commit Reference:** PENDING_COMMIT
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 4 — Canonical Model and Export Engine)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `4.3.3` | Streaming downloads in services/api | `4.3.2` (`ACCEPTED`) | `services/api/*` | `NOT_STARTED` |
+| `4.3.4` | Export integrity tests in crates/exporters | `4.3.3` (`ACCEPTED`) | `crates/exporters/*` | `NOT_STARTED` |
 
 ---
 

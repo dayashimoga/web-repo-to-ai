@@ -33,6 +33,7 @@ mod tests {
     use http_body_util::BodyExt;
     use tower::ServiceExt;
     use web_repo_to_ai_core::AppConfig;
+    use web_repo_to_ai_storage::StorageBackend;
 
     fn setup_test_app() -> axum::Router {
         let config = AppConfig::default();
@@ -726,5 +727,280 @@ mod tests {
         assert!(body.contains("web_repo_to_ai_build_info"));
         assert!(body.contains("web_repo_to_ai_http_requests_total"));
         assert!(body.contains("web_repo_to_ai_http_request_duration_ms"));
+    }
+
+    fn create_test_cdm() -> web_repo_to_ai_cdm::model::CdmDocument {
+        use web_repo_to_ai_cdm::builder::{CdmDocumentBuilder, CdmSectionBuilder};
+        use web_repo_to_ai_cdm::model::{SourceIdentity, SourceType};
+        use web_repo_to_ai_cdm::section::SectionKind;
+
+        let identity = SourceIdentity {
+            raw_input: "https://github.com/example/stream-test".to_string(),
+            canonical_url: "https://github.com/example/stream-test".to_string(),
+            domain: Some("github.com".to_string()),
+            repo_owner: Some("example".to_string()),
+            repo_name: Some("stream-test".to_string()),
+            git_ref: Some("main".to_string()),
+            subpath: None,
+        };
+
+        let sec = CdmSectionBuilder::new(
+            "sec-1",
+            "https://github.com/example/stream-test/blob/main/src/main.rs",
+            SectionKind::CodeFile,
+            "fn main() {\n    println!(\"Hello Stream!\");\n}\n",
+        )
+        .title("src/main.rs")
+        .original_path("src/main.rs")
+        .language("rust")
+        .build();
+
+        CdmDocumentBuilder::new(
+            identity,
+            SourceType::GitHubPublic,
+            "https://github.com/example/stream-test",
+        )
+        .add_section(sec)
+        .build()
+    }
+
+    #[tokio::test]
+    async fn test_get_artifact_streaming_markdown_success() {
+        use web_repo_to_ai_storage::layout;
+        use web_repo_to_ai_storage::schema::ArtifactFormat;
+        use web_repo_to_ai_storage::InMemoryStorage;
+
+        let storage = std::sync::Arc::new(InMemoryStorage::new());
+        let job_id = web_repo_to_ai_core::JobId::new();
+        let key = layout::job_artifact_key(*job_id.as_uuid(), ArtifactFormat::Markdown);
+        let content = b"# Markdown Content\n\nStreamed successfully!";
+        storage.put(&key, content).await.unwrap();
+
+        let config = AppConfig::default();
+        let state = AppState::with_storage(config, storage);
+        let app = build_app(state);
+
+        let uri = format!("/api/v1/jobs/{job_id}/artifacts/markdown");
+        let response = app
+            .oneshot(Request::builder().uri(&uri).body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            response.headers().get(header::CONTENT_TYPE).unwrap(),
+            "text/markdown; charset=utf-8"
+        );
+        let disposition = response
+            .headers()
+            .get(header::CONTENT_DISPOSITION)
+            .unwrap()
+            .to_str()
+            .unwrap();
+        assert!(disposition.contains(&format!("web-repo-to-ai-{job_id}.md")));
+        assert_eq!(
+            response.headers().get("x-content-type-options").unwrap(),
+            "nosniff"
+        );
+        assert_eq!(
+            response.headers().get(header::CONTENT_LENGTH).unwrap(),
+            &content.len().to_string()
+        );
+
+        let body = body_to_string(response.into_body()).await;
+        assert_eq!(body, String::from_utf8(content.to_vec()).unwrap());
+    }
+
+    #[tokio::test]
+    async fn test_get_artifact_streaming_zip_success() {
+        use web_repo_to_ai_storage::layout;
+        use web_repo_to_ai_storage::schema::ArtifactFormat;
+        use web_repo_to_ai_storage::InMemoryStorage;
+
+        let storage = std::sync::Arc::new(InMemoryStorage::new());
+        let job_id = web_repo_to_ai_core::JobId::new();
+        let key = layout::job_artifact_key(*job_id.as_uuid(), ArtifactFormat::Zip);
+        let zip_bytes = b"PK\x03\x04mock_zip_archive_data";
+        storage.put(&key, zip_bytes).await.unwrap();
+
+        let config = AppConfig::default();
+        let state = AppState::with_storage(config, storage);
+        let app = build_app(state);
+
+        let uri = format!("/api/v1/jobs/{job_id}/artifacts/zip");
+        let response = app
+            .oneshot(Request::builder().uri(&uri).body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            response.headers().get(header::CONTENT_TYPE).unwrap(),
+            "application/zip"
+        );
+        let disposition = response
+            .headers()
+            .get(header::CONTENT_DISPOSITION)
+            .unwrap()
+            .to_str()
+            .unwrap();
+        assert!(disposition.contains(&format!("web-repo-to-ai-{job_id}.zip")));
+
+        let body = response.into_body().collect().await.unwrap().to_bytes();
+        assert_eq!(body.as_ref(), zip_bytes);
+    }
+
+    #[tokio::test]
+    async fn test_get_artifact_streaming_manifest_and_checksums() {
+        use web_repo_to_ai_storage::layout;
+        use web_repo_to_ai_storage::schema::ArtifactFormat;
+        use web_repo_to_ai_storage::InMemoryStorage;
+
+        let storage = std::sync::Arc::new(InMemoryStorage::new());
+        let job_id = web_repo_to_ai_core::JobId::new();
+        let m_key = layout::job_artifact_key(*job_id.as_uuid(), ArtifactFormat::Manifest);
+        storage
+            .put(&m_key, b"{\"manifest_version\":\"1.0.0\"}")
+            .await
+            .unwrap();
+
+        let cs_key = format!("jobs/{}/checksums.sha256", job_id.as_uuid());
+        storage.put(&cs_key, b"e3b0c442  file.txt\n").await.unwrap();
+
+        let config = AppConfig::default();
+        let state = AppState::with_storage(config, storage);
+        let app = build_app(state);
+
+        // Manifest
+        let uri_m = format!("/api/v1/jobs/{job_id}/artifacts/manifest");
+        let res_m = app
+            .clone()
+            .oneshot(Request::builder().uri(&uri_m).body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+        assert_eq!(res_m.status(), StatusCode::OK);
+        assert_eq!(
+            res_m.headers().get(header::CONTENT_TYPE).unwrap(),
+            "application/json"
+        );
+
+        // Checksums
+        let uri_cs = format!("/api/v1/jobs/{job_id}/artifacts/checksums");
+        let res_cs = app
+            .oneshot(Request::builder().uri(&uri_cs).body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+        assert_eq!(res_cs.status(), StatusCode::OK);
+        assert_eq!(
+            res_cs.headers().get(header::CONTENT_TYPE).unwrap(),
+            "text/plain; charset=utf-8"
+        );
+        let body_cs = body_to_string(res_cs.into_body()).await;
+        assert_eq!(body_cs, "e3b0c442  file.txt\n");
+    }
+
+    #[tokio::test]
+    async fn test_get_artifact_on_demand_rendering_from_cdm() {
+        use web_repo_to_ai_storage::layout;
+        use web_repo_to_ai_storage::schema::ArtifactFormat;
+        use web_repo_to_ai_storage::InMemoryStorage;
+
+        let storage = std::sync::Arc::new(InMemoryStorage::new());
+        let job_id = web_repo_to_ai_core::JobId::new();
+        let cdm_doc = create_test_cdm();
+        let cdm_bytes = serde_json::to_vec(&cdm_doc).unwrap();
+
+        let cdm_key = layout::job_artifact_key(*job_id.as_uuid(), ArtifactFormat::CdmJson);
+        storage.put(&cdm_key, &cdm_bytes).await.unwrap();
+
+        let config = AppConfig::default();
+        let state = AppState::with_storage(config, storage.clone());
+        let app = build_app(state);
+
+        // Request Markdown (not pre-rendered in storage)
+        let uri_md = format!("/api/v1/jobs/{job_id}/artifacts/markdown");
+        let res_md = app
+            .clone()
+            .oneshot(Request::builder().uri(&uri_md).body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+        assert_eq!(res_md.status(), StatusCode::OK);
+        let body_md = body_to_string(res_md.into_body()).await;
+        assert!(body_md.contains("Hello Stream!"));
+
+        // Check that on-demand generation cached the markdown artifact into storage
+        let cached_key = layout::job_artifact_key(*job_id.as_uuid(), ArtifactFormat::Markdown);
+        assert!(storage.exists(&cached_key).await.unwrap());
+
+        // Request HTML on demand
+        let uri_html = format!("/api/v1/jobs/{job_id}/artifacts/html");
+        let res_html = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri(&uri_html)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res_html.status(), StatusCode::OK);
+        assert_eq!(
+            res_html.headers().get(header::CONTENT_TYPE).unwrap(),
+            "text/html; charset=utf-8"
+        );
+
+        // Request JSON on demand
+        let uri_json = format!("/api/v1/jobs/{job_id}/artifacts/json");
+        let res_json = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri(&uri_json)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res_json.status(), StatusCode::OK);
+        assert_eq!(
+            res_json.headers().get(header::CONTENT_TYPE).unwrap(),
+            "application/json"
+        );
+
+        // Request JSONL on demand
+        let uri_jsonl = format!("/api/v1/jobs/{job_id}/artifacts/jsonl");
+        let res_jsonl = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri(&uri_jsonl)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res_jsonl.status(), StatusCode::OK);
+        assert_eq!(
+            res_jsonl.headers().get(header::CONTENT_TYPE).unwrap(),
+            "application/x-ndjson"
+        );
+
+        // Request ZIP on demand
+        let uri_zip = format!("/api/v1/jobs/{job_id}/artifacts/zip");
+        let res_zip = app
+            .oneshot(
+                Request::builder()
+                    .uri(&uri_zip)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res_zip.status(), StatusCode::OK);
+        assert_eq!(
+            res_zip.headers().get(header::CONTENT_TYPE).unwrap(),
+            "application/zip"
+        );
     }
 }

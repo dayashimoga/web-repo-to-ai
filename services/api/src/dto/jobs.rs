@@ -7,7 +7,14 @@ use web_repo_to_ai_core::{CoreError, JobId, Result, Validatable};
 
 /// Allowed export artifact formats.
 pub const VALID_EXPORT_FORMATS: &[&str] = &[
-    "markdown", "txt", "json", "html", "jsonl", "zip", "manifest",
+    "markdown",
+    "txt",
+    "json",
+    "html",
+    "jsonl",
+    "zip",
+    "manifest",
+    "checksums",
 ];
 
 /// Execution state of a conversion job.
