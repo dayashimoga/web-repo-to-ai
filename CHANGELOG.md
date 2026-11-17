@@ -6,6 +6,26 @@
 
 ## [Unreleased] — Stage 2: Backend and Processing Foundation
 
+### 2026-11-17 — Phase 2.2: API (`2.2.1`)
+
+#### Added
+- **`[2.2.1]` Implement Axum Service and Router Scaffolding in `services/api`:**
+  - Implemented application state container `AppState` (`services/api/src/state.rs`) holding shared references to `Arc<AppConfig>` and `Arc<AppMetrics>`.
+  - Implemented HTTP middleware pipeline (`services/api/src/middleware.rs`):
+    - Configurable `CorsLayer` parsing `cors_allowed_origins` from configuration, with support for standard methods (`GET`, `POST`, `PUT`, `DELETE`, `OPTIONS`, `HEAD`) and headers.
+    - Global request `TimeoutLayer` bounding execution time according to `server.request_timeout_secs`.
+    - Distributed tracing and correlation middleware (`trace_id_middleware`) preserving or generating `x-request-id` (UUID v7) and W3C `traceparent` headers across request and response lifecycles.
+  - Implemented HTTP router and handlers (`services/api/src/routes/`):
+    - Root landing handler `/` returning JSON metadata, service name, and API v1 endpoints descriptor.
+    - Container orchestrator liveness probe `/api/v1/health` and readiness probe `/api/v1/ready`.
+    - Prometheus metrics exposition handler `/api/v1/metrics` serving `text/plain` Prometheus telemetry.
+    - Fallback handler returning RFC 7807 compliant `ApiErrorEnvelope` with `RESOURCE_NOT_FOUND` on unmapped routes.
+  - Implemented server lifecycle (`services/api/src/server.rs`):
+    - `build_app()` assembling middleware layers and route tree.
+    - `run_server()` binding TCP listener to configured host and port with graceful termination on `Ctrl+C` / `SIGINT` (and Unix `SIGTERM`).
+  - Updated binary entry point `services/api/src/main.rs` initializing `init_tracing()` and `AppConfig::from_env()`.
+  - Added 8 integration tests and 1 binary metadata test in `services/api`, expanding workspace test coverage to 59/59 passing tests. Verified all 5 gates pass cleanly.
+
 ### 2026-11-17 — Phase 2.1: Rust Architecture (`2.1.3`) & Phase 2.1 Milestone Certification
 
 #### Added

@@ -8,6 +8,14 @@ license.workspace = true
 authors.workspace = true
 repository.workspace = true
 
+[lib]
+name = "web_repo_to_ai_api"
+path = "src/lib.rs"
+
+[[bin]]
+name = "web-repo-to-ai-api"
+path = "src/main.rs"
+
 [lints]
 workspace = true
 
@@ -18,5 +26,11 @@ web-repo-to-ai-url-security = { workspace = true }
 web-repo-to-ai-storage = { workspace = true }
 web-repo-to-ai-job-engine = { workspace = true }
 web-repo-to-ai-observability = { workspace = true }
-tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "signal", "net", "time"] }
 tracing = { workspace = true }
+axum = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true, features = ["cors", "trace", "timeout"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+http-body-util = { workspace = true }

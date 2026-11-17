@@ -1610,11 +1610,63 @@
 
 ---
 
+### Phase 2.2 — API
+
+#### Subphase `2.2.1` — Implement Axum service and router scaffolding in services/api
+- **Unique ID:** `2.2.1`
+- **Objective:** Scaffold the primary Axum HTTP service in `services/api`, establishing the application router, state container (`AppState`), middleware pipeline (CORS, request timeouts, and W3C `traceparent` / `x-request-id` correlation tracking), health probes, Prometheus metrics exposition endpoint, RFC 7807 fallback handler, and graceful shutdown signal listener.
+- **Scope:** `services/api/src/{lib.rs, main.rs, state.rs, middleware.rs, server.rs, routes/mod.rs, routes/health.rs, routes/metrics.rs}`, `services/api/Cargo.toml`, root `Cargo.toml`, `Cargo.lock`.
+- **Prerequisites:** Phase 2.1 (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `Cargo.toml`, `Cargo.lock`
+  - `services/api/Cargo.toml`
+  - `services/api/src/lib.rs`
+  - `services/api/src/main.rs`
+  - `services/api/src/state.rs`
+  - `services/api/src/middleware.rs`
+  - `services/api/src/server.rs`
+  - `services/api/src/routes/mod.rs`
+  - `services/api/src/routes/health.rs`
+  - `services/api/src/routes/metrics.rs`
+- **Implementation Tasks:**
+  1. Update root workspace `Cargo.toml` and `services/api/Cargo.toml` with `axum`, `tower`, `tower-http` (CORS, trace, timeout), `http-body-util`, and `tokio` networking/signal features.
+  2. Implement `AppState` in `services/api/src/state.rs` holding shared `Arc<AppConfig>` and `Arc<AppMetrics>`.
+  3. Implement middleware stack in `services/api/src/middleware.rs`: CORS layer configured from `AppConfig`, request timeout layer, and `trace_id_middleware` extracting or generating `x-request-id` and W3C `traceparent` headers.
+  4. Implement routes in `services/api/src/routes/`: root handler (`/`), health probe (`/api/v1/health`), readiness probe (`/api/v1/ready`), Prometheus metrics exposition (`/api/v1/metrics`), and RFC 7807 JSON 404 fallback handler.
+  5. Implement server lifecycle in `services/api/src/server.rs`: `build_app(state)` and `run_server(config)` with graceful shutdown listener (`Ctrl+C` and Unix `SIGTERM`).
+  6. Update `services/api/src/main.rs` binary entry point with logging subscriber initialization (`init_tracing`), config loading (`AppConfig::from_env`), and server execution.
+  7. Implement 8 integration tests in `services/api/src/lib.rs` verifying root metadata, health/ready probes, Prometheus exposition format, request ID preservation and injection, RFC 7807 404 problem details, and CORS OPTIONS preflight.
+  8. Execute `cargo check --workspace`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo test --workspace`, `cargo deny check`, and verify all 5 gates pass cleanly in `scripts/check-all.ps1`.
+- **Acceptance Criteria:**
+  - Axum HTTP server starts up and binds to configured host and port with graceful shutdown handling.
+  - Root endpoint `/` returns JSON service metadata and API version.
+  - Health endpoint `/api/v1/health` and readiness endpoint `/api/v1/ready` return RFC-compliant health payloads.
+  - Metrics endpoint `/api/v1/metrics` serves Prometheus text exposition format.
+  - Request middleware injects or preserves `x-request-id` and `traceparent` on all incoming and outgoing HTTP responses.
+  - Fallback 404 handler returns RFC 7807 `RESOURCE_NOT_FOUND` problem details.
+  - CORS layer correctly responds to preflight `OPTIONS` requests matching configured origins.
+  - 100% of integration tests pass (8 tests in `services/api`, 59 total across workspace); zero clippy warnings; all 5 gates pass.
+- **Tests:** `cargo test -p web-repo-to-ai-api` (9/9 passed), `cargo test --workspace` (59/59 passed), `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Complies with Rule 00, 02, and 05: `#![forbid(unsafe_code)]` enforced; CORS origins restricted to configuration; request timeouts bounded to prevent Slowloris attacks; RFC 7807 errors leak zero internal stack traces or database connection credentials; all secrets scrubbed from tracing.
+- **Performance Considerations:** In-memory asynchronous Axum router with zero lock contention on hot paths; lock-free atomic Prometheus metrics; zero-copy header propagation.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-api`: 8/8 library integration tests + 1 binary metadata test passed.
+  - `cargo test --workspace`: 59/59 tests passed.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors.
+  - `cargo fmt --all -- --check`: 100% code style compliance.
+  - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
+- **Git Commit Reference:** `0bb9798`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `2.2.1` | Implement Axum HTTP service and router scaffolding in services/api | Phase 2.1 (`ACCEPTED`) | `services/api/src/*`, `services/api/Cargo.toml` | `NOT_STARTED` |
+| `2.2.2` | Implement request validation and parameter parsing in services/api | `2.2.1` (`ACCEPTED`) | `services/api/src/*`, `crates/core/src/*` | `NOT_STARTED` |
 
 ---
 
