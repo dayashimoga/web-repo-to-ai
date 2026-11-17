@@ -173,7 +173,7 @@
   - Remote repository live at `https://github.com/dayashimoga/web-repo-to-ai`.
   - `git status` reports: `On branch main, Your branch is up to date with 'origin/main', nothing to commit, working tree clean`.
   - `git ls-remote origin` output: `98cc1decf23f270aef970877eb3a4b574b86d822 refs/heads/main`.
-- **Git Commit Reference:** Recorded in commit for subphase 0.2.1 docs update
+- **Git Commit Reference:** `41db2d0`
 - **Status:** `ACCEPTED`
 
 ---
