@@ -6,9 +6,14 @@
 
 ## [Unreleased] — Stage 0: Project Bootstrap and Engineering Foundation
 
-### 2026-11-17 — Phase 0.2: GitHub and CI Foundation (`0.2.1` – `0.2.3`)
+### 2026-11-17 — Phase 0.2: GitHub and CI Foundation (`0.2.1` – `0.2.4`)
 
 #### Added
+- **`[0.2.4]` Linting, Formatting & Quality Check Runners:**
+  - Configured `rustfmt.toml` enforcing Rust 2021 edition, 100 character width, Unix LF line endings, import reordering, and comment formatting.
+  - Configured `.prettierrc.json` and `.prettierignore` for web, JSON, Markdown, and TypeScript styling.
+  - Authored cross-platform monorepo quality audit runners `scripts/check-all.ps1` and `scripts/check-all.sh`.
+  - Updated `scripts/verify-bootstrap.ps1` with lint/format configuration assertions.
 - **`[0.2.3]` GitHub Actions CI/CD Workflows:**
   - Authored `.github/workflows/ci.yml` with concurrency controls, bootstrap integrity checks, and conditional Rust and SvelteKit test gates.
   - Authored `.github/workflows/build.yml` with separate artifact uploads for frontend build bundle, backend binaries, and SHA-256 checksums.

@@ -211,6 +211,20 @@ foreach ($gw in $ghWorkflows) {
 $null = python scripts/validate-workflows.py 2>&1
 Assert-Condition ($LASTEXITCODE -eq 0) "All GitHub Actions workflow YAML files valid via PyYAML parser"
 
+# 10. Verify lint, formatting, and quality runner configs
+$lintConfigs = @(
+    "rustfmt.toml",
+    ".prettierrc.json",
+    ".prettierignore",
+    "scripts/check-all.ps1",
+    "scripts/check-all.sh"
+)
+foreach ($lc in $lintConfigs) {
+    $lcExists = Test-Path -Path $lc -PathType Leaf
+    $lcNonEmpty = $lcExists -and ((Get-Item $lc -Force).Length -gt 10)
+    Assert-Condition $lcNonEmpty "Lint/format configuration file exists and is non-empty: $lc"
+}
+
 Write-Output "=== Verification Summary: $($checks - $failures)/$checks checks passed, $failures failures ==="
 if ($failures -gt 0) {
     exit 1

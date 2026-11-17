@@ -244,12 +244,43 @@
 
 ---
 
-### Phase 0.2 — Upcoming Subphases (Awaiting User Approval for `0.2.4`)
+#### Subphase `0.2.4` — Configure linting, formatting and test checks across Rust and Frontend
+- **Unique ID:** `0.2.4`
+- **Objective:** Configure linting, formatting, and test check standards across Rust and Frontend workspaces (`rustfmt.toml`, `.prettierrc.json`, `.prettierignore`, `scripts/check-all.ps1`, `scripts/check-all.sh`).
+- **Scope:** Root formatting configurations, monorepo quality audit runners, and tracking ledgers.
+- **Prerequisites:** `0.2.3` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `rustfmt.toml`
+  - `.prettierrc.json`
+  - `.prettierignore`
+  - `scripts/check-all.ps1`
+  - `scripts/check-all.sh`
+  - `scripts/verify-bootstrap.ps1`
+  - `PROJECT_STATUS.md`, `IMPLEMENTATION_LEDGER.md`, `TODO.md`, `CHANGELOG.md`
+- **Implementation Tasks:**
+  1. Author `rustfmt.toml` specifying Rust 2021 edition, 100 character width, Unix LF newlines, import reordering, and comment formatting.
+  2. Author `.prettierrc.json` and `.prettierignore` for web, JSON, Markdown, and TypeScript styling.
+  3. Create cross-platform monorepo quality runner scripts (`scripts/check-all.ps1` and `scripts/check-all.sh`) validating all gates (bootstrap integrity, workflow schemas, Rust formatting/clippy/tests, frontend lint/types/tests).
+  4. Update `scripts/verify-bootstrap.ps1` to assert lint/format configuration presence and integrity.
+- **Acceptance Criteria:**
+  - `rustfmt.toml`, `.prettierrc.json`, `.prettierignore`, `scripts/check-all.ps1`, and `scripts/check-all.sh` exist, validate cleanly, and pass all verification gates with 0 errors.
+- **Tests:** `scripts/check-all.ps1` executed all 4 quality gates successfully; `scripts/verify-bootstrap.ps1` passed 183/183 checks.
+- **Security Considerations:** No sensitive files exposed; `.prettierignore` ignores build artifacts and local storage.
+- **Performance Considerations:** Automated lint/format scripts complete in <2 seconds.
+- **Documentation Requirements:** Documented in `docs/DEVELOPMENT.md`, `PROJECT_STATUS.md`, `IMPLEMENTATION_LEDGER.md`, `TODO.md`, and `CHANGELOG.md`.
+- **Validation Evidence:**
+  - `scripts/check-all.ps1`: ALL GATES PASSED (0 failures).
+  - `scripts/verify-bootstrap.ps1`: 183/183 checks passed (0 failures).
+- **Git Commit Reference:** Recorded in commit for subphase 0.2.4
+- **Status:** `ACCEPTED`
+
+---
+
+### Phase 0.2 — Upcoming Subphases (Awaiting User Approval for `0.2.5`)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `0.2.4` | Configure linting, formatting and test checks across Rust and Frontend | `0.2.3` (`ACCEPTED`) | `.github/workflows/ci.yml`, root lint/format configs | `NOT_STARTED` |
-| `0.2.5` | Configure security and dependency scanning (`security.yml`, `dependency-review.yml`, `codeql.yml`, `deny.toml`) | `0.2.4` | `.github/workflows/{security,dependency-review,codeql}.yml`, `deny.toml` | `NOT_STARTED` |
+| `0.2.5` | Configure security and dependency scanning (`security.yml`, `dependency-review.yml`, `codeql.yml`, `deny.toml`) | `0.2.4` (`ACCEPTED`) | `.github/workflows/{security,dependency-review,codeql}.yml`, `deny.toml` | `NOT_STARTED` |
 
 ### Phase 0.3 — Containerized development foundation (Queued after Phase `0.2`)
 

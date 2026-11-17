@@ -1,0 +1,27 @@
+# Rust target directory
+target/
+**/*.rs
+
+# Node & Frontend build output
+node_modules/
+.svelte-kit/
+build/
+dist/
+.vercel/
+.cloudflare/
+
+# Storage & artifacts
+data/
+artifacts/
+storage/
+tmp/
+cache/
+
+# Coverage & test results
+coverage/
+playwright-report/
+test-results/
+
+# Package locks (managed by package managers)
+package-lock.json
+Cargo.lock
