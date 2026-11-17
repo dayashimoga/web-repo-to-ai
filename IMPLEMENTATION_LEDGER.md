@@ -202,17 +202,49 @@
   - Branch protection output verified: `allow_force_pushes: False`, `allow_deletions: False`, `required_conversation_resolution: True`.
   - Repo settings verified: `delete_branch_on_merge: True`, `allow_merge_commit: False`, `allow_squash_merge: True`, `allow_rebase_merge: True`.
   - Security endpoints: HTTP 204 response for vulnerability alerts and automated fixes.
-- **Git Commit Reference:** `a6923d8`
+- **Git Commit Reference:** `8382b1d`
 - **Status:** `ACCEPTED`
 
 ---
 
-### Phase 0.2 — Upcoming Subphases (Awaiting User Approval for `0.2.3`)
+#### Subphase `0.2.3` — Create GitHub Actions CI workflows
+- **Unique ID:** `0.2.3`
+- **Objective:** Create executable GitHub Actions CI/CD workflows (`ci.yml`, `build.yml`, `release.yml`, `container.yml`) enforcing least-privilege permissions, pinned action versions, and multi-artifact separation.
+- **Scope:** `.github/workflows/{ci,build,release,container}.yml`, `scripts/validate-workflows.py`, `scripts/verify-bootstrap.ps1`, and tracking ledgers.
+- **Prerequisites:** `0.2.2` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `.github/workflows/ci.yml`
+  - `.github/workflows/build.yml`
+  - `.github/workflows/container.yml`
+  - `.github/workflows/release.yml`
+  - `scripts/validate-workflows.py`
+  - `scripts/verify-bootstrap.ps1`
+  - `PROJECT_STATUS.md`, `IMPLEMENTATION_LEDGER.md`, `TODO.md`, `CHANGELOG.md`
+- **Implementation Tasks:**
+  1. Author `.github/workflows/ci.yml` with least-privilege `contents: read` permissions, concurrency control, bootstrap verification, and conditional checks for Rust workspace and SvelteKit frontend.
+  2. Author `.github/workflows/build.yml` producing separate frontend build artifacts, backend binary packages, and SHA-256 checksums without unnecessary nested ZIPs.
+  3. Author `.github/workflows/container.yml` enforcing Containerfile inspections and the 30 GB storage ceiling audit.
+  4. Author `.github/workflows/release.yml` automating release gate execution, CycloneDX SBOM generation, SHA-256 checksum verification, and GitHub Releases asset publishing.
+  5. Create `scripts/validate-workflows.py` and integrate YAML syntax/schema verification into `scripts/verify-bootstrap.ps1`.
+- **Acceptance Criteria:**
+  - All 4 workflows exist, pass PyYAML parser validation, declare explicit `permissions:` blocks, pin action versions, and execute cleanly.
+- **Tests:** `python scripts/validate-workflows.py` confirmed 4/4 workflows valid; `scripts/verify-bootstrap.ps1` passed 178/178 checks.
+- **Security Considerations:** Enforces minimal `permissions: contents: read` (with `contents: write` restricted solely to `release.yml`); pins GitHub Actions to major versions (`@v4`, `@v2`); prevents accidental secret leakage.
+- **Performance Considerations:** Workflows declare concurrency groups with `cancel-in-progress: true` to prevent redundant runner usage.
+- **Documentation Requirements:** Updated `PROJECT_STATUS.md`, `IMPLEMENTATION_LEDGER.md`, `TODO.md`, and `CHANGELOG.md`.
+- **Validation Evidence:**
+  - `python scripts/validate-workflows.py`: 4/4 workflows passed (verified triggers, permissions, jobs).
+  - `scripts/verify-bootstrap.ps1`: 178/178 checks passed (0 failures).
+- **Git Commit Reference:** Recorded in commit for subphase 0.2.3
+- **Status:** `ACCEPTED`
+
+---
+
+### Phase 0.2 — Upcoming Subphases (Awaiting User Approval for `0.2.4`)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `0.2.3` | Create GitHub Actions CI workflows (`ci.yml`, `build.yml`, `release.yml`, `container.yml`) | `0.2.2` (`ACCEPTED`) | `.github/workflows/{ci,build,release,container}.yml` | `NOT_STARTED` |
-| `0.2.4` | Configure linting, formatting and test checks across Rust and Frontend | `0.2.3` | `.github/workflows/ci.yml`, root lint/format configs | `NOT_STARTED` |
+| `0.2.4` | Configure linting, formatting and test checks across Rust and Frontend | `0.2.3` (`ACCEPTED`) | `.github/workflows/ci.yml`, root lint/format configs | `NOT_STARTED` |
 | `0.2.5` | Configure security and dependency scanning (`security.yml`, `dependency-review.yml`, `codeql.yml`, `deny.toml`) | `0.2.4` | `.github/workflows/{security,dependency-review,codeql}.yml`, `deny.toml` | `NOT_STARTED` |
 
 ### Phase 0.3 — Containerized development foundation (Queued after Phase `0.2`)

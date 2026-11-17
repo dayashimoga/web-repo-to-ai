@@ -1,0 +1,92 @@
+name: Release Automation
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to publish (e.g. v1.0.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release-gate:
+    name: Release Gate & Artifact Packaging
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run Release Integrity Check
+        shell: pwsh
+        run: |
+          ./scripts/verify-bootstrap.ps1
+
+      - name: Generate Release Assets & Checksums
+        shell: bash
+        run: |
+          RELEASE_TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          mkdir -p release-assets
+
+          echo "Preparing release $RELEASE_TAG"
+
+          # 1. Package frontend build if present
+          if [ -d "apps/web/build" ]; then
+            tar -czf "release-assets/frontend-${RELEASE_TAG}.tar.gz" -C apps/web/build .
+          fi
+
+          # 2. Package backend binaries if present
+          if [ -d "target/release" ]; then
+            find target/release -maxdepth 1 -type f -executable | while read -r bin; do
+              bname=$(basename "$bin")
+              cp "$bin" "release-assets/${bname}-${RELEASE_TAG}-x86_64-linux"
+            done
+          fi
+
+          # 3. Generate baseline SBOM document
+          cat << EOF > release-assets/sbom-cyclonedx.json
+          {
+            "bomFormat": "CycloneDX",
+            "specVersion": "1.5",
+            "serialNumber": "urn:uuid:$(uuidgen || echo '019335c4-7c20-7000-8000-000000000001')",
+            "version": 1,
+            "metadata": {
+              "component": {
+                "name": "web-repo-to-ai",
+                "version": "${RELEASE_TAG}",
+                "type": "application"
+              }
+            }
+          }
+          EOF
+
+          # 4. Generate SHA-256 checksums
+          cd release-assets
+          sha256sum * > checksums.sha256
+          cd ..
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          name: Release ${{ github.event.inputs.tag || github.ref_name }}
+          files: |
+            release-assets/*
+          draft: false
+          prerelease: false
+          generate_release_notes: true

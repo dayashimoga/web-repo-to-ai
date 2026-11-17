@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bootstrap-governance:
+    name: Bootstrap & Governance Integrity
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Bootstrap Verification
+        shell: pwsh
+        run: |
+          ./scripts/verify-bootstrap.ps1
+
+  rust-ci:
+    name: Rust Workspace Quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Setup Rust Cache
+        uses: swatinem/rust-cache@v2
+        continue-on-error: true
+
+      - name: Rust Formatting & Linting Check
+        shell: bash
+        run: |
+          if [ -f "Cargo.toml" ]; then
+            echo "Running cargo fmt --all -- --check"
+            cargo fmt --all -- --check
+            echo "Running cargo clippy --workspace --all-targets -- -D warnings"
+            cargo clippy --workspace --all-targets -- -D warnings
+            echo "Running cargo test --workspace"
+            cargo test --workspace
+          else
+            echo "No root Cargo.toml found yet; workspace scheduled for Stage 2. Baseline passed."
+          fi
+
+  frontend-ci:
+    name: Frontend Quality & Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Frontend Lint, Typecheck & Test
+        shell: bash
+        run: |
+          if [ -f "apps/web/package.json" ]; then
+            cd apps/web
+            echo "Installing frontend dependencies"
+            npm ci
+            echo "Running npm run lint"
+            npm run lint
+            echo "Running npm run check"
+            npm run check
+            echo "Running npm test"
+            npm test
+          else
+            echo "No apps/web/package.json found yet; frontend app scheduled for Stage 1. Baseline passed."
+          fi

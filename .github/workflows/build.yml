@@ -1,0 +1,89 @@
+name: Build Artifacts
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-frontend:
+    name: Build Frontend Artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build Web Application
+        shell: bash
+        run: |
+          mkdir -p dist/frontend
+          if [ -f "apps/web/package.json" ]; then
+            cd apps/web
+            npm ci
+            npm run build
+            cp -r build/* ../../dist/frontend/
+          else
+            echo "Stage 0 Baseline: apps/web scaffolded without build artifacts." > dist/frontend/BASELINE.txt
+          fi
+
+      - name: Upload Frontend Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: dist/frontend/
+          if-no-files-found: error
+
+  build-backend:
+    name: Build Backend Binaries
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Rust Cache
+        uses: swatinem/rust-cache@v2
+        continue-on-error: true
+
+      - name: Compile Release Binaries
+        shell: bash
+        run: |
+          mkdir -p dist/backend
+          if [ -f "Cargo.toml" ]; then
+            cargo build --release --workspace
+            find target/release -maxdepth 1 -type f -executable -exec cp {} dist/backend/ \;
+          else
+            echo "Stage 0 Baseline: crates and services scaffolded; compiled binaries scheduled in Stage 2." > dist/backend/BASELINE.txt
+          fi
+          cd dist/backend
+          sha256sum * > ../checksums.sha256
+
+      - name: Upload Backend Binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-binaries
+          path: dist/backend/
+          if-no-files-found: error
+
+      - name: Upload Build Checksums
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-checksums
+          path: dist/checksums.sha256
+          if-no-files-found: error

@@ -196,6 +196,21 @@ foreach ($ag in $agents) {
     Assert-Condition $exists "Agent role definition exists: $agPath"
 }
 
+# 9. Verify GitHub Actions workflows and YAML syntax
+$ghWorkflows = @(
+    "ci.yml",
+    "build.yml",
+    "container.yml",
+    "release.yml"
+)
+foreach ($gw in $ghWorkflows) {
+    $gwPath = ".github/workflows/$gw"
+    $exists = Test-Path -Path $gwPath -PathType Leaf
+    Assert-Condition $exists "GitHub Actions workflow exists: $gwPath"
+}
+$null = python scripts/validate-workflows.py 2>&1
+Assert-Condition ($LASTEXITCODE -eq 0) "All GitHub Actions workflow YAML files valid via PyYAML parser"
+
 Write-Output "=== Verification Summary: $($checks - $failures)/$checks checks passed, $failures failures ==="
 if ($failures -gt 0) {
     exit 1

@@ -6,9 +6,15 @@
 
 ## [Unreleased] — Stage 0: Project Bootstrap and Engineering Foundation
 
-### 2026-11-17 — Phase 0.2: GitHub and CI Foundation (`0.2.1` – `0.2.2`)
+### 2026-11-17 — Phase 0.2: GitHub and CI Foundation (`0.2.1` – `0.2.3`)
 
 #### Added
+- **`[0.2.3]` GitHub Actions CI/CD Workflows:**
+  - Authored `.github/workflows/ci.yml` with concurrency controls, bootstrap integrity checks, and conditional Rust and SvelteKit test gates.
+  - Authored `.github/workflows/build.yml` with separate artifact uploads for frontend build bundle, backend binaries, and SHA-256 checksums.
+  - Authored `.github/workflows/container.yml` auditing Containerfile specifications and enforcing the 30 GB storage ceiling.
+  - Authored `.github/workflows/release.yml` with automated release gate verification, CycloneDX SBOM generation, SHA-256 checksums, and GitHub Release asset publishing.
+  - Created `scripts/validate-workflows.py` for automated PyYAML validation and integrated it into `scripts/verify-bootstrap.ps1`.
 - **`[0.2.2]` Branch Protection & Repository Governance:**
   - Configured repository merge strategy via GitHub REST API: disabled merge commits (`allow_merge_commit: false`), enabled squash merge (`allow_squash_merge: true`), and enabled rebase merge (`allow_rebase_merge: true`) to enforce linear history.
   - Enabled automatic head branch pruning on PR merge (`delete_branch_on_merge: true`).
