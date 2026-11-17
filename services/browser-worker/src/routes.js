@@ -3,7 +3,8 @@
  * @description HTTP request dispatcher and route handlers for the browser worker service.
  */
 
-import { validateRenderRequest, createProblemDetails, createRenderResponse } from './protocol.js';
+import { validateRenderRequest, createProblemDetails } from './protocol.js';
+import { getBrowserEngine, RenderEngineError } from './engine.js';
 
 export const SERVICE_NAME = 'browser-worker';
 export const SERVICE_VERSION = '0.1.0';
@@ -13,11 +14,14 @@ export const SERVICE_VERSION = '0.1.0';
  *
  * @param {import('node:http').IncomingMessage} req
  * @param {import('node:http').ServerResponse} res
+ * @param {object} [options={}]
+ * @param {import('./engine.js').PlaywrightEngine} [options.browserEngine]
  */
-export async function handleRequest(req, res) {
+export async function handleRequest(req, res, options = {}) {
   const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
   const path = url.pathname;
   const method = req.method ? req.method.toUpperCase() : 'GET';
+  const engine = options.browserEngine || getBrowserEngine();
 
   // Liveness check
   if ((path === '/health' || path === '/live') && method === 'GET') {
@@ -31,11 +35,13 @@ export async function handleRequest(req, res) {
 
   // Readiness check
   if (path === '/ready' && method === 'GET') {
-    return sendJson(res, 200, {
-      status: 'ready',
+    const isReady = await engine.isReady();
+    const statusCode = isReady ? 200 : 503;
+    return sendJson(res, statusCode, {
+      status: isReady ? 'ready' : 'not_ready',
       service: SERVICE_NAME,
       version: SERVICE_VERSION,
-      browser_ready: true,
+      browser_ready: isReady,
       timestamp: new Date().toISOString(),
     });
   }
@@ -62,22 +68,16 @@ export async function handleRequest(req, res) {
 
       const reqData = validation.data;
 
-      // In Subphase 3.3.1 (Architecture & Protocol baseline), return structured IPC response envelope.
-      // Full Playwright browser page rendering integration takes place in Subphase 3.3.2.
-      const responseData = createRenderResponse({
-        url: reqData.url,
-        status_code: 200,
-        html: `<!DOCTYPE html><html><head><title>Rendered</title></head><body><div id="root"><h1>Browser Worker Active</h1><p>Rendered URL: ${reqData.url}</p></div></body></html>`,
-        title: 'Browser Worker Active',
-        load_time_ms: 50,
-        timing: {
-          navigation_start: Date.now() - 50,
-          dom_content_loaded: Date.now() - 20,
-          load: Date.now(),
-        },
-      });
-
-      return sendJson(res, 200, responseData);
+      // Execute dynamic rendering via PlaywrightEngine
+      try {
+        const responseData = await engine.render(reqData);
+        return sendJson(res, 200, responseData);
+      } catch (renderErr) {
+        if (renderErr instanceof RenderEngineError) {
+          return sendProblem(res, renderErr.statusCode, renderErr.code, renderErr.detail);
+        }
+        return sendProblem(res, 500, 'RenderExecutionError', renderErr.message || String(renderErr));
+      }
     } catch (err) {
       return sendProblem(res, 500, 'InternalError', `Unexpected internal server error: ${err.message}`);
     }

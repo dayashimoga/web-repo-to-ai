@@ -109,7 +109,20 @@ describe('Browser Worker HTTP Server Integration', () => {
   let port;
 
   before(async () => {
-    server = createServer();
+    const testEngine = {
+      isReady: async () => true,
+      render: async (reqData) => {
+        return createRenderResponse({
+          url: reqData.url,
+          status_code: 200,
+          html: `<!DOCTYPE html><html><head><title>Test Page</title></head><body><h1>Rendered</h1><p>Rendered URL: ${reqData.url}</p></body></html>`,
+          title: 'Test Page',
+          load_time_ms: 25,
+        });
+      },
+      close: async () => {},
+    };
+    server = createServer({ browserEngine: testEngine });
     await new Promise((resolve) => {
       server.listen(0, '127.0.0.1', () => {
         port = server.address().port;
@@ -191,7 +204,7 @@ describe('Browser Worker HTTP Server Integration', () => {
     assert.strictEqual(res.headers['content-type'], 'application/json');
     assert.strictEqual(res.json.url, 'https://news.ycombinator.com/');
     assert.strictEqual(res.json.status_code, 200);
-    assert.ok(res.json.html.includes('Browser Worker Active'));
+    assert.ok(res.json.html.includes('Test Page'));
     assert.ok(res.json.load_time_ms >= 0);
   });
 

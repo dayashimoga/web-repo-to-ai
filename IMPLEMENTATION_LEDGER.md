@@ -2652,7 +2652,58 @@
   - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
   - `npm test` (`apps/web`): 184/184 tests passed.
   - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
-- **Git Commit Reference:** `c76ad45`
+- **Git Commit Reference:** `064f68b`
+- **Status:** `ACCEPTED`
+
+---
+
+#### Subphase `3.3.2` — Playwright/Chromium dynamic fallback integration in services/browser-worker
+- **Unique ID:** `3.3.2`
+- **Objective:** Implement the headless Playwright / Chromium dynamic webpage rendering engine in `services/browser-worker`, with isolated per-request browser contexts, SSRF subresource filtering, timeout handling, and DOM extraction.
+- **Scope:** `services/browser-worker/src/engine.js`, `services/browser-worker/src/routes.js`, `services/browser-worker/server.js`, `services/browser-worker/test/engine.test.js`, `crates/web-extractor/src/browser/client.rs`.
+- **Prerequisites:** `3.3.1` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `services/browser-worker/package.json`
+  - `services/browser-worker/package-lock.json`
+  - `services/browser-worker/server.js`
+  - `services/browser-worker/src/engine.js`
+  - `services/browser-worker/src/routes.js`
+  - `services/browser-worker/test/protocol.test.js`
+  - `services/browser-worker/test/engine.test.js`
+  - `crates/web-extractor/src/browser/client.rs`
+- **Implementation Tasks:**
+  1. Add `playwright-core` dependency to `services/browser-worker/package.json` with reproducible `package-lock.json`.
+  2. Implement `PlaywrightEngine` in `services/browser-worker/src/engine.js` managing Chromium launch fallback resolution (bundled Playwright binary, `CHROME_BIN`, `BROWSER_PATH`, Google Chrome channel, Microsoft Edge channel) with sandboxed headless container flags.
+  3. Implement per-request isolated `BrowserContext` lifecycle in `PlaywrightEngine.render()`, ensuring complete cookie, storage, and cache isolation across jobs, with unconditional cleanup in a `finally` block.
+  4. Implement subresource request interception blocking non-HTTP(S) schemes and private/loopback/cloud-metadata IP destinations (`isPrivateOrLoopbackHost`).
+  5. Implement console message and unhandled page exception capture with strict memory-bounding buffers.
+  6. Implement error mapping from Playwright and network exceptions to RFC 7807 problem details (`NavigationTimeout`, `SelectorTimeout`, `DnsResolutionFailed`, `ConnectionRefused`, `TlsCertificateError`).
+  7. Update `routes.js` to dispatch rendering requests to `engine.render()` and expose live browser readiness via `GET /ready`.
+  8. Update `crates/web-extractor/src/browser/client.rs` to map `SelectorTimeout` to `BrowserWorkerError::NavigationTimeout`.
+  9. Add unit and integration tests in `services/browser-worker/test/engine.test.js` validating address classification, error mapping, and live dynamic SPA rendering with selector wait and redirect chains.
+  10. Run all 5 monorepo verification gates in `scripts/check-all.ps1`.
+- **Acceptance Criteria:**
+  - `GET /ready` returns 200 OK and confirms Chromium readiness when browser is operational.
+  - `POST /render` executes JavaScript on dynamic pages and extracts hydrated DOM.
+  - `wait_for_selector` waits for client-rendered elements and returns 504 `SelectorTimeout` if not satisfied within timeout.
+  - Subresource requests to loopback/private IPs or invalid schemes are intercepted and blocked.
+  - Redirect chains and console messages are recorded and returned in response payload.
+  - Isolated browser contexts are destroyed after every render, preventing memory leaks and state contamination.
+  - 100% of workspace Rust tests pass, all 20 browser-worker Node.js tests pass, and all 5 monorepo verification gates pass.
+- **Tests:** `npm test` (`services/browser-worker`), `cargo test -p web-repo-to-ai-web-extractor`, `cargo test --workspace`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, `npm test` (`apps/web`), `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, 01, 05: Request interception inside Chromium blocks subresources targeting `127.0.0.1`, `169.254.169.254`, `localhost`, and RFC 1918 private subnets; container flags enforce `--no-sandbox` unprivileged user isolation; strict 1 MB body payload ceiling.
+- **Performance Considerations:** Lazy Chromium initialization; isolated context reuse rather than full browser process relaunch; bounded console message (100) and error (50) arrays prevent heap bloat.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-web-extractor`: 110/110 tests passed.
+  - `cargo test --workspace`: 271/271 tests passed.
+  - `npm test` (`services/browser-worker`): 20/20 tests passed across 4 suites.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors.
+  - `cargo fmt --all -- --check`: 100% code style compliance.
+  - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
+  - `npm test` (`apps/web`): 184/184 tests passed.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
+- **Git Commit Reference:** `cfbfda1`
 - **Status:** `ACCEPTED`
 
 ---
@@ -2661,7 +2712,7 @@
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `3.3.2` | Playwright/Chromium dynamic fallback integration in services/browser-worker | `3.3.1` (`ACCEPTED`) | `services/browser-worker/*` | `NOT_STARTED` |
+| `3.3.3` | Resource and navigation limits in browser-worker | `3.3.2` (`ACCEPTED`) | `services/browser-worker/*` | `NOT_STARTED` |
 
 ---
 

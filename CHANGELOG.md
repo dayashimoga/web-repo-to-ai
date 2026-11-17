@@ -6,6 +6,21 @@
 
 ## [Unreleased] — Stage 3: Universal Webpage Extraction
 
+### 2026-11-17 — Phase 3.3: Dynamic Extraction (`3.3.2`)
+
+#### Added
+- **`[3.3.2]` Implement Playwright/Chromium Dynamic Fallback Integration in `services/browser-worker` and `crates/web-extractor`:**
+  - Integrated `playwright-core` into `services/browser-worker` with pinned `package.json` and reproducible `package-lock.json`.
+  - Implemented `PlaywrightEngine` in `services/browser-worker/src/engine.js` with launch fallback resolution across bundled Playwright binaries, `CHROME_BIN`, `BROWSER_PATH`, Google Chrome channel, and Microsoft Edge channel, enforcing sandboxed container arguments (`--no-sandbox`, `--disable-dev-shm-usage`, `--disable-gpu`, `--disable-extensions`).
+  - Implemented isolated per-request `BrowserContext` lifecycles, ensuring complete state, cookie, and cache segregation with unconditional cleanup in a `finally` block to prevent RAM, socket, or process leaks.
+  - Implemented subresource request interception (`isPrivateOrLoopbackHost`) blocking non-HTTP(S) schemes and private/loopback/cloud-metadata IP destinations (`127.0.0.1`, `localhost`, `169.254.169.254`, `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`).
+  - Implemented bounded console log (max 100) and page error (max 50) buffers with string truncation to prevent memory bloat from noisy scripts.
+  - Implemented error classification and mapping into RFC 7807 problem details (`NavigationTimeout`, `SelectorTimeout`, `DnsResolutionFailed`, `ConnectionRefused`, `TlsCertificateError`).
+  - Integrated `engine.render()` and live readiness probes into `services/browser-worker/src/routes.js` and graceful shutdown hooks in `services/browser-worker/server.js`.
+  - Updated `crates/web-extractor/src/browser/client.rs` to map `SelectorTimeout` errors to `BrowserWorkerError::NavigationTimeout`.
+  - Added 7 unit and integration tests in `services/browser-worker/test/engine.test.js` validating hostname security classification, error mapping, live Chromium SPA hydration with selector wait, and HTTP redirect chains, bringing `services/browser-worker` tests to 20/20 passing across 4 suites.
+  - Verified 110/110 tests in `crates/web-extractor`, 271/271 workspace tests, 184/184 frontend tests, and 100% pass rate across all 5 monorepo verification gates.
+
 ### 2026-11-17 — Phase 3.3: Dynamic Extraction (`3.3.1`)
 
 #### Added

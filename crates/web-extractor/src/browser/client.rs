@@ -156,7 +156,7 @@ impl BrowserWorkerClient {
                 "InvalidScheme" | "BlockedHost" | "BlockedUrl" => {
                     return Err(BrowserWorkerError::BlockedUrl(detail));
                 }
-                "NavigationTimeout" => {
+                "NavigationTimeout" | "SelectorTimeout" => {
                     return Err(BrowserWorkerError::NavigationTimeout(detail));
                 }
                 "BrowserCrash" => {
@@ -249,6 +249,14 @@ mod tests {
                                 body
                             );
                             let _ = socket.write_all(resp.as_bytes()).await;
+                        } else if req_str.contains("timeout.example.com") {
+                            let body = r#"{"type":"https://web-repo-to-ai.dev/errors/selectortimeout","title":"SelectorTimeout","status":504,"detail":"Timed out waiting for selector '#app'","error_code":"SelectorTimeout"}"#;
+                            let resp = format!(
+                                "HTTP/1.1 504 Gateway Timeout\r\nContent-Type: application/problem+json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                                body.len(),
+                                body
+                            );
+                            let _ = socket.write_all(resp.as_bytes()).await;
                         } else {
                             let body = r#"{
                                 "url":"https://example.com/app",
@@ -302,6 +310,16 @@ mod tests {
                 assert!(msg.contains("Private IP range blocked"));
             }
             other => panic!("Expected BlockedUrl error, got {other:?}"),
+        }
+
+        // 5. Render selector timeout error
+        let timeout_req = BrowserRenderRequest::new("https://timeout.example.com");
+        let err = client.render(&timeout_req).await.unwrap_err();
+        match err {
+            BrowserWorkerError::NavigationTimeout(msg) => {
+                assert!(msg.contains("Timed out waiting for selector"));
+            }
+            other => panic!("Expected NavigationTimeout error, got {other:?}"),
         }
     }
 }

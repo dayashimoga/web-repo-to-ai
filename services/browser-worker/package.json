@@ -7,7 +7,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node --test test/**/*.test.js"
+    "test": "node --test"
   },
   "engines": {
     "node": ">=20.0.0"
@@ -19,5 +19,8 @@
     "crawler"
   ],
   "author": "web-repo-to-ai contributors",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "playwright-core": "^1.45.0"
+  }
 }
