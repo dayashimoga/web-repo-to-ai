@@ -52,7 +52,7 @@
 - **Phase 1.1 — Design system:** `1.1.1` Visual design tokens (`ACCEPTED`) | `1.1.2` Typography, spacing & color systems (`ACCEPTED`) | `1.1.3` Reusable accessible components (`ACCEPTED`)
 - **Phase 1.2 — Main website:** `1.2.1` Landing page (`ACCEPTED`) | `1.2.2` URL input & source detection (`ACCEPTED`) | `1.2.3` Conversion settings (`ACCEPTED`) | `1.2.4` Responsive layouts (`ACCEPTED`)
 - **Phase 1.3 — Conversion workspace:** `1.3.1` Job workspace (`ACCEPTED`) | `1.3.2` Preview panels (`ACCEPTED`) | `1.3.3` Token statistics interface (`ACCEPTED`) | `1.3.4` Output & download controls (`ACCEPTED`)
-- **Phase 1.4 — UX validation:** `1.4.1` Keyboard & accessibility testing (`ACCEPTED`) | `1.4.2` Mobile/tablet/desktop testing (`NOT_STARTED` — **NEXT ELIGIBLE SUBPHASE**) | `1.4.3` UI performance & visual regression testing
+- **Phase 1.4 — UX validation:** `1.4.1` Keyboard & accessibility testing (`ACCEPTED`) | `1.4.2` Mobile/tablet/desktop testing (`ACCEPTED`) | `1.4.3` UI performance & visual regression testing (`NOT_STARTED` — **NEXT ELIGIBLE SUBPHASE**)
 
 ### STAGE 2 — BACKEND AND PROCESSING FOUNDATION
 - **Phase 2.1 — Rust architecture:** `2.1.1` Create Rust workspace | `2.1.2` Error & configuration systems | `2.1.3` Structured logging & tracing

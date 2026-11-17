@@ -50,7 +50,7 @@
 
 ### Phase 1.4 — UX validation
 - [x] **[1.4.1]** Execute keyboard navigation and accessibility audits
-- [ ] **[1.4.2]** Execute mobile, tablet, and desktop viewport tests
+- [x] **[1.4.2]** Execute mobile, tablet, and desktop viewport tests
 - [ ] **[1.4.3]** Execute UI performance and visual regression verification
 
 ---

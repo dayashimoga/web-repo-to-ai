@@ -1308,7 +1308,52 @@
   - `npm run build`: Production bundle generated with `@sveltejs/adapter-node` in `apps/web/build/index.js` and `.svelte-kit/output`.
   - `scripts/check-all.ps1`: ALL 5 GATES PASSED (Gate 1: 224/224 bootstrap checks, Gate 2: 7/7 workflows, Gate 3: Rust formatting, Gate 4: Frontend lint/check/test, Gate 5: 5.27 GB / 30 GB storage ceiling).
   - `bash scripts/check-all.sh`: ALL 5 GATES PASSED (0 failures across all 5 verification gates).
-- **Git Commit Reference:** `97983c9`
+- **Git Commit Reference:** `b70173f`
+- **Status:** `ACCEPTED`
+
+---
+
+#### Subphase `1.4.2` — Execute mobile, tablet, and desktop viewport tests
+- **Unique ID:** `1.4.2`
+- **Objective:** Execute comprehensive automated multi-viewport layout and responsiveness tests across mobile (320px–480px, e.g. iPhone SE, iPhone 14/15, Pixel 7), tablet (640px–1024px, e.g. iPad Mini, iPad 10th Gen, iPad Air/Pro), and desktop (1280px–1920px+) viewports, verifying horizontal overflow containment, grid collapsing and expansion, responsive typography, navigation drawer toggling, touch target dimensions ($\ge 44 \times 44\text{px}$), and workspace component adaptability.
+- **Scope:** `apps/web/tests/responsive-layout.test.ts`, `apps/web/src/routes/+layout.svelte`, `apps/web/src/routes/+page.svelte`, `apps/web/src/routes/workspace/+page.svelte`, `apps/web/src/lib/components/navigation/Header.svelte`, `apps/web/src/lib/components/navigation/Footer.svelte`, `apps/web/src/lib/components/landing/Hero.svelte`, `apps/web/src/lib/components/landing/WorkflowSteps.svelte`, `apps/web/src/lib/components/landing/SupportedSources.svelte`, `apps/web/src/lib/components/landing/FeatureHighlights.svelte`, `apps/web/src/lib/components/input/UrlInput.svelte`, `apps/web/src/lib/components/workspace/JobWorkspace.svelte`, `apps/web/src/lib/components/workspace/TokenBudgetBar.svelte`, `apps/web/src/lib/components/workspace/PreviewPanel.svelte`, `apps/web/src/lib/components/workspace/DownloadControls.svelte`, `PROJECT_STATUS.md`, `IMPLEMENTATION_LEDGER.md`.
+- **Prerequisites:** `1.4.1` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `apps/web/tests/responsive-layout.test.ts`
+  - `PROJECT_STATUS.md`
+  - `IMPLEMENTATION_LEDGER.md`
+  - `TODO.md`
+  - `CHANGELOG.md`
+  - `ROADMAP.md`
+  - `docs/ROADMAP.md`
+- **Implementation Tasks:**
+  1. Expand `apps/web/tests/responsive-layout.test.ts` into a multi-viewport certification test suite (28 tests across 6 sections):
+     - Section 1: Tailwind breakpoint spectrum & device profile resolution matrix mapping representative devices across Mobile (`xs`: 320px–480px), Tablet (`sm`: 640px, `md`: 768px–834px, `lg`: 1024px), and Desktop (`xl`: 1280px–1440px, `2xl`: 1536px–2560px).
+     - Section 2: Mobile Viewport Layout Invariants (320px–480px): Root layout horizontal overflow prevention (`overflow-x-hidden`, `max-w-full`, `min-h-screen`); uniform container padding (`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8`); Hero typography scaling (`text-3xl sm:text-5xl lg:text-6xl`); CTA button full-width vertical stacking (`flex-col`, `w-full min-h-[48px]`); format pills 2-column collapse; metrics 1-column collapse; `UrlInput` full-width stacking with iOS auto-zoom font protection (`text-sm sm:text-base`); content grids single-column collapse; Header mobile hamburger button and hidden desktop nav (`md:hidden`, `hidden md:flex`).
+     - Section 3: Tablet Viewport Layout Invariants (640px–1024px): `sm` breakpoint (640px) button horizontal flow (`sm:flex-row`), 3-column format grid (`sm:grid-cols-3`), 3-column metric grid (`sm:grid-cols-3`); `md` breakpoint (768px) 3-column workflow grid (`md:grid-cols-3`), 2-column sources grid (`md:grid-cols-2`), 2-column features grid (`md:grid-cols-2`); Header desktop navigation visibility (`hidden md:flex`).
+     - Section 4: Desktop Viewport Layout Invariants (1280px–1920px+): Full 6-column format pills matrix (`lg:grid-cols-6`), 3-column features matrix (`lg:grid-cols-3`), 5-column footer matrix (`lg:grid-cols-5`), maximum headline typography (`lg:text-6xl`), and container max-width constraints (`max-w-7xl mx-auto`, `max-w-6xl mx-auto`).
+     - Section 5: Conversion Workspace (/workspace) Multi-Viewport Invariants: Header stacking (`flex-col sm:flex-row items-start sm:items-center`); 4-stage pipeline execution cards collapsing (1-col mobile, 2-col tablet, 4-col desktop: `grid-cols-1 sm:grid-cols-2 lg:grid-cols-4`); completeness accounting matrix (2-col mobile, 4-col tablet+: `grid-cols-2 sm:grid-cols-4`); `TokenBudgetBar` metric grid (`grid-cols-2 lg:grid-cols-4`); `PreviewPanel` 12-column responsive layout with sidebar stacking on mobile and side-by-side splitting on tablet+ (`grid-cols-1 md:grid-cols-12`, `md:col-span-4 lg:col-span-3`); `DownloadControls` artifact cards (`flex-col md:flex-row md:items-center`); telemetry terminal log bounded scroll (`max-h-64 overflow-y-auto`).
+     - Section 6: Touch Target Accessibility Invariants (WCAG 2.1 AA / AAA - Criteria 2.5.5 & 2.5.8): Header mobile toggle and theme button ($\ge 44 \times 44\text{px}$), mobile navigation links ($\ge 44\text{px}$ touch height), Hero CTA buttons ($\ge 48\text{px}$), `UrlInput` controls ($\ge 48\text{px}$), and Modal action controls.
+  2. Run all quality gates: `npm run lint`, `npm run check`, `npm test`, `npm run build`, and `scripts/check-all.*`.
+- **Acceptance Criteria:**
+  - `apps/web/tests/responsive-layout.test.ts` passes with 28/28 checks covering all 6 viewport audit sections.
+  - Overall automated test suite passes 173/173 tests across 14 test suites with 0 failures.
+  - `svelte-check` reports 0 errors and 0 warnings.
+  - Prettier confirms 100% code style compliance.
+  - Production build with `@sveltejs/adapter-node` succeeds.
+  - All 5 monorepo verification gates in `scripts/check-all.ps1` and `scripts/check-all.sh` pass cleanly.
+- **Tests:** `npm test` in `apps/web` (173/173 tests passed), `npm run check` (0 errors, 0 warnings), `npm run lint`, `npm run build`, `scripts/check-all.ps1`, `scripts/check-all.sh`.
+- **Security Considerations:** Responsive layout does not expose sensitive endpoints or bypass client-side SSRF validation; mobile view retains all error banners and alerts.
+- **Performance Considerations:** All responsive styling powered by zero-runtime atomic Tailwind CSS classes; no resize event listeners or layout thrashing.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Validation Evidence:**
+  - `npm run check`: SvelteKit sync and svelte-check reported 0 errors and 0 warnings in `apps/web`.
+  - `npm run lint`: Prettier verified 100% code style compliance across all matched files.
+  - `npm test`: Vitest ran 14 test suites (`responsive-layout.test.ts` [28 tests], `tokens.test.ts`, `color-utils.test.ts`, `a11y-audit.test.ts`, `url-detector.test.ts`, `typography.test.ts`, `ui-components.test.ts`, `conversion-settings.test.ts`, `url-input-component.test.ts`, `landing-page.test.ts`, `job-workspace.test.ts`, `token-budget.test.ts`, `preview-panel.test.ts`, `download-controls.test.ts`), passing 173/173 automated tests with 0 failures.
+  - `npm run build`: Production bundle generated with `@sveltejs/adapter-node` in `apps/web/build/index.js` and `.svelte-kit/output`.
+  - `scripts/check-all.ps1`: ALL 5 GATES PASSED (Gate 1: 224/224 bootstrap checks, Gate 2: 7/7 workflows, Gate 3: Rust formatting, Gate 4: Frontend lint/check/test, Gate 5: 5.27 GB / 30 GB storage ceiling).
+  - `bash scripts/check-all.sh`: ALL 5 GATES PASSED (0 failures across all 5 verification gates).
+- **Git Commit Reference:** `3e054aa`
 - **Status:** `ACCEPTED`
 
 ---
@@ -1317,7 +1362,7 @@
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `1.4.2` | Execute mobile, tablet, and desktop viewport tests | `1.4.1` (`ACCEPTED`) | `apps/web/tests/responsive-layout.test.ts` | `NOT_STARTED` |
+| `1.4.3` | Execute UI performance and visual regression verification | `1.4.2` (`ACCEPTED`) | `apps/web/tests/ui-performance.test.ts` | `NOT_STARTED` |
 
 ---
 

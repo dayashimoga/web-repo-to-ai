@@ -6,6 +6,19 @@
 
 ## [Unreleased] — Stage 1: Frontend and Product Experience
 
+### 2026-11-17 — Phase 1.4: UX Validation (`1.4.2`)
+
+#### Added
+- **`[1.4.2]` Mobile, Tablet, and Desktop Viewport Tests & Responsive Invariant Suite:**
+  - Expanded `apps/web/tests/responsive-layout.test.ts` into a multi-viewport certification test suite (28 tests across 6 sections):
+    - **Tailwind Breakpoint Spectrum:** Verified resolution mapping across representative devices for Mobile (`xs`: 320px–480px, including iPhone SE, iPhone 14/15, Pixel 7), Tablet (`sm`: 640px, `md`: 768px–834px, `lg`: 1024px, including iPad Mini, iPad 10th Gen, iPad Air), and Desktop (`xl`: 1280px–1440px, `2xl`: 1536px–2560px, including standard laptops, QHD, and 1080p FHD displays).
+    - **Mobile Viewport Invariants (320px–480px):** Verified horizontal overflow prevention (`overflow-x-hidden`, `max-w-full`, `min-h-screen`), standard responsive container padding (`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8`), Hero typography scaling (`text-3xl sm:text-5xl lg:text-6xl`), full-width action button stacking (`flex-col`, `w-full min-h-[48px]`), format pills 2-column collapse, value metric 1-column collapse, `UrlInput` vertical stacking with iOS auto-zoom prevention (`text-sm sm:text-base`), content grids single-column collapse, and Header mobile hamburger menu button (`md:hidden`).
+    - **Tablet Viewport Invariants (640px–1024px):** Verified horizontal button flow at `sm` (`sm:flex-row`), 3-column format pills (`sm:grid-cols-3`), 3-column metric cards (`sm:grid-cols-3`), 3-column workflow cards (`md:grid-cols-3`), 2-column sources and feature grids (`md:grid-cols-2`), and Header desktop navigation visibility (`hidden md:flex`).
+    - **Desktop Viewport Invariants (1280px–1920px+):** Verified 6-column format matrix (`lg:grid-cols-6`), 3-column feature highlights (`lg:grid-cols-3`), 5-column footer matrix (`lg:grid-cols-5`), maximum headline typography (`lg:text-6xl`), and container constraints preventing ultra-wide stretching (`max-w-7xl mx-auto`, `max-w-6xl mx-auto`).
+    - **Conversion Workspace Viewport Invariants:** Verified workspace header responsive alignment (`flex-col sm:flex-row items-start sm:items-center`), 4-stage pipeline execution cards collapsing (1-col mobile, 2-col tablet, 4-col desktop), completeness accounting matrix (2-col mobile, 4-col tablet+), `TokenBudgetBar` metric grid, `PreviewPanel` 12-column responsive layout with sidebar stacking on mobile and side-by-side splitting on tablet/desktop (`grid-cols-1 md:grid-cols-12`), `DownloadControls` artifact cards (`flex-col md:flex-row md:items-center`), and bounded execution telemetry log scroll (`max-h-64 overflow-y-auto`).
+    - **Touch Target Accessibility (WCAG 2.1 AA/AAA):** Verified $\ge 44 \times 44\text{px}$ touch targets for Header hamburger toggle and theme buttons, $\ge 44\text{px}$ touch heights for mobile dropdown links, and $\ge 48\text{px}$ touch heights for Hero CTA and `UrlInput` controls.
+  - Expanded total automated test suite to 173/173 tests passing across 14 test suites.
+
 ### 2026-11-17 — Phase 1.4: UX Validation (`1.4.1`)
 
 #### Added
