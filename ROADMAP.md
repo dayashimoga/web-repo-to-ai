@@ -57,7 +57,7 @@
 ### STAGE 2 — BACKEND AND PROCESSING FOUNDATION (`IN_PROGRESS`)
 - **Phase 2.1 — Rust architecture:** `2.1.1` Create Rust workspace (`ACCEPTED`) | `2.1.2` Error & configuration systems (`ACCEPTED`) | `2.1.3` Structured logging & tracing (`ACCEPTED` — **PHASE 2.1 CERTIFIED**)
 - **Phase 2.2 — API:** `2.2.1` Implement Axum service (`ACCEPTED`) | `2.2.2` Request validation (`ACCEPTED`) | `2.2.3` API error contracts (`ACCEPTED`) | `2.2.4` Health & readiness endpoints (`ACCEPTED` — **PHASE 2.2 CERTIFIED**)
-- **Phase 2.3 — Persistence:** `2.3.1` PostgreSQL schema (`ACCEPTED`) | `2.3.2` Migrations (`NOT_STARTED` — **NEXT ELIGIBLE SUBPHASE**) | `2.3.3` Job state machine | `2.3.4` Durable job leasing & recovery
+- **Phase 2.3 — Persistence:** `2.3.1` PostgreSQL schema (`ACCEPTED`) | `2.3.2` Migrations (`ACCEPTED`) | `2.3.3` Job state machine (`NOT_STARTED` — **NEXT ELIGIBLE SUBPHASE**) | `2.3.4` Durable job leasing & recovery
 - **Phase 2.4 — Storage:** `2.4.1` Local artifact storage | `2.4.2` Storage abstraction | `2.4.3` Retention & cleanup | `2.4.4` Checksum validation
 
 ### STAGE 3 — UNIVERSAL WEBPAGE EXTRACTION

@@ -2099,6 +2099,7 @@ dependencies = [
  "serde_json",
  "sqlx",
  "thiserror 1.0.69",
+ "tracing",
  "uuid",
  "web-repo-to-ai-core",
 ]

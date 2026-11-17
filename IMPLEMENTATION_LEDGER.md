@@ -1875,11 +1875,56 @@
 
 ---
 
+#### Subphase `2.3.2` — Implement database migrations and schema validation in crates/storage
+- **Unique ID:** `2.3.2`
+- **Objective:** Implement compile-time embedded SQLx database migrations, programmatic migration runner (`run_migrations`), runtime PostgreSQL schema introspection and catalog validation (`validate_schema`), and central connection pool manager (`DatabaseManager`) in `crates/storage`.
+- **Scope:** `crates/storage/migrations/20261117000001_initial_schema.sql`, `crates/storage/src/{migrations/mod.rs, validation/mod.rs, database.rs, lib.rs}`, `Cargo.toml`, `Cargo.lock`, `crates/storage/Cargo.toml`.
+- **Prerequisites:** `2.3.1` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `Cargo.lock`
+  - `crates/storage/Cargo.toml`
+  - `crates/storage/migrations/20261117000001_initial_schema.sql`
+  - `crates/storage/src/database.rs`
+  - `crates/storage/src/lib.rs`
+  - `crates/storage/src/migrations/mod.rs`
+  - `crates/storage/src/validation/mod.rs`
+- **Implementation Tasks:**
+  1. Create initial SQLx migration `crates/storage/migrations/20261117000001_initial_schema.sql` with full DDL for `jobs`, `job_artifacts`, `github_installations`, `content_cache_index`, check constraints, cascading foreign keys, performance indexes, and `fn_set_updated_at` trigger.
+  2. Implement compile-time embedded SQLx migration framework in `crates/storage/src/migrations/mod.rs`: `MIGRATOR` using `sqlx::migrate!("./migrations")`, `MigrationReport` with elapsed timing and version tracking, and async runner `run_migrations(&PgPool)`.
+  3. Implement catalog introspection and schema validation in `crates/storage/src/validation/mod.rs`:
+     - Define `EXPECTED_TRIGGERS` and `expected_table_columns()` column invariant maps.
+     - `validate_catalog_metadata()` evaluating table, column, index, and trigger presence against invariants.
+     - `validate_schema(&PgPool)` querying `information_schema.tables`, `information_schema.columns`, `pg_indexes`, and `information_schema.triggers` against live PostgreSQL.
+     - `SchemaValidationReport` formatting machine-readable audit reports.
+  4. Implement `DatabaseManager` in `crates/storage/src/database.rs` wrapping `sqlx::PgPool` with `connect`, `connect_with_config`, `migrate`, `validate_schema`, `is_healthy` (`SELECT 1`), and graceful `close()`.
+  5. Add 7 unit tests in `crates/storage` covering embedded migration loading, report generation, full schema validation, missing table/column/index/trigger detection, expanding storage crate tests to 17 and workspace tests to 104 passing.
+  6. Verify `cargo test --workspace` (104 tests passing), `cargo clippy`, `cargo fmt`, `cargo deny check`, and all 5 gates in `scripts/check-all.ps1`.
+- **Acceptance Criteria:**
+  - `MIGRATOR` loads migration `20261117000001` at compile time and runs migrations in transactions against PostgreSQL.
+  - `validate_schema()` audits all required tables, columns, indexes, and triggers, reporting any missing objects or confirming full structural validity.
+  - `DatabaseManager` connects cleanly using `DatabaseConfig` bounds and provides health/migration/validation APIs.
+  - 100% of Rust tests pass (17 in `crates/storage`, 104 across workspace); zero clippy warnings; all 5 quality gates pass.
+- **Tests:** `cargo test -p web-repo-to-ai-storage` (17/17 passed), `cargo test --workspace` (104/104 passed), `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Complies with Rule 00, 02, and 05: `#![forbid(unsafe_code)]` enforced; SQLx migration runner applies parameterized statements; catalog validation queries use read-only introspection against `information_schema` and `pg_catalog`; no database passwords or credentials logged or exposed.
+- **Performance Considerations:** Compile-time embedded migration scripts incur zero disk I/O at runtime; catalog inspection queries are executed concurrently across standard indexed system views; connection pool obeys min/max connection bounds from `DatabaseConfig`.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-storage`: 17/17 tests passed in 0.00s.
+  - `cargo test --workspace`: 104/104 tests passed in 9.34s.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors in 1.50s.
+  - `cargo fmt --all -- --check`: 100% code style compliance.
+  - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
+- **Git Commit Reference:** `d5c3bf5`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `2.3.2` | Implement database migrations and schema validation in crates/storage | `2.3.1` (`ACCEPTED`) | `crates/storage/*` | `NOT_STARTED` |
+| `2.3.3` | Implement job state machine, transitions, and history in crates/storage | `2.3.2` (`ACCEPTED`) | `crates/storage/*` | `NOT_STARTED` |
 
 ---
 

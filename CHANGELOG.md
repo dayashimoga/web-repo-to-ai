@@ -6,6 +6,20 @@
 
 ## [Unreleased] — Stage 2: Backend and Processing Foundation
 
+### 2026-11-17 — Phase 2.3: Persistence (`2.3.2`)
+
+#### Added
+- **`[2.3.2]` Implement Database Migrations and Schema Validation in `crates/storage`:**
+  - Added initial SQLx migration file `crates/storage/migrations/20261117000001_initial_schema.sql` defining relational tables, indexes, constraints, and triggers.
+  - Implemented compile-time embedded SQLx migration runner `crates/storage/src/migrations/mod.rs` with `MIGRATOR` (`sqlx::migrate!("./migrations")`), `run_migrations(&PgPool)`, and structured `MigrationReport` with elapsed execution timing and migration version tracking.
+  - Implemented runtime schema introspection and catalog validation in `crates/storage/src/validation/mod.rs`:
+    - `EXPECTED_TRIGGERS` and `expected_table_columns()` column invariant maps.
+    - `validate_catalog_metadata()` verifying presence of all required tables, columns, indexes, and triggers.
+    - `validate_schema(&PgPool)` querying `information_schema.tables`, `information_schema.columns`, `pg_indexes`, and `information_schema.triggers` against live PostgreSQL instances.
+    - `SchemaValidationReport` formatting machine-readable validation summaries.
+  - Implemented central connection pool and lifecycle manager `DatabaseManager` in `crates/storage/src/database.rs` wrapping `sqlx::PgPool` with `connect`, `connect_with_config`, `migrate`, `validate_schema`, `is_healthy` (`SELECT 1`), and `close()`.
+  - Added 7 unit tests covering embedded migration verification, report generation, and catalog metadata validation across table, column, index, and trigger omissions, expanding storage crate tests to 17 and total automated Rust workspace tests to 104/104 passing. Verified all 5 quality gates pass cleanly.
+
 ### 2026-11-17 — Phase 2.3: Persistence (`2.3.1`)
 
 #### Added

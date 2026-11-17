@@ -70,7 +70,7 @@
 
 ### Phase 2.3 — Persistence (`IN_PROGRESS`)
 - [x] **[2.3.1]** Design and implement PostgreSQL relational schema in crates/storage *(Completed 2026-11-17, DDL schema for jobs/artifacts/installations/cache, SQLx FromRow entity models, 10 passing storage tests, 97 workspace tests)*
-- [ ] **[2.3.2]** Implement database migrations and schema validation in crates/storage
+- [x] **[2.3.2]** Implement database migrations and schema validation in crates/storage *(Completed 2026-11-17, embedded SQLx migrator, MigrationReport, validate_schema catalog verification, DatabaseManager, 17 passing storage tests, 104 workspace tests)*
 - [ ] **[2.3.3]** Implement job state machine, transitions, and history in crates/storage
 - [ ] **[2.3.4]** Implement durable job leasing, heartbeat, and recovery in crates/storage
 
