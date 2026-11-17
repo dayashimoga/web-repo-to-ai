@@ -4,15 +4,15 @@
 **Last Updated:** 2026-11-17  
 **Current Stage:** `STAGE 2 — BACKEND AND PROCESSING FOUNDATION` (`IN_PROGRESS`)  
 **Current Phase:** `Phase 2.4 — Storage` (`IN_PROGRESS`)  
-**Active Subphase:** `2.4.2 — Implement pluggable storage backend trait in crates/storage` (`NOT_STARTED` / `Next Eligible Subphase`)  
-**Last Completed Subphase:** `2.4.1 — Implement local filesystem artifact storage in crates/storage` (`ACCEPTED`)  
-**Next Upcoming Subphase:** `2.4.2 — Implement pluggable storage backend trait in crates/storage`
+**Active Subphase:** `2.4.3 — Implement artifact retention and ephemeral cleanup policies in crates/storage` (`NOT_STARTED` / `Next Eligible Subphase`)  
+**Last Completed Subphase:** `2.4.2 — Implement pluggable storage backend trait in crates/storage` (`ACCEPTED`)  
+**Next Upcoming Subphase:** `2.4.3 — Implement artifact retention and ephemeral cleanup policies in crates/storage`
 
 ---
 
 ## 1. Executive Summary
 
-Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 subphases), Phase 2.1 (`2.1.1` – `2.1.3`), Phase 2.2 (`2.2.1` – `2.2.4`), and Phase 2.3 (`2.3.1` – `2.3.4`) are 100% complete, verified, certified, and accepted. Stage 2 ("Backend and Processing Foundation") is advancing through Phase 2.4 ("Storage"): **Subphase `2.4.1` ("Implement local filesystem artifact storage in crates/storage") has been successfully implemented, verified, and accepted**. `LocalFsStorage` provides durable, atomic file writing with staging files (`.<name>.tmp.<uuid>`), physical disk synchronization (`sync_all()`), and atomic replacement. Path resolution (`resolve_path`) enforces strict defense-in-depth security guards against directory traversal (`..`), absolute paths, Windows reserved device names (`CON`, `PRN`, `AUX`, `NUL`, `COM1-9`, `LPT1-9`), and null bytes. Standard layout formatting helpers (`job_artifact_key`, `job_dir_key`, `blob_key`) and disk capacity accounting (`storage_capacity`) are established. 123/123 automated Rust tests pass across all workspace crates (36 in `crates/storage`), 184/184 frontend tests pass in `apps/web`, and all 5 monorepo verification gates pass cleanly. Subphase `2.4.2` ("Implement pluggable storage backend trait in crates/storage") is queued as the next eligible subphase.
+Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 subphases), Phase 2.1 (`2.1.1` – `2.1.3`), Phase 2.2 (`2.2.1` – `2.2.4`), and Phase 2.3 (`2.3.1` – `2.3.4`) are 100% complete, verified, certified, and accepted. Stage 2 ("Backend and Processing Foundation") is advancing through Phase 2.4 ("Storage"): **Subphase `2.4.2` ("Implement pluggable storage backend trait in crates/storage") has been successfully implemented, verified, and accepted**. Pluggable asynchronous storage backend trait `StorageBackend` provides an object-safe dynamic storage abstraction (`DynStorage`), stream alias (`AsyncReadStream`), full `StorageBackend` implementation for `LocalFsStorage`, thread-safe `InMemoryStorage` implementation (zero-mock, fully functional in-memory storage backing for isolated testing and high-speed runs), and runtime backend factory `create_storage_backend`. 128/128 automated Rust tests pass across all workspace crates (41 in `crates/storage`), 184/184 frontend tests pass in `apps/web`, and all 5 monorepo verification gates pass cleanly. Subphase `2.4.3` ("Implement artifact retention and ephemeral cleanup policies in crates/storage") is queued as the next eligible subphase.
 
 ---
 
@@ -20,12 +20,12 @@ Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 su
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 41 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.1.3`, `2.2.1` – `2.2.4`, `2.3.1` – `2.3.4`, `2.4.1` |
+| `ACCEPTED` | 42 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.1.3`, `2.2.1` – `2.2.4`, `2.3.1` – `2.3.4`, `2.4.1` – `2.4.2` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 156 | `2.4.2` – `11.4.5` |
+| `NOT_STARTED` | 155 | `2.4.3` – `11.4.5` |
 | **Total** | **197** | `Stage 0` – `Stage 11` |
 
 ---

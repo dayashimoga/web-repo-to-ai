@@ -6,6 +6,17 @@
 
 ## [Unreleased] — Stage 2: Backend and Processing Foundation
 
+### 2026-11-17 — Phase 2.4: Storage (`2.4.2`)
+
+#### Added
+- **`[2.4.2]` Implement Pluggable Storage Backend Trait in `crates/storage`:**
+  - Defined object-safe asynchronous storage stream alias `pub type AsyncReadStream = Pin<Box<dyn tokio::io::AsyncRead + Send>>;` and dispatch handle `pub type DynStorage = Arc<dyn StorageBackend>;`.
+  - Implemented async trait `#[async_trait] pub trait StorageBackend: Send + Sync + std::fmt::Debug` covering `backend_type`, `put`, `get`, `open_read`, `exists`, `delete`, `delete_directory`, `metadata`, `list`, and `storage_capacity`.
+  - Implemented `StorageBackend` for `LocalFsStorage` mapping directly to atomic filesystem operations.
+  - Implemented `InMemoryStorage` using `Arc<RwLock<HashMap<String, Vec<u8>>>>` with strict path traversal checking, prefix-based listing, byte count metrics in `storage_capacity()`, and `Cursor<Vec<u8>>` for `open_read()`, providing zero-placeholder in-memory operations.
+  - Implemented runtime backend factory `create_storage_backend(config: &StorageConfig) -> Result<DynStorage, CoreError>` supporting `StorageBackendConfig::LocalFs` and returning configuration errors for unconfigured backends.
+  - Added 5 unit tests in `crates/storage/src/backend.rs` verifying LocalFsStorage via `DynStorage`, `InMemoryStorage` CRUD, recursive directory deletion, traversal rejections, and factory configuration errors, expanding storage crate tests to 41 and automated Rust workspace tests to 128/128 passing. Verified all 5 monorepo gates pass cleanly.
+
 ### 2026-11-17 — Phase 2.4: Storage (`2.4.1`)
 
 #### Added

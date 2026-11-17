@@ -58,7 +58,7 @@
 - **Phase 2.1 — Rust architecture:** `2.1.1` Create Rust workspace (`ACCEPTED`) | `2.1.2` Error & configuration systems (`ACCEPTED`) | `2.1.3` Structured logging & tracing (`ACCEPTED` — **PHASE 2.1 CERTIFIED**)
 - **Phase 2.2 — API:** `2.2.1` Implement Axum service (`ACCEPTED`) | `2.2.2` Request validation (`ACCEPTED`) | `2.2.3` API error contracts (`ACCEPTED`) | `2.2.4` Health & readiness endpoints (`ACCEPTED` — **PHASE 2.2 CERTIFIED**)
 - **Phase 2.3 — Persistence:** `2.3.1` PostgreSQL schema (`ACCEPTED`) | `2.3.2` Migrations (`ACCEPTED`) | `2.3.3` Job state machine (`ACCEPTED`) | `2.3.4` Durable job leasing & recovery (`ACCEPTED` — **PHASE 2.3 CERTIFIED**)
-- **Phase 2.4 — Storage:** `2.4.1` Local artifact storage (`ACCEPTED`) | `2.4.2` Storage abstraction (`NOT_STARTED` — **NEXT ELIGIBLE SUBPHASE**) | `2.4.3` Retention & cleanup | `2.4.4` Checksum validation
+- **Phase 2.4 — Storage:** `2.4.1` Local artifact storage (`ACCEPTED`) | `2.4.2` Storage abstraction (`ACCEPTED`) | `2.4.3` Retention & cleanup (`NOT_STARTED` — **NEXT ELIGIBLE SUBPHASE**) | `2.4.4` Checksum validation
 
 ### STAGE 3 — UNIVERSAL WEBPAGE EXTRACTION
 - **Phase 3.1 — Secure acquisition:** `3.1.1` URL parsing & validation | `3.1.2` DNS & SSRF protection | `3.1.3` HTTP fetching & redirects | `3.1.4` Compression, timeouts & size limits

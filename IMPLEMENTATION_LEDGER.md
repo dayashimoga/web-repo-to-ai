@@ -2066,11 +2066,48 @@
 
 ---
 
+#### Subphase `2.4.2` — Implement pluggable storage backend trait in crates/storage
+- **Unique ID:** `2.4.2`
+- **Objective:** Implement pluggable asynchronous storage backend abstraction trait (`StorageBackend`), object-safe dynamic storage dispatch (`DynStorage`), stream alias (`AsyncReadStream`), `StorageBackend` implementation for `LocalFsStorage`, thread-safe `InMemoryStorage` implementation (zero-mock, fully functional in-memory backing for isolated testing and high-speed in-memory workloads), and runtime storage backend factory (`create_storage_backend`).
+- **Scope:** `crates/storage/src/backend.rs`, `crates/storage/src/lib.rs`.
+- **Prerequisites:** `2.4.1` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/storage/src/backend.rs`
+  - `crates/storage/src/lib.rs`
+- **Implementation Tasks:**
+  1. Define object-safe streaming and dispatch type aliases: `pub type AsyncReadStream = Pin<Box<dyn tokio::io::AsyncRead + Send>>;` and `pub type DynStorage = Arc<dyn StorageBackend>;`.
+  2. Implement `#[async_trait] pub trait StorageBackend: Send + Sync + std::fmt::Debug` defining async operations: `backend_type`, `put`, `get`, `open_read`, `exists`, `delete`, `delete_directory`, `metadata`, `list`, and `storage_capacity`.
+  3. Implement `StorageBackend` for `LocalFsStorage` delegating directly to atomic filesystem methods.
+  4. Implement `InMemoryStorage` using `Arc<RwLock<HashMap<String, Vec<u8>>>>` with strict path traversal validation matching `LocalFsStorage`, prefix filtering for `list`, recursive directory removal for `delete_directory`, byte metrics in `storage_capacity`, and `Cursor<Vec<u8>>` for `open_read`.
+  5. Implement runtime storage backend factory `create_storage_backend(config: &StorageConfig) -> Result<DynStorage, CoreError>` returning `Arc<LocalFsStorage>` for `StorageBackendConfig::LocalFs` and returning structured `CoreError::Config` for `StorageBackendConfig::S3`.
+  6. Re-export `backend` module in `crates/storage/src/lib.rs`.
+  7. Add 5 unit tests in `crates/storage/src/backend.rs` verifying LocalFsStorage via `DynStorage`, `InMemoryStorage` CRUD and directory deletion, traversal rejections, and factory configuration errors, expanding storage crate tests to 41 and workspace tests to 128. Verify all 5 monorepo gates pass cleanly.
+- **Acceptance Criteria:**
+  - `StorageBackend` trait is object-safe, async-trait-compatible, and implements `Send + Sync + std::fmt::Debug`.
+  - `LocalFsStorage` and `InMemoryStorage` fully conform to `StorageBackend`.
+  - `create_storage_backend` returns `DynStorage` based on `StorageConfig`.
+  - 100% of Rust tests pass (41 in `crates/storage`, 128 across workspace); zero clippy warnings; all 5 monorepo verification gates pass cleanly.
+- **Tests:** `cargo test -p web-repo-to-ai-storage` (41/41 passed), `cargo test --workspace` (128/128 passed), `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Complies with Rule 00, 02, and 05: `#![forbid(unsafe_code)]` enforced; `InMemoryStorage` enforces the same defense-in-depth path traversal checks as `LocalFsStorage` (blocking null bytes, absolute paths, drive letters, parent traversal, Windows reserved device names); factory returns structured configuration errors when unsupported or unconfigured backends are requested.
+- **Performance Considerations:** Dynamic dispatch (`DynStorage`) avoids compile-time monomorphization bloat across consumer crates; `InMemoryStorage` uses `tokio::sync::RwLock` for high-concurrency read operations; stream handle `AsyncReadStream` supports zero-copy chunk streaming.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-storage`: 41/41 tests passed in 0.03s.
+  - `cargo test --workspace`: 128/128 tests passed.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors.
+  - `cargo fmt --all -- --check`: 100% code style compliance.
+  - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
+- **Git Commit Reference:** `1c2655f`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `2.4.2` | Implement pluggable storage backend trait in crates/storage | `2.4.1` (`ACCEPTED`) | `crates/storage/*` | `NOT_STARTED` |
+| `2.4.3` | Implement artifact retention and ephemeral cleanup policies in crates/storage | `2.4.2` (`ACCEPTED`) | `crates/storage/*` | `NOT_STARTED` |
 
 ---
 
