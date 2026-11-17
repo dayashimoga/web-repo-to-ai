@@ -303,7 +303,7 @@
 - **Validation Evidence:**
   - `python scripts/validate-workflows.py`: 7/7 workflows passed (verified triggers, permissions, jobs).
   - `scripts/check-all.ps1`: ALL GATES PASSED (187/187 checks).
-- **Git Commit Reference:** Recorded in commit for subphase 0.2.5
+- **Git Commit Reference:** `364b4b5`
 - **Status:** `ACCEPTED`
 
 ---
