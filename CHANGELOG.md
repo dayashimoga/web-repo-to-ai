@@ -6,6 +6,21 @@
 
 ## [Unreleased] — Stage 4: Canonical Model and Export Engine
 
+### 2026-11-17 — Phase 4.1: Canonical Context Document Model (`4.1.1`)
+
+#### Added
+- **`[4.1.1]` Implement Canonical Context Document Model (CDM) Schema in `crates/cdm`:**
+  - Added dependencies to `crates/cdm/Cargo.toml`: `chrono` (with `serde`), `uuid` (with `v4`, `v7`, `serde`), and `blake3`.
+  - Implemented core document models in `crates/cdm/src/model.rs`: `CdmDocument`, `SourceIdentity`, `SourceType` (`WebpageStatic`, `WebpageDynamic`, `GitHubPublic`, `GitHubPrivate`, `DocumentPdf`, `DocumentOcr`), `RevisionInfo`, `ExtractionStatus` (`Completed`, `Partial`, `Failed`, `Unsupported`), `ExtractionWarning`, and `WarningSeverity` (`Critical`, `Warning`, `Info`).
+  - Implemented section models in `crates/cdm/src/section.rs`: `CdmSection`, `SectionKind` (`Prose`, `CodeFile`, `CodeSnippet`, `Table`, `Frontmatter`, `Manifest`, `Navigation`, `Admonition`), `LineRange` with line count arithmetic, `ByteRange` with saturating byte length, and `SectionTokenMetrics` with whitespace/character counting and baseline token estimation.
+  - Implemented metadata and provenance models in `crates/cdm/src/metadata.rs`: `DocumentMetadata`, `Citation` (generating concise, markdown callout, and plaintext formats), and `ExclusionRecord` with typed `ExclusionReason` (`RulePattern`, `SizeLimit`, `BinaryFile`, `ExcludedExtension`, `Duplicate`, `UserConfig`, `SecurityRestricted`, `UnsupportedType`).
+  - Implemented structural tree hierarchy in `crates/cdm/src/hierarchy.rs`: `HierarchyNode`, `HierarchyKind` (`Root`, `Directory`, `File`, `Section`, `Heading`), child management, recursive ID search (`find_node`), path search (`find_node_by_path`), pre-order flattening (`flatten`), and node/file counters.
+  - Implemented relationship models in `crates/cdm/src/relationships.rs`: `Relationship` and `RelationshipKind` (`Imports`, `ImportedBy`, `Calls`, `Extends`, `LinksTo`, `References`, `ParentOf`, `ChildOf`, `DefinesSymbol`).
+  - Implemented completeness accounting in `crates/cdm/src/completeness.rs`: `CompletenessReport` verifying the strict mathematical invariant formula $\text{discovered} = \text{extracted} + \text{excluded} + \text{failed} + \text{unsupported}$ and `is_complete()`.
+  - Implemented ergonomic fluent builders in `crates/cdm/src/builder.rs`: `CdmDocumentBuilder` and `CdmSectionBuilder` with automatic BLAKE3 hash computation and baseline token metric derivation.
+  - Added 19 comprehensive unit and integration tests across `crates/cdm` (11 unit + 8 integration), validating schema consistency, tamper detection, hierarchy queries, completeness matrix, and token metrics, bringing workspace tests to 322 passing tests.
+  - Verified 19/19 tests in `crates/cdm`, 322/322 workspace tests, 29/29 Node.js tests in `services/browser-worker`, 184/184 frontend tests in `apps/web`, and 100% pass rate across all 5 monorepo verification gates.
+
 ### 2026-11-17 — Phase 3.4: Extraction Quality (`3.4.4`) — PHASE 3.4 & STAGE 3 CERTIFIED
 
 #### Added

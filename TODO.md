@@ -110,8 +110,35 @@
 
 ---
 
+## Stage 4: Canonical Model and Export Engine (`IN_PROGRESS`)
+
+### Phase 4.1 — Canonical Context Document Model (CDM) (`IN_PROGRESS`)
+- [x] **[4.1.1]** Canonical Context Document Model (CDM) schema in crates/cdm *(Completed 2026-11-17, CdmDocument, CdmSection, SourceIdentity, RevisionInfo, DocumentMetadata, HierarchyNode, Relationship, Citation, ExtractionStatus, ExtractionWarning, ExclusionRecord, CompletenessReport with invariant formula, CdmDocumentBuilder, CdmSectionBuilder, 19 passing cdm tests, 322 workspace tests)*
+- [ ] **[4.1.2]** CDM JSON serialization and deserialization in crates/cdm
+- [ ] **[4.1.3]** CDM schema validation and invariant checks in crates/cdm
+- [ ] **[4.1.4]** Schema versioning and migration framework in crates/cdm
+
+### Phase 4.2 — Format generators
+- [ ] **[4.2.1]** Markdown generator in crates/exporters
+- [ ] **[4.2.2]** Plain-text generator in crates/exporters
+- [ ] **[4.2.3]** JSON generator in crates/exporters
+- [ ] **[4.2.4]** HTML & JSONL generators in crates/exporters
+
+### Phase 4.3 — Export
+- [ ] **[4.3.1]** ZIP package generation in crates/exporters
+- [ ] **[4.3.2]** Manifest & checksums generation in crates/exporters
+- [ ] **[4.3.3]** Streaming downloads in services/api
+- [ ] **[4.3.4]** Export integrity tests in crates/exporters
+
+### Phase 4.4 — Website integration
+- [ ] **[4.4.1]** Connect actual conversion API in apps/web
+- [ ] **[4.4.2]** Real progress streaming (SSE) in apps/web
+- [ ] **[4.4.3]** Content preview and copy controls in apps/web
+- [ ] **[4.4.4]** Multi-format downloads in apps/web
+
+---
+
 ## Subsequent Stages (Queued)
-- [ ] **[Stage 4]** Canonical Model and Export Engine (`4.1.1` – `4.4.4`)
 - [ ] **[Stage 5]** Public GitHub Repository Extraction (`5.1.1` – `5.5.4`)
 - [ ] **[Stage 6]** Private GitHub Repositories (`6.1.1` – `6.4.4`)
 - [ ] **[Stage 7]** AI Context and Token Optimization (`7.1.1` – `7.4.4`)

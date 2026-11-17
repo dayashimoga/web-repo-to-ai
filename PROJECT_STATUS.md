@@ -2,17 +2,17 @@
 
 **Project:** `web-repo-to-ai` (Universal URL & GitHub Repository → AI-Ready Content Converter)  
 **Last Updated:** 2026-11-17  
-**Current Stage:** `STAGE 4 — CANONICAL MODEL AND EXPORT ENGINE` (`NOT_STARTED` / `Next Eligible Stage`)  
-**Current Phase:** `Stage 3 (Phase 3.1, Phase 3.2, Phase 3.3, & Phase 3.4)` (`COMPLETED` / `ACCEPTED` & `CERTIFIED`) / `Phase 4.1 — Canonical Context Document Model (CDM)` (`NOT_STARTED`)  
-**Active Subphase:** `4.1.1 — Canonical Context Document Model (CDM) schema in crates/cdm` (`NOT_STARTED` / `Next Eligible Subphase`)  
-**Last Completed Subphase:** `3.4.4 — Golden dataset test suite for universal webpage extraction in crates/web-extractor` (`ACCEPTED` — **PHASE 3.4 & STAGE 3 CERTIFIED**)  
-**Next Upcoming Subphase:** `4.1.1 — Canonical Context Document Model (CDM) schema in crates/cdm`
+**Current Stage:** `STAGE 4 — CANONICAL MODEL AND EXPORT ENGINE` (`IN_PROGRESS`)  
+**Current Phase:** `Phase 4.1 — Canonical Context Document Model (CDM)` (`IN_PROGRESS`)  
+**Active Subphase:** `4.1.2 — CDM JSON serialization and deserialization in crates/cdm` (`NOT_STARTED` / `Next Eligible Subphase`)  
+**Last Completed Subphase:** `4.1.1 — Canonical Context Document Model (CDM) schema in crates/cdm` (`ACCEPTED`)  
+**Next Upcoming Subphase:** `4.1.2 — CDM JSON serialization and deserialization in crates/cdm`
 
 ---
 
 ## 1. Executive Summary
 
-Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 subphases), Stage 2 (`2.1.1` – `2.4.4`, 15 subphases), and **Stage 3 (`3.1.1` – `3.4.4`, 16 subphases) are 100% complete, verified, certified, and accepted.** Subphase `3.4.4` ("Golden dataset test suite for universal webpage extraction in crates/web-extractor") is now complete, verified, and accepted, marking the formal completion and certification of **Phase 3.4** and **Stage 3**. `crates/web-extractor/tests/golden_dataset.rs` implements a comprehensive golden regression test suite covering 8 real-world HTML archetypes: 1) Technical blog article with Rust code and Schema.org JSON-LD; 2) Docusaurus documentation with multi-level breadcrumbs and admonitions; 3) REST API specifications with rectangular GFM tables; 4) Polyglot code blocks with monotonic gutter line number stripping; 5) Malformed HTML with noisy ads/cookie banners pruned by `BoilerplateCleaner`; 6) SPA hydration lifecycle verifying `SpaDetector` fallback; 7) Canonical URL resolution with UTM stripping and 64-bit SimHash near-duplicate detection; and 8) Sparse stubs with completeness penalties (< 0.40 score) and CDM exclusion. 304/304 automated Rust workspace tests pass (143 in `crates/web-extractor`), 29/29 Node.js tests pass in `services/browser-worker` across 7 test suites, 184/184 frontend tests pass in `apps/web`, and all 5 monorepo verification gates pass cleanly with zero failures. Stage 4 (`4.1.1` — Canonical Context Document Model schema in `crates/cdm`) is queued as the next eligible stage and subphase.
+Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 subphases), Stage 2 (`2.1.1` – `2.4.4`, 15 subphases), and Stage 3 (`3.1.1` – `3.4.4`, 16 subphases) are 100% complete, verified, certified, and accepted. **Subphase `4.1.1` ("Canonical Context Document Model (CDM) schema in crates/cdm") is now complete, verified, and accepted.** `crates/cdm` defines the complete versioned intermediate representation (`schema_version = "1.0.0"`) bridging all upstream extractors and downstream AI optimizers, tokenizers, chunkers, and multi-format exporters: `CdmDocument`, `CdmSection`, `SourceIdentity`, `RevisionInfo`, `DocumentMetadata`, `HierarchyNode`, `Relationship`, `Citation`, `ExtractionStatus`, `ExtractionWarning`, `ExclusionRecord`, `CompletenessReport` verifying the strict repository completeness invariant $\text{discovered} = \text{extracted} + \text{excluded} + \text{failed} + \text{unsupported}$, and ergonomic fluent builders (`CdmDocumentBuilder`, `CdmSectionBuilder`) with automatic BLAKE3 hashing and baseline token estimation. 322/322 automated Rust workspace tests pass (19 in `crates/cdm`), 29/29 Node.js tests pass in `services/browser-worker` across 7 test suites, 184/184 frontend tests pass in `apps/web`, and all 5 monorepo verification gates pass cleanly with zero failures. Subphase `4.1.2` is queued as the next active subphase.
 
 ---
 
@@ -20,12 +20,12 @@ Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 su
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 60 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4` |
+| `ACCEPTED` | 61 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 137 | `4.1.1` – `11.4.5` |
+| `NOT_STARTED` | 136 | `4.1.2` – `11.4.5` |
 | **Total** | **197** | `Stage 0` – `Stage 11` |
 
 ---

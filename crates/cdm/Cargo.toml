@@ -15,3 +15,6 @@ workspace = true
 web-repo-to-ai-core = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
+chrono = { workspace = true, features = ["serde"] }
+uuid = { workspace = true, features = ["v4", "v7", "serde"] }
+blake3 = { workspace = true }

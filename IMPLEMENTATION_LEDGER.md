@@ -3044,11 +3044,68 @@
 
 ---
 
+### STAGE 4 — CANONICAL MODEL AND EXPORT ENGINE
+
+### Phase 4.1 — Canonical Context Document Model (CDM)
+
+#### Subphase `4.1.1` — Canonical Context Document Model (CDM) schema in crates/cdm
+- **Unique ID:** `4.1.1`
+- **Objective:** Design and implement the complete Rust domain schema for the Canonical Context Document Model (CDM v1.0) in `crates/cdm`, establishing the immutable intermediate representation for all extractors, optimizers, tokenizers, chunkers, and exporters with strict repository completeness accounting.
+- **Scope:** `crates/cdm/Cargo.toml`, `crates/cdm/src/schema/*`, `crates/cdm/src/lib.rs`.
+- **Prerequisites:** Stage 3 (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/cdm/Cargo.toml`
+  - `crates/cdm/src/model.rs`
+  - `crates/cdm/src/section.rs`
+  - `crates/cdm/src/metadata.rs`
+  - `crates/cdm/src/hierarchy.rs`
+  - `crates/cdm/src/relationships.rs`
+  - `crates/cdm/src/completeness.rs`
+  - `crates/cdm/src/builder.rs`
+  - `crates/cdm/src/lib.rs`
+- **Implementation Tasks:**
+  1. Add dependencies to `crates/cdm/Cargo.toml`: `chrono` (with `serde`), `uuid` (with `serde`), and `blake3`.
+  2. Implement core document types in `crates/cdm/src/model.rs`: `CdmDocument`, `SourceIdentity`, `SourceType` (`WebpageStatic`, `WebpageDynamic`, `GitHubPublic`, `GitHubPrivate`, `DocumentPdf`, `DocumentOcr`), `RevisionInfo`, `ExtractionStatus` (`Completed`, `Partial`, `Failed`, `Unsupported`), and `ExtractionWarning`.
+  3. Implement section models in `crates/cdm/src/section.rs`: `CdmSection`, `SectionKind` (`Prose`, `CodeFile`, `CodeSnippet`, `Table`, `Frontmatter`, `Manifest`, `Navigation`, `Admonition`), `LineRange`, `ByteRange`, and `SectionTokenMetrics`.
+  4. Implement metadata and provenance models in `crates/cdm/src/metadata.rs`: `DocumentMetadata`, `Citation`, and `ExclusionRecord` with typed `ExclusionReason`.
+  5. Implement hierarchy models in `crates/cdm/src/hierarchy.rs`: `HierarchyNode`, `HierarchyKind` (`Root`, `Directory`, `File`, `Section`, `Heading`), tree traversal, node search, and flattening utilities.
+  6. Implement relationship models in `crates/cdm/src/relationships.rs`: `Relationship`, `RelationshipKind` (`Imports`, `ImportedBy`, `Calls`, `Extends`, `LinksTo`, `References`, `ParentOf`, `ChildOf`).
+  7. Implement repository completeness models in `crates/cdm/src/completeness.rs`: `CompletenessReport` with formula validation verifying $\text{discovered} = \text{extracted} + \text{excluded} + \text{failed} + \text{unsupported}$ and `is_complete()`.
+  8. Implement ergonomic fluent builders in `crates/cdm/src/builder.rs`: `CdmDocumentBuilder` and `CdmSectionBuilder` with automatic BLAKE3 content hash computation.
+  9. Re-export all schema primitives in `crates/cdm/src/lib.rs`.
+  10. Implement comprehensive unit tests in `crates/cdm` validating schema generation, completeness invariant formula checks, hierarchy tree operations, builder fluent workflows, and section content hashing.
+  11. Run all 5 monorepo verification gates in `scripts/check-all.ps1`.
+- **Acceptance Criteria:**
+  - `CdmDocument` schema supports both single-webpage extractions and complex multi-file GitHub repositories.
+  - `CdmSection` computes deterministic BLAKE3 content digests over section bodies.
+  - `CompletenessReport` rigorously verifies the completeness invariant formula $\text{discovered} = \text{extracted} + \text{excluded} + \text{failed} + \text{unsupported}$.
+  - Hierarchy tree models support arbitrary nesting for directory structures and document outlines.
+  - All types derive `Serialize`, `Deserialize`, `Clone`, `Debug`, `PartialEq`, and where applicable `Eq`.
+  - `#![forbid(unsafe_code)]` and `#![warn(missing_docs)]` are enforced with 100% documentation coverage.
+  - Workspace tests, clippy, fmt, and all 5 monorepo gates pass with zero errors.
+- **Tests:** `cargo test -p web-repo-to-ai-cdm`, `cargo test --workspace`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, 01, 04, 05: Cryptographic BLAKE3 integrity on all sections; strict validation preventing unverified or corrupt document models from reaching exporters.
+- **Performance Considerations:** In-memory traversal with efficient references; avoid redundant string allocations where possible.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-cdm`: 19/19 tests passed (11 unit + 8 integration).
+  - `cargo test --workspace`: 322/322 tests passed.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors.
+  - `cargo fmt --all -- --check`: 100% code style compliance.
+  - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
+  - `npm test` (`services/browser-worker`): 29/29 tests passed across 7 suites.
+  - `npm test` (`apps/web`): 184/184 tests passed across 15 suites.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
+- **Git Commit Reference:** PENDING_COMMIT
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 4 — Canonical Model and Export Engine)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `4.1.1` | Canonical Context Document Model (CDM) schema in crates/cdm | Stage 3 (`ACCEPTED`) | `crates/cdm/*` | `NOT_STARTED` |
+| `4.1.2` | CDM JSON serialization and deserialization in crates/cdm | `4.1.1` (`ACCEPTED`) | `crates/cdm/*` | `NOT_STARTED` |
 
 ---
 
