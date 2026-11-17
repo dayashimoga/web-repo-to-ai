@@ -49,7 +49,7 @@
 - [x] **[1.3.4]** Build format selection and download controls *(Completed 2026-11-17, DownloadControls.svelte, SHA-256 integrity, batch downloads, checksums manifest, 133 passing tests, Phase 1.3 certified)*
 
 ### Phase 1.4 — UX validation
-- [ ] **[1.4.1]** Execute keyboard navigation and accessibility audits
+- [x] **[1.4.1]** Execute keyboard navigation and accessibility audits
 - [ ] **[1.4.2]** Execute mobile, tablet, and desktop viewport tests
 - [ ] **[1.4.3]** Execute UI performance and visual regression verification
 

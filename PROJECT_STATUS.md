@@ -3,16 +3,16 @@
 **Project:** `web-repo-to-ai` (Universal URL & GitHub Repository → AI-Ready Content Converter)  
 **Last Updated:** 2026-11-17  
 **Current Stage:** `STAGE 1 — FRONTEND AND PRODUCT EXPERIENCE` (`IN_PROGRESS`)  
-**Current Phase:** `Phase 1.4 — UX validation` (`NOT_STARTED`)  
-**Active Subphase:** `1.4.1 — Execute keyboard navigation and accessibility audits` (`NOT_STARTED` / `Awaiting User Approval`)  
-**Last Completed Subphase:** `1.3.4 — Build format selection and download controls` (`ACCEPTED` / `Phase 1.3 Certified`)  
-**Next Upcoming Subphase:** `1.4.1 — Execute keyboard navigation and accessibility audits`
+**Current Phase:** `Phase 1.4 — UX validation` (`IN_PROGRESS`)  
+**Active Subphase:** `1.4.2 — Execute mobile, tablet, and desktop viewport tests` (`NOT_STARTED` / `Awaiting User Approval`)  
+**Last Completed Subphase:** `1.4.1 — Execute keyboard navigation and accessibility audits` (`ACCEPTED`)  
+**Next Upcoming Subphase:** `1.4.2 — Execute mobile, tablet, and desktop viewport tests`
 
 ---
 
 ## 1. Executive Summary
 
-Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Phase 1.1 (`1.1.1` – `1.1.3`, 3 subphases), Phase 1.2 (`1.2.1` – `1.2.4`, 4 subphases), and Phase 1.3 (`1.3.1` – `1.3.4`, 4 subphases) are certified and accepted. Phase 1.4 ("UX validation") Subphase `1.4.1` is queued for user confirmation.
+Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Phase 1.1 (`1.1.1` – `1.1.3`, 3 subphases), Phase 1.2 (`1.2.1` – `1.2.4`, 4 subphases), and Phase 1.3 (`1.3.1` – `1.3.4`, 4 subphases) are certified and accepted. Phase 1.4 ("UX validation") Subphase `1.4.1` (Keyboard navigation and accessibility audits) is accepted with 152/152 automated tests passing across 14 test suites. Subphase `1.4.2` is queued for user confirmation.
 
 ---
 
@@ -20,12 +20,12 @@ Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Phase 1.1 (`1.1.1` – `1.1.3`, 3 s
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 26 | `0.1.1` – `0.3.5`, `1.1.1` – `1.3.4` |
+| `ACCEPTED` | 27 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.1` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 171 | `1.4.1` – `11.4.5` |
+| `NOT_STARTED` | 170 | `1.4.2` – `11.4.5` |
 | **Total** | **197** | `Stage 0` – `Stage 11` |
 
 ---

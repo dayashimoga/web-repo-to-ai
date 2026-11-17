@@ -1262,7 +1262,62 @@
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `1.4.1` | Execute keyboard navigation and accessibility audits | Phase 1.3 (`ACCEPTED`) | `apps/web/tests/a11y-audit.test.ts` | `NOT_STARTED` |
+| `1.4.1` | Execute keyboard navigation and accessibility audits | Phase 1.3 (`ACCEPTED`) | `apps/web/tests/a11y-audit.test.ts` | `ACCEPTED` |
+
+---
+
+#### Subphase `1.4.1` — Execute keyboard navigation and accessibility audits
+- **Unique ID:** `1.4.1`
+- **Objective:** Execute comprehensive automated keyboard navigation and accessibility audits verifying WCAG 2.1 AA and AAA compliance across all frontend components in `apps/web`, covering semantic HTML landmark hierarchy, WAI-ARIA progressbars, WAI-ARIA tablist design patterns, polite/assertive screen reader announcements, line-number gutter exclusion, visible focus rings, color contrast ratios, and keyboard event handlers.
+- **Scope:** `apps/web/tests/a11y-audit.test.ts`, `apps/web/src/lib/components/navigation/Header.svelte`, `apps/web/src/lib/components/navigation/Footer.svelte`, `apps/web/src/lib/components/landing/Hero.svelte`, `apps/web/src/lib/components/landing/WorkflowSteps.svelte`, `apps/web/src/lib/components/landing/SupportedSources.svelte`, `apps/web/src/lib/components/landing/FeatureHighlights.svelte`, `apps/web/src/lib/components/workspace/JobWorkspace.svelte`, `apps/web/src/lib/components/workspace/TokenBudgetBar.svelte`, `apps/web/src/lib/components/workspace/PreviewPanel.svelte`, `apps/web/src/lib/components/workspace/DownloadControls.svelte`, `apps/web/src/lib/components/input/UrlInput.svelte`, `apps/web/src/lib/components/settings/ConversionSettings.svelte`, `apps/web/src/lib/components/ui/Button.svelte`, `apps/web/src/lib/components/ui/Input.svelte`, `apps/web/src/lib/components/ui/Toggle.svelte`, `apps/web/src/lib/components/ui/Modal.svelte`, `PROJECT_STATUS.md`, `IMPLEMENTATION_LEDGER.md`.
+- **Prerequisites:** `1.3.4` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `apps/web/tests/a11y-audit.test.ts`
+  - `PROJECT_STATUS.md`
+  - `IMPLEMENTATION_LEDGER.md`
+  - `TODO.md`
+  - `CHANGELOG.md`
+  - `ROADMAP.md`
+  - `docs/ROADMAP.md`
+- **Implementation Tasks:**
+  1. Author comprehensive accessibility audit test suite `apps/web/tests/a11y-audit.test.ts` covering 8 distinct WCAG 2.1 AA/AAA compliance categories:
+     - Section 1: Semantic HTML landmarks and region hierarchy (`<header>`, `<nav>`, `<main id="main-content">`, `<footer>`, explicit `<section>` landmarks with `aria-labelledby`).
+     - Section 2: WAI-ARIA progressbar pattern compliance across `JobWorkspace.svelte` (overall pipeline progress) and `TokenBudgetBar.svelte` (token budget utilization) verifying `role="progressbar"`, `aria-valuenow`, `aria-valuemin={0}`, `aria-valuemax={100}`, and descriptive `aria-label`.
+     - Section 3: WAI-ARIA tabs design pattern compliance in `PreviewPanel.svelte` verifying container `role="tablist"`, interactive tab elements (`role="tab"`, `id="tab-{id}"`, `aria-selected`, `aria-controls`), and panel target (`role="tabpanel"`, `id="panel-{id}"`, `aria-labelledby`).
+     - Section 4: Screen reader polite live regions (`role="status"`, `role="log"`, `aria-live="polite"`) in `UrlInput`, `JobWorkspace`, `PreviewPanel`, and `DownloadControls`, alongside assertive error banners (`role="alert"`).
+     - Section 5: Screen reader exclusion of decorative elements: decorative SVGs with `aria-hidden="true"`, and line number gutter elements (`aria-hidden="true"`, `select-none`).
+     - Section 6: Universal visible focus indicators (WCAG 2.4.7) asserting Tailwind `focus-visible:ring` or `focus-visible:outline` on all interactive component primitives.
+     - Section 7: Mathematical color contrast certification using WCAG relative luminance algorithms asserting AAA ($\ge 7.0:1$) for dark/light backgrounds and AA ($\ge 4.5:1$) for brand colors.
+     - Section 8: Keyboard navigation shortcuts: Escape key handling in `UrlInput` (clearing input) and `Modal` (dialog dismissal), and Enter/Space keyboard activation on `Toggle` switches (`role="switch"`, `aria-checked`).
+  2. Run full verification gates: `npm run lint`, `npm run check`, `npm test`, `npm run build`, and `scripts/check-all.*`.
+- **Acceptance Criteria:**
+  - `apps/web/tests/a11y-audit.test.ts` passes with 19/19 checks covering all 8 WCAG 2.1 AA/AAA audit areas.
+  - Overall automated test suite passes 152/152 tests across 14 test suites with 0 failures.
+  - `svelte-check` reports 0 errors and 0 warnings.
+  - Prettier confirms 100% code style compliance.
+  - Production build with `@sveltejs/adapter-node` succeeds.
+  - All 5 monorepo verification gates in `scripts/check-all.ps1` and `scripts/check-all.sh` pass cleanly.
+- **Tests:** `npm test` in `apps/web` (152/152 tests passed), `npm run check` (0 errors, 0 warnings), `npm run lint`, `npm run build`, `scripts/check-all.ps1`, `scripts/check-all.sh`.
+- **Security Considerations:** Accessible ARIA attributes and labels contain no unescaped or user-tampered strings; zero external CDN dependencies for highlighters or icons.
+- **Performance Considerations:** Tests run in under 3.5 seconds; client-side contrast calculations run in constant $O(1)$ time; zero runtime overhead added to production bundle.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Validation Evidence:**
+  - `npm run check`: SvelteKit sync and svelte-check reported 0 errors and 0 warnings in `apps/web`.
+  - `npm run lint`: Prettier verified 100% code style compliance across all matched files.
+  - `npm test`: Vitest ran 14 test suites (`responsive-layout.test.ts`, `tokens.test.ts`, `color-utils.test.ts`, `a11y-audit.test.ts`, `url-detector.test.ts`, `typography.test.ts`, `ui-components.test.ts`, `url-input-component.test.ts`, `conversion-settings.test.ts`, `landing-page.test.ts`, `job-workspace.test.ts`, `token-budget.test.ts`, `download-controls.test.ts`, `preview-panel.test.ts`), passing 152/152 automated unit, accessibility, and component invariant tests with 0 failures.
+  - `npm run build`: Production bundle generated with `@sveltejs/adapter-node` in `apps/web/build/index.js` and `.svelte-kit/output`.
+  - `scripts/check-all.ps1`: ALL 5 GATES PASSED (Gate 1: 224/224 bootstrap checks, Gate 2: 7/7 workflows, Gate 3: Rust formatting, Gate 4: Frontend lint/check/test, Gate 5: 5.27 GB / 30 GB storage ceiling).
+  - `bash scripts/check-all.sh`: ALL 5 GATES PASSED (0 failures across all 5 verification gates).
+- **Git Commit Reference:** `97983c9`
+- **Status:** `ACCEPTED`
+
+---
+
+### Upcoming Subphase (Awaiting User Approval)
+
+| Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| `1.4.2` | Execute mobile, tablet, and desktop viewport tests | `1.4.1` (`ACCEPTED`) | `apps/web/tests/responsive-layout.test.ts` | `NOT_STARTED` |
 
 ---
 

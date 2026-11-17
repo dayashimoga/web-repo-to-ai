@@ -6,6 +6,21 @@
 
 ## [Unreleased] — Stage 1: Frontend and Product Experience
 
+### 2026-11-17 — Phase 1.4: UX Validation (`1.4.1`)
+
+#### Added
+- **`[1.4.1]` Keyboard Navigation and Accessibility Audits (WCAG 2.1 AA & AAA):**
+  - Authored comprehensive accessibility audit test suite `apps/web/tests/a11y-audit.test.ts` (19 tests) asserting compliance across 8 distinct accessibility dimensions:
+    - **Semantic HTML Landmarks:** Validated `<header>`, `<nav aria-label="Main Navigation">`, `<main id="main-content">`, and `<footer>` on both landing page and workspace routes; verified explicit `<section>` regions with `aria-labelledby` across `Hero.svelte`, `WorkflowSteps.svelte`, `SupportedSources.svelte`, and `FeatureHighlights.svelte`.
+    - **WAI-ARIA Progressbar Pattern:** Validated compliance in `JobWorkspace.svelte` (overall pipeline progress) and `TokenBudgetBar.svelte` (context utilization progressbar) asserting `role="progressbar"`, dynamic `aria-valuenow`, `aria-valuemin={0}`, `aria-valuemax={100}`, and descriptive `aria-label`.
+    - **WAI-ARIA Tabs Design Pattern:** Validated bidirectional linkage in `PreviewPanel.svelte` format tabs asserting `role="tablist"`, interactive tab controls (`role="tab"`, `id="tab-{id}"`, dynamic `aria-selected`, `aria-controls`), and panel containers (`role="tabpanel"`, `id="panel-{id}"`, `aria-labelledby`).
+    - **Polite Live Regions & Assertive Alerts:** Verified non-disruptive feedback live regions (`role="status"`, `role="log"`, `aria-live="polite"`) across `UrlInput`, `JobWorkspace`, `PreviewPanel`, and `DownloadControls`, alongside assertive error and budget overflow banners (`role="alert"`).
+    - **Screen Reader Exclusion of Decorative Content:** Verified `aria-hidden="true"` on line number gutter cells (`line.lineNumber`) and decorative background SVGs and visual effects.
+    - **Universal Visible Focus Indicators:** Verified WCAG 2.4.7 visible focus styles (`focus-visible:ring` and `focus-visible:outline`) across interactive primitives (`Button`, `Input`, `Toggle`, `UrlInput`, `ConversionSettings`, `PreviewPanel`, `TokenBudgetBar`, `DownloadControls`).
+    - **Color Contrast Certification:** Mathematically verified WCAG AAA ($\ge 7.0:1$) compliance for dark canvas ($14.0:1$) and panels ($12.0:1$) with white text, light canvas with dark slate text ($14.0:1$), and WCAG AA ($\ge 4.5:1$) for brand primary buttons.
+    - **Keyboard Navigation Shortcuts:** Validated Escape key listeners in `UrlInput` (clearing input) and `Modal` (dialog dismissal), and Enter/Space keyboard toggling on `Toggle` switches (`role="switch"`, `aria-checked`).
+  - Total automated test suite expanded to 152/152 tests passing across 14 test suites.
+
 ### 2026-11-17 — Phase 1.3: Conversion Workspace (`1.3.4`) & Phase 1.3 Certification
 
 #### Added
