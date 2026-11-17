@@ -6,6 +6,24 @@
 
 ## [Unreleased] — Stage 5: Public GitHub Repository Extraction
 
+### 2026-11-17 — Phase 5.1: GitHub Metadata (`5.1.1`)
+
+#### Added
+- **`[5.1.1]` Repository Identification and URL Decomposition in `crates/github-extractor`:**
+  - Implemented strongly-typed error taxonomy `GitHubExtractorError` in `crates/github-extractor/src/error.rs` using `thiserror`:
+    - Handles invalid URLs, owner naming constraints, repository naming constraints, invalid git refs, subpath errors, reserved system paths, unsupported hosts, embedded credentials, and URL security violations.
+  - Implemented `GitHubTarget`, `GitHubTargetType`, and `GitHubUrlParser` in `crates/github-extractor/src/target.rs`:
+    - Full URL support: standard HTTPS (`https://github.com/owner/repo`), normalized HTTP, SSH transports (`git@github.com:owner/repo.git`, `ssh://git@github.com:...`), Git transport (`git://github.com/...`), and shorthand identifiers (`owner/repo`, `owner/repo@ref`).
+    - Granular target entity classification via `GitHubTargetType`: `RepositoryRoot`, `Tree` (ref and optional subpath), `Blob` (ref and file path), `Commit` (validated hexadecimal SHA), `Tag` (release tag), `Commits` (ref commit log), `PullRequest`, `Issue`, and `Releases`.
+    - Strict owner and repository name validation adhering to GitHub rules (owner <= 39 chars, no consecutive hyphens, no leading/trailing hyphen; repo <= 100 chars, `.git` stripped, cannot be `.` or `..`).
+    - Robust path traversal prevention: early detection of `/../`, `\..\`, `%2e%2e`, and `..%2f` before WHATWG URL normalization.
+    - Zero-trust URL security & SSRF defense via `crates/url-security`: private IP blocking, cloud metadata isolation (`169.254.169.254`), and port restrictions.
+    - Canonical URL generation: `canonical_repo_url()`, `canonical_target_url()`, HTTPS/SSH clone URLs, API base/repo endpoints, and raw content URLs (`raw.githubusercontent.com`).
+    - Seamless mapping to Canonical Context Document Model via `target.to_source_identity(...)`.
+    - Ref refinement support (`with_refined_ref_and_subpath`) enabling ambiguous branch paths with slashes to be refined during downstream discovery.
+  - Added comprehensive test suite in `crates/github-extractor/tests/target_decomposition_test.rs` (21 integration tests, 1 unit test, 100% passing).
+  - Verified 356 passing workspace Rust tests with zero clippy warnings and 100% passing gates in `scripts/check-all.ps1`.
+
 ### 2026-11-17 — Phase 4.4: Export Frontend (`4.4.4` — PHASE 4.4 & STAGE 4 CERTIFIED)
 
 #### Added

@@ -138,8 +138,41 @@
 
 ---
 
+## Stage 5: Public GitHub Repository Extraction (`IN_PROGRESS`)
+
+### Phase 5.1 — GitHub metadata (`IN_PROGRESS`)
+- [x] **[5.1.1]** Repository identification and URL decomposition in crates/github-extractor *(Completed 2026-11-17, GitHubTarget, GitHubTargetType, GitHubUrlParser, strict owner/repo validation, path traversal defense, SSH/git/shorthand/tree/blob/commit/tag/PR/issue parsing, CDM SourceIdentity mapping, 22 passing tests, 356 workspace tests)*
+- [ ] **[5.1.2]** Branch & tag discovery in crates/github-extractor
+- [ ] **[5.1.3]** Commit selection in crates/github-extractor
+- [ ] **[5.1.4]** Repository metadata extraction in crates/github-extractor
+
+### Phase 5.2 — File discovery
+- [ ] **[5.2.1]** Git Trees integration in crates/github-extractor
+- [ ] **[5.2.2]** Tree truncation detection in crates/github-extractor
+- [ ] **[5.2.3]** Subtree recovery in crates/github-extractor
+- [ ] **[5.2.4]** File classification in crates/github-extractor
+
+### Phase 5.3 — File extraction
+- [ ] **[5.3.1]** Source acquisition in crates/github-extractor
+- [ ] **[5.3.2]** Documentation extraction in crates/github-extractor
+- [ ] **[5.3.3]** Dependency extraction in crates/github-extractor
+- [ ] **[5.3.4]** Configuration & test extraction in crates/github-extractor
+
+### Phase 5.4 — Repository packaging
+- [ ] **[5.4.1]** Repository tree generation in crates/github-extractor
+- [ ] **[5.4.2]** File manifest in crates/github-extractor
+- [ ] **[5.4.3]** Architecture context in crates/github-extractor
+- [ ] **[5.4.4]** Code-review package in crates/github-extractor
+
+### Phase 5.5 — Integrity
+- [ ] **[5.5.1]** Expected-vs-actual file accounting in crates/github-extractor
+- [ ] **[5.5.2]** Content hash validation in crates/github-extractor
+- [ ] **[5.5.3]** Missing & excluded file reports in crates/github-extractor
+- [ ] **[5.5.4]** Large repository regression tests in crates/github-extractor
+
+---
+
 ## Subsequent Stages (Queued)
-- [ ] **[Stage 5]** Public GitHub Repository Extraction (`5.1.1` – `5.5.4`)
 - [ ] **[Stage 6]** Private GitHub Repositories (`6.1.1` – `6.4.4`)
 - [ ] **[Stage 7]** AI Context and Token Optimization (`7.1.1` – `7.4.4`)
 - [ ] **[Stage 8]** Large Repositories, Batch and Crawling (`8.1.1` – `8.4.4`)

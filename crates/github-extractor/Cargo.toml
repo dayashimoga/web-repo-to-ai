@@ -14,4 +14,13 @@ workspace = true
 [dependencies]
 web-repo-to-ai-core = { workspace = true }
 web-repo-to-ai-cdm = { workspace = true }
+web-repo-to-ai-url-security = { workspace = true }
+serde = { workspace = true, features = ["derive", "std"] }
+serde_json = { workspace = true }
+url = { workspace = true }
+regex = { workspace = true }
 thiserror = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }

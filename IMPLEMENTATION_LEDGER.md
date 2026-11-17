@@ -3913,11 +3913,62 @@
 
 ---
 
+## STAGE 5 — PUBLIC GITHUB REPOSITORY EXTRACTION
+
+### Phase 5.1 — GitHub metadata
+
+#### Subphase `5.1.1` — Repository identification and URL decomposition
+- **Unique ID:** `5.1.1`
+- **Objective:** Design and implement robust GitHub repository URL identification, parsing, decomposition, and normalization in `crates/github-extractor`, handling standard web URLs, SSH/Git transports, tree/blob subpaths, branches, tags, commit SHAs, and shorthand references with comprehensive URL security and SSRF validation.
+- **Scope:** `crates/github-extractor/Cargo.toml`, `crates/github-extractor/src/target.rs`, `crates/github-extractor/src/error.rs`, `crates/github-extractor/src/lib.rs`, `crates/github-extractor/tests/*`.
+- **Prerequisites:** Stage 4 (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/github-extractor/Cargo.toml`
+  - `crates/github-extractor/src/error.rs`
+  - `crates/github-extractor/src/target.rs`
+  - `crates/github-extractor/src/lib.rs`
+  - `crates/github-extractor/tests/target_decomposition_test.rs`
+- **Implementation Tasks:**
+  1. Add dependencies `web-repo-to-ai-url-security`, `url`, `serde`, `serde_json`, `regex`, `tracing` to `crates/github-extractor/Cargo.toml`.
+  2. Implement strongly-typed error taxonomy `GitHubExtractorError` in `crates/github-extractor/src/error.rs` using `thiserror`.
+  3. Implement `GitHubTarget`, `GitHubTargetType`, and `GitHubUrlParser` in `crates/github-extractor/src/target.rs`:
+     - Support HTTPS, HTTP, Git, and SSH URLs (`https://github.com/owner/repo`, `git@github.com:owner/repo.git`, `owner/repo`).
+     - Parse tree paths (`/tree/{ref}/{path...}`), blob paths (`/blob/{ref}/{path...}`), commits (`/commit/{sha}`), and tags (`/releases/tag/{tag}`).
+     - Strict owner validation (1-39 chars, alphanumeric and single hyphens, no consecutive hyphens, no leading/trailing hyphen).
+     - Strict repo validation (1-100 chars, alphanumeric, hyphens, underscores, dots, `.git` stripped, cannot be `.` or `..`).
+     - Subpath sanitization (normalize separators, strip leading/trailing slashes, reject `..` directory traversal).
+     - SSRF and host validation (via `crates/url-security`, default allow `github.com` and `www.github.com`, configurable enterprise hosts, reject credentials/IP addresses).
+     - Reserved path rejection (`/features`, `/pricing`, `/login`, etc.).
+     - Provide canonical HTTPS URL, API base URL (`https://api.github.com`), and API repos URL (`https://api.github.com/repos/{owner}/{repo}`).
+  4. Implement conversions to `SourceIdentity` from `crates/cdm`.
+  5. Author unit and integration tests covering standard repos, tree subdirectories, blob files, commit SHAs, tag refs, branch refs with slashes, SSH/git syntax, shorthand syntax, traversal attacks, reserved paths, and SSRF rejection.
+  6. Run full verification gates (`cargo test -p web-repo-to-ai-github-extractor`, `cargo test --workspace`, `scripts/check-all.ps1`).
+- **Acceptance Criteria:**
+  - All valid GitHub URL formats (HTTPS, HTTP, SSH, Git transport, shorthand) decompose correctly into owner, repo, target type, ref, subpath, and canonical URL.
+  - Path traversal attempts (`../`) and malformed owner/repo names are rejected with typed errors.
+  - SSRF attacks (private IPs, metadata IPs, non-GitHub hosts) are rejected.
+  - 100% of unit and integration tests pass.
+  - Zero clippy warnings, zero fmt diffs, cargo-deny clean.
+- **Tests:** `cargo test -p web-repo-to-ai-github-extractor`, `cargo test --workspace`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, 04, 05: Host verification, credential blocking, SSRF defenses via `crates/url-security`, path traversal sanitization, reserved path blocking.
+- **Performance Considerations:** Zero-allocation regex compilation via `LazyLock`/`OnceLock`, minimal allocations during URL decomposition.
+- **Documentation Requirements:** Module documentation in `crates/github-extractor`, tracking updates in `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-github-extractor`: 22/22 tests passed (1 lib unit test + 21 integration tests in `target_decomposition_test.rs`).
+  - `cargo test --workspace`: 356/356 tests passed across all 17 crates and services.
+  - `cargo clippy -p web-repo-to-ai-github-extractor --all-targets -- -D warnings`: 0 warnings, 0 errors.
+  - `cargo fmt --all -- --check`: 100% clean formatting.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (224/224 bootstrap checks, 7/7 workflows, Rust checks, Frontend checks, Podman storage 5.27 GB / 30 GB, 17.6%).
+- **Git Commit Reference:** `9adc56b` / `67a0d53`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 5 — Public GitHub Repository Extraction)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `5.1.1` | Repository identification and URL decomposition | Stage 4 (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
+| `5.1.2` | Branch & tag discovery | `5.1.1` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
 
 ---
 

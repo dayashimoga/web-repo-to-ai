@@ -58,7 +58,7 @@
 - **Deliverable:** Complete public GitHub repository conversion across branches, tags, commits, and path filters.
 - **Stage Acceptance Gate:** Real public repositories produce verifiable, complete packages where $\text{Discovered} = \text{Extracted} + \text{Excluded} + \text{Failed} + \text{Unsupported}$.
 - **Phases:**
-  - `5.1` GitHub metadata (`5.1.1` [NEXT] – `5.1.4`)
+  - `5.1` GitHub metadata (`5.1.1` [ACCEPTED], `5.1.2` [NEXT] – `5.1.4`)
   - `5.2` File discovery (`5.2.1` – `5.2.4`)
   - `5.3` File extraction (`5.3.1` – `5.3.4`)
   - `5.4` Repository packaging (`5.4.1` – `5.4.4`)
