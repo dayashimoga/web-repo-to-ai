@@ -2798,7 +2798,7 @@
   - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
   - `npm test` (`apps/web`): 184/184 tests passed across 15 suites.
   - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
-- **Git Commit Reference:** `db83acf`
+- **Git Commit Reference:** `bb27fa6`
 - **Status:** `ACCEPTED`
 
 ---
@@ -2809,7 +2809,7 @@
   - `3.3.1`: Browser worker architecture and IPC protocol in services/browser-worker (`ACCEPTED`, commit `064f68b`)
   - `3.3.2`: Playwright/Chromium dynamic fallback integration in services/browser-worker (`ACCEPTED`, commit `4628de7`)
   - `3.3.3`: Resource limits, navigation timeouts, and sandbox isolation in services/browser-worker (`ACCEPTED`, commit `c9266ba`)
-  - `3.3.4`: Dynamic DOM extraction and post-render hydration in crates/web-extractor (`ACCEPTED`, commit `db83acf`)
+  - `3.3.4`: Dynamic DOM extraction and post-render hydration in crates/web-extractor (`ACCEPTED`, commit `bb27fa6`)
 - **Certification Evidence:**
   - Zero mock or placeholder implementations across all production paths.
   - Playwright / Chromium dynamic browser worker running in unprivileged isolation with per-request contexts and SSRF blocking.
