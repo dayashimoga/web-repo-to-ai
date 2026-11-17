@@ -288,6 +288,19 @@ Assert-Condition ($LASTEXITCODE -eq 0) "scripts/dev-down.ps1 -DryRun executes su
 $null = powershell -ExecutionPolicy Bypass -File scripts/dev-restart.ps1 -DryRun 2>&1
 Assert-Condition ($LASTEXITCODE -eq 0) "scripts/dev-restart.ps1 -DryRun executes successfully"
 
+# 14. Verify reproducible container build verification scripts
+$containerVerifyScripts = @(
+    "scripts/verify-container-builds.ps1",
+    "scripts/verify-container-builds.sh"
+)
+foreach ($cvs in $containerVerifyScripts) {
+    $cvsExists = Test-Path -Path $cvs -PathType Leaf
+    $cvsNonEmpty = $cvsExists -and ((Get-Item $cvs -Force).Length -gt 10)
+    Assert-Condition $cvsNonEmpty "Container verification script exists and is non-empty: $cvs"
+}
+$null = powershell -ExecutionPolicy Bypass -File scripts/verify-container-builds.ps1 -Quick 2>&1
+Assert-Condition ($LASTEXITCODE -eq 0) "scripts/verify-container-builds.ps1 -Quick executes successfully"
+
 Write-Output "=== Verification Summary: $($checks - $failures)/$checks checks passed, $failures failures ==="
 if ($failures -gt 0) {
     exit 1

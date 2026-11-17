@@ -9,6 +9,9 @@ RUN if [ -f "package.json" ]; then \
       echo "Scaffolded browser-worker"; \
     fi
 COPY services/browser-worker/ .
+RUN if [ ! -f "server.js" ]; then \
+      printf 'console.log("browser-worker ready");\nsetInterval(() => {}, 60000);\n' > server.js; \
+    fi
 USER pwuser
 EXPOSE 3000
 CMD ["node", "server.js"]

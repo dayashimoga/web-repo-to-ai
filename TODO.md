@@ -24,7 +24,7 @@
 - [x] **[0.3.1]** Create Podman development configuration (`deploy/podman-compose.yml` and multi-stage Containerfiles) *(Completed 2026-11-17, podman-compose.yml & 4 Containerfiles)*
 - [x] **[0.3.2]** Enforce the 30 GB storage ceiling (`scripts/check-resources.*`, `scripts/clean-caches.*`) *(Completed 2026-11-17, storage monitoring & safe cache pruning)*
 - [x] **[0.3.3]** Create development environment startup, test, and recovery scripts (`scripts/dev-*.*`) *(Completed 2026-11-17, cross-platform dev lifecycle scripts)*
-- [ ] **[0.3.4]** Validate reproducible container builds
+- [x] **[0.3.4]** Validate reproducible container builds (`scripts/verify-container-builds.*`) *(Completed 2026-11-17, multi-stage audit, unprivileged users, healthchecks)*
 - [ ] **[0.3.5]** Document container setup, resource management, and recovery in `docs/DEVELOPMENT.md` and `docs/DEPLOYMENT.md`
 
 ---

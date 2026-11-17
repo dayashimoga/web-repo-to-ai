@@ -6,6 +6,17 @@
 
 ## [Unreleased] — Stage 0: Project Bootstrap and Engineering Foundation
 
+### 2026-11-17 — Phase 0.3: Containerized Development Foundation (`0.3.4`)
+
+#### Added
+- **`[0.3.4]` Reproducible Container Builds & Architecture Validation:**
+  - Authored `scripts/verify-container-builds.ps1` and `scripts/verify-container-builds.sh` auditing `deploy/podman-compose.yml` and all 4 Containerfiles.
+  - Validated multi-stage build patterns, minimal slim/Alpine runtime base images, unprivileged runtime users (`appuser` UID 1000, `pwuser`, `node` UID 1000), network isolation boundaries (`browser_net` vs `internal_net`), and security sandbox flags (`no-new-privileges:true`).
+  - Executed live container healthcheck verification on PostgreSQL 16 Alpine and validated persistent volume retention (`deploy_postgres_data`) across teardown.
+  - Validated total Podman storage usage is strictly within the 30 GB ceiling (5.27 GB / 30 GB, 17.6%).
+  - Documented container verification and reproducibility standards in `docs/DEPLOYMENT.md`.
+  - Expanded bootstrap verification suite (`scripts/verify-bootstrap.ps1`) to 216/216 checks.
+
 ### 2026-11-17 — Phase 0.3: Containerized Development Foundation (`0.3.3`)
 
 #### Added
@@ -17,6 +28,28 @@
   - Authored `scripts/dev-status.ps1` and `scripts/dev-status.sh` reporting runtime container state, healthcheck status, exposed ports, and storage budget compliance in table and structured JSON formats.
   - Documented complete developer lifecycle workflow in `docs/DEVELOPMENT.md`.
   - Expanded bootstrap verification suite (`scripts/verify-bootstrap.ps1`) to 213/213 checks.
+
+### 2026-11-17 — Phase 0.3: Containerized Development Foundation (`0.3.2`)
+
+#### Added
+- **`[0.3.2]` 30 GB Storage Ceiling Enforcement & Safe Cache Pruning:**
+  - Authored `scripts/check-resources.ps1` and `scripts/check-resources.sh` to monitor host CPU cores, RAM (against 16 GB baseline), available disk space, and Podman storage breakdown (`Images`, `Containers`, `Local Volumes`) via `podman system df --format json`.
+  - Enforced the 30 GB container storage ceiling (`NFR-PERF-02`, Rule 08) with automated 80% warning alerts and non-zero exit code on ceiling breach.
+  - Authored `scripts/clean-caches.ps1` and `scripts/clean-caches.sh` for safe cache pruning (build caches, stopped build containers, dangling untagged layers) with dry-run inspection, before-and-after reclaimed byte calculation, and guaranteed retention of persistent database volumes (`postgres_data`).
+  - Integrated Gate 5 (Resource Budget & 30 GB Storage Ceiling) into monorepo quality audit runners `scripts/check-all.ps1` and `scripts/check-all.sh`.
+  - Updated `docs/DEPLOYMENT.md` with complete resource monitoring commands, safety guarantees, and pruning workflows.
+  - Extended bootstrap verification suite (`scripts/verify-bootstrap.ps1`) to 199/199 automated checks.
+
+### 2026-11-17 — Phase 0.3: Containerized Development Foundation (`0.3.1`)
+
+#### Added
+- **`[0.3.1]` Podman Development Configuration:**
+  - Authored `deploy/podman-compose.yml` declaring PostgreSQL 16 Alpine, Rust API service, Rust Worker, isolated Playwright Browser Worker, and SvelteKit Web frontend across two bridge networks (`internal_net`, `browser_net`) with persistent volumes and healthchecks.
+  - Authored multi-stage `deploy/Containerfile.api` and `deploy/Containerfile.worker` with minimal Debian Bookworm slim runtimes and unprivileged `appuser`.
+  - Authored `deploy/Containerfile.browser-worker` with unprivileged `pwuser`.
+  - Authored multi-stage `deploy/Containerfile.web` with Node 20 slim runtime and unprivileged `node` user.
+  - Authored `deploy/.env.example` documenting service environment variables.
+  - Verified configuration via `podman-compose config` CLI and expanded test assertions to 194 checks.
 
 ### 2026-11-17 — Phase 0.3: Containerized Development Foundation (`0.3.2`)
 

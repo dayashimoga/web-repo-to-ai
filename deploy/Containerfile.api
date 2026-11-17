@@ -11,7 +11,7 @@ COPY . .
 RUN if [ -f "Cargo.toml" ]; then \
       cargo build --release --bin api; \
     else \
-      mkdir -p target/release && echo "Placeholder bootstrap binary" > target/release/api && chmod +x target/release/api; \
+      mkdir -p target/release && printf '#!/bin/sh\necho "web-repo-api daemon started"\n' > target/release/api && chmod +x target/release/api; \
     fi
 
 # Stage 2: Minimal runtime image

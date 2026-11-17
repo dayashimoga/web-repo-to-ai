@@ -45,8 +45,8 @@
   - `0.3.1` Create Podman development configuration (`ACCEPTED`)
   - `0.3.2` Enforce the 30 GB storage ceiling (`ACCEPTED`)
   - `0.3.3` Create development environment scripts (`ACCEPTED`)
-  - `0.3.4` Validate reproducible container builds (`NOT_STARTED` — **NEXT ELIGIBLE SUBPHASE**)
-  - `0.3.5` Document setup and recovery (`NOT_STARTED`)
+  - `0.3.4` Validate reproducible container builds (`ACCEPTED`)
+  - `0.3.5` Document setup and recovery (`NOT_STARTED` — **NEXT ELIGIBLE SUBPHASE**)
 
 ### STAGE 1 — FRONTEND AND PRODUCT EXPERIENCE
 - **Phase 1.1 — Design system:** `1.1.1` Visual design tokens | `1.1.2` Typography, spacing & color systems | `1.1.3` Reusable accessible components

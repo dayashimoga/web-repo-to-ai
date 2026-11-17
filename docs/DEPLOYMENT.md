@@ -73,3 +73,22 @@ bash scripts/clean-caches.sh
 
 ### 2.4 Artifact Retention
 - **Artifact Retention:** Automatic background TTL cleanup purges expired artifacts from local/S3 storage and `job_artifacts`.
+
+### 2.5 Reproducible Container Builds & Architectural Audit
+All container configurations are audited for reproducibility, least-privilege security, and storage compliance via dedicated verification scripts:
+```powershell
+# Windows PowerShell
+pwsh scripts/verify-container-builds.ps1          # Full audit (specs, budget, live container healthcheck, volume persistence)
+pwsh scripts/verify-container-builds.ps1 -Quick  # Static architecture and storage ceiling audit
+```
+```bash
+# POSIX bash
+bash scripts/verify-container-builds.sh
+bash scripts/verify-container-builds.sh --quick
+```
+
+**Architectural Standards Enforced:**
+1. **Multi-Stage Builds:** All service Containerfiles (`api`, `worker`, `web`) isolate build dependencies (Cargo, rustc, npm) from production runtime images, preventing build bloat and keeping total storage strictly below 30 GB.
+2. **Minimal Slim Base Images:** Runtimes use `debian:bookworm-slim` and `node:20-slim`; database uses `postgres:16-alpine`.
+3. **Unprivileged Users:** Runtime processes run as non-root users (`appuser` UID 1000, `pwuser`, `node` UID 1000). Root execution is strictly prohibited.
+4. **Network & Sandbox Isolation:** Browser worker is isolated on `browser_net` with `security_opt: ["no-new-privileges:true"]`, blocked from internal PostgreSQL database communication.

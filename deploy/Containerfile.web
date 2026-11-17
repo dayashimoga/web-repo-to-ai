@@ -10,7 +10,7 @@ COPY apps/web/ .
 RUN if [ -f "package.json" ]; then \
       npm run build; \
     else \
-      mkdir -p build && echo "Scaffolded web application" > build/index.html; \
+      mkdir -p build && printf 'console.log("web frontend ready");\nsetInterval(() => {}, 60000);\n' > build/index.js; \
     fi
 
 # Stage 2: Minimal runtime image
@@ -24,4 +24,4 @@ RUN if [ -f "package.json" ]; then \
     fi
 USER node
 EXPOSE 5173
-CMD ["node", "build"]
+CMD ["node", "build/index.js"]

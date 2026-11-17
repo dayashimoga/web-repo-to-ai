@@ -459,12 +459,62 @@
 
 ---
 
-### Phase 0.3 — Upcoming Subphases (Awaiting User Approval for `0.3.4`)
+#### Subphase `0.3.4` — Validate reproducible container builds
+- **Unique ID:** `0.3.4`
+- **Objective:** Validate reproducible container builds, multi-stage architecture specifications, unprivileged runtime user constraints, and strict compliance with the 30 GB container storage ceiling across all services.
+- **Scope:** `deploy/podman-compose.yml`, `deploy/Containerfile.{api,worker,browser-worker,web}`, `scripts/verify-container-builds.ps1`, `scripts/verify-container-builds.sh`, `scripts/verify-bootstrap.ps1`, `docs/DEPLOYMENT.md`, and tracking ledgers.
+- **Prerequisites:** `0.3.3` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `deploy/Containerfile.api`
+  - `deploy/Containerfile.worker`
+  - `deploy/Containerfile.browser-worker`
+  - `deploy/Containerfile.web`
+  - `scripts/verify-container-builds.ps1`
+  - `scripts/verify-container-builds.sh`
+  - `scripts/verify-bootstrap.ps1`
+  - `docs/DEPLOYMENT.md`
+  - `PROJECT_STATUS.md`
+  - `IMPLEMENTATION_LEDGER.md`
+  - `TODO.md`
+  - `CHANGELOG.md`
+  - `ROADMAP.md`
+- **Implementation Tasks:**
+  1. Refine `deploy/Containerfile.api` and `deploy/Containerfile.worker` to output valid POSIX executable binaries with shebang and execution permissions, preventing `exec format error` during container boot.
+  2. Refine `deploy/Containerfile.browser-worker` and `deploy/Containerfile.web` to ensure server entrypoints run unprivileged with node runtimes.
+  3. Author `scripts/verify-container-builds.ps1` and `scripts/verify-container-builds.sh` auditing all 4 Containerfiles and Compose specs for multi-stage build patterns, minimal slim/Alpine runtime base images, unprivileged users (`appuser` UID 1000, `pwuser`, `node` UID 1000), network isolation boundaries (`browser_net` vs `internal_net`), and security sandbox flags (`no-new-privileges:true`).
+  4. Execute live container verification on PostgreSQL 16 Alpine: test clean boot, healthcheck polling, status inspection, teardown, and persistent volume retention (`deploy_postgres_data`).
+  5. Enforce 30 GB container storage budget (< 30 GB) before and after container operations.
+  6. Extend `scripts/verify-bootstrap.ps1` with Category 14 asserting container verification scripts.
+  7. Document reproducibility and architectural standards in `docs/DEPLOYMENT.md`.
+- **Acceptance Criteria:**
+  - All 4 Containerfiles and `deploy/podman-compose.yml` pass static architectural audit (multi-stage, slim images, unprivileged users, isolated networks, sandbox flags).
+  - Live container test starts PostgreSQL, verifies `healthy` status in `dev-status`, executes clean teardown, and confirms retention of `deploy_postgres_data`.
+  - Total Podman storage footprint remains strictly within the 30 GB ceiling (5.27 GB / 30 GB, 17.6%).
+  - All 5 gates in `scripts/check-all.*` pass with 0 failures, and `scripts/verify-bootstrap.ps1` passes all 216 checks.
+- **Tests:**
+  - `scripts/verify-container-builds.ps1 -Quick`: passed (21/21 checks).
+  - `scripts/verify-container-builds.ps1`: passed (25/25 checks, including live container healthcheck and volume retention).
+  - `bash scripts/verify-container-builds.sh --quick`: passed (21/21 checks).
+  - `scripts/check-all.ps1`: ALL 5 GATES PASSED (216/216 checks).
+  - `bash scripts/check-all.sh`: ALL 5 GATES PASSED (216/216 checks).
+- **Security Considerations:** Multi-stage builds eliminate compiler and build-tool attack surface from production images; unprivileged non-root users (`appuser`, `pwuser`, `node`) are strictly enforced; `no-new-privileges:true` prevents privilege escalation; browser worker is isolated from internal PostgreSQL network.
+- **Performance Considerations:** Slim and Alpine base images keep total image footprint to 5.27 GB (< 18% of 30 GB ceiling); healthcheck polling uses 2-second backoff with 30s timeout.
+- **Documentation Requirements:** Updated `docs/DEPLOYMENT.md`, `PROJECT_STATUS.md`, `IMPLEMENTATION_LEDGER.md`, `TODO.md`, `CHANGELOG.md`, and `ROADMAP.md`.
+- **Validation Evidence:**
+  - `scripts/verify-container-builds.ps1` output: 25/25 checks passed (0 failures).
+  - Live container execution: PostgreSQL 16 Alpine healthy on port 5432; `deploy_postgres_data` persistent volume retained.
+  - Storage ceiling audit: 5.27 GB / 30 GB (17.6%) [HEALTHY_WITHIN_BUDGET].
+  - `scripts/check-all.ps1`: ALL 5 GATES PASSED (216/216 checks passed).
+- **Git Commit Reference:** `8b3ed4c`
+- **Status:** `ACCEPTED`
+
+---
+
+### Phase 0.3 — Upcoming Subphases (Awaiting User Approval for `0.3.5`)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `0.3.4` | Validate reproducible container builds | `0.3.3` (`ACCEPTED`) | `deploy/*`, `IMPLEMENTATION_LEDGER.md` | `NOT_STARTED` |
-| `0.3.5` | Document setup and recovery | `0.3.4` | `docs/DEVELOPMENT.md`, `docs/DEPLOYMENT.md` | `NOT_STARTED` |
+| `0.3.5` | Document setup and recovery | `0.3.4` (`ACCEPTED`) | `docs/DEVELOPMENT.md`, `docs/DEPLOYMENT.md` | `NOT_STARTED` |
 
 ---
 
