@@ -3423,11 +3423,63 @@
 
 ---
 
+#### Subphase `4.2.4` — HTML & JSONL generators in crates/exporters
+- **Unique ID:** `4.2.4`
+- **Objective:** Implement standalone semantic HTML document and streaming JSON Lines (`.jsonl`) generators in `crates/exporters` converting `CdmDocument` instances into: (1) self-contained, responsive, dark/light theme aware HTML5 documents with syntax-highlighted code blocks, collapsible sections, table of contents, provenance badges, and completeness metrics; and (2) high-throughput line-delimited JSON (`.jsonl`) streams supporting RAG vector chunks, fine-tuning conversation/prompt-completion datasets, and canonical CDM section streaming.
+- **Scope:** `crates/exporters/src/html.rs`, `crates/exporters/src/jsonl.rs`, `crates/exporters/src/options.rs`, `crates/exporters/src/lib.rs`, `crates/exporters/tests/html_export.rs`, `crates/exporters/tests/jsonl_export.rs`.
+- **Prerequisites:** `4.2.3` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/exporters/src/html.rs`
+  - `crates/exporters/src/jsonl.rs`
+  - `crates/exporters/src/options.rs`
+  - `crates/exporters/src/lib.rs`
+  - `crates/exporters/tests/html_export.rs`
+  - `crates/exporters/tests/jsonl_export.rs`
+- **Implementation Tasks:**
+  1. Add `HtmlOptions` to `crates/exporters/src/options.rs` (standalone flag, embedded CSS stylesheet, collapsible sections, line numbers, table of contents, citations, exclusions, completeness, token budget).
+  2. Add `JsonlFlavor` (`RagChunks`, `FineTuningChat`, `FineTuningPromptCompletion`, `CanonicalSections`) and `JsonlOptions` to `crates/exporters/src/options.rs` (flavor, system prompt, token budget).
+  3. Implement `crates/exporters/src/html.rs`:
+     - HTML character entity escaping (`&`, `<`, `>`, `"`, `'`).
+     - Standalone HTML5 layout with embedded CSS, zero external CDN dependencies, dark/light color scheme, responsive typography.
+     - Collapsible `<details><summary>` code/content sections with syntax blocks.
+     - Table of contents with anchor links, exclusions table, citations list, and completeness metrics badge.
+     - `HtmlExporter` with `export_html` and streaming `export_html_to_writer`.
+  4. Implement `crates/exporters/src/jsonl.rs`:
+     - JSONL models: `RagChunkRecord`, `FineTuningChatRecord`, `FineTuningPromptCompletionRecord`.
+     - Strictly line-delimited single-line JSON records followed by `\n`.
+     - Token budget pruning.
+     - `JsonlExporter` with `export_jsonl` and streaming `export_jsonl_to_writer`.
+  5. Re-export public HTML and JSONL exporter types in `crates/exporters/src/lib.rs`.
+  6. Implement comprehensive integration tests in `crates/exporters/tests/html_export.rs` and `crates/exporters/tests/jsonl_export.rs`.
+  7. Run all 5 monorepo verification gates in `scripts/check-all.ps1`.
+- **Acceptance Criteria:**
+  - `HtmlExporter` generates valid, standalone HTML5 documents and HTML fragments with accurate metadata, styled code blocks, collapsible sections, and responsive layout.
+  - `JsonlExporter` outputs valid newline-delimited JSON records adhering strictly to the selected flavor (RAG chunks, fine-tuning, or canonical sections).
+  - Both exporters support single-pass streaming writer emission with `CountingWriter` producing byte-identical outputs to string generation.
+  - All workspace tests pass, clippy has 0 warnings, formatting is clean, and cargo deny passes.
+- **Tests:** `cargo test -p web-repo-to-ai-exporters`, `cargo test --workspace`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, 01, 04, 05: Safe memory handling, strict HTML entity escaping to prevent XSS in exported HTML files, bounded allocations, no panics, canonical URL citations sanitized.
+- **Performance Considerations:** Single-pass streaming rendering directly to writers without redundant string allocations, pre-allocated string buffers.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-exporters`: 53 passed (1 unit + 10 html + 8 json + 9 jsonl + 15 markdown + 10 plain text integration tests), 0 failed.
+  - `cargo test --workspace`: 433 passed, 0 failed across all monorepo crates.
+  - `apps/web` (SvelteKit + Vitest): 184 passed, 0 failed across 15 test suites.
+  - `services/browser-worker` (Node.js + Jest): 29 passed, 0 failed across 7 test suites.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, clean pass.
+  - `cargo fmt --all -- --check`: Clean formatting verified across all Rust crates.
+  - `cargo deny check`: Licenses, bans, advisories, and sources passed with zero violations.
+  - Monorepo 5-gate audit (`powershell scripts/check-all.ps1`): ALL 5 GATES PASSED (100% pass rate).
+- **Git Commit Reference:** PENDING_COMMIT
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 4 — Canonical Model and Export Engine)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `4.2.4` | HTML & JSONL generators in crates/exporters | `4.2.3` (`ACCEPTED`) | `crates/exporters/*` | `NOT_STARTED` |
+| `4.3.1` | ZIP package generation in crates/exporters | `4.2.4` (`ACCEPTED`) | `crates/exporters/*` | `NOT_STARTED` |
 
 ---
 

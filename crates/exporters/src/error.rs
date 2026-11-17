@@ -11,6 +11,10 @@ pub enum ExporterError {
     #[error("I/O error during export: {0}")]
     Io(#[from] std::io::Error),
 
+    /// A JSON serialization or deserialization error occurred.
+    #[error("JSON serialization error: {0}")]
+    Json(#[from] serde_json::Error),
+
     /// A formatting or serialization error occurred.
     #[error("Formatting error: {0}")]
     Formatting(String),

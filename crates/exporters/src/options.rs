@@ -533,3 +533,281 @@ impl JsonExportOptions {
         self
     }
 }
+
+/// Configuration options controlling HTML document generation.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct HtmlOptions {
+    /// Whether to generate a complete standalone HTML5 document (`<!DOCTYPE html>...`)
+    /// or just the body fragment `<div>...`.
+    pub standalone: bool,
+    /// Document title in the `<title>` tag and page header. If None, derived from CDM metadata.
+    pub title: Option<String>,
+    /// Whether to embed self-contained responsive CSS stylesheet (dark/light theme aware).
+    pub include_css: bool,
+    /// Optional custom CSS stylesheet injected into `<style>`.
+    pub custom_css: Option<String>,
+    /// Whether to render the header banner (title, source URL, metadata badges).
+    pub include_header: bool,
+    /// Hierarchy tree style (UnicodeTree, AsciiTree, BulletedList, None).
+    pub hierarchy_style: HierarchyStyle,
+    /// Whether to render a Table of Contents with section links.
+    pub include_table_of_contents: bool,
+    /// Whether to wrap sections in collapsible `<details><summary>` elements.
+    pub collapsible_sections: bool,
+    /// Whether sections are initially expanded in collapsible mode (default: true).
+    pub initially_expanded: bool,
+    /// Whether to include line numbers on code blocks.
+    pub include_line_numbers: bool,
+    /// Whether to include citations & sources section.
+    pub include_citations: bool,
+    /// Whether to include excluded files audit table.
+    pub include_exclusions: bool,
+    /// Whether to include completeness accounting card/table.
+    pub include_completeness_report: bool,
+    /// Maximum allowed token budget. If reached, remaining sections are omitted.
+    pub max_token_budget: Option<usize>,
+}
+
+impl Default for HtmlOptions {
+    fn default() -> Self {
+        Self {
+            standalone: true,
+            title: None,
+            include_css: true,
+            custom_css: None,
+            include_header: true,
+            hierarchy_style: HierarchyStyle::UnicodeTree,
+            include_table_of_contents: true,
+            collapsible_sections: true,
+            initially_expanded: true,
+            include_line_numbers: false,
+            include_citations: true,
+            include_exclusions: true,
+            include_completeness_report: true,
+            max_token_budget: None,
+        }
+    }
+}
+
+impl HtmlOptions {
+    /// Creates a complete standalone HTML5 document configuration with default styling.
+    #[must_use]
+    pub fn standalone() -> Self {
+        Self::default()
+    }
+
+    /// Creates an HTML fragment configuration suitable for embedding into an existing page.
+    #[must_use]
+    pub fn fragment() -> Self {
+        Self {
+            standalone: false,
+            include_css: false,
+            include_header: false,
+            ..Default::default()
+        }
+    }
+
+    /// Creates a minimal HTML configuration with no tree, no TOC, and flat sections.
+    #[must_use]
+    pub fn minimal() -> Self {
+        Self {
+            standalone: true,
+            include_css: true,
+            include_header: true,
+            hierarchy_style: HierarchyStyle::None,
+            include_table_of_contents: false,
+            collapsible_sections: false,
+            include_citations: false,
+            include_exclusions: false,
+            include_completeness_report: false,
+            ..Default::default()
+        }
+    }
+
+    /// Sets the standalone document mode.
+    #[must_use]
+    pub const fn with_standalone(mut self, standalone: bool) -> Self {
+        self.standalone = standalone;
+        self
+    }
+
+    /// Sets the document title.
+    #[must_use]
+    pub fn with_title(mut self, title: impl Into<String>) -> Self {
+        self.title = Some(title.into());
+        self
+    }
+
+    /// Sets whether to include embedded CSS.
+    #[must_use]
+    pub const fn with_css(mut self, include_css: bool) -> Self {
+        self.include_css = include_css;
+        self
+    }
+
+    /// Sets custom CSS stylesheet.
+    #[must_use]
+    pub fn with_custom_css(mut self, css: impl Into<String>) -> Self {
+        self.custom_css = Some(css.into());
+        self
+    }
+
+    /// Sets whether to render the header banner.
+    #[must_use]
+    pub const fn with_header(mut self, enabled: bool) -> Self {
+        self.include_header = enabled;
+        self
+    }
+
+    /// Sets the directory tree rendering style.
+    #[must_use]
+    pub const fn with_hierarchy_style(mut self, style: HierarchyStyle) -> Self {
+        self.hierarchy_style = style;
+        self
+    }
+
+    /// Sets whether to include the Table of Contents.
+    #[must_use]
+    pub const fn with_table_of_contents(mut self, enabled: bool) -> Self {
+        self.include_table_of_contents = enabled;
+        self
+    }
+
+    /// Sets whether sections are rendered inside collapsible `<details><summary>` elements.
+    #[must_use]
+    pub const fn with_collapsible_sections(mut self, enabled: bool) -> Self {
+        self.collapsible_sections = enabled;
+        self
+    }
+
+    /// Sets whether collapsible sections start expanded.
+    #[must_use]
+    pub const fn with_initially_expanded(mut self, expanded: bool) -> Self {
+        self.initially_expanded = expanded;
+        self
+    }
+
+    /// Sets whether to include code line numbers.
+    #[must_use]
+    pub const fn with_line_numbers(mut self, enabled: bool) -> Self {
+        self.include_line_numbers = enabled;
+        self
+    }
+
+    /// Sets whether to include citations & sources.
+    #[must_use]
+    pub const fn with_citations(mut self, enabled: bool) -> Self {
+        self.include_citations = enabled;
+        self
+    }
+
+    /// Sets whether to include excluded files audit table.
+    #[must_use]
+    pub const fn with_exclusions(mut self, enabled: bool) -> Self {
+        self.include_exclusions = enabled;
+        self
+    }
+
+    /// Sets whether to include completeness report.
+    #[must_use]
+    pub const fn with_completeness_report(mut self, enabled: bool) -> Self {
+        self.include_completeness_report = enabled;
+        self
+    }
+
+    /// Sets maximum token budget ceiling.
+    #[must_use]
+    pub const fn with_max_token_budget(mut self, budget: Option<usize>) -> Self {
+        self.max_token_budget = budget;
+        self
+    }
+}
+
+/// Flavor format for JSON Lines (`.jsonl`) export.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum JsonlFlavor {
+    /// RAG chunk retrieval records with document coordinates, metadata, and token counts.
+    #[default]
+    RagChunks,
+    /// Chat conversation records with `messages` array for instruction fine-tuning (`[{"role": "user", ...}, {"role": "assistant", ...}]`).
+    FineTuningChat,
+    /// Prompt / Completion pairs (`{"prompt": "...", "completion": "..."}`) for traditional LLM completion fine-tuning.
+    FineTuningPromptCompletion,
+    /// Lossless serialized CDM section objects (one `CdmSection` JSON object per line).
+    CanonicalSections,
+}
+
+/// Configuration options controlling JSON Lines (`.jsonl`) export.
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub struct JsonlOptions {
+    /// Output flavor format.
+    pub flavor: JsonlFlavor,
+    /// Optional system prompt injected into chat records or completion instructions.
+    pub system_prompt: Option<String>,
+    /// Maximum allowed token budget across exported sections.
+    pub max_token_budget: Option<usize>,
+}
+
+impl JsonlOptions {
+    /// Creates a RAG chunk JSONL configuration.
+    #[must_use]
+    pub fn rag() -> Self {
+        Self {
+            flavor: JsonlFlavor::RagChunks,
+            system_prompt: None,
+            max_token_budget: None,
+        }
+    }
+
+    /// Creates a chat fine-tuning JSONL configuration with an optional system prompt.
+    #[must_use]
+    pub fn chat_fine_tuning(system_prompt: Option<impl Into<String>>) -> Self {
+        Self {
+            flavor: JsonlFlavor::FineTuningChat,
+            system_prompt: system_prompt.map(Into::into),
+            max_token_budget: None,
+        }
+    }
+
+    /// Creates a prompt/completion fine-tuning JSONL configuration.
+    #[must_use]
+    pub fn prompt_completion_fine_tuning() -> Self {
+        Self {
+            flavor: JsonlFlavor::FineTuningPromptCompletion,
+            system_prompt: None,
+            max_token_budget: None,
+        }
+    }
+
+    /// Creates a canonical CDM section streaming JSONL configuration.
+    #[must_use]
+    pub fn canonical() -> Self {
+        Self {
+            flavor: JsonlFlavor::CanonicalSections,
+            system_prompt: None,
+            max_token_budget: None,
+        }
+    }
+
+    /// Sets the JSONL flavor.
+    #[must_use]
+    pub const fn with_flavor(mut self, flavor: JsonlFlavor) -> Self {
+        self.flavor = flavor;
+        self
+    }
+
+    /// Sets the optional system prompt.
+    #[must_use]
+    pub fn with_system_prompt(mut self, prompt: impl Into<String>) -> Self {
+        self.system_prompt = Some(prompt.into());
+        self
+    }
+
+    /// Sets the maximum token budget cap.
+    #[must_use]
+    pub const fn with_max_token_budget(mut self, budget: Option<usize>) -> Self {
+        self.max_token_budget = budget;
+        self
+    }
+}

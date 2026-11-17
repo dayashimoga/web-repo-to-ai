@@ -6,6 +6,34 @@
 
 ## [Unreleased] — Stage 4: Canonical Model and Export Engine
 
+### 2026-11-17 — Phase 4.2: Format Generators (`4.2.4` — **PHASE 4.2 CERTIFIED**)
+
+#### Added
+- **`[4.2.4]` Implement HTML & JSONL Generators in `crates/exporters`:**
+  - Implemented `HtmlOptions` configuration model in `crates/exporters/src/options.rs`:
+    - Standalone HTML5 document toggle (`standalone`), embedded responsive CSS (`include_css`), custom CSS injection (`custom_css`), header banner (`include_header`), hierarchy tree style (`hierarchy_style`), table of contents (`include_table_of_contents`), collapsible `<details><summary>` sections (`collapsible_sections`, `initially_expanded`), code line numbers (`include_line_numbers`), sources & citations table (`include_citations`), excluded files audit table (`include_exclusions`), completeness report (`include_completeness_report`), and token budget ceiling (`max_token_budget`).
+    - Added preset constructors: `standalone()`, `fragment()`, and `minimal()`.
+  - Implemented core HTML exporter engine in `crates/exporters/src/html.rs`:
+    - `HtmlExporter`: Builder API supporting `export_to_string` and streaming `export_to_writer`.
+    - `export_html` and `export_html_to_writer`: Single-pass streaming renderer writing directly to any `std::io::Write` sink with `CountingWriter` for exact telemetry.
+    - Embedded zero-CDN responsive stylesheet (`DEFAULT_HTML_CSS`) with automatic `@media (prefers-color-scheme: dark)` dark/light theme switching, system font stacks, badge badges, card layouts, and code block styling.
+    - Security-hardened HTML character entity escaping (`escape_html`) preventing XSS vulnerabilities.
+    - Anchor slug generator (`slugify`) for table of contents navigation.
+    - Collapsible section rendering with line numbering support.
+  - Implemented `JsonlFlavor` and `JsonlOptions` configuration models in `crates/exporters/src/options.rs`:
+    - Flavors: `RagChunks` (embedding/retrieval records with document/line coordinates), `FineTuningChat` (conversational instruction dataset records with `messages`), `FineTuningPromptCompletion` (`prompt`/`completion` pairs), and `CanonicalSections` (lossless serialized CDM sections per line).
+    - Presets: `rag()`, `chat_fine_tuning()`, `prompt_completion_fine_tuning()`, and `canonical()`.
+  - Implemented core JSON Lines exporter in `crates/exporters/src/jsonl.rs`:
+    - `JsonlExporter`: Builder API supporting `export_to_string` and streaming `export_to_writer`.
+    - Models: `RagChunkRecord`, `ChatMessage`, `FineTuningChatRecord`, `FineTuningPromptCompletionRecord`.
+    - High-throughput streaming serialization writing strictly one line per section terminated by `\n`.
+  - Added `ExporterError::Json` variant with `#[from] serde_json::Error` in `crates/exporters/src/error.rs`.
+  - Re-exported all HTML and JSONL types in `crates/exporters/src/lib.rs`.
+  - Created integration test suites:
+    - `crates/exporters/tests/html_export.rs` (10 tests) verifying standalone layout, fragments, minimal preset, line numbers, token budget truncation, streaming byte equivalence, empty documents, serde roundtrips, XSS defense, and builder API.
+    - `crates/exporters/tests/jsonl_export.rs` (9 tests) verifying RAG chunks, chat fine-tuning, prompt/completion pairs, canonical CDM sections, token budget truncation, streaming byte equivalence, empty documents, serde roundtrips, and builder API.
+  - Verification: 53 passing exporter tests (up from 34), 433 total workspace Rust tests (up from 414), 184 frontend tests, 29 browser-worker tests, and 100% pass rate across all 5 monorepo verification gates.
+
 ### 2026-11-17 — Phase 4.2: Format Generators (`4.2.3`)
 
 #### Added

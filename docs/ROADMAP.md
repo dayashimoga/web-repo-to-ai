@@ -50,8 +50,8 @@
 - **Stage Acceptance Gate:** A user can enter a URL in the web UI and obtain verified downloadable AI-ready content (Markdown, TXT, JSON, HTML, JSONL, ZIP).
 - **Phases:**
   - `4.1` CDM (`4.1.1` [ACCEPTED], `4.1.2` [ACCEPTED], `4.1.3` [ACCEPTED], `4.1.4` [ACCEPTED — PHASE 4.1 CERTIFIED])
-  - `4.2` Format generators (`4.2.1` [ACCEPTED], `4.2.2` [ACCEPTED], `4.2.3` [ACCEPTED], `4.2.4` [NEXT])
-  - `4.3` Export (`4.3.1` – `4.3.4`)
+  - `4.2` Format generators (`4.2.1` [ACCEPTED], `4.2.2` [ACCEPTED], `4.2.3` [ACCEPTED], `4.2.4` [ACCEPTED — PHASE 4.2 CERTIFIED])
+  - `4.3` Export (`4.3.1` [NEXT], `4.3.2` – `4.3.4`)
   - `4.4` Website integration (`4.4.1` – `4.4.4`)
 
 ### STAGE 5 — PUBLIC GITHUB REPOSITORY EXTRACTION

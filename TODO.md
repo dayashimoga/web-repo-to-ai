@@ -122,7 +122,7 @@
 - [x] **[4.2.1]** Markdown generator in crates/exporters *(Completed 2026-11-17, MarkdownExporter, MarkdownOptions, CodeFenceStyle with fence escalation, HierarchyStyle with Unicode/ASCII/bulleted trees, Table of Contents with GFM anchor slugs, polyglot section formatting, GFM alert admonitions, exclusions and citations accounting, streaming export_markdown_to_writer, 16 passing exporter tests, 396 workspace tests)*
 - [x] **[4.2.2]** Plain-text generator in crates/exporters *(Completed 2026-11-17, PlainTextExporter, PlainTextOptions, ASCII/Unicode header banner, directory tree, Table of Contents, clean section delimiters, line numbering, plain-text citations and exclusions audit, completeness report, streaming export_plain_text_to_writer, 26 passing exporter tests, 406 workspace tests)*
 - [x] **[4.2.3]** JSON generator in crates/exporters *(Completed 2026-11-17, JsonExporter, JsonExportOptions, JsonFormatFlavor (CanonicalCdm, StructuredContext, Minified), StructuredContextEnvelope models, field filtering, token budget caps with truncated flag, streaming export_json_to_writer, 34 passing exporter tests, 414 workspace tests)*
-- [ ] **[4.2.4]** HTML & JSONL generators in crates/exporters
+- [x] **[4.2.4]** HTML & JSONL generators in crates/exporters *(Completed 2026-11-17, HtmlExporter, HtmlOptions, standalone HTML5 document, embedded responsive CSS, dark/light theme aware, collapsible sections, line numbers, table of contents, citations & exclusions tables, JsonlExporter, JsonlOptions, JsonlFlavor (RagChunks, FineTuningChat, FineTuningPromptCompletion, CanonicalSections), streaming writers, 53 passing exporter tests, 433 workspace tests — PHASE 4.2 CERTIFIED)*
 
 ### Phase 4.3 — Export
 - [ ] **[4.3.1]** ZIP package generation in crates/exporters
