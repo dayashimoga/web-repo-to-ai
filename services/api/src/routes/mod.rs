@@ -8,13 +8,14 @@ pub mod jobs;
 pub mod metrics;
 pub mod sources;
 
+use crate::error::not_found_problem;
 use crate::state::AppState;
-use axum::extract::{OriginalUri, State};
-use axum::http::StatusCode;
+use axum::extract::{Extension, OriginalUri, State};
 use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde_json::json;
+use web_repo_to_ai_core::RequestId;
 
 /// Root landing handler returning service descriptor and API version info.
 async fn root_handler(State(_state): State<AppState>) -> impl IntoResponse {
@@ -34,19 +35,12 @@ async fn root_handler(State(_state): State<AppState>) -> impl IntoResponse {
 }
 
 /// Fallback handler returning RFC 7807 compliant problem details JSON for unmatched routes.
-async fn fallback_handler(OriginalUri(uri): OriginalUri) -> impl IntoResponse {
-    (
-        StatusCode::NOT_FOUND,
-        Json(json!({
-            "error": {
-                "code": "RESOURCE_NOT_FOUND",
-                "message": format!("Route '{}' was not found on this server", uri),
-                "details": {
-                    "path": uri.path()
-                }
-            }
-        })),
-    )
+async fn fallback_handler(
+    OriginalUri(uri): OriginalUri,
+    req_ext: Option<Extension<RequestId>>,
+) -> impl IntoResponse {
+    let request_id = req_ext.map(|Extension(r)| r);
+    not_found_problem("Route", uri.path(), request_id)
 }
 
 /// Constructs the primary Axum application router with all registered routes and state.
@@ -56,10 +50,7 @@ pub fn create_router(state: AppState) -> Router {
         .route("/ready", get(health::readiness_handler))
         .route("/metrics", get(metrics::metrics_handler))
         .route("/sources/detect", post(sources::detect_sources_handler))
-        .route(
-            "/jobs",
-            post(jobs::create_job_handler).get(jobs::list_jobs_handler),
-        )
+        .route("/jobs", post(jobs::create_job_handler).get(jobs::list_jobs_handler))
         .route("/jobs/:job_id", get(jobs::get_job_handler))
         .route(
             "/jobs/:job_id/artifacts/:format",

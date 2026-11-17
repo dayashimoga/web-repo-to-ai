@@ -20,6 +20,8 @@ pub enum ErrorCode {
     UnauthorizedGithubRepo,
     /// Requested job, document, or artifact was not found.
     ResourceNotFound,
+    /// HTTP method not allowed for the target endpoint.
+    MethodNotAllowed,
     /// Request rate limit or quota exceeded.
     RateLimitExceeded,
     /// Target file or repository exceeds maximum allowed size budget.
@@ -48,6 +50,7 @@ impl ErrorCode {
             Self::SsrfAddressBlocked => "SSRF_ADDRESS_BLOCKED",
             Self::UnauthorizedGithubRepo => "UNAUTHORIZED_GITHUB_REPO",
             Self::ResourceNotFound => "RESOURCE_NOT_FOUND",
+            Self::MethodNotAllowed => "METHOD_NOT_ALLOWED",
             Self::RateLimitExceeded => "RATE_LIMIT_EXCEEDED",
             Self::PayloadTooLarge => "PAYLOAD_TOO_LARGE",
             Self::ExtractionTimeout => "EXTRACTION_TIMEOUT",
@@ -67,6 +70,7 @@ impl ErrorCode {
             Self::UnauthorizedGithubRepo => 401,
             Self::SsrfAddressBlocked => 403,
             Self::ResourceNotFound => 404,
+            Self::MethodNotAllowed => 405,
             Self::PayloadTooLarge => 413,
             Self::RateLimitExceeded => 429,
             Self::ExtractionTimeout => 504,
@@ -128,6 +132,15 @@ pub enum CoreError {
         resource_type: &'static str,
         /// Unique identifier of the missing entity.
         id: String,
+    },
+
+    /// HTTP method not allowed for the requested path.
+    #[error("HTTP method '{method}' is not allowed for path '{path}'")]
+    MethodNotAllowed {
+        /// HTTP method attempted.
+        method: String,
+        /// Request path requested.
+        path: String,
     },
 
     /// Rate limit or concurrency permit exhausted.
@@ -194,6 +207,7 @@ impl CoreError {
             Self::Security(_) | Self::SsrfBlocked { .. } => ErrorCode::SsrfAddressBlocked,
             Self::UnsupportedUrlScheme(_) => ErrorCode::UnsupportedUrlScheme,
             Self::NotFound { .. } => ErrorCode::ResourceNotFound,
+            Self::MethodNotAllowed { .. } => ErrorCode::MethodNotAllowed,
             Self::RateLimitExceeded(_) => ErrorCode::RateLimitExceeded,
             Self::PayloadTooLarge { .. } => ErrorCode::PayloadTooLarge,
             Self::Timeout { .. } => ErrorCode::ExtractionTimeout,
@@ -237,6 +251,10 @@ impl CoreError {
             Self::NotFound { resource_type, id } => Some(serde_json::json!({
                 "resource_type": resource_type,
                 "id": id,
+            })),
+            Self::MethodNotAllowed { method, path } => Some(serde_json::json!({
+                "method": method,
+                "path": path,
             })),
             _ => None,
         };
@@ -321,17 +339,27 @@ mod tests {
 
     #[test]
     fn test_invalid_request_schema_envelope() {
-        let err = CoreError::InvalidRequestSchema(
-            "Failed to parse JSON body at line 1 column 5".to_string(),
-        );
+        let err = CoreError::InvalidRequestSchema("Failed to parse JSON body at line 1 column 5".to_string());
         assert_eq!(err.error_code(), ErrorCode::InvalidRequestSchema);
         assert_eq!(err.http_status(), 400);
         let envelope = err.to_api_error(Some("req-test".to_string()));
         assert_eq!(envelope.error.code, "INVALID_REQUEST_SCHEMA");
         let details = envelope.error.details.expect("Details should exist");
-        assert!(details["reason"]
-            .as_str()
-            .unwrap()
-            .contains("line 1 column 5"));
+        assert!(details["reason"].as_str().unwrap().contains("line 1 column 5"));
+    }
+
+    #[test]
+    fn test_method_not_allowed_envelope() {
+        let err = CoreError::MethodNotAllowed {
+            method: "DELETE".to_string(),
+            path: "/api/v1/jobs".to_string(),
+        };
+        assert_eq!(err.error_code(), ErrorCode::MethodNotAllowed);
+        assert_eq!(err.http_status(), 405);
+        let envelope = err.to_api_error(Some("req-mna".to_string()));
+        assert_eq!(envelope.error.code, "METHOD_NOT_ALLOWED");
+        let details = envelope.error.details.expect("Details should exist");
+        assert_eq!(details["method"], "DELETE");
+        assert_eq!(details["path"], "/api/v1/jobs");
     }
 }

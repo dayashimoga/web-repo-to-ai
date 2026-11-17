@@ -5,6 +5,7 @@
 
 use axum::middleware as axum_mw;
 use axum::Router;
+use tower_http::limit::RequestBodyLimitLayer;
 use tracing::info;
 use web_repo_to_ai_core::{AppConfig, CoreError, Result};
 
@@ -16,11 +17,13 @@ use crate::state::AppState;
 pub fn build_app(state: AppState) -> Router {
     let cors = build_cors_layer(&state.config);
     let timeout = build_timeout_layer(&state.config);
+    let body_limit = RequestBodyLimitLayer::new(10 * 1024 * 1024);
 
     create_router(state)
         .layer(axum_mw::from_fn(trace_id_middleware))
         .layer(cors)
         .layer(timeout)
+        .layer(body_limit)
 }
 
 /// Binds the HTTP listener and starts the Axum web server with graceful shutdown.

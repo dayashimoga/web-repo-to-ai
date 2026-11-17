@@ -6,6 +6,20 @@
 
 ## [Unreleased] — Stage 2: Backend and Processing Foundation
 
+### 2026-11-17 — Phase 2.2: API (`2.2.3`)
+
+#### Added
+- **`[2.2.3]` Implement API Error Contracts and RFC 7807 Problem Details in `services/api`:**
+  - Implemented RFC 7807 problem details response wrapper `ApiProblem` and helper constructors (`services/api/src/error.rs`):
+    - Sets `Content-Type: application/problem+json` on all HTTP error responses.
+    - Accurately maps domain errors to standard HTTP status codes (`400`, `401`, `403`, `404`, `405`, `413`, `429`, `500`, `504`).
+    - Guarantees exact correlation between `x-request-id` response header and `body.error.request_id` in problem JSON envelopes.
+    - Provided helpers: `to_problem_response()`, `not_found_problem()`, `validation_problem()`, `schema_problem()`, `payload_too_large_problem()`, and `method_not_allowed_problem()`.
+  - Added `MethodNotAllowed` (405) variant to `ErrorCode` and `CoreError` in `crates/core/src/error.rs`.
+  - Configured `RequestBodyLimitLayer` (10 MB request body limit) in `services/api/src/server.rs` with automatic RFC 7807 `PAYLOAD_TOO_LARGE` conversion in `ValidatedJson`.
+  - Refactored `fallback_handler` in `services/api/src/routes/mod.rs` and handlers in `services/api/src/routes/jobs.rs` to format 404 errors as RFC 7807 problem details with correlated request ID.
+  - Added 4 integration tests in `services/api/src/lib.rs` verifying problem JSON media types, request ID correlation integrity, 10 MB payload rejections, and `traceparent` propagation on errors, expanding workspace tests to 84/84 passing. Verified all 5 quality gates pass.
+
 ### 2026-11-17 — Phase 2.2: API (`2.2.2`)
 
 #### Added

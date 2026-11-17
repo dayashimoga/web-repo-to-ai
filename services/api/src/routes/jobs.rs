@@ -1,15 +1,16 @@
 //! Job management route handlers.
 
-use axum::extract::State;
+use axum::extract::{Extension, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
-use web_repo_to_ai_core::{CoreError, JobId};
+use web_repo_to_ai_core::{JobId, RequestId};
 
 use crate::dto::{
     ArtifactPathParams, CreateJobRequest, JobPathParams, JobResponse, ListJobsQuery,
     PaginatedResponse,
 };
+use crate::error::not_found_problem;
 use crate::extractors::{ValidatedJson, ValidatedPath, ValidatedQuery};
 use crate::state::AppState;
 
@@ -52,14 +53,11 @@ pub async fn list_jobs_handler(
 /// Retrieves conversion job status by UUID v7 identifier.
 pub async fn get_job_handler(
     State(_state): State<AppState>,
+    Extension(request_id): Extension<RequestId>,
     ValidatedPath(params): ValidatedPath<JobPathParams>,
 ) -> impl IntoResponse {
     // Until persistence is wired in Phase 2.3, returns typed 404 Problem Details
-    let err = CoreError::NotFound {
-        resource_type: "Job",
-        id: params.job_id.to_string(),
-    };
-    (StatusCode::NOT_FOUND, Json(err.to_api_error(None)))
+    not_found_problem("Job", &params.job_id.to_string(), Some(request_id))
 }
 
 /// Handles `GET /api/v1/jobs/{job_id}/artifacts/{format}`.
@@ -67,12 +65,13 @@ pub async fn get_job_handler(
 /// Streams or downloads an exported artifact by format.
 pub async fn get_artifact_handler(
     State(_state): State<AppState>,
+    Extension(request_id): Extension<RequestId>,
     ValidatedPath(params): ValidatedPath<ArtifactPathParams>,
 ) -> impl IntoResponse {
     // Until storage is wired in Phase 2.4, returns typed 404 Problem Details
-    let err = CoreError::NotFound {
-        resource_type: "Artifact",
-        id: format!("{}:{}", params.job_id, params.format),
-    };
-    (StatusCode::NOT_FOUND, Json(err.to_api_error(None)))
+    not_found_problem(
+        "Artifact",
+        &format!("{}:{}", params.job_id, params.format),
+        Some(request_id),
+    )
 }

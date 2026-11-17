@@ -1712,7 +1712,54 @@
   - `cargo fmt --all -- --check`: 100% code style compliance.
   - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
   - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
-- **Git Commit Reference:** `c1af3ad`
+- **Git Commit Reference:** `ec9c8d3`
+- **Status:** `ACCEPTED`
+
+---
+
+#### Subphase `2.2.3` — Implement API error contracts and RFC 7807 problem details in services/api
+- **Unique ID:** `2.2.3`
+- **Objective:** Finalize unified RFC 7807 problem details error mapping across all Axum layers, including global fallback error handling, status code mappings, `RequestBodyLimitLayer` (413 Payload Too Large) handling, and error response serialization with W3C distributed tracing context (`traceparent`) and request ID correlation.
+- **Scope:** `services/api/src/{error.rs, server.rs, routes/mod.rs, routes/jobs.rs, extractors/*, lib.rs}`, `crates/core/src/error.rs`, `services/api/Cargo.toml`.
+- **Prerequisites:** `2.2.2` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/core/src/error.rs`
+  - `services/api/Cargo.toml`
+  - `services/api/src/error.rs`
+  - `services/api/src/server.rs`
+  - `services/api/src/routes/mod.rs`
+  - `services/api/src/routes/jobs.rs`
+  - `services/api/src/extractors/json.rs`
+  - `services/api/src/extractors/query.rs`
+  - `services/api/src/extractors/path.rs`
+  - `services/api/src/lib.rs`
+- **Implementation Tasks:**
+  1. Add `MethodNotAllowed` (405) variant to `ErrorCode` and `CoreError` in `crates/core/src/error.rs`.
+  2. Enable `"limit"` feature on `tower-http` in `services/api/Cargo.toml` and attach `RequestBodyLimitLayer` (10 MB limit) to server pipeline in `services/api/src/server.rs`.
+  3. Implement `ApiProblem` and helper constructors (`to_problem_response`, `not_found_problem`, `validation_problem`, `schema_problem`, `payload_too_large_problem`, `method_not_allowed_problem`) in `services/api/src/error.rs` setting `Content-Type: application/problem+json`, mapping HTTP status codes, and attaching `x-request-id` headers.
+  4. Refactor `ValidatedJson`, `ValidatedQuery`, and `ValidatedPath` extractors to format all rejections using `to_problem_response` with correlated `request_id`.
+  5. Refactor `fallback_handler` in `services/api/src/routes/mod.rs` and handlers in `services/api/src/routes/jobs.rs` to emit RFC 7807 problem details with correlated `request_id`.
+  6. Add integration tests verifying `Content-Type: application/problem+json`, exact correlation of `x-request-id` header with `body.error.request_id`, 413 `PAYLOAD_TOO_LARGE` rejection on oversized payloads, and `traceparent` header propagation on errors.
+  7. Run `cargo check --workspace`, `cargo test --workspace`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, and verify all 5 gates pass in `scripts/check-all.ps1`.
+- **Acceptance Criteria:**
+  - All HTTP error responses (400, 404, 405, 413, 500) set `Content-Type: application/problem+json`.
+  - Every error response body contains standard machine-readable envelope with `code`, `message`, structured `details`, and `request_id`.
+  - The `x-request-id` response header and `body.error.request_id` are guaranteed identical across all failure modes.
+  - Payloads exceeding 10 MB are rejected with HTTP 413 `PAYLOAD_TOO_LARGE` in RFC 7807 format.
+  - W3C `traceparent` header is preserved on all error responses.
+  - 100% of Rust tests pass (33 in `services/api`, 84 across workspace); zero clippy warnings; all 5 gates pass.
+- **Tests:** `cargo test -p web-repo-to-ai-api` (33/33 passed), `cargo test --workspace` (84/84 passed), `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Complies with Rule 00, 02, and 05: zero leakage of internal stack traces, database credentials, or secret keys in RFC 7807 error messages; strict 10 MB payload limit mitigating memory exhaustion / denial of service; correlation IDs enable secure distributed tracing without credential exposure.
+- **Performance Considerations:** Zero allocation overhead for problem details serialization; lock-free error header propagation; pre-allocated static header values.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-api`: 32 library tests + 1 binary metadata test passed.
+  - `cargo test --workspace`: 84/84 tests passed.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors.
+  - `cargo fmt --all -- --check`: 100% code style compliance.
+  - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
+- **Git Commit Reference:** `86816a1`
 - **Status:** `ACCEPTED`
 
 ---
@@ -1721,7 +1768,7 @@
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `2.2.3` | Implement API error contracts and RFC 7807 problem details in services/api | `2.2.2` (`ACCEPTED`) | `services/api/src/*`, `crates/core/src/*` | `NOT_STARTED` |
+| `2.2.4` | Implement health, readiness, and metrics endpoints in services/api | `2.2.3` (`ACCEPTED`) | `services/api/src/*` | `NOT_STARTED` |
 
 ---
 

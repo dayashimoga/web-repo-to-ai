@@ -7,6 +7,7 @@
 #![warn(missing_docs)]
 
 pub mod dto;
+pub mod error;
 pub mod extractors;
 pub mod middleware;
 pub mod routes;
@@ -15,10 +16,11 @@ pub mod state;
 
 pub use dto::{
     classify_source_url, ArtifactPathParams, CreateJobRequest, DetectSourcesRequest,
-    DetectSourcesResponse, DetectedSource, JobPathParams, JobResponse, JobStatus, ListJobsQuery,
-    PaginatedResponse, SourceClassification, VALID_EXPORT_FORMATS, VALID_SORT_ORDERS,
-    VALID_STATUS_FILTERS,
+    DetectSourcesResponse, DetectedSource, JobPathParams, JobResponse, JobStatus,
+    ListJobsQuery, PaginatedResponse, SourceClassification, VALID_EXPORT_FORMATS,
+    VALID_SORT_ORDERS, VALID_STATUS_FILTERS,
 };
+pub use error::*;
 pub use extractors::{ValidatedJson, ValidatedPath, ValidatedQuery};
 pub use server::{build_app, run_server};
 pub use state::AppState;
@@ -520,5 +522,120 @@ mod tests {
         let body = body_to_string(response.into_body()).await;
         assert!(body.contains("VALIDATION_ERROR"));
         assert!(body.contains("format"));
+    }
+
+    #[tokio::test]
+    async fn test_rfc7807_content_type_header() {
+        let app = setup_test_app();
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/nonexistent-route")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+        let content_type = response
+            .headers()
+            .get(header::CONTENT_TYPE)
+            .unwrap()
+            .to_str()
+            .unwrap();
+        assert_eq!(content_type, "application/problem+json");
+    }
+
+    #[tokio::test]
+    async fn test_rfc7807_request_id_correlation_integrity() {
+        let app = setup_test_app();
+        let custom_id = "019335c4-7c20-7000-8000-000000000099";
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/api/v1/sources/detect")
+                    .header("x-request-id", custom_id)
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from("{ malformed json }"))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        // Header check
+        let header_id = response
+            .headers()
+            .get("x-request-id")
+            .unwrap()
+            .to_str()
+            .unwrap();
+        assert_eq!(header_id, custom_id);
+
+        // Body check
+        let body_str = body_to_string(response.into_body()).await;
+        let v: serde_json::Value = serde_json::from_str(&body_str).unwrap();
+        assert_eq!(v["error"]["code"], "INVALID_REQUEST_SCHEMA");
+        assert_eq!(v["error"]["request_id"], custom_id);
+    }
+
+    #[tokio::test]
+    async fn test_payload_too_large_rejection() {
+        let app = setup_test_app();
+        // Create an oversized body exceeding 10 MB limit (10 MB + 1 KB)
+        let oversized = vec![b'a'; 10 * 1024 * 1024 + 1024];
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/api/v1/sources/detect")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(oversized))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::PAYLOAD_TOO_LARGE);
+        let content_type = response
+            .headers()
+            .get(header::CONTENT_TYPE)
+            .unwrap()
+            .to_str()
+            .unwrap();
+        assert_eq!(content_type, "application/problem+json");
+        let body_str = body_to_string(response.into_body()).await;
+        assert!(body_str.contains("PAYLOAD_TOO_LARGE"));
+    }
+
+    #[tokio::test]
+    async fn test_traceparent_propagation_on_error() {
+        let app = setup_test_app();
+        let custom_trace = "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01";
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/unknown")
+                    .header("traceparent", custom_trace)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+        let resp_trace = response
+            .headers()
+            .get("traceparent")
+            .unwrap()
+            .to_str()
+            .unwrap();
+        assert!(resp_trace.starts_with("00-4bf92f3577b34da6a3ce929d0e0e4736-"));
     }
 }

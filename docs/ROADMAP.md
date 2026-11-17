@@ -32,7 +32,7 @@
 - **Stage Acceptance Gate:** Actual API, database schema/migrations, durable job leasing, and storage lifecycle verified via integration tests.
 - **Phases:**
   - `2.1` Rust architecture (`2.1.1` [ACCEPTED], `2.1.2` [ACCEPTED], `2.1.3` [ACCEPTED — CERTIFIED])
-  - `2.2` API (`2.2.1` [ACCEPTED], `2.2.2` [ACCEPTED], `2.2.3` [NEXT] – `2.2.4`)
+  - `2.2` API (`2.2.1` [ACCEPTED], `2.2.2` [ACCEPTED], `2.2.3` [ACCEPTED], `2.2.4` [NEXT])
   - `2.3` Persistence (`2.3.1` – `2.3.4`)
   - `2.4` Storage (`2.4.1` – `2.4.4`)
 
