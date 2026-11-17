@@ -505,7 +505,7 @@
   - Live container execution: PostgreSQL 16 Alpine healthy on port 5432; `deploy_postgres_data` persistent volume retained.
   - Storage ceiling audit: 5.27 GB / 30 GB (17.6%) [HEALTHY_WITHIN_BUDGET].
   - `scripts/check-all.ps1`: ALL 5 GATES PASSED (216/216 checks passed).
-- **Git Commit Reference:** `8b3ed4c`
+- **Git Commit Reference:** `f925fd2`
 - **Status:** `ACCEPTED`
 
 ---
