@@ -84,11 +84,11 @@
 
 ## Stage 3: Universal Webpage Extraction (`IN_PROGRESS`)
 
-### Phase 3.1 — Secure acquisition (`IN_PROGRESS`)
+### Phase 3.1 — Secure acquisition (`COMPLETED` / `CERTIFIED`)
 - [x] **[3.1.1]** URL parsing, normalization, and validation in crates/url-security and crates/web-extractor *(Completed 2026-11-17, UrlSecurityError, UrlSecurityPolicy, is_blocked_ip, is_blocked_host, parse_alternative_ipv4, UrlNormalizer, ValidatedUrl, WebTarget, WebPageType, 16 passing url-security tests, 7 passing web-extractor tests, 163 workspace tests)*
 - [x] **[3.1.2]** DNS resolution, IP pinning, and DNS-rebinding protection in crates/url-security *(Completed 2026-11-17, DnsResolver trait, SystemDnsResolver, MockDnsResolver, PinnedTarget, SecureDnsResolver with RwLock caching, all-record SSRF validation, anti-rebinding tests, 21 passing url-security tests, 8 passing web-extractor tests, 169 workspace tests)*
 - [x] **[3.1.3]** HTTP fetching, streaming bodies, and redirect revalidation in crates/web-extractor *(Completed 2026-11-17, WebExtractorError, RedirectTracker, FetchedResponse, HttpTransport, ReqwestTransport with Policy::none, MockHttpTransport, WebFetcher with DNS pinning & redirect revalidation, 16 passing web-extractor tests, 177 workspace tests)*
-- [ ] **[3.1.4]** Compression bombs, timeouts, and body size limits in crates/web-extractor
+- [x] **[3.1.4]** Compression bombs, timeouts, and body size limits in crates/web-extractor *(Completed 2026-11-17, ContentEncoding, BodyLimits, BoundedDecompressor with atomic ratio accounting, gzip/brotli/zstd/deflate decoders, Content-Length early exit, timeout controls, 38 passing web-extractor tests, 199 workspace tests)*
 
 ### Phase 3.2 — Static extraction (`NOT_STARTED`)
 - [ ] **[3.2.1]** DOM parsing and boilerplate removal in crates/web-extractor

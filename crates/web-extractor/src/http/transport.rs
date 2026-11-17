@@ -118,6 +118,10 @@ impl HttpTransport for ReqwestTransport {
 pub struct MockHttpTransport {
     /// Map from canonical URL to configured mock responses.
     responses: Arc<Mutex<HashMap<String, MockResponse>>>,
+    /// Configured simulated response delays.
+    delays: Arc<Mutex<HashMap<String, Duration>>>,
+    /// Configured simulated inter-chunk streaming delays.
+    chunk_delays: Arc<Mutex<HashMap<String, Duration>>>,
 }
 
 /// Pre-configured mock HTTP response definition.
@@ -180,6 +184,18 @@ impl MockHttpTransport {
             },
         );
     }
+
+    /// Configures a simulated initial response delay for testing timeouts.
+    pub fn set_delay(&self, url: &str, delay: Duration) {
+        let mut map = self.delays.lock().expect("lock not poisoned");
+        map.insert(url.to_string(), delay);
+    }
+
+    /// Configures a simulated inter-chunk streaming delay for testing chunk timeouts.
+    pub fn set_chunk_delay(&self, url: &str, delay: Duration) {
+        let mut map = self.chunk_delays.lock().expect("lock not poisoned");
+        map.insert(url.to_string(), delay);
+    }
 }
 
 #[async_trait]
@@ -192,12 +208,52 @@ impl HttpTransport for MockHttpTransport {
         _timeout: Duration,
     ) -> Result<TransportResponse, WebExtractorError> {
         let url_str = target.url.as_str();
+
+        let initial_delay = self
+            .delays
+            .lock()
+            .expect("lock not poisoned")
+            .get(url_str)
+            .copied();
+
+        if let Some(delay) = initial_delay {
+            tokio::time::sleep(delay).await;
+        }
+
+        let chunk_delay = self
+            .chunk_delays
+            .lock()
+            .expect("lock not poisoned")
+            .get(url_str)
+            .copied();
+
         let map = self.responses.lock().expect("lock not poisoned");
 
         if let Some(mock) = map.get(url_str) {
-            let body_bytes = Bytes::from(mock.body.clone());
-            let stream = futures::stream::once(async move { Ok(body_bytes) });
-            let boxed_stream: BodyByteStream = Box::pin(stream);
+            let boxed_stream: BodyByteStream = if let Some(cd) = chunk_delay {
+                let half = mock.body.len() / 2;
+                let part1 = Bytes::from(mock.body[..half].to_vec());
+                let part2 = Bytes::from(mock.body[half..].to_vec());
+                let stream = futures::stream::unfold(0, move |step| {
+                    let p1 = part1.clone();
+                    let p2 = part2.clone();
+                    async move {
+                        match step {
+                            0 => Some((Ok(p1), 1)),
+                            1 => {
+                                tokio::time::sleep(cd).await;
+                                Some((Ok(p2), 2))
+                            }
+                            _ => None,
+                        }
+                    }
+                });
+                Box::pin(stream)
+            } else {
+                let body_bytes = Bytes::from(mock.body.clone());
+                let stream = futures::stream::once(async move { Ok(body_bytes) });
+                Box::pin(stream)
+            };
 
             Ok(TransportResponse {
                 status: mock.status,

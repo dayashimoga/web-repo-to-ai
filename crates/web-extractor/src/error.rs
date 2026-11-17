@@ -7,7 +7,7 @@ use web_repo_to_ai_core::error::CoreError;
 use web_repo_to_ai_url_security::UrlSecurityError;
 
 /// Error conditions encountered during web content acquisition, redirect revalidation, and extraction.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum WebExtractorError {
     /// URL security or SSRF validation failure.
     UrlSecurity(UrlSecurityError),
@@ -56,6 +56,36 @@ pub enum WebExtractorError {
         /// Error description.
         details: String,
     },
+    /// Decompression bomb detected: expansion ratio exceeded the configured safety threshold.
+    DecompressionBomb {
+        /// Observed expansion ratio.
+        ratio: f64,
+        /// Maximum allowed expansion ratio.
+        max_ratio: f64,
+        /// Compressed bytes consumed.
+        compressed_bytes: usize,
+        /// Decompressed bytes produced.
+        decompressed_bytes: usize,
+    },
+    /// Decompression failed due to corrupt data or decoder error.
+    DecompressionFailed {
+        /// Content encoding format (e.g. gzip, brotli, zstd).
+        encoding: String,
+        /// Underlying failure details.
+        details: String,
+    },
+    /// The response declared an unsupported Content-Encoding.
+    UnsupportedContentEncoding {
+        /// The unsupported encoding token.
+        encoding: String,
+    },
+    /// Mismatch between declared Content-Length header and actual bytes read.
+    ContentLengthMismatch {
+        /// Declared Content-Length in header.
+        expected: u64,
+        /// Actual raw bytes read from the network.
+        actual: u64,
+    },
 }
 
 impl fmt::Display for WebExtractorError {
@@ -86,6 +116,25 @@ impl fmt::Display for WebExtractorError {
             }
             Self::Timeout { details } => write!(f, "HTTP request timed out: {details}"),
             Self::Network { details } => write!(f, "Network error: {details}"),
+            Self::DecompressionBomb {
+                ratio,
+                max_ratio,
+                compressed_bytes,
+                decompressed_bytes,
+            } => write!(
+                f,
+                "Decompression bomb detected: expansion ratio {ratio:.2} exceeds limit {max_ratio:.2} ({decompressed_bytes} decompressed bytes from {compressed_bytes} compressed bytes)"
+            ),
+            Self::DecompressionFailed { encoding, details } => {
+                write!(f, "Decompression failed for '{encoding}': {details}")
+            }
+            Self::UnsupportedContentEncoding { encoding } => {
+                write!(f, "Unsupported Content-Encoding: '{encoding}'")
+            }
+            Self::ContentLengthMismatch { expected, actual } => write!(
+                f,
+                "Content-Length mismatch: expected {expected} bytes, received {actual} bytes"
+            ),
         }
     }
 }
@@ -144,6 +193,29 @@ impl From<WebExtractorError> for CoreError {
             }
             WebExtractorError::Http(details) => {
                 CoreError::Internal(format!("HTTP error: {details}"))
+            }
+            WebExtractorError::DecompressionBomb {
+                ratio,
+                max_ratio,
+                compressed_bytes,
+                decompressed_bytes,
+            } => CoreError::Security(format!(
+                "Decompression bomb blocked: ratio {ratio:.2} > {max_ratio:.2} ({decompressed_bytes} decompressed bytes from {compressed_bytes} compressed bytes)"
+            )),
+            WebExtractorError::DecompressionFailed { encoding, details } => {
+                CoreError::Extraction(format!("Decompression failed for {encoding}: {details}"))
+            }
+            WebExtractorError::UnsupportedContentEncoding { encoding } => {
+                CoreError::Validation {
+                    field: "content-encoding".to_string(),
+                    reason: format!("Unsupported Content-Encoding: '{encoding}'"),
+                }
+            }
+            WebExtractorError::ContentLengthMismatch { expected, actual } => {
+                CoreError::Validation {
+                    field: "content-length".to_string(),
+                    reason: format!("Content-Length mismatch: expected {expected}, actual {actual}"),
+                }
             }
         }
     }

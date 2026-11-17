@@ -2334,8 +2334,68 @@
   - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
   - `pnpm --filter web test:unit`: 184/184 tests passed in 2.65s.
   - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
-- **Git Commit Reference:** `2e2c5c4`
+- **Git Commit Reference:** `73051ec`
 - **Status:** `ACCEPTED`
+
+---
+
+#### Subphase `3.1.4` — Compression bombs, timeouts, and body size limits in crates/web-extractor
+- **Unique ID:** `3.1.4`
+- **Objective:** Implement decompression bounds, compression ratio guards against compression bombs, streaming timeout controls, and header-declared vs actual byte mismatch detection in `crates/web-extractor`.
+- **Scope:** `crates/web-extractor/src/compression/*`, `crates/web-extractor/src/error.rs`, `crates/web-extractor/src/http/fetcher.rs`, `crates/web-extractor/src/http/response.rs`, `crates/web-extractor/src/http/transport.rs`, `crates/web-extractor/src/lib.rs`, `Cargo.toml`, `crates/web-extractor/Cargo.toml`.
+- **Prerequisites:** `3.1.3` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `Cargo.toml`, `Cargo.lock`
+  - `crates/web-extractor/Cargo.toml`
+  - `crates/web-extractor/src/compression/mod.rs`, `crates/web-extractor/src/compression/encoding.rs`, `crates/web-extractor/src/compression/limits.rs`, `crates/web-extractor/src/compression/decompressor.rs`
+  - `crates/web-extractor/src/error.rs`
+  - `crates/web-extractor/src/http/fetcher.rs`, `crates/web-extractor/src/http/response.rs`, `crates/web-extractor/src/http/transport.rs`, `crates/web-extractor/src/http/mod.rs`
+  - `crates/web-extractor/src/lib.rs`
+- **Implementation Tasks:**
+  1. Add `flate2` (with `rust_backend`), `brotli`, and `zstd` to workspace `Cargo.toml` and `crates/web-extractor/Cargo.toml`.
+  2. Implement `ContentEncoding` enum in `crates/web-extractor/src/compression/encoding.rs` supporting `Identity`, `Gzip`, `Deflate`, `Brotli`, and `Zstd` with case-insensitive token and comma-separated header parsing.
+  3. Implement `BodyLimits` configuration struct in `crates/web-extractor/src/compression/limits.rs` encapsulating `max_raw_body_bytes` (10 MB), `max_decompressed_bytes` (25 MB), `max_expansion_ratio` (20.0), `min_ratio_check_bytes` (4 KB), and `enforce_content_length`.
+  4. Implement `BoundedDecompressor` in `crates/web-extractor/src/compression/decompressor.rs` using `CountingReader` with `AtomicUsize` byte accounting to stream decompressed bytes and enforce both maximum memory ceilings and ratio explosion checks in real time across single and chained encodings.
+  5. Add `DecompressionBomb`, `DecompressionFailed`, `UnsupportedContentEncoding`, and `ContentLengthMismatch` error variants to `WebExtractorError` and map appropriately into `CoreError`.
+  6. Enhance `WebFetcher` in `crates/web-extractor/src/http/fetcher.rs` with:
+     - Overall operation timeout (`total_timeout`, default 30s) bounding DNS, TLS, redirects, and streaming.
+     - Inactivity timeout (`chunk_read_timeout`, default 10s) between successive body chunks.
+     - Early bailout if declared `Content-Length` exceeds raw body limits.
+     - Strict `Content-Length` equality verification.
+     - Transparent bounded decompression with `BoundedDecompressor`.
+  7. Extend `FetchedResponse` in `crates/web-extractor/src/http/response.rs` with `raw_body_size` and `content_encoding` for full provenance tracking.
+  8. Extend `MockHttpTransport` in `crates/web-extractor/src/http/transport.rs` with `set_delay` and `set_chunk_delay` to support deterministic timeout testing.
+  9. Add 22 unit and integration tests across `compression` modules and `lib.rs` testing gzip, brotli, zstd, and deflate roundtrips, compression bomb abortion, size ceiling enforcement, Content-Length early exit, Content-Length mismatch detection, total timeout abortion, chunk read timeout abortion, and unsupported encoding rejection.
+- **Acceptance Criteria:**
+  - Decompression bomb payloads exceeding `max_expansion_ratio` (e.g. 20:1) are immediately aborted without allocating excessive memory.
+  - Payloads exceeding `max_raw_body_bytes` or `max_decompressed_bytes` are blocked.
+  - Streaming chunk timeouts and overall request timeouts abort hanging or slow-drip responses.
+  - Declared `Content-Length` headers larger than limits trigger immediate early bailout.
+  - 100% of workspace Rust tests pass (38 in `crates/web-extractor`, 199 in workspace); zero clippy warnings; clean formatting; all 5 monorepo verification gates pass cleanly.
+- **Tests:** `cargo test -p web-repo-to-ai-web-extractor` (38 passed), `cargo test --workspace` (199 passed), `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, `pnpm --filter web test:unit` (184 passed), `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, 02, and 05: Guards against Denial of Service (DoS) compression bombs (zip bombs / gzip bombs) through early ratio tracking; enforces hard memory ceilings preventing OOM crashes on the 16 GB baseline; mitigates Slowloris attacks via inter-chunk streaming read timeouts.
+- **Performance Considerations:** Zero-allocation stream chunking with 4 KB buffer; pure Rust decoders (`miniz_oxide`, `brotli`, `zstd`) with zero unsafe in crate; atomic byte tracking avoids locking overhead during stream read.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-web-extractor`: 38/38 tests passed in 0.03s.
+  - `cargo test --workspace`: 199/199 tests passed across all 17 crates in 0.04s.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors.
+  - `cargo fmt --all -- --check`: 100% code style compliance.
+  - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
+  - `npm test` (`apps/web`): 184/184 tests passed in 3.38s.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
+- **Git Commit Reference:** `c7255d2`
+- **Status:** `ACCEPTED`
+
+---
+
+### Phase 3.1 Milestone Completion & Certification
+
+- **Phase ID:** `Phase 3.1 — Secure acquisition`
+- **Status:** `ACCEPTED` & `CERTIFIED`
+- **Completion Date:** 2026-11-17
+- **Subphases Completed:** `3.1.1` (`ACCEPTED`), `3.1.2` (`ACCEPTED`), `3.1.3` (`ACCEPTED`), `3.1.4` (`ACCEPTED`).
+- **Phase Milestone Verdict:** Full SSRF-safe, DNS-pinned, bounded, multi-format decompressing HTTP acquisition engine delivered and verified across all gates. Zero placeholders, zero mocks in production path.
 
 ---
 
@@ -2343,7 +2403,7 @@
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `3.1.4` | Compression bombs, timeouts, and body size limits in crates/web-extractor | `3.1.3` (`ACCEPTED`) | `crates/web-extractor/*` | `NOT_STARTED` |
+| `3.2.1` | DOM parsing and boilerplate removal in crates/web-extractor | `3.1.4` (`ACCEPTED`) | `crates/web-extractor/*` | `NOT_STARTED` |
 
 ---
 

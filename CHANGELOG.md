@@ -6,6 +6,21 @@
 
 ## [Unreleased] — Stage 3: Universal Webpage Extraction
 
+### 2026-11-17 — Phase 3.1: Secure Acquisition (`3.1.4`) & Phase 3.1 Milestone Certification
+
+#### Added
+- **`[3.1.4]` Implement Compression Bombs, Timeouts, and Body Size Limits in `crates/web-extractor`:**
+  - Added `flate2` (with pure-Rust `rust_backend`), `brotli`, and `zstd` to root `Cargo.toml` and `crates/web-extractor/Cargo.toml`.
+  - Implemented `ContentEncoding` enum in `crates/web-extractor/src/compression/encoding.rs` supporting `Identity`, `Gzip`, `Deflate`, `Brotli`, and `Zstd` with case-insensitive token and comma-separated header parsing.
+  - Implemented `BodyLimits` in `crates/web-extractor/src/compression/limits.rs` encapsulating `max_raw_body_bytes` (10 MB), `max_decompressed_bytes` (25 MB), `max_expansion_ratio` (20.0), `min_ratio_check_bytes` (4 KB), and `enforce_content_length`.
+  - Implemented `BoundedDecompressor` in `crates/web-extractor/src/compression/decompressor.rs` utilizing `CountingReader` with atomic byte tracking to stream decompressed data and detect ratio explosions and size breaches in real time across single and chained encodings.
+  - Added `DecompressionBomb`, `DecompressionFailed`, `UnsupportedContentEncoding`, and `ContentLengthMismatch` variants to `WebExtractorError` and mapped into `CoreError`.
+  - Upgraded `WebFetcher` in `crates/web-extractor/src/http/fetcher.rs` with total operation timeout bounding, chunk read inactivity timeouts, declared Content-Length early exit, Content-Length match enforcement, and transparent multi-format decompression.
+  - Extended `FetchedResponse` with `raw_body_size` and `content_encoding` for full acquisition provenance.
+  - Extended `MockHttpTransport` with `set_delay` and `set_chunk_delay` to enable deterministic timeout and slow-drip testing.
+  - Added 22 unit and integration tests across compression modules and `lib.rs` (38 total in crate), expanding workspace tests to 199 passing across all 17 crates with 100% pass rate across all 5 monorepo verification gates.
+  - Formally certified completion of **Phase 3.1: Secure Acquisition** (`3.1.1` – `3.1.4` all `ACCEPTED`).
+
 ### 2026-11-17 — Phase 3.1: Secure Acquisition (`3.1.3`)
 
 #### Added

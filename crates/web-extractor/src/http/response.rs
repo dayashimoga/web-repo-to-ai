@@ -30,6 +30,10 @@ pub struct FetchedResponse {
     pub content_type: Option<String>,
     /// Content-Length in bytes if present.
     pub content_length: Option<u64>,
+    /// Content-Encoding header value if present (e.g. "gzip", "br").
+    pub content_encoding: Option<String>,
+    /// Raw byte size read from the network before decompression.
+    pub raw_body_size: usize,
     /// ETag HTTP validator if present.
     pub etag: Option<String>,
     /// Last-Modified timestamp header if present.

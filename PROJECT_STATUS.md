@@ -3,16 +3,16 @@
 **Project:** `web-repo-to-ai` (Universal URL & GitHub Repository → AI-Ready Content Converter)  
 **Last Updated:** 2026-11-17  
 **Current Stage:** `STAGE 3 — UNIVERSAL WEBPAGE EXTRACTION` (`IN_PROGRESS`)  
-**Current Phase:** `Phase 3.1 — Secure acquisition` (`IN_PROGRESS`)  
-**Active Subphase:** `3.1.4 — Compression bombs, timeouts, and body size limits in crates/web-extractor` (`NOT_STARTED` / `Next Eligible Subphase`)  
-**Last Completed Subphase:** `3.1.3 — HTTP fetching, streaming bodies, and redirect revalidation in crates/web-extractor` (`ACCEPTED`)  
-**Next Upcoming Subphase:** `3.1.4 — Compression bombs, timeouts, and body size limits in crates/web-extractor`
+**Current Phase:** `Phase 3.1 — Secure acquisition` (`ACCEPTED` & `CERTIFIED`) / `Phase 3.2 — Static extraction` (`NEXT`)  
+**Active Subphase:** `3.2.1 — DOM parsing and boilerplate removal in crates/web-extractor` (`NOT_STARTED` / `Next Eligible Subphase`)  
+**Last Completed Subphase:** `3.1.4 — Compression bombs, timeouts, and body size limits in crates/web-extractor` (`ACCEPTED`)  
+**Next Upcoming Subphase:** `3.2.1 — DOM parsing and boilerplate removal in crates/web-extractor`
 
 ---
 
 ## 1. Executive Summary
 
-Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 subphases), and Stage 2 (`2.1.1` – `2.4.4`, 15 subphases) are 100% complete, verified, certified, and accepted. **Stage 3 ("Universal Webpage Extraction") is actively progressing with Subphase `3.1.3` ("HTTP fetching, streaming bodies, and redirect revalidation in crates/web-extractor") successfully implemented, verified, and accepted.** `crates/web-extractor` implements `WebExtractorError` mapping domain transport/security errors to `CoreError`, `RedirectTracker` with cycle detection and hop limits, `FetchedResponse` capturing full provenance metadata, asynchronous `HttpTransport` with production `ReqwestTransport` (enforcing `Policy::none()` to disable automatic redirects and routing traffic to pinned socket IP addresses) and `MockHttpTransport`, and `WebFetcher` coordinating hop-by-hop DNS resolution via `SecureDnsResolver`, header injection, redirect revalidation against SSRF IP filters, and streaming body consumption bounded by `max_body_bytes`. 177/177 automated Rust tests pass across all workspace crates (16 in `crates/web-extractor`), 184/184 frontend tests pass in `apps/web`, and all 5 monorepo verification gates pass cleanly with zero failures. Subphase `3.1.4` is queued as the next active subphase.
+Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 subphases), and Stage 2 (`2.1.1` – `2.4.4`, 15 subphases) are 100% complete, verified, certified, and accepted. **Phase 3.1 ("Secure acquisition") is now 100% complete and certified with Subphase `3.1.4` ("Compression bombs, timeouts, and body size limits in crates/web-extractor") successfully implemented, verified, and accepted.** `crates/web-extractor` implements `ContentEncoding` (`gzip`, `deflate`, `br`, `zstd`, `identity`), `BodyLimits` (raw ceilings, decompressed ceilings, ratio limits, and Content-Length enforcement), and `BoundedDecompressor` with atomic streaming byte accounting to guard against DoS compression bombs and memory exhaustion attacks. `WebFetcher` coordinates overall operation timeouts, inactivity chunk timeouts (mitigating Slowloris attacks), Content-Length early exit and mismatch validation, and transparent multi-format decompression. 199/199 automated Rust tests pass across all workspace crates (38 in `crates/web-extractor`), 184/184 frontend tests pass in `apps/web`, and all 5 monorepo verification gates pass cleanly with zero failures. Subphase `3.2.1` is queued as the next active subphase.
 
 ---
 
@@ -20,12 +20,12 @@ Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 su
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 47 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1`, `3.1.2`, `3.1.3` |
+| `ACCEPTED` | 48 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.1.4` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 150 | `3.1.4` – `11.4.5` |
+| `NOT_STARTED` | 149 | `3.2.1` – `11.4.5` |
 | **Total** | **197** | `Stage 0` – `Stage 11` |
 
 ---
