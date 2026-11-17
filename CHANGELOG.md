@@ -6,6 +6,25 @@
 
 ## [Unreleased] — Stage 1: Frontend and Product Experience
 
+### 2026-11-17 — Phase 1.2: Main Website (`1.2.1`)
+
+#### Added
+- **`[1.2.1]` Production Landing Page, Semantic Navigation & Deterministic Pipeline Showcase:**
+  - Authored navigation components in `apps/web/src/lib/components/navigation/`:
+    - `Header.svelte`: Sticky semantic navigation header with brand AI icon, stage badge, desktop anchor navigation (`#convert`, `#workflow`, `#sources`, `#features`), external documentation and GitHub repository badges, accessible dark/light mode toggle with dynamic ARIA attributes, and responsive mobile dropdown drawer.
+    - `Footer.svelte`: Semantic footer (`role="contentinfo"`) with copyright, MIT license, compliance badges (CPU-only 16 GB, <= 30 GB Podman, $0 / zero API costs), and external links to system architecture, SSRF defense, CDM data model, and performance targets.
+    - `index.ts`: Unified navigation exports.
+  - Authored landing feature components in `apps/web/src/lib/components/landing/`:
+    - `Hero.svelte`: Production hero headline, value proposition subtitle, primary "Start Conversion" and "Explore How It Works" call-to-action buttons, 6 multi-format exporter pills (`.md`, `.json`, `.xml`, `.txt`, `.jsonl`, `.zip`), and hardware/operational metric badges.
+    - `WorkflowSteps.svelte`: 3-step structured cards detailing Acquisition & SSRF Defense, CDM Canonicalization & Optimization, and Multi-Format Export & Token Fit.
+    - `SupportedSources.svelte`: 4-source responsive grid matrix highlighting Static Documentation (HTML5 parser), Dynamic JavaScript SPAs (isolated Chromium fallback), Public GitHub Repositories (Git Trees API), and Private Repositories (GitHub App ephemeral tokens).
+    - `FeatureHighlights.svelte`: 6 architectural pillar cards covering zero-trust SSRF defense, AST code intelligence, zero mandatory paid APIs, 30 GB Podman storage ceiling, deterministic token budgeting, and privacy-first self-hostability.
+    - `index.ts`: Unified landing exports.
+  - Assembled root `apps/web/src/routes/+page.svelte` integrating semantic landmarks (`header`, `main`, `footer`), quick conversion entry with URL input, reactive source detection, format selector pills, and live verification feedback banner.
+  - Enhanced `apps/web/src/lib/components/ui/Button.svelte` with optional `href`, `target`, and `rel` attributes for accessible link buttons.
+  - Enhanced `apps/web/src/lib/components/ui/Input.svelte` with optional `ariaLabel` attribute for headless input labeling.
+  - Authored comprehensive test suite `apps/web/tests/landing-page.test.ts` validating semantic landmarks, navigation links, export formats, 3-step pipeline, 4 sources, and 6 feature pillars (expanding total passing tests to 46/46).
+
 ### 2026-11-17 — Phase 1.1: Design System (`1.1.3`)
 
 #### Added

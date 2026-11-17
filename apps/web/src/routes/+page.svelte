@@ -1,198 +1,181 @@
 <script lang="ts">
-  import { colors, getTokenBudgetStatus } from '$lib/tokens';
-  import { getTokenBudgetClasses } from '$lib/tokens/color-utils';
-  import { Heading, Text, Code, Mono } from '$lib/components/typography';
-  import { Container, Stack, Grid } from '$lib/components/layout';
-  import { Button, Input, Toggle, Badge, Modal, Tooltip } from '$lib/components/ui';
+  import { Header, Footer } from '$lib/components/navigation';
+  import { Hero, WorkflowSteps, SupportedSources, FeatureHighlights } from '$lib/components/landing';
+  import { Button, Input, Badge } from '$lib/components/ui';
 
   let isDark = $state(true);
-  let sampleTokens = $state(75000);
-  const maxTokens = 100000;
 
-  let testInput = $state('https://github.com/dayashimoga/web-repo-to-ai');
-  let testToggle = $state(true);
-  let isModalOpen = $state(false);
-  let isButtonLoading = $state(false);
+  // Conversion quick entry state (expanded in Subphase 1.2.2)
+  let inputUrl = $state('https://github.com/dayashimoga/web-repo-to-ai');
+  let selectedFormat = $state<'markdown' | 'json' | 'xml' | 'txt' | 'jsonl' | 'zip'>('markdown');
+  let isConverting = $state(false);
+  let conversionFeedback = $state<string | null>(null);
+  let feedbackType = $state<'success' | 'error' | 'info'>('info');
 
-  let budgetStatus = $derived(getTokenBudgetStatus(sampleTokens, maxTokens));
-  let budgetClasses = $derived(getTokenBudgetClasses(budgetStatus.ratio));
+  let detectedSource = $derived.by(() => {
+    const trimmed = inputUrl.trim();
+    if (!trimmed) return 'Awaiting URL...';
+    if (trimmed.includes('github.com')) return 'GitHub Repository';
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return 'Web Documentation / Article';
+    return 'Invalid Protocol';
+  });
 
-  function toggleTheme() {
-    isDark = !isDark;
-    if (typeof document !== 'undefined') {
-      document.documentElement.classList.toggle('dark', isDark);
+  function handleStartConversion(e?: Event) {
+    if (e) e.preventDefault();
+    const trimmed = inputUrl.trim();
+    if (!trimmed) {
+      feedbackType = 'error';
+      conversionFeedback = 'Please enter a valid HTTP(S) documentation URL or GitHub repository.';
+      return;
     }
-  }
+    if (!trimmed.startsWith('https://') && !trimmed.startsWith('http://')) {
+      feedbackType = 'error';
+      conversionFeedback = 'URL must begin with http:// or https:// for zero-trust security validation.';
+      return;
+    }
 
-  function simulateLoad() {
-    isButtonLoading = true;
+    isConverting = true;
+    conversionFeedback = null;
+
     setTimeout(() => {
-      isButtonLoading = false;
-    }, 1500);
+      isConverting = false;
+      feedbackType = 'success';
+      conversionFeedback = `URL verified (${detectedSource}). Target format set to ${selectedFormat.toUpperCase()}. Prepared for canonical extraction pipeline.`;
+    }, 500);
   }
 </script>
 
-<header class="border-b border-theme-subtle bg-theme-panel px-6 py-4 flex items-center justify-between shadow-elevation-1">
-  <div class="flex items-center space-x-3">
-    <div class="h-8 w-8 rounded-lg bg-brand-500 flex items-center justify-center text-white font-bold text-sm shadow-elevation-1">
-      AI
-    </div>
-    <span class="font-bold text-lg tracking-tight">web-repo-to-ai</span>
-    <Badge variant="brand" size="sm" dot>Stage 1 Design System</Badge>
-  </div>
-  <Button variant="secondary" size="sm" onclick={toggleTheme} ariaLabel="Toggle color theme">
-    {isDark ? '☀️ Light Mode' : '🌙 Dark Mode'}
-  </Button>
-</header>
+<!-- Global Site Header -->
+<Header bind:isDark />
 
-<main class="flex-1 py-8">
-  <Container maxWidth="xl">
-    <Stack gap={8}>
-      <!-- Page Header -->
-      <Stack gap={2}>
-        <Heading level={1}>Design System & UI Component Primitives</Heading>
-        <Text size="lg" tone="secondary">
-          Accessible, keyboard-navigable components built with Svelte 5 and Tailwind CSS.
-        </Text>
-      </Stack>
+<!-- Main Content Landmark -->
+<main id="main-content" class="flex-1">
+  <!-- Hero Section -->
+  <Hero />
 
-      <!-- UI Component Primitives Showcase -->
-      <section class="bg-theme-panel p-6 rounded-xl border border-theme-subtle shadow-elevation-1 space-y-6">
-        <Heading level={2} size="2xl">Interactive UI Primitives</Heading>
+  <!-- Quick Conversion Entry Section -->
+  <section
+    id="convert"
+    aria-labelledby="convert-heading"
+    class="py-16 md:py-20 border-b border-theme-subtle bg-theme-panel/40 transition-colors duration-150"
+  >
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-8">
+        <Badge variant="brand" size="sm" class="mb-3">Quick Conversion Entry</Badge>
+        <h2
+          id="convert-heading"
+          class="text-3xl sm:text-4xl font-extrabold tracking-tight text-theme-primary"
+        >
+          Start Content Ingestion
+        </h2>
+        <p class="mt-3 text-base text-theme-secondary">
+          Enter any public documentation URL or GitHub repository to extract and optimize AI context.
+        </p>
+      </div>
 
-        <!-- Buttons -->
-        <Stack gap={3}>
-          <Heading level={4} size="lg">Buttons & States</Heading>
-          <div class="flex flex-wrap items-center gap-3">
-            <Button variant="primary">Primary Button</Button>
-            <Button variant="secondary">Secondary</Button>
-            <Button variant="outline">Outline</Button>
-            <Button variant="ghost">Ghost</Button>
-            <Button variant="danger">Danger</Button>
-            <Button variant="primary" loading={isButtonLoading} onclick={simulateLoad}>
-              {isButtonLoading ? 'Processing...' : 'Click to Load'}
-            </Button>
-            <Button variant="secondary" disabled>Disabled</Button>
-          </div>
-        </Stack>
-
-        <!-- Badges -->
-        <Stack gap={3}>
-          <Heading level={4} size="lg">Status Badges</Heading>
-          <div class="flex flex-wrap items-center gap-2">
-            <Badge variant="default">Default</Badge>
-            <Badge variant="brand" dot>Brand AI</Badge>
-            <Badge variant="success" dot>Extracted</Badge>
-            <Badge variant="warning" dot>Budget &gt;80%</Badge>
-            <Badge variant="error" dot>SSRF Blocked</Badge>
-            <Badge variant="info" dot>Playwright</Badge>
-          </div>
-        </Stack>
-
-        <!-- Form Inputs & Toggles -->
-        <Grid cols={2} gap={6}>
-          <Stack gap={3}>
-            <Heading level={4} size="lg">Accessible Inputs</Heading>
-            <Input
-              label="Source URL / GitHub Repository"
-              placeholder="https://github.com/org/repo"
-              bind:value={testInput}
-              helperText="Valid URLs are checked against the SSRF security policy."
-              clearable
-              required
-            />
-          </Stack>
-
-          <Stack gap={3}>
-            <Heading level={4} size="lg">Switch Toggles & Tooltips</Heading>
-            <div class="p-4 rounded-lg bg-theme-subtle border border-theme-subtle space-y-4">
-              <Toggle
-                label="Dynamic JavaScript Rendering"
-                description="Fall back to isolated Chromium browser worker when static HTML is incomplete."
-                bind:checked={testToggle}
-              />
-              <div class="flex items-center gap-2 text-sm text-theme-secondary">
-                <span>Hover or tab for details:</span>
-                <Tooltip content="SSRF protection revalidates DNS on every redirect hop.">
-                  <Badge variant="brand" size="sm">Hover Info</Badge>
-                </Tooltip>
-              </div>
-            </div>
-          </Stack>
-        </Grid>
-
-        <!-- Modal Trigger -->
-        <Stack gap={3}>
-          <Heading level={4} size="lg">Accessible Dialog Modal</Heading>
-          <div>
-            <Button variant="primary" onclick={() => (isModalOpen = true)}>
-              Open Sample Modal Dialog
-            </Button>
-          </div>
-        </Stack>
-      </section>
-
-      <!-- Token Budget Indicator Showcase -->
-      <section class="bg-theme-panel p-6 rounded-xl border border-theme-subtle shadow-elevation-1 space-y-4">
-        <div class="flex justify-between items-center">
-          <Heading level={2} size="2xl">AI Context Token Budget Indicator</Heading>
-          <span class="px-2.5 py-1 rounded text-xs font-semibold uppercase border {budgetClasses.badgeClass}">
-            {budgetStatus.status} ({(budgetStatus.ratio * 100).toFixed(1)}%)
+      <form
+        onsubmit={handleStartConversion}
+        class="p-6 sm:p-8 rounded-2xl bg-theme-panel border border-theme-subtle shadow-elevation-2 space-y-6"
+      >
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+          <label for="url-input" class="text-sm font-semibold text-theme-primary">
+            Target URL or Repository
+          </label>
+          <span class="text-xs font-mono text-theme-secondary flex items-center gap-1.5">
+            <span>Detected:</span>
+            <Badge
+              variant={detectedSource === 'Invalid Protocol'
+                ? 'error'
+                : detectedSource === 'Awaiting URL...'
+                  ? 'default'
+                  : 'success'}
+              size="sm"
+            >
+              {detectedSource}
+            </Badge>
           </span>
         </div>
 
-        <Text tone="secondary" size="sm">
-          Dynamic context window tracker adhering to WCAG 2.1 contrast guidelines.
-        </Text>
-
-        <div class="space-y-3 pt-2">
-          <div class="flex justify-between items-center text-sm font-mono">
-            <span>Tokens: <Mono class="font-bold">{sampleTokens.toLocaleString()}</Mono></span>
-            <span>Ceiling: <Mono class="font-bold">{maxTokens.toLocaleString()}</Mono></span>
+        <div class="flex flex-col sm:flex-row gap-3">
+          <div class="flex-1">
+            <Input
+              id="url-input"
+              placeholder="https://github.com/owner/repo or https://docs.example.com"
+              bind:value={inputUrl}
+              clearable
+              required
+              ariaLabel="Target URL or GitHub Repository"
+            />
           </div>
+          <Button
+            type="submit"
+            variant="primary"
+            size="md"
+            loading={isConverting}
+            ariaLabel="Start Conversion Job"
+            class="sm:self-start whitespace-nowrap min-w-[140px]"
+          >
+            {isConverting ? 'Verifying...' : 'Convert URL'}
+          </Button>
+        </div>
 
-          <input
-            type="range"
-            min="10000"
-            max="150000"
-            step="2500"
-            bind:value={sampleTokens}
-            class="w-full accent-brand-500 cursor-pointer h-2 bg-theme-subtle rounded-lg"
-            aria-label="Token budget slider"
-          />
-
-          <div class="w-full bg-theme-subtle rounded-full h-3 overflow-hidden border border-theme-subtle">
-            <div
-              class="h-full transition-all duration-150 rounded-full"
-              style="width: {Math.min(100, budgetStatus.ratio * 100)}%; background-color: {budgetStatus.color}"
-            ></div>
+        <!-- Format Selector Options -->
+        <div class="space-y-2 pt-2 border-t border-theme-subtle">
+          <div class="text-xs font-semibold uppercase tracking-wider text-theme-muted">
+            Target Output Format
+          </div>
+          <div class="flex flex-wrap gap-2">
+            {#each [
+              { id: 'markdown', label: 'Markdown (.md)' },
+              { id: 'json', label: 'JSON CDM (.json)' },
+              { id: 'xml', label: 'Claude XML (.xml)' },
+              { id: 'txt', label: 'Plaintext (.txt)' },
+              { id: 'jsonl', label: 'JSONL (.jsonl)' },
+              { id: 'zip', label: 'Archive (.zip)' }
+            ] as const as fmt}
+              <button
+                type="button"
+                class="text-xs font-medium px-3 py-1.5 rounded-lg border transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 {selectedFormat ===
+                fmt.id
+                  ? 'bg-brand-600 text-white border-brand-600 shadow-elevation-1'
+                  : 'bg-theme-subtle text-theme-secondary border-theme-subtle hover:text-theme-primary'}"
+                onclick={() => (selectedFormat = fmt.id)}
+              >
+                {fmt.label}
+              </button>
+            {/each}
           </div>
         </div>
-      </section>
-    </Stack>
-  </Container>
+
+        <!-- Interactive Feedback Banner -->
+        {#if conversionFeedback}
+          <div
+            role="alert"
+            class="p-4 rounded-xl text-sm border flex items-start gap-3 {feedbackType === 'success'
+              ? 'bg-status-success/10 border-status-success/30 text-green-700 dark:text-green-300'
+              : feedbackType === 'error'
+                ? 'bg-status-error/10 border-status-error/30 text-red-700 dark:text-red-300'
+                : 'bg-status-info/10 border-status-info/30 text-blue-700 dark:text-blue-300'}"
+          >
+            <span class="font-bold text-base" aria-hidden="true">
+              {feedbackType === 'success' ? '✓' : feedbackType === 'error' ? '⚠' : 'ℹ'}
+            </span>
+            <span class="flex-1">{conversionFeedback}</span>
+          </div>
+        {/if}
+      </form>
+    </div>
+  </section>
+
+  <!-- How It Works: 3-Step Pipeline -->
+  <WorkflowSteps />
+
+  <!-- Supported Input Sources Matrix -->
+  <SupportedSources />
+
+  <!-- Architectural & Security Highlights -->
+  <FeatureHighlights />
 </main>
 
-<!-- Sample Dialog Modal -->
-<Modal
-  bind:open={isModalOpen}
-  title="Conversion Parameters"
-  description="Configure CDM Canonical Context Model settings for extraction."
->
-  <Stack gap={4}>
-    <Text size="sm">
-      Adjust target model context parameters. The extraction worker will automatically normalize whitespace, strip tracking tags, and generate labeled token maps.
-    </Text>
-    <Input
-      label="Max Token Budget"
-      type="number"
-      value="128000"
-      helperText="Context window ceiling for selected AI model."
-    />
-  </Stack>
-
-  {#snippet footer()}
-    <Button variant="outline" size="sm" onclick={() => (isModalOpen = false)}>Cancel</Button>
-    <Button variant="primary" size="sm" onclick={() => (isModalOpen = false)}>Save Settings</Button>
-  {/snippet}
-</Modal>
+<!-- Global Site Footer -->
+<Footer />

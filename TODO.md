@@ -37,7 +37,7 @@
 - [x] **[1.1.3]** Build reusable accessible UI component primitives (Button, Input, Toggle, Badge, Modal, Tooltip) *(Completed 2026-11-17, Button/Input/Toggle/Badge/Modal/Tooltip, ARIA roles, 37 passing tests)*
 
 ### Phase 1.2 — Main website
-- [ ] **[1.2.1]** Implement landing page with conversion flow
+- [x] **[1.2.1]** Implement landing page with conversion flow *(Completed 2026-11-17, Header, Hero, WorkflowSteps, SupportedSources, FeatureHighlights, Footer, 46 passing tests)*
 - [ ] **[1.2.2]** Implement URL input with instant source detection
 - [ ] **[1.2.3]** Implement conversion settings panel
 - [ ] **[1.2.4]** Implement responsive layouts (mobile, tablet, desktop)

@@ -6,6 +6,7 @@
     type?: 'text' | 'url' | 'search' | 'email' | 'password' | 'number';
     placeholder?: string;
     label?: string;
+    ariaLabel?: string;
     helperText?: string;
     error?: string;
     disabled?: boolean;
@@ -24,6 +25,7 @@
     type = 'text',
     placeholder,
     label,
+    ariaLabel,
     helperText,
     error,
     disabled = false,
@@ -72,6 +74,7 @@
       {disabled}
       {required}
       bind:value
+      aria-label={ariaLabel}
       aria-invalid={!!error}
       aria-describedby={describedBy}
       class={[
