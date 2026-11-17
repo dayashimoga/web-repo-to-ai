@@ -6,6 +6,43 @@
 
 ## [Unreleased] — Stage 4: Canonical Model and Export Engine
 
+### 2026-11-17 — Phase 4.1: Canonical Context Document Model (`4.1.2`)
+
+#### Added
+- **`[4.1.2]` Implement CDM JSON Serialization and Deserialization in `crates/cdm`:**
+  - Added dependency to `crates/cdm/Cargo.toml`: `thiserror = { workspace = true }`.
+  - Implemented strongly-typed domain error taxonomy `CdmError` in `crates/cdm/src/error.rs`:
+    - `Serialization(serde_json::Error)`: JSON string/stream encoding failures.
+    - `Deserialization(serde_json::Error)`: JSON syntax and structural decoding failures.
+    - `PayloadTooLarge { size_bytes, max_bytes }`: Defense against unbounded payload bombs and excessive allocation.
+    - `UnsupportedSchemaVersion { version, supported }`: Major schema version mismatch protection.
+    - `HashMismatch { expected, actual }`: Document/section cryptographic integrity verification failures.
+    - `Validation(String)`: Semantic invariant and model validation errors.
+    - `Io(std::io::Error)`: Low-level I/O reader/writer stream errors.
+    - Implemented `From<CdmError> for CoreError` mapping CDM domain errors into standard workspace `CoreError` codes (`INVALID_INPUT`, `SERIALIZATION_ERROR`, `IO_ERROR`).
+  - Implemented production-grade JSON serialization engine in `crates/cdm/src/json.rs`:
+    - `JsonOptions`: Configurable serialization/deserialization behavior (`pretty`, `max_bytes` default 64 MiB, `verify_hashes`, `validate_version`).
+    - `to_json_pretty(&CdmDocument) -> Result<String, CdmError>`: Deterministic multi-line formatted JSON.
+    - `to_json_compact(&CdmDocument) -> Result<String, CdmError>`: Space-efficient single-line JSON.
+    - `to_writer<W: std::io::Write>(&CdmDocument, writer: W) -> Result<(), CdmError>`: Streaming compact writer.
+    - `to_writer_pretty<W: std::io::Write>(&CdmDocument, writer: W) -> Result<(), CdmError>`: Streaming formatted writer.
+    - `from_json(&str) -> Result<CdmDocument, CdmError>`: Memory-safe deserializer from string slice.
+    - `from_slice(&[u8]) -> Result<CdmDocument, CdmError>`: Byte-slice deserializer.
+    - `from_reader<R: std::io::Read>(reader: R) -> Result<CdmDocument, CdmError>`: Streaming deserializer bounded by default 64 MiB ceiling defense.
+    - `from_reader_with_options<R: std::io::Read>(reader: R, options: &JsonOptions) -> Result<CdmDocument, CdmError>`: Fully customizable stream reader with `std::io::Read::take(max_bytes + 1)` defense preventing memory exhaustion.
+  - Implemented convenience methods directly on `CdmDocument` in `crates/cdm/src/model.rs`:
+    - `doc.to_json_pretty()`, `doc.to_json_compact()`, `CdmDocument::from_json(&str)`, `CdmDocument::from_slice(&[u8])`, `CdmDocument::from_reader(reader)`.
+  - Re-exported `CdmError`, `JsonOptions`, and JSON utilities in `crates/cdm/src/lib.rs`.
+  - Added comprehensive integration test suite in `crates/cdm/tests/json_serde.rs`:
+    - `test_json_lossless_roundtrip_complex_document`: Verifies exact property equality between original document and deserialized document.
+    - `test_json_deterministic_serialization`: Verifies byte-for-byte identical output across repeated runs with BTreeMap sorting.
+    - `test_json_streaming_writer_and_reader`: Verifies streaming I/O roundtrip fidelity.
+    - `test_payload_size_ceiling_defense`: Verifies rejection with `PayloadTooLarge` when stream exceeds configured byte limit.
+    - `test_corrupted_json_syntax_rejected`: Verifies `Deserialization` error on truncated/invalid JSON.
+    - `test_schema_version_validation_logic`: Verifies rejection of incompatible major schema versions while accepting minor updates.
+    - `test_hash_integrity_verification_on_deserialization`: Verifies detection of tampered section content hashes via optional validation.
+  - Verified 32/32 tests in `crates/cdm` (17 unit + 7 JSON serde integration + 8 schema validation integration), 335/335 workspace tests, 29/29 Node.js tests in `services/browser-worker`, 184/184 frontend tests in `apps/web`, and 100% pass rate across all 5 monorepo verification gates.
+
 ### 2026-11-17 — Phase 4.1: Canonical Context Document Model (`4.1.1`)
 
 #### Added

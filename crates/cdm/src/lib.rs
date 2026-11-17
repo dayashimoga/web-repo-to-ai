@@ -13,7 +13,9 @@
 
 pub mod builder;
 pub mod completeness;
+pub mod error;
 pub mod hierarchy;
+pub mod json;
 pub mod metadata;
 pub mod model;
 pub mod relationships;
@@ -22,7 +24,13 @@ pub mod section;
 // Primary re-exports
 pub use builder::{CdmDocumentBuilder, CdmSectionBuilder};
 pub use completeness::CompletenessReport;
+pub use error::{CdmError, Result};
 pub use hierarchy::{HierarchyKind, HierarchyNode};
+pub use json::{
+    from_json, from_json_with_options, from_reader, from_reader_with_options, from_slice,
+    from_slice_with_options, to_json_compact, to_json_pretty, to_writer, to_writer_pretty,
+    JsonOptions, DEFAULT_MAX_JSON_BYTES,
+};
 pub use metadata::{Citation, DocumentMetadata, ExclusionReason, ExclusionRecord};
 pub use model::{
     CdmDocument, ExtractionStatus, ExtractionWarning, RevisionInfo, SourceIdentity, SourceType,

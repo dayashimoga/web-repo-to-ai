@@ -3101,11 +3101,64 @@
 
 ---
 
+#### Subphase `4.1.2` — CDM JSON serialization and deserialization in crates/cdm
+- **Unique ID:** `4.1.2`
+- **Objective:** Implement production-grade canonical JSON serialization and deserialization for the Canonical Context Document Model (CDM v1.0) in `crates/cdm`, providing deterministic pretty and compact JSON formatting, streaming reader/writer adapters, bounded memory deserialization defenses against payload bombs, strongly-typed error taxonomy (`CdmError`), and lossless roundtrip verification across all CDM types.
+- **Scope:** `crates/cdm/Cargo.toml`, `crates/cdm/src/error.rs`, `crates/cdm/src/json.rs`, `crates/cdm/src/lib.rs`.
+- **Prerequisites:** `4.1.1` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/cdm/Cargo.toml`
+  - `crates/cdm/src/error.rs`
+  - `crates/cdm/src/json.rs`
+  - `crates/cdm/src/model.rs`
+  - `crates/cdm/src/lib.rs`
+  - `crates/cdm/tests/json_serde.rs`
+- **Implementation Tasks:**
+  1. Add `thiserror` dependency to `crates/cdm/Cargo.toml`.
+  2. Implement strongly-typed domain error taxonomy `CdmError` in `crates/cdm/src/error.rs` covering JSON serialization/deserialization failures, size limit exhaustion (`PayloadTooLarge`), schema version mismatches, hash integrity failures, and I/O errors, implementing `From<CdmError> for CoreError`.
+  3. Implement canonical JSON serialization and deserialization engine in `crates/cdm/src/json.rs`:
+     - `to_json_pretty(&CdmDocument) -> Result<String, CdmError>`
+     - `to_json_compact(&CdmDocument) -> Result<String, CdmError>`
+     - `to_writer<W: std::io::Write>(&CdmDocument, writer: W) -> Result<(), CdmError>`
+     - `to_writer_pretty<W: std::io::Write>(&CdmDocument, writer: W) -> Result<(), CdmError>`
+     - `from_json(&str) -> Result<CdmDocument, CdmError>`
+     - `from_slice(&[u8]) -> Result<CdmDocument, CdmError>`
+     - `from_reader<R: std::io::Read>(reader: R) -> Result<CdmDocument, CdmError>`
+     - `from_reader_bounded<R: std::io::Read>(reader: R, max_bytes: usize) -> Result<CdmDocument, CdmError>` (default 64 MB ceiling defense)
+  4. Implement convenience serialization/deserialization methods directly on `CdmDocument` in `crates/cdm/src/model.rs`.
+  5. Re-export `CdmError`, `JsonOptions`, and JSON serialization utilities in `crates/cdm/src/lib.rs`.
+  6. Implement comprehensive integration test suite in `crates/cdm/tests/json_serde.rs` validating exact roundtrip equality, deterministic key order, bounded payload limit defense, corrupted JSON error handling, schema version validation, and streaming I/O.
+  7. Run all 5 monorepo verification gates in `scripts/check-all.ps1`.
+- **Acceptance Criteria:**
+  - `CdmDocument` serializes to and deserializes from JSON losslessly (`doc == from_json(&to_json(&doc))`).
+  - Serialization produces deterministic key order via sorted mappings.
+  - Payload size defenses reject payloads exceeding maximum byte thresholds with `PayloadTooLarge`.
+  - Schema version is validated on deserialization, rejecting unknown major versions.
+  - Streaming readers/writers operate without loading unbounded payloads into memory ahead of time.
+  - All workspace tests, clippy, fmt, and all 5 monorepo gates pass with zero errors.
+- **Tests:** `cargo test -p web-repo-to-ai-cdm`, `cargo test --workspace`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, 01, 04, 05: Bounded reader safeguards prevent memory exhaustion / denial of service via oversized JSON payloads; strongly-typed error taxonomy prevents leaking internal system paths; deterministic serialization ensures reproducible cryptographic digests.
+- **Performance Considerations:** Zero-copy borrowing where possible during deserialization; streaming writer support for multi-megabyte document export bundles.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-cdm`: 32 passed (17 unit + 7 JSON serde integration + 8 schema validation integration), 0 failed.
+  - `cargo test --workspace`: 335 passed, 0 failed across all monorepo crates.
+  - `apps/web` (SvelteKit + Vitest): 184 passed, 0 failed across 14 test suites.
+  - `services/browser-worker` (Node.js + Jest): 29 passed, 0 failed across 7 test suites.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, clean pass.
+  - `cargo fmt --all -- --check`: Clean formatting verified across all Rust crates.
+  - `cargo deny check`: Licenses, bans, advisories, and sources passed with zero violations.
+  - Monorepo 5-gate audit (`powershell scripts/check-all.ps1`): ALL 5 GATES PASSED (100% pass rate).
+- **Git Commit Reference:** PENDING_COMMIT
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 4 — Canonical Model and Export Engine)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `4.1.2` | CDM JSON serialization and deserialization in crates/cdm | `4.1.1` (`ACCEPTED`) | `crates/cdm/*` | `NOT_STARTED` |
+| `4.1.3` | CDM schema validation and invariant checks in crates/cdm | `4.1.2` (`ACCEPTED`) | `crates/cdm/*` | `NOT_STARTED` |
 
 ---
 

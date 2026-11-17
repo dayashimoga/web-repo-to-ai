@@ -275,4 +275,44 @@ impl CdmDocument {
     pub fn verify_section_hashes(&self) -> bool {
         self.sections.iter().all(CdmSection::verify_hash)
     }
+
+    /// Serializes this document to a multi-line formatted JSON string with 2-space indentation.
+    ///
+    /// # Errors
+    /// Returns [`crate::error::CdmError`] if serialization fails.
+    pub fn to_json_pretty(&self) -> crate::error::Result<String> {
+        crate::json::to_json_pretty(self)
+    }
+
+    /// Serializes this document to a compact single-line JSON string.
+    ///
+    /// # Errors
+    /// Returns [`crate::error::CdmError`] if serialization fails.
+    pub fn to_json_compact(&self) -> crate::error::Result<String> {
+        crate::json::to_json_compact(self)
+    }
+
+    /// Deserializes a [`CdmDocument`] from a JSON string using default options.
+    ///
+    /// # Errors
+    /// Returns [`crate::error::CdmError`] on payload ceiling breach, invalid JSON syntax, or unsupported schema version.
+    pub fn from_json(json_str: &str) -> crate::error::Result<Self> {
+        crate::json::from_json(json_str)
+    }
+
+    /// Deserializes a [`CdmDocument`] from a byte slice using default options.
+    ///
+    /// # Errors
+    /// Returns [`crate::error::CdmError`] on payload ceiling breach, invalid JSON syntax, or unsupported schema version.
+    pub fn from_slice(slice: &[u8]) -> crate::error::Result<Self> {
+        crate::json::from_slice(slice)
+    }
+
+    /// Deserializes a [`CdmDocument`] from an arbitrary reader using default options.
+    ///
+    /// # Errors
+    /// Returns [`crate::error::CdmError`] on payload ceiling breach, I/O error, or invalid JSON syntax.
+    pub fn from_reader<R: std::io::Read>(reader: R) -> crate::error::Result<Self> {
+        crate::json::from_reader(reader)
+    }
 }
