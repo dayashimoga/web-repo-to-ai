@@ -4,7 +4,19 @@
 
 ---
 
-## [Unreleased] — Stage 1: Frontend and Product Experience
+## [Unreleased] — Stage 2: Backend and Processing Foundation
+
+### 2026-11-17 — Phase 1.4: UX Validation (`1.4.3`), Phase 1.4 Certification & Stage 1 Milestone Certification
+
+#### Added
+- **`[1.4.3]` UI Performance Benchmarks, Asset Budget Audits, Design Token Regression & Stage 1 Certification:**
+  - Authored comprehensive performance and visual regression test suite `apps/web/tests/ui-performance.test.ts` (11 tests across 3 categories):
+    - **Production Bundle Size & Dependency Budget:** Asserted `package.json` contains zero external runtime dependencies (`dependencies` is empty); verified absence of bloated third-party libraries (no lodash, moment, prismjs, highlight.js, rxjs, lucide-react, MUI, Chakra); verified client build asset footprints strictly satisfy budgets (largest JS chunk $57.4\text{ kB} \le 100\text{ kB}$ raw, largest CSS chunk $44.1\text{ kB} \le 60\text{ kB}$ raw, total client bundle $\sim 260\text{ kB} \le 350\text{ kB}$ raw).
+    - **Algorithmic Throughput & Micro-Benchmarks:** Verified high-throughput execution for syntax highlighting ($> 20,000\text{ lines/sec}$ on 1,000 JSON lines; $< 40\text{ms}$ on 500+ XML lines), token budget utilization evaluation (10,000 calls in $< 50\text{ms}$, $> 200,000\text{ ops/sec}$), URL classification and SSRF pre-checking (5,000 calls in $< 50\text{ms}$), and Web Crypto SHA-256 integrity digests (500 KB payload in $< 50\text{ms}$).
+    - **Visual Design System & Styling Token Regression:** Verified full CSS custom properties export in `tokens.css` (`--color-brand-*`, `--color-accent-*`, `--color-surface-*`, `--color-status-*`, `--elevation-*`, `--spacing-*`, `--radius-*`, `.dark` theme overrides); verified Tailwind semantic utility classes (`.bg-theme-canvas`, `.bg-theme-panel`, `.bg-theme-subtle`, `.text-theme-primary`, `.text-theme-secondary`, `.text-theme-muted`, `.border-theme-subtle`, `.border-theme-strong`); verified WCAG AAA contrast compliance across both Dark mode ($\ge 14:1$ canvas, $\ge 12:1$ panel) and Light mode ($\ge 14:1$), plus AA for brand buttons ($\ge 4.5:1$); audited all 12 frontend components confirming zero inline arbitrary hex color pollution.
+  - Expanded total automated test suite to 184/184 tests passing across 15 test suites with 0 failures.
+  - Formally certified completion of **Phase 1.4: UX validation** across all 3 subphases (`1.4.1` – `1.4.3` all `ACCEPTED`).
+  - Formally certified completion of **Stage 1: Frontend and Product Experience** across all 15 subphases (`1.1.1` – `1.4.3` all `ACCEPTED`).
 
 ### 2026-11-17 — Phase 1.4: UX Validation (`1.4.2`)
 

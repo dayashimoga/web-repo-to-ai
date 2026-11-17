@@ -48,14 +48,14 @@
   - `0.3.4` Validate reproducible container builds (`ACCEPTED`)
   - `0.3.5` Document setup and recovery (`ACCEPTED`)
 
-### STAGE 1 — FRONTEND AND PRODUCT EXPERIENCE (`IN_PROGRESS`)
+### STAGE 1 — FRONTEND AND PRODUCT EXPERIENCE (`COMPLETED` / `ACCEPTED`)
 - **Phase 1.1 — Design system:** `1.1.1` Visual design tokens (`ACCEPTED`) | `1.1.2` Typography, spacing & color systems (`ACCEPTED`) | `1.1.3` Reusable accessible components (`ACCEPTED`)
 - **Phase 1.2 — Main website:** `1.2.1` Landing page (`ACCEPTED`) | `1.2.2` URL input & source detection (`ACCEPTED`) | `1.2.3` Conversion settings (`ACCEPTED`) | `1.2.4` Responsive layouts (`ACCEPTED`)
 - **Phase 1.3 — Conversion workspace:** `1.3.1` Job workspace (`ACCEPTED`) | `1.3.2` Preview panels (`ACCEPTED`) | `1.3.3` Token statistics interface (`ACCEPTED`) | `1.3.4` Output & download controls (`ACCEPTED`)
-- **Phase 1.4 — UX validation:** `1.4.1` Keyboard & accessibility testing (`ACCEPTED`) | `1.4.2` Mobile/tablet/desktop testing (`ACCEPTED`) | `1.4.3` UI performance & visual regression testing (`NOT_STARTED` — **NEXT ELIGIBLE SUBPHASE**)
+- **Phase 1.4 — UX validation:** `1.4.1` Keyboard & accessibility testing (`ACCEPTED`) | `1.4.2` Mobile/tablet/desktop testing (`ACCEPTED`) | `1.4.3` UI performance & visual regression testing (`ACCEPTED` — **STAGE 1 CERTIFIED**)
 
-### STAGE 2 — BACKEND AND PROCESSING FOUNDATION
-- **Phase 2.1 — Rust architecture:** `2.1.1` Create Rust workspace | `2.1.2` Error & configuration systems | `2.1.3` Structured logging & tracing
+### STAGE 2 — BACKEND AND PROCESSING FOUNDATION (`NOT_STARTED`)
+- **Phase 2.1 — Rust architecture:** `2.1.1` Create Rust workspace (`NOT_STARTED` — **NEXT ELIGIBLE SUBPHASE**) | `2.1.2` Error & configuration systems | `2.1.3` Structured logging & tracing
 - **Phase 2.2 — API:** `2.2.1` Implement Axum service | `2.2.2` Request validation | `2.2.3` API error contracts | `2.2.4` Health & readiness endpoints
 - **Phase 2.3 — Persistence:** `2.3.1` PostgreSQL schema | `2.3.2` Migrations | `2.3.3` Job state machine | `2.3.4` Durable job leasing & recovery
 - **Phase 2.4 — Storage:** `2.4.1` Local artifact storage | `2.4.2` Storage abstraction | `2.4.3` Retention & cleanup | `2.4.4` Checksum validation

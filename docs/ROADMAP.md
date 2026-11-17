@@ -18,16 +18,16 @@
   - `0.2` GitHub and CI foundation (`0.2.1` – `0.2.5`) (`COMPLETED` / `ACCEPTED`)
   - `0.3` Containerized development foundation (`0.3.1` – `0.3.5`) (`COMPLETED` / `ACCEPTED`)
 
-### STAGE 1 — FRONTEND AND PRODUCT EXPERIENCE
+### STAGE 1 — FRONTEND AND PRODUCT EXPERIENCE (`COMPLETED` / `ACCEPTED`)
 - **Deliverable:** Real responsive SvelteKit + Svelte 5 website foundation in `apps/web`.
 - **Stage Acceptance Gate:** Real frontend, functional navigation, and validated responsive UI connected to tested API contracts with keyboard/WCAG AA accessibility.
 - **Phases:**
   - `1.1` Design system (`1.1.1` – `1.1.3`) (`COMPLETED` / `ACCEPTED`)
   - `1.2` Main website (`1.2.1` – `1.2.4`) (`COMPLETED` / `ACCEPTED`)
   - `1.3` Conversion workspace (`1.3.1` – `1.3.4`) (`COMPLETED` / `ACCEPTED`)
-  - `1.4` UX validation (`1.4.1` – `1.4.3`) (`IN_PROGRESS`)
+  - `1.4` UX validation (`1.4.1` – `1.4.3`) (`COMPLETED` / `ACCEPTED`)
 
-### STAGE 2 — BACKEND AND PROCESSING FOUNDATION
+### STAGE 2 — BACKEND AND PROCESSING FOUNDATION (`NOT_STARTED`)
 - **Deliverable:** Operational Rust Axum API, persistent PostgreSQL job management, and artifact storage infrastructure.
 - **Stage Acceptance Gate:** Actual API, database schema/migrations, durable job leasing, and storage lifecycle verified via integration tests.
 - **Phases:**

@@ -29,7 +29,7 @@
 
 ---
 
-## Stage 1 — Frontend and Product Experience (`IN_PROGRESS`)
+## Stage 1 — Frontend and Product Experience (`COMPLETED` / `ACCEPTED`)
 
 ### Phase 1.1 — Design system (`COMPLETED` / `ACCEPTED`)
 - [x] **[1.1.1]** Scaffold SvelteKit + Svelte 5 + TypeScript + Tailwind CSS application in `apps/web` and establish visual design token system *(Completed 2026-11-17, brand/accent/surface palettes, token budget indicators, tokens.css, Tailwind theme)*
@@ -48,10 +48,10 @@
 - [x] **[1.3.3]** Build token statistics interface and budget bar *(Completed 2026-11-17, TokenBudgetBar.svelte, context utilization math, savings percentage, dual-layer progress bar, 122 passing tests)*
 - [x] **[1.3.4]** Build format selection and download controls *(Completed 2026-11-17, DownloadControls.svelte, SHA-256 integrity, batch downloads, checksums manifest, 133 passing tests, Phase 1.3 certified)*
 
-### Phase 1.4 — UX validation
-- [x] **[1.4.1]** Execute keyboard navigation and accessibility audits
-- [x] **[1.4.2]** Execute mobile, tablet, and desktop viewport tests
-- [ ] **[1.4.3]** Execute UI performance and visual regression verification
+### Phase 1.4 — UX validation (`COMPLETED` / `ACCEPTED`)
+- [x] **[1.4.1]** Execute keyboard navigation and accessibility audits *(Completed 2026-11-17, WCAG 2.1 AA/AAA compliance, 8 audit sections, 152 passing tests)*
+- [x] **[1.4.2]** Execute mobile, tablet, and desktop viewport tests *(Completed 2026-11-17, multi-viewport certification suite, 6 test sections, 173 passing tests)*
+- [x] **[1.4.3]** Execute UI performance and visual regression verification *(Completed 2026-11-17, bundle size budgets, algorithmic micro-benchmarks, design token regression, 184 passing tests, Phase 1.4 and Stage 1 Certified)*
 
 ---
 

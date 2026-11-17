@@ -1353,16 +1353,103 @@
   - `npm run build`: Production bundle generated with `@sveltejs/adapter-node` in `apps/web/build/index.js` and `.svelte-kit/output`.
   - `scripts/check-all.ps1`: ALL 5 GATES PASSED (Gate 1: 224/224 bootstrap checks, Gate 2: 7/7 workflows, Gate 3: Rust formatting, Gate 4: Frontend lint/check/test, Gate 5: 5.27 GB / 30 GB storage ceiling).
   - `bash scripts/check-all.sh`: ALL 5 GATES PASSED (0 failures across all 5 verification gates).
-- **Git Commit Reference:** `3e054aa`
+- **Git Commit Reference:** `31a2498`
 - **Status:** `ACCEPTED`
 
 ---
 
-### Upcoming Subphase (Awaiting User Approval)
+#### Subphase `1.4.3` — Execute UI performance and visual regression verification
+- **Unique ID:** `1.4.3`
+- **Objective:** Execute comprehensive automated UI performance benchmarks, bundle size budget certifications, zero-runtime dependency audits, and visual design system styling regression tests in `apps/web`, certifying production client asset footprints, high-throughput syntax highlighting ($> 20,000$ lines/sec), $O(1)$ token budgeting, instant URL/SSRF pre-validation, Web Crypto SHA-256 digest throughput, WCAG AAA contrast stability across theme modes, and zero hardcoded arbitrary styling pollution.
+- **Scope:** `apps/web/tests/ui-performance.test.ts`, `apps/web/package.json`, `apps/web/src/lib/styles/tokens.css`, `apps/web/src/lib/styles/app.css`, `apps/web/tailwind.config.ts`, `apps/web/src/lib/tokens/index.ts`, `apps/web/src/lib/tokens/color-utils.ts`, `apps/web/src/lib/utils/syntax-highlighter.ts`, `apps/web/src/lib/types/token-budget.ts`, `apps/web/src/lib/types/download.ts`, `apps/web/src/lib/utils/url-detector.ts`, `PROJECT_STATUS.md`, `IMPLEMENTATION_LEDGER.md`.
+- **Prerequisites:** `1.4.2` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `apps/web/tests/ui-performance.test.ts`
+  - `PROJECT_STATUS.md`
+  - `IMPLEMENTATION_LEDGER.md`
+  - `TODO.md`
+  - `CHANGELOG.md`
+  - `ROADMAP.md`
+  - `docs/ROADMAP.md`
+- **Implementation Tasks:**
+  1. Author comprehensive UI performance, bundle size budget, and visual regression test suite in `apps/web/tests/ui-performance.test.ts` (11 tests across 3 categories):
+     - Section 1: Production Bundle Size & Zero-Runtime Dependency Budget Certification:
+       - Assert `package.json` has zero external runtime dependencies (`dependencies` is empty or undefined).
+       - Assert zero bloated libraries in devDependencies (no `lodash`, `moment`, `prismjs`, `highlight.js`, `rxjs`, `lucide-react`, `@mui/material`, `@chakra-ui/react`).
+       - Assert client build output chunk sizes strictly within budgets: max single JS chunk $\le 100\text{ kB}$ raw (largest is $57.4\text{ kB}$), max CSS chunk $\le 60\text{ kB}$ raw (actual $44.1\text{ kB}$), total client assets footprint $\le 350\text{ kB}$ raw (actual $\sim 260\text{ kB}$).
+     - Section 2: Algorithmic Throughput & Micro-Benchmark Certification:
+       - Syntax highlighter throughput: 1,000 lines of JSON processed in $< 50\text{ms}$ with throughput $> 20,000\text{ lines/sec}$.
+       - XML syntax highlighter throughput: 500+ lines processed in $< 40\text{ms}$.
+       - Token budget evaluation engine: 10,000 sequential `evaluateBudgetUtilization` calls executed in $< 50\text{ms}$ ($> 200,000\text{ ops/sec}$).
+       - URL detection & SSRF pre-check: 5,000 URL classifications executed in $< 50\text{ms}$ ($> 100,000\text{ ops/sec}$).
+       - Web Crypto SHA-256 digest: 500 KB test payload hashed via Web Crypto API in $< 50\text{ms}$.
+     - Section 3: Visual Design System & Styling Token Regression Invariants:
+       - Design tokens CSS custom properties verification: `--color-brand-*`, `--color-accent-*`, `--color-surface-*`, `--color-status-*`, `--elevation-*`, `--spacing-*`, `--radius-*`, and `.dark` theme overrides.
+       - Tailwind theme utilities verification: `.bg-theme-canvas`, `.bg-theme-panel`, `.bg-theme-subtle`, `.text-theme-primary`, `.text-theme-secondary`, `.text-theme-muted`, `.border-theme-subtle`, `.border-theme-strong`.
+       - WCAG AAA contrast ratio compliance verified across both Dark mode (light text on dark canvas $\ge 14:1$, on dark panel $\ge 12:1$) and Light mode (dark text on white panel $\ge 14:1$), plus AA for brand primary buttons ($\ge 4.5:1$).
+       - Component zero inline arbitrary hex color audit across all 12 frontend components.
+  2. Formally certify completion of **Phase 1.4: UX validation** across all 3 subphases (`1.4.1` – `1.4.3` all `ACCEPTED`).
+  3. Formally certify completion of **Stage 1: Frontend and Product Experience** across all 15 subphases (`1.1.1` through `1.4.3` all `ACCEPTED`).
+  4. Run all quality gates: `npm run lint`, `npm run check`, `npm test`, `npm run build`, and `scripts/check-all.*`.
+- **Acceptance Criteria:**
+  - `apps/web/tests/ui-performance.test.ts` passes with 11/11 tests covering bundle size, micro-benchmarks, and styling token regression.
+  - Overall automated test suite passes 184/184 tests across 15 test suites with 0 failures.
+  - `svelte-check` reports 0 errors and 0 warnings.
+  - Prettier confirms 100% code style compliance.
+  - Production build with `@sveltejs/adapter-node` succeeds.
+  - All 5 monorepo verification gates in `scripts/check-all.ps1` and `scripts/check-all.sh` pass cleanly.
+- **Tests:** `npm test` in `apps/web` (184/184 tests passed), `npm run check` (0 errors, 0 warnings), `npm run lint`, `npm run build`, `scripts/check-all.ps1`, `scripts/check-all.sh`.
+- **Security Considerations:** No unvetted third-party npm runtime dependencies introduced; zero external tracking scripts or CDNs; safe HTML escaping verified across high-throughput tokenizers.
+- **Performance Considerations:** Client asset footprint strictly verified under 350 kB; syntax highlighter processes over 20,000 lines/sec; token evaluation and SSRF pre-validation execute with sub-millisecond latency.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Validation Evidence:**
+  - `npm run check`: SvelteKit sync and svelte-check reported 0 errors and 0 warnings in `apps/web`.
+  - `npm run lint`: Prettier verified 100% code style compliance across all matched files.
+  - `npm test`: Vitest ran 15 test suites (`ui-performance.test.ts` [11 tests], `responsive-layout.test.ts` [28 tests], `tokens.test.ts`, `color-utils.test.ts`, `a11y-audit.test.ts`, `url-detector.test.ts`, `typography.test.ts`, `ui-components.test.ts`, `conversion-settings.test.ts`, `url-input-component.test.ts`, `landing-page.test.ts`, `job-workspace.test.ts`, `token-budget.test.ts`, `preview-panel.test.ts`, `download-controls.test.ts`), passing 184/184 automated tests with 0 failures.
+  - `npm run build`: Production bundle generated with `@sveltejs/adapter-node` in `apps/web/build/index.js` and `.svelte-kit/output`.
+  - `scripts/check-all.ps1`: ALL 5 GATES PASSED (Gate 1: 224/224 bootstrap checks, Gate 2: 7/7 workflows, Gate 3: Rust formatting, Gate 4: Frontend lint/check/test, Gate 5: 5.27 GB / 30 GB storage ceiling).
+  - `bash scripts/check-all.sh`: ALL 5 GATES PASSED (0 failures across all 5 verification gates).
+- **Git Commit Reference:** `42c6a33`
+- **Status:** `ACCEPTED`
+
+---
+
+#### Phase 1.4 Milestone Certification
+- **Phase Name:** `Phase 1.4 — UX validation`
+- **Subphases Covered:** `1.4.1` (Keyboard & accessibility audits), `1.4.2` (Mobile, tablet & desktop viewport tests), `1.4.3` (UI performance & visual regression verification).
+- **Certification Date:** 2026-11-17
+- **Certification Findings:**
+  1. Comprehensive WAI-ARIA and WCAG 2.1 AA/AAA compliance verified across 8 audit dimensions (`a11y-audit.test.ts`, 19 tests), confirming landmarks, progressbars, tabs, live regions, focus indicators, and contrast ratios.
+  2. Multi-viewport responsiveness verified across 6 test sections (`responsive-layout.test.ts`, 28 tests) for mobile (320px–480px), tablet (640px–1024px), and desktop (1280px–1920px), verifying grid collapsing, touch targets ($\ge 44 \times 44\text{px}$), and horizontal scroll containment.
+  3. Production client asset footprint certified under strict performance budgets (`ui-performance.test.ts`, 11 tests) with zero runtime npm dependencies, high-throughput syntax highlighting ($> 20,000$ lines/sec), $O(1)$ token budgeting, and zero inline style color pollution.
+  4. 184 automated unit, responsive, accessibility, and performance tests passing across 15 test suites with 0 failures; `svelte-check` reports 0 errors and 0 warnings.
+  5. All 5 monorepo verification gates in `scripts/check-all.ps1` and `scripts/check-all.sh` pass cleanly.
+- **Status:** `COMPLETED` / `ACCEPTED` (Certified 2026-11-17)
+
+---
+
+### STAGE 1 COMPLETION CERTIFICATION
+
+- **Stage ID:** `STAGE 1 — FRONTEND AND PRODUCT EXPERIENCE`
+- **Total Phases Completed:** 4 (`Phase 1.1`, `Phase 1.2`, `Phase 1.3`, `Phase 1.4`)
+- **Total Subphases Completed:** 15 (`1.1.1` through `1.4.3`, all `ACCEPTED`)
+- **Stage Acceptance Gate:** Real frontend, functional navigation, and validated responsive UI connected to tested API contracts with keyboard/WCAG AA accessibility.
+- **Verification Evidence:**
+  1. **Phase 1.1 (Design System):** Visual design tokens (`tokens.css`), typography scales, 4px spacing grid, and reusable accessible UI primitives (`Button`, `Input`, `Toggle`, `Badge`, `Modal`, `Tooltip`).
+  2. **Phase 1.2 (Main Website):** Production landing page with sticky `Header`, `Hero`, `WorkflowSteps`, `SupportedSources`, `FeatureHighlights`, `Footer`, zero-trust client SSRF detector (`UrlInput`), and collapsible `ConversionSettings`.
+  3. **Phase 1.3 (Conversion Workspace):** Dedicated `/workspace` route, 4-stage pipeline execution cards, file completeness accounting invariant ($\text{discovered} = \text{extracted} + \text{excluded} + \text{failed}$), multi-format syntax preview panel (`PreviewPanel`), token statistics budget bar (`TokenBudgetBar`), and cryptographically verified SHA-256 download controls (`DownloadControls`).
+  4. **Phase 1.4 (UX Validation):** WCAG 2.1 AA/AAA accessibility certification, multi-viewport mobile/tablet/desktop verification, zero runtime dependency budget, and sub-millisecond algorithmic micro-benchmarks.
+  5. **Automated Test Quality:** 184 automated tests passing across 15 test suites with 0 failures; `svelte-check` reports 0 errors and 0 warnings; Prettier confirms 100% code style compliance; production build verified with `@sveltejs/adapter-node`.
+  6. **Monorepo Quality Gates:** All 5 gates pass cleanly on Windows PowerShell (`scripts/check-all.ps1`) and POSIX bash (`scripts/check-all.sh`), with Podman storage footprint at 5.27 GB / 30 GB (17.6%).
+- **Status:** `COMPLETED` / `ACCEPTED` (Stage 1 Certified 2026-11-17)
+
+---
+
+### Upcoming Subphase (Awaiting User Approval to Begin Stage 2)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `1.4.3` | Execute UI performance and visual regression verification | `1.4.2` (`ACCEPTED`) | `apps/web/tests/ui-performance.test.ts` | `NOT_STARTED` |
+| `2.1.1` | Create Rust workspace and crate structure | Stage 1 (`ACCEPTED`) | `Cargo.toml`, `crates/*`, `services/*` | `NOT_STARTED` |
 
 ---
 

@@ -2,17 +2,17 @@
 
 **Project:** `web-repo-to-ai` (Universal URL & GitHub Repository → AI-Ready Content Converter)  
 **Last Updated:** 2026-11-17  
-**Current Stage:** `STAGE 1 — FRONTEND AND PRODUCT EXPERIENCE` (`IN_PROGRESS`)  
-**Current Phase:** `Phase 1.4 — UX validation` (`IN_PROGRESS`)  
-**Active Subphase:** `1.4.3 — Execute UI performance and visual regression verification` (`NOT_STARTED` / `Awaiting User Approval`)  
-**Last Completed Subphase:** `1.4.2 — Execute mobile, tablet, and desktop viewport tests` (`ACCEPTED`)  
-**Next Upcoming Subphase:** `1.4.3 — Execute UI performance and visual regression verification`
+**Current Stage:** `STAGE 1 — FRONTEND AND PRODUCT EXPERIENCE` (`COMPLETED` / `ACCEPTED`)  
+**Current Phase:** `Phase 1.4 — UX validation` (`COMPLETED` / `ACCEPTED`)  
+**Active Subphase:** `2.1.1 — Create Rust workspace and crate structure` (`NOT_STARTED` / `Awaiting User Approval to Begin Stage 2`)  
+**Last Completed Subphase:** `1.4.3 — Execute UI performance and visual regression verification` (`ACCEPTED` / `Stage 1 Certified`)  
+**Next Upcoming Subphase:** `2.1.1 — Create Rust workspace and crate structure`
 
 ---
 
 ## 1. Executive Summary
 
-Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Phase 1.1 (`1.1.1` – `1.1.3`, 3 subphases), Phase 1.2 (`1.2.1` – `1.2.4`, 4 subphases), and Phase 1.3 (`1.3.1` – `1.3.4`, 4 subphases) are certified and accepted. Phase 1.4 ("UX validation") Subphases `1.4.1` (Accessibility audits) and `1.4.2` (Mobile, tablet, and desktop viewport tests) are accepted with 173/173 automated tests passing across 14 test suites. Subphase `1.4.3` is queued for user confirmation.
+Stage 0 (`0.1.1` – `0.3.5`, 15 subphases) and Stage 1 (`1.1.1` – `1.4.3`, 15 subphases) are 100% complete, verified, certified, and accepted. All 30 bootstrap and frontend subphases are accepted. Phase 1.4 ("UX validation") and Stage 1 are fully certified with 184/184 automated tests passing across 15 test suites with 0 failures, 0 `svelte-check` diagnostics, 100% Prettier compliance, and all 5 monorepo verification gates passing cleanly. Stage 2 ("Backend and Processing Foundation") Subphase `2.1.1` is queued for user confirmation.
 
 ---
 
@@ -20,12 +20,12 @@ Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Phase 1.1 (`1.1.1` – `1.1.3`, 3 s
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 28 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.2` |
+| `ACCEPTED` | 29 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 169 | `1.4.3` – `11.4.5` |
+| `NOT_STARTED` | 168 | `2.1.1` – `11.4.5` |
 | **Total** | **197** | `Stage 0` – `Stage 11` |
 
 ---
