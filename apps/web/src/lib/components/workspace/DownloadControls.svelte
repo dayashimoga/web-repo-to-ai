@@ -11,11 +11,15 @@
     buildExportArtifacts,
     generateChecksumsTxt,
     generateChecksumManifestJson,
+    triggerDownload,
     triggerBlobDownload,
     deriveArtifactBaseName
   } from '$lib/types/download';
+  import type { JobArtifactItem } from '$lib/types/job';
 
   interface Props {
+    jobId?: string;
+    artifacts?: JobArtifactItem[];
     files?: PreviewFile[];
     sourceUrl?: string;
     class?: string;
@@ -24,6 +28,8 @@
   }
 
   let {
+    jobId,
+    artifacts: propArtifacts = [],
     files = $bindable(
       generateSampleExtractedFiles('https://github.com/dayashimoga/web-repo-to-ai')
     ),
@@ -40,7 +46,10 @@
 
   // Asynchronously compute artifacts and SHA-256 digests
   async function refreshArtifacts() {
-    artifacts = await buildExportArtifacts(files, sourceUrl);
+    artifacts = await buildExportArtifacts(files, sourceUrl, {
+      jobId,
+      backendArtifacts: propArtifacts
+    });
   }
 
   onMount(() => {
@@ -48,51 +57,86 @@
   });
 
   $effect(() => {
-    // Recompute when files or sourceUrl change
-    if (files && sourceUrl) {
+    // Recompute when files, sourceUrl, propArtifacts, or jobId change
+    if (files || sourceUrl || propArtifacts || jobId) {
       refreshArtifacts();
     }
   });
 
   async function handleCopyChecksum(artifact: ExportArtifact) {
+    let success = false;
     try {
-      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(artifact.sha256Hex);
+        success = true;
+      } else if (typeof document !== 'undefined') {
+        const textArea = document.createElement('textarea');
+        textArea.value = artifact.sha256Hex;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-9999px';
+        textArea.style.top = '0';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        success = document.execCommand('copy');
+        document.body.removeChild(textArea);
       }
+    } catch (err) {
+      console.warn('Failed to copy checksum:', err);
+    }
+
+    if (success || typeof navigator === 'undefined') {
       copiedChecksumId = artifact.id;
       liveStatus = `Copied SHA-256 for ${artifact.filename}`;
       setTimeout(() => {
         copiedChecksumId = null;
       }, 2000);
-    } catch (err) {
-      console.warn('Failed to copy checksum:', err);
     }
   }
 
   function handleDownloadArtifact(artifact: ExportArtifact) {
-    triggerBlobDownload(artifact.filename, artifact.content, artifact.mimeType);
-    liveStatus = `Downloaded ${artifact.filename}`;
-    ondownload?.(artifact);
+    liveStatus = `Downloading ${artifact.filename}...`;
+    try {
+      triggerDownload(artifact.filename, artifact.content, artifact.mimeType, artifact.downloadUrl);
+      liveStatus = `Downloaded ${artifact.filename}`;
+      ondownload?.(artifact);
+    } catch (err) {
+      liveStatus = `Failed to download ${artifact.filename}`;
+      console.warn('Download error:', err);
+    }
   }
 
   function handleDownloadChecksumsTxt() {
     const baseName = deriveArtifactBaseName(sourceUrl);
+    const filename = `${baseName}-checksums.txt`;
+    const backendChecksumUrl = jobId ? `/api/v1/jobs/${jobId}/artifacts/checksums` : undefined;
     const content = generateChecksumsTxt(artifacts, sourceUrl);
-    triggerBlobDownload(`${baseName}-checksums.txt`, content, 'text/plain');
-    liveStatus = `Downloaded ${baseName}-checksums.txt`;
+    triggerDownload(filename, content, 'text/plain', backendChecksumUrl);
+    liveStatus = `Downloaded ${filename}`;
   }
 
   function handleDownloadManifestJson() {
     const baseName = deriveArtifactBaseName(sourceUrl);
+    const filename = `${baseName}-manifest.json`;
+    const backendManifestUrl = jobId ? `/api/v1/jobs/${jobId}/artifacts/manifest` : undefined;
     const content = generateChecksumManifestJson(artifacts, sourceUrl);
-    triggerBlobDownload(`${baseName}-manifest.json`, content, 'application/json');
-    liveStatus = `Downloaded ${baseName}-manifest.json`;
+    triggerDownload(filename, content, 'application/json', backendManifestUrl);
+    liveStatus = `Downloaded ${filename}`;
   }
 
   function handleDownloadAll() {
+    // If ZIP package is available, prefer downloading the comprehensive ZIP bundle
+    const zipArtifact = artifacts.find((a) => a.format === 'zip');
+    if (zipArtifact && zipArtifact.downloadUrl) {
+      handleDownloadArtifact(zipArtifact);
+      liveStatus = `Started download of complete archive bundle (${zipArtifact.filename})`;
+      ondownloadAll?.(1);
+      return;
+    }
+
     artifacts.forEach((art, idx) => {
       setTimeout(() => {
-        triggerBlobDownload(art.filename, art.content, art.mimeType);
+        triggerDownload(art.filename, art.content, art.mimeType, art.downloadUrl);
       }, idx * 200);
     });
     liveStatus = `Started download of all ${artifacts.length} export formats`;
@@ -120,6 +164,11 @@
         <Badge variant="brand" size="sm">
           {artifacts.length} Formats Ready
         </Badge>
+        {#if jobId}
+          <Badge variant="success" size="sm" dot>
+            Verified API Streams
+          </Badge>
+        {/if}
       </div>
       <p class="text-xs text-theme-secondary mt-1">
         Cryptographically verified context packages with SHA-256 integrity checksums.
@@ -128,6 +177,23 @@
 
     <!-- Batch Download Buttons -->
     <div class="flex flex-wrap items-center gap-2.5">
+      {#if artifacts.some((a) => a.format === 'zip')}
+        <Button
+          variant="primary"
+          size="sm"
+          onclick={() => {
+            const zip = artifacts.find((a) => a.format === 'zip');
+            if (zip) handleDownloadArtifact(zip);
+          }}
+          ariaLabel="Download complete ZIP package"
+        >
+          <span class="flex items-center gap-1.5">
+            <span>📦</span>
+            <span>Download ZIP Package</span>
+          </span>
+        </Button>
+      {/if}
+
       <Button
         variant="secondary"
         size="sm"
@@ -138,7 +204,7 @@
       </Button>
 
       <Button
-        variant="primary"
+        variant={artifacts.some((a) => a.format === 'zip') ? 'secondary' : 'primary'}
         size="sm"
         onclick={handleDownloadAll}
         ariaLabel="Download all available format artifacts"

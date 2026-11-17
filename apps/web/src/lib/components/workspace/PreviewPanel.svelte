@@ -195,12 +195,24 @@
     const currentOpt = PREVIEW_FORMATS.find((f) => f.id === selectedFormat);
     const ext = currentOpt?.extension || 'txt';
     const mime = currentOpt?.mime || 'text/plain';
+    const filename = `context-export.${ext}`;
+
+    if (jobId) {
+      const downloadUrl = defaultApiClient.getArtifactUrl(jobId, selectedFormat);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      return;
+    }
 
     const blob = new Blob([rawContent], { type: mime });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `context-export.${ext}`;
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

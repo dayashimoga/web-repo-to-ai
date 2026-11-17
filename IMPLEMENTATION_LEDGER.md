@@ -3837,14 +3837,90 @@
 
 ---
 
-### Upcoming Subphase (Stage 4 — Canonical Model and Export Engine)
-
-| Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
-| :--- | :--- | :--- | :--- | :--- |
-| `4.4.4` | Multi-format downloads in apps/web | `4.4.3` (`ACCEPTED`) | `apps/web/*` | `NOT_STARTED` |
+#### Subphase `4.4.4` — Multi-format downloads in apps/web
+- **Unique ID:** `4.4.4`
+- **Objective:** Implement multi-format downloads in `apps/web` connecting `DownloadControls.svelte` and `PreviewPanel.svelte` to backend artifact streaming endpoints (`/api/v1/jobs/{job_id}/artifacts/{format}` and `/api/v1/jobs/{job_id}/artifacts/zip`), supporting single-file format downloads, complete ZIP packages with checksum verification, accessible download progress triggers, clipboard SHA-256 copying, and graceful client-side blob generation fallback.
+- **Scope:** `apps/web/src/lib/types/download.ts`, `apps/web/src/lib/components/workspace/DownloadControls.svelte`, `apps/web/src/lib/components/workspace/PreviewPanel.svelte`, `apps/web/src/lib/components/workspace/JobWorkspace.svelte`, `apps/web/tests/download-controls.test.ts`.
+- **Prerequisites:** `4.4.3` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `apps/web/src/lib/types/download.ts`
+  - `apps/web/src/lib/components/workspace/DownloadControls.svelte`
+  - `apps/web/src/lib/components/workspace/PreviewPanel.svelte`
+  - `apps/web/src/lib/components/workspace/JobWorkspace.svelte`
+  - `apps/web/tests/download-controls.test.ts`
+- **Implementation Tasks:**
+  1. Enhance `ExportArtifact` model in `apps/web/src/lib/types/download.ts` to include optional `downloadUrl` and support streaming endpoints from backend.
+  2. Enhance `buildExportArtifacts` to accept optional `jobId` and `backendArtifacts`, creating artifact models with real streaming backend URLs and adding complete ZIP package entries (`web-repo-context.zip`).
+  3. Implement `triggerDownload(filename, content?, mimeType?, downloadUrl?)` in `download.ts` handling both direct anchor downloads to streaming backend URLs and client-side blob generation fallback.
+  4. Enhance `PreviewPanel.svelte` top toolbar download button to query real streaming backend artifact URL (`defaultApiClient.getArtifactUrl(jobId, selectedFormat)`) when `jobId` is available.
+  5. Enhance `DownloadControls.svelte` to accept `jobId` and `artifacts` props, auto-refresh artifacts from backend metadata, wire all format cards to `triggerDownload`, add prominent "Download ZIP Package" button, and add accessible ARIA live status announcement region for download state and clipboard copy feedback.
+  6. Update `JobWorkspace.svelte` to pass `jobId={job.id}` and `artifacts={job.artifacts}` to `DownloadControls`.
+  7. Expand Vitest tests in `apps/web/tests/download-controls.test.ts` (14 tests) verifying ZIP package presence, backend download URLs, blob fallback, checksum copying, ARIA live announcements, and workspace integration.
+  8. Run all monorepo quality gates via `scripts/check-all.ps1`.
+- **Acceptance Criteria:**
+  - `DownloadControls` renders individual download buttons for each exported format (`markdown`, `json`, `html`, `txt`, `jsonl`) and a primary "Download ZIP Package" button.
+  - Formats link directly to streaming backend endpoints `/api/v1/jobs/{job_id}/artifacts/{format}` when `jobId` is present, or gracefully trigger client-side blob download fallback when offline.
+  - Checksum copy button provides clipboard fallback with accessible screen reader announcements.
+  - All 213 frontend tests pass across 17 suites; `svelte-check` reports 0 errors and 0 warnings; Prettier confirms formatting.
+  - All 335 workspace Rust tests pass with zero clippy warnings.
+  - All 5 gates in `scripts/check-all.ps1` pass cleanly.
+- **Tests:** `npm --prefix apps/web test`, `npm --prefix apps/web run check`, `npm --prefix apps/web run lint`, `cargo test --workspace`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, 03, 05, 09: Content-Disposition attachment downloads, sanitization of filenames, safe clipboard copy fallback without `eval` or unsafe DOM injections, zero XSS vulnerability.
+- **Performance Considerations:** Direct streaming links delegate file assembly and compression to backend async Tokio chunked streams, eliminating browser memory spikes on multi-megabyte exports.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Validation Evidence:**
+  - `npm --prefix apps/web test`: 213/213 tests passed across 17 test suites (14 tests in `download-controls.test.ts`).
+  - `npm --prefix apps/web run check`: 0 errors, 0 warnings.
+  - `npm --prefix apps/web run lint`: 100% Prettier formatting compliance.
+  - `cargo test --workspace`: 335/335 tests passed across all 17 crates and services.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors.
+  - `cargo fmt --all -- --check`: 100% clean formatting.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (224/224 bootstrap checks, 7/7 workflows, Rust checks, Frontend checks, Podman storage 5.27 GB / 30 GB, 17.6%).
+- **Git Commit Reference:** `37b9dc0` / `8f66c73`
+- **Status:** `ACCEPTED`
 
 ---
 
-## STAGES 4 – 11 QUEUED LEDGER SUMMARY
+### Phase 4.4 Milestone Certification (`4.4.1` – `4.4.4`)
 
-All subsequent subphases for **Stage 4** (`4.1.1`–`4.4.4`), **Stage 5** (`5.1.1`–`5.5.4`), **Stage 6** (`6.1.1`–`6.4.4`), **Stage 7** (`7.1.1`–`7.4.4`), **Stage 8** (`8.1.1`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.
+- **Phase Name:** `Phase 4.4 — Export frontend`
+- **Subphases Covered:** `4.4.1` (Connect actual conversion API), `4.4.2` (Real progress streaming SSE), `4.4.3` (Content preview and copy controls), `4.4.4` (Multi-format downloads in apps/web). All 4 `ACCEPTED`.
+- **Certification Date:** 2026-11-17
+- **Certification Summary:**
+  1. Full connection of SvelteKit frontend in `apps/web` to Axum REST API: real job creation, job status retrieval, source detection, RFC 7807 problem details parsing, zero `setTimeout` mock transitions.
+  2. Real-time progress streaming over Server-Sent Events (SSE) via `/jobs/:job_id/events` and `/jobs/:job_id/stream`: typed phase, log, completeness, token, artifact, and done events with heartbeat watchdog and automatic exponential backoff reconnection.
+  3. Interactive content preview with syntax formatting, format switcher, windowed line rendering, line search filtering, line number and word wrap toggles, truncation alerts, and accessible clipboard copy controls.
+  4. Multi-format artifact downloads directly via streaming backend endpoints (`/artifacts/{format}` and `/artifacts/zip`), checksum SHA-256 copy utilities, client-side fallback blob generation, and screen reader announcements.
+  5. 213 passing frontend tests across 17 suites, 0 Svelte/TypeScript errors, 100% Prettier formatting, 335 passing workspace Rust tests.
+- **Phase Status:** `COMPLETED` / `ACCEPTED` (Phase 4.4 Certified 2026-11-17)
+
+---
+
+### STAGE 4 COMPLETION CERTIFICATION
+
+- **Stage ID:** `STAGE 4 — CANONICAL MODEL AND EXPORT ENGINE`
+- **Total Phases Completed:** 4 (`Phase 4.1`, `Phase 4.2`, `Phase 4.3`, `Phase 4.4`)
+- **Total Subphases Completed:** 16 (`4.1.1` through `4.4.4`, all `ACCEPTED`)
+- **Stage Acceptance Gate:** Canonical Context Document Model (CDM v1.0), 5 format generators (Markdown, TXT, JSON, HTML, JSONL), ZIP packaging, manifest/checksums generation, chunked streaming downloads, export integrity verification, real API wiring, SSE streaming, preview panel, and multi-format download controls in `apps/web`.
+- **Verification Evidence:**
+  1. **Phase 4.1 (CDM Foundation):** Strongly-typed Rust CDM schema (`crates/cdm`), JSON Schema validation, metadata cascading, document builder, and AST visitor pattern.
+  2. **Phase 4.2 (Format Generators):** Deterministic Markdown generator with table formatting and YAML frontmatter, plain text extractor with semantic delimiters, canonical CDM JSON & structured JSON serializers, HTML5 semantic generator with inline styling, and JSONL RAG chunk exporter with sliding window chunking.
+  3. **Phase 4.3 (Packaging & Export Services):** Deterministic ZIP packaging with compression levels and directory tree preservation, coreutils-compatible `checksums.sha256` and `manifest.json` generation, memory-bounded chunked streaming API endpoints (`services/api`), and export integrity test suite with zip-slip prevention and SHA-256 verification.
+  4. **Phase 4.4 (Export Frontend):** End-to-end integration in `apps/web`: real API job submission and status polling, SSE live event streaming, windowed content preview with search/toggle controls, clipboard copy with ARIA announcements, and multi-format direct streaming/ZIP downloads.
+  5. **Automated Test Quality:** 335 automated Rust workspace tests passing (82 in `crates/exporters`, 45 in `services/api`), 213 automated frontend tests passing across 17 suites in `apps/web`; zero compiler/clippy warnings; 100% code style compliance; zero advisories in `cargo deny`.
+  6. **Monorepo Quality Gates:** All 5 gates pass cleanly on Windows PowerShell (`scripts/check-all.ps1`) and POSIX bash (`scripts/check-all.sh`), with Podman storage footprint at 5.27 GB / 30 GB (17.6%).
+- **Status:** `COMPLETED` / `ACCEPTED` (Stage 4 Certified 2026-11-17)
+
+---
+
+### Upcoming Subphase (Stage 5 — Public GitHub Repository Extraction)
+
+| Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| `5.1.1` | Repository identification and URL decomposition | Stage 4 (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
+
+---
+
+## STAGES 5 – 11 QUEUED LEDGER SUMMARY
+
+All subsequent subphases for **Stage 5** (`5.1.1`–`5.5.4`), **Stage 6** (`6.1.1`–`6.4.4`), **Stage 7** (`7.1.1`–`7.4.4`), **Stage 8** (`8.1.1`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.

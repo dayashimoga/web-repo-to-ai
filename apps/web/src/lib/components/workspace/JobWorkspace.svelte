@@ -376,6 +376,8 @@
 
   <!-- Export Artifacts & Checksum Download Controls -->
   <DownloadControls
+    jobId={job.id}
+    artifacts={job.artifacts}
     sourceUrl={job.sourceUrl}
   />
 

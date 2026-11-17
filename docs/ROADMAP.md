@@ -52,13 +52,13 @@
   - `4.1` CDM (`4.1.1` [ACCEPTED], `4.1.2` [ACCEPTED], `4.1.3` [ACCEPTED], `4.1.4` [ACCEPTED — PHASE 4.1 CERTIFIED])
   - `4.2` Format generators (`4.2.1` [ACCEPTED], `4.2.2` [ACCEPTED], `4.2.3` [ACCEPTED], `4.2.4` [ACCEPTED — PHASE 4.2 CERTIFIED])
   - `4.3` Export (`4.3.1` [ACCEPTED], `4.3.2` [ACCEPTED], `4.3.3` [ACCEPTED], `4.3.4` [ACCEPTED — PHASE 4.3 CERTIFIED])
-  - `4.4` Website integration (`4.4.1` [ACCEPTED], `4.4.2` [ACCEPTED], `4.4.3` [ACCEPTED], `4.4.4` [NEXT])
+  - `4.4` Website integration (`4.4.1` [ACCEPTED], `4.4.2` [ACCEPTED], `4.4.3` [ACCEPTED], `4.4.4` [ACCEPTED — PHASE 4.4 & STAGE 4 CERTIFIED])
 
 ### STAGE 5 — PUBLIC GITHUB REPOSITORY EXTRACTION
 - **Deliverable:** Complete public GitHub repository conversion across branches, tags, commits, and path filters.
 - **Stage Acceptance Gate:** Real public repositories produce verifiable, complete packages where $\text{Discovered} = \text{Extracted} + \text{Excluded} + \text{Failed} + \text{Unsupported}$.
 - **Phases:**
-  - `5.1` GitHub metadata (`5.1.1` – `5.1.4`)
+  - `5.1` GitHub metadata (`5.1.1` [NEXT] – `5.1.4`)
   - `5.2` File discovery (`5.2.1` – `5.2.4`)
   - `5.3` File extraction (`5.3.1` – `5.3.4`)
   - `5.4` Repository packaging (`5.4.1` – `5.4.4`)

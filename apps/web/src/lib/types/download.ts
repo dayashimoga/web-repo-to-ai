@@ -19,7 +19,7 @@ export type ArtifactFormat = PreviewFormat | "zip" | "manifest";
 
 export interface ExportArtifact {
   id: string;
-  format: ArtifactFormat;
+  format: ArtifactFormat | string;
   label: string;
   badge: string;
   filename: string;
@@ -28,6 +28,7 @@ export interface ExportArtifact {
   byteSize: number;
   sha256Hex: string;
   content: string;
+  downloadUrl?: string;
   description: string;
 }
 
@@ -90,16 +91,32 @@ export function deriveArtifactBaseName(sourceUrl: string): string {
  */
 export async function buildExportArtifacts(
   files: PreviewFile[],
-  sourceUrl: string
+  sourceUrl: string,
+  options?: {
+    jobId?: string;
+    backendArtifacts?: {
+      format: string;
+      filename: string;
+      downloadUrl: string;
+      byteSize: number;
+      sha256Hex: string;
+    }[];
+  }
 ): Promise<ExportArtifact[]> {
   const baseName = deriveArtifactBaseName(sourceUrl);
   const artifacts: ExportArtifact[] = [];
 
   for (const fmt of PREVIEW_FORMATS) {
+    const backendMatch = options?.backendArtifacts?.find(
+      (b) => b.format.toLowerCase() === fmt.id.toLowerCase()
+    );
     const content = formatContentForExport(files, fmt.id, { sourceUrl });
-    const byteSize = new Blob([content]).size;
-    const sha256Hex = await computeSha256Hex(content);
-    const filename = `${baseName}.${fmt.extension}`;
+    const byteSize = backendMatch?.byteSize || new Blob([content]).size;
+    const sha256Hex = backendMatch?.sha256Hex || (await computeSha256Hex(content));
+    const filename = backendMatch?.filename || `${baseName}.${fmt.extension}`;
+    const downloadUrl =
+      backendMatch?.downloadUrl ||
+      (options?.jobId ? `/api/v1/jobs/${options.jobId}/artifacts/${fmt.id}` : undefined);
 
     artifacts.push({
       id: `art-${fmt.id}`,
@@ -112,7 +129,35 @@ export async function buildExportArtifacts(
       byteSize,
       sha256Hex,
       content,
+      downloadUrl,
       description: fmt.description,
+    });
+  }
+
+  // Include ZIP bundle if jobId is present or if backendArtifacts contains zip
+  const zipBackend = options?.backendArtifacts?.find((b) => b.format.toLowerCase() === "zip");
+  if (options?.jobId || zipBackend) {
+    const zipFilename = zipBackend?.filename || `${baseName}-bundle.zip`;
+    const zipDownloadUrl =
+      zipBackend?.downloadUrl ||
+      (options?.jobId ? `/api/v1/jobs/${options.jobId}/artifacts/zip` : undefined);
+    const zipSize = zipBackend?.byteSize || artifacts.reduce((acc, a) => acc + a.byteSize, 0);
+    const zipSha =
+      zipBackend?.sha256Hex || "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+
+    artifacts.push({
+      id: "art-zip",
+      format: "zip",
+      label: "ZIP Package",
+      badge: ".zip",
+      filename: zipFilename,
+      mimeType: "application/zip",
+      extension: "zip",
+      byteSize: zipSize,
+      sha256Hex: zipSha,
+      content: "",
+      downloadUrl: zipDownloadUrl,
+      description: "Complete archive bundle containing all formats, manifest, and checksums.",
     });
   }
 
@@ -179,4 +224,30 @@ export function triggerBlobDownload(filename: string, content: string, mimeType:
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+/**
+ * Triggers a download either directly via a server endpoint URL or client-side Blob.
+ */
+export function triggerDownload(
+  filename: string,
+  content?: string,
+  mimeType?: string,
+  downloadUrl?: string
+): void {
+  if (typeof window === "undefined" || typeof document === "undefined") return;
+
+  if (downloadUrl) {
+    const a = document.createElement("a");
+    a.href = downloadUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    return;
+  }
+
+  if (content !== undefined && mimeType) {
+    triggerBlobDownload(filename, content, mimeType);
+  }
 }

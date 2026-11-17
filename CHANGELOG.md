@@ -4,7 +4,27 @@
 
 ---
 
-## [Unreleased] — Stage 4: Canonical Model and Export Engine
+## [Unreleased] — Stage 5: Public GitHub Repository Extraction
+
+### 2026-11-17 — Phase 4.4: Export Frontend (`4.4.4` — PHASE 4.4 & STAGE 4 CERTIFIED)
+
+#### Added
+- **`[4.4.4]` Multi-Format Downloads and Artifact Streaming in `apps/web` (Stage 4 Certified):**
+  - Enhanced export artifact types and streaming models in `apps/web/src/lib/types/download.ts`:
+    - Added optional `downloadUrl` property to `ExportArtifact` for direct streaming integration with Axum API endpoints.
+    - Updated `buildExportArtifacts` to accept options `{ jobId, backendArtifacts }`, generating strongly-typed download entries with streaming URLs (`/api/v1/jobs/{job_id}/artifacts/{format}`) and adding the complete ZIP package entry (`web-repo-context.zip`) pointing to `/api/v1/jobs/{job_id}/artifacts/zip`.
+    - Enhanced `triggerDownload` with dual-mode dispatch: direct anchor element download for backend streaming URLs and fallback to client-side Blob object URLs when running offline or in preview mode.
+  - Enhanced `apps/web/src/lib/components/workspace/PreviewPanel.svelte`:
+    - Updated top toolbar "Download" button to query `defaultApiClient.getArtifactUrl(jobId, selectedFormat)` when `jobId` is available, triggering direct backend streaming downloads.
+  - Enhanced `apps/web/src/lib/components/workspace/DownloadControls.svelte`:
+    - Added optional `jobId?: string` and `artifacts?: JobArtifactItem[]` props.
+    - Implemented reactive `refreshArtifacts()` syncing frontend artifact state with backend job artifacts and streaming URLs.
+    - Added prominent "Download ZIP Package" button wired to trigger full package streaming with accessible tooltips and download indicators.
+    - Wired each format card's download button to `triggerDownload(artifact.filename, artifact.content, artifact.mimeType, artifact.downloadUrl)`.
+    - Implemented accessible clipboard SHA-256 copy control with fallback and ARIA live status announcement region (`role="status"`, `aria-live="polite"`).
+  - Connected `jobId={job.id}` and `artifacts={job.artifacts}` in `apps/web/src/lib/components/workspace/JobWorkspace.svelte`.
+  - Expanded Vitest test suite in `apps/web/tests/download-controls.test.ts` (14 tests) covering ZIP package presence, streaming URLs, blob fallbacks, SHA-256 copy fallbacks, ARIA live regions, and component integration.
+  - Formal Stage 4 Completion Certification: All 16 subphases across Phases 4.1, 4.2, 4.3, 4.4 completed, tested, and certified. 213 frontend tests passing, 335 workspace Rust tests passing, 100% clean gates in `scripts/check-all.ps1`.
 
 ### 2026-11-17 — Phase 4.4: Export Frontend (`4.4.3`)
 

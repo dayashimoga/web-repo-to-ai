@@ -70,10 +70,10 @@
 - **Phase 4.1 — CDM:** `4.1.1` Define schema (`ACCEPTED`) | `4.1.2` Serialization (`ACCEPTED`) | `4.1.3` Validation (`ACCEPTED`) | `4.1.4` Schema versioning (`ACCEPTED` — **PHASE 4.1 CERTIFIED**)
 - **Phase 4.2 — Format generators:** `4.2.1` Markdown generator (`ACCEPTED`) | `4.2.2` Plain-text generator (`ACCEPTED`) | `4.2.3` JSON generator (`ACCEPTED`) | `4.2.4` HTML & JSONL generators (`ACCEPTED` — **PHASE 4.2 CERTIFIED**)
 - **Phase 4.3 — Export:** `4.3.1` ZIP package generation (`ACCEPTED`) | `4.3.2` Manifest & checksums (`ACCEPTED`) | `4.3.3` Streaming downloads (`ACCEPTED`) | `4.3.4` Export integrity tests (`ACCEPTED` — **PHASE 4.3 CERTIFIED**)
-- **Phase 4.4 — Website integration:** `4.4.1` Connect actual conversion API (`ACCEPTED`) | `4.4.2` Real progress (SSE) (`ACCEPTED`) | `4.4.3` Preview & copy (`ACCEPTED`) | `4.4.4` Downloads (`NEXT`)
+- **Phase 4.4 — Website integration:** `4.4.1` Connect actual conversion API (`ACCEPTED`) | `4.4.2` Real progress (SSE) (`ACCEPTED`) | `4.4.3` Preview & copy (`ACCEPTED`) | `4.4.4` Downloads (`ACCEPTED` — **PHASE 4.4 & STAGE 4 CERTIFIED**)
 
 ### STAGE 5 — PUBLIC GITHUB REPOSITORY EXTRACTION
-- **Phase 5.1 — GitHub metadata:** `5.1.1` Repository identification | `5.1.2` Branch & tag discovery | `5.1.3` Commit selection | `5.1.4` Repository metadata extraction
+- **Phase 5.1 — GitHub metadata:** `5.1.1` Repository identification (`NEXT`) | `5.1.2` Branch & tag discovery | `5.1.3` Commit selection | `5.1.4` Repository metadata extraction
 - **Phase 5.2 — File discovery:** `5.2.1` Git Trees integration | `5.2.2` Tree truncation detection | `5.2.3` Subtree recovery | `5.2.4` File classification
 - **Phase 5.3 — File extraction:** `5.3.1` Source acquisition | `5.3.2` Documentation extraction | `5.3.3` Dependency extraction | `5.3.4` Configuration & test extraction
 - **Phase 5.4 — Repository packaging:** `5.4.1` Repository tree generation | `5.4.2` File manifest | `5.4.3` Architecture context | `5.4.4` Code-review package

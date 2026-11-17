@@ -110,7 +110,7 @@
 
 ---
 
-## Stage 4: Canonical Model and Export Engine (`IN_PROGRESS`)
+## Stage 4: Canonical Model and Export Engine (`COMPLETED` / `ACCEPTED` — **STAGE 4 CERTIFIED**)
 
 ### Phase 4.1 — Canonical Context Document Model (CDM) (`COMPLETED` / `ACCEPTED` — **PHASE 4.1 CERTIFIED**)
 - [x] **[4.1.1]** Canonical Context Document Model (CDM) schema in crates/cdm *(Completed 2026-11-17, CdmDocument, CdmSection, SourceIdentity, RevisionInfo, DocumentMetadata, HierarchyNode, Relationship, Citation, ExtractionStatus, ExtractionWarning, ExclusionRecord, CompletenessReport with invariant formula, CdmDocumentBuilder, CdmSectionBuilder, 19 passing cdm tests, 322 workspace tests)*
@@ -118,23 +118,23 @@
 - [x] **[4.1.3]** CDM schema validation and invariant checks in crates/cdm *(Completed 2026-11-17, ValidationConfig, ValidationReport, CdmValidator, 60 passing cdm tests, 363 workspace tests)*
 - [x] **[4.1.4]** Schema versioning and migration framework in crates/cdm *(Completed 2026-11-17, SchemaVersion SemVer, MigrationStep, MigrationRegistry, SchemaDiff, auto_migrate, 78 passing cdm tests, 381 workspace tests — PHASE 4.1 CERTIFIED)*
 
-### Phase 4.2 — Format generators
+### Phase 4.2 — Format generators (`COMPLETED` / `ACCEPTED` — **PHASE 4.2 CERTIFIED**)
 - [x] **[4.2.1]** Markdown generator in crates/exporters *(Completed 2026-11-17, MarkdownExporter, MarkdownOptions, CodeFenceStyle with fence escalation, HierarchyStyle with Unicode/ASCII/bulleted trees, Table of Contents with GFM anchor slugs, polyglot section formatting, GFM alert admonitions, exclusions and citations accounting, streaming export_markdown_to_writer, 16 passing exporter tests, 396 workspace tests)*
 - [x] **[4.2.2]** Plain-text generator in crates/exporters *(Completed 2026-11-17, PlainTextExporter, PlainTextOptions, ASCII/Unicode header banner, directory tree, Table of Contents, clean section delimiters, line numbering, plain-text citations and exclusions audit, completeness report, streaming export_plain_text_to_writer, 26 passing exporter tests, 406 workspace tests)*
 - [x] **[4.2.3]** JSON generator in crates/exporters *(Completed 2026-11-17, JsonExporter, JsonExportOptions, JsonFormatFlavor (CanonicalCdm, StructuredContext, Minified), StructuredContextEnvelope models, field filtering, token budget caps with truncated flag, streaming export_json_to_writer, 34 passing exporter tests, 414 workspace tests)*
 - [x] **[4.2.4]** HTML & JSONL generators in crates/exporters *(Completed 2026-11-17, HtmlExporter, HtmlOptions, standalone HTML5 document, embedded responsive CSS, dark/light theme aware, collapsible sections, line numbers, table of contents, citations & exclusions tables, JsonlExporter, JsonlOptions, JsonlFlavor (RagChunks, FineTuningChat, FineTuningPromptCompletion, CanonicalSections), streaming writers, 53 passing exporter tests, 433 workspace tests — PHASE 4.2 CERTIFIED)*
 
-### Phase 4.3 — Export
+### Phase 4.3 — Export (`COMPLETED` / `ACCEPTED` — **PHASE 4.3 CERTIFIED**)
 - [x] **[4.3.1]** ZIP package generation in crates/exporters *(Completed 2026-11-17, ZipPackageExporter, ZipPackageOptions, zip v9.6.1 deflate/zlib-rs, deterministic timestamps, manifest/provenance/quality reports, checksums.sha256, path traversal defense, 9 passing tests, 62 exporter tests, 442 workspace tests)*
 - [x] **[4.3.2]** Manifest & checksums generation in crates/exporters *(Completed 2026-11-17, PackageManifest, PackageFileEntry with dual SHA-256 and BLAKE3 digests, PackageProvenance, PackageQualityReport, ManifestExporter, generate/parse/verify coreutils checksums, ChecksumVerificationReport, 11 passing tests, 73 exporter tests, 453 workspace tests)*
 - [x] **[4.3.3]** Streaming downloads in services/api *(Completed 2026-11-17, get_artifact_handler in services/api/src/routes/jobs.rs, ReaderStream async chunk streaming from StorageBackend, on-demand CDM rendering fallback, standard headers nosniff/cache-control/content-disposition, 4 new test suites, 41 api tests, 457 workspace tests)*
 - [x] **[4.3.4]** Export integrity tests in crates/exporters *(Completed 2026-11-17, PackageIntegrityReport, verify_zip_package_bytes, verify_zip_package_integrity, format syntax verifiers, zip-slip defense, 9 integration tests, 82 exporter tests, 330 workspace tests, Phase 4.3 Certified)*
 
-### Phase 4.4 — Website integration
+### Phase 4.4 — Website integration (`COMPLETED` / `ACCEPTED` — **PHASE 4.4 & STAGE 4 CERTIFIED**)
 - [x] **[4.4.1]** Connect actual conversion API in apps/web *(Completed 2026-11-17, ApiClient, ApiClientError, RFC 7807 problem details parsing, mapApiJobToConversionJob adapter, +page.svelte API submission replacing setTimeout, workspace/+page.svelte getJob wiring, 11 new Vitest tests, 195 passing frontend tests)*
 - [x] **[4.4.2]** Real progress streaming (SSE) in apps/web *(Completed 2026-11-17, JobEventStream, connectJobEventStream, GET /api/v1/jobs/{job_id}/events Axum SSE endpoint, phase/log/completeness/tokens/artifact/done events, exponential backoff, heartbeat watchdog, onDestroy cleanup, 11 new Vitest tests, 206 passing frontend tests)*
 - [x] **[4.4.3]** Content preview and copy controls in apps/web *(Completed 2026-11-17, GET /api/v1/jobs/{job_id}/preview endpoint, JobPreviewResponse, PreviewQuery, ApiClient.getJobPreview, PreviewPanel live querying with local fallback, accessible clipboard copy controls with live ARIA announcements, line number/word wrap toggles, truncation alert banner, 5 new Vitest tests, 211 passing frontend tests, 335 workspace tests)*
-- [ ] **[4.4.4]** Multi-format downloads in apps/web
+- [x] **[4.4.4]** Multi-format downloads in apps/web *(Completed 2026-11-17, triggerDownload with backend streaming and client blob fallback, buildExportArtifacts with ZIP package & backend streaming URLs, PreviewPanel toolbar download wiring, DownloadControls props/auto-refresh/ZIP button/clipboard SHA-256 copy fallback/ARIA live announcements, 2 new Vitest tests, 213 passing frontend tests, 335 workspace tests — PHASE 4.4 & STAGE 4 CERTIFIED)*
 
 ---
 

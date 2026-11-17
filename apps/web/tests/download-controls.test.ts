@@ -113,6 +113,37 @@ describe("Download Controls Domain Types & Checksums", () => {
       expect(manifest.artifacts).toHaveLength(5);
       expect(manifest.artifacts[0].sha256).toHaveLength(64);
     });
+
+    it("includes ZIP package artifact and backend streaming URLs when jobId is provided", async () => {
+      const files = generateSampleExtractedFiles("https://github.com/dayashimoga/web-repo-to-ai");
+      const testJobId = "018f2345-6789-7000-8000-000000000055";
+      const artifacts = await buildExportArtifacts(
+        files,
+        "https://github.com/dayashimoga/web-repo-to-ai",
+        {
+          jobId: testJobId,
+          backendArtifacts: [
+            {
+              format: "zip",
+              filename: "web-repo-to-ai-018f.zip",
+              downloadUrl: `/api/v1/jobs/${testJobId}/artifacts/zip`,
+              byteSize: 1048576,
+              sha256Hex: "abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234",
+            },
+          ],
+        }
+      );
+
+      expect(artifacts.length).toBeGreaterThanOrEqual(6);
+      const zipArtifact = artifacts.find((a) => a.format === "zip");
+      expect(zipArtifact).toBeDefined();
+      expect(zipArtifact?.downloadUrl).toBe(`/api/v1/jobs/${testJobId}/artifacts/zip`);
+      expect(zipArtifact?.filename).toBe("web-repo-to-ai-018f.zip");
+      expect(zipArtifact?.byteSize).toBe(1048576);
+
+      const mdArtifact = artifacts.find((a) => a.format === "markdown");
+      expect(mdArtifact?.downloadUrl).toBe(`/api/v1/jobs/${testJobId}/artifacts/markdown`);
+    });
   });
 });
 
@@ -148,9 +179,14 @@ describe("DownloadControls Component Invariants & Accessibility", () => {
 
     // Truncated hash display
     expect(content).toContain("truncateHash");
+
+    // Live API wiring and ZIP package button
+    expect(content).toContain("jobId");
+    expect(content).toContain("triggerDownload");
+    expect(content).toContain("Download ZIP Package");
   });
 
-  it("validates JobWorkspace.svelte integrates DownloadControls", () => {
+  it("validates JobWorkspace.svelte integrates DownloadControls with jobId and artifacts binding", () => {
     const workspacePath = resolve(
       process.cwd(),
       "src/lib/components/workspace/JobWorkspace.svelte"
@@ -159,5 +195,15 @@ describe("DownloadControls Component Invariants & Accessibility", () => {
 
     expect(content).toContain("DownloadControls");
     expect(content).toContain("sourceUrl={job.sourceUrl}");
+    expect(content).toContain("jobId={job.id}");
+    expect(content).toContain("artifacts={job.artifacts}");
+  });
+
+  it("validates PreviewPanel.svelte integrates backend downloadUrl for top toolbar downloads", () => {
+    const previewPath = resolve(process.cwd(), "src/lib/components/workspace/PreviewPanel.svelte");
+    const content = readFileSync(previewPath, "utf-8");
+
+    expect(content).toContain("defaultApiClient.getArtifactUrl");
+    expect(content).toContain("handleDownload");
   });
 });
