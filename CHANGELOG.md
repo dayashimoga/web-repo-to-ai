@@ -6,6 +6,16 @@
 
 ## [Unreleased] — Stage 0: Project Bootstrap and Engineering Foundation
 
+### 2026-11-17 — Phase 0.2: GitHub and CI Foundation (`0.2.1`)
+
+#### Added
+- **`[0.2.1]` GitHub Remote Repository & Push:**
+  - Verified Git Credential Manager OAuth scopes (`gist, repo, workflow`) for authenticated user `dayashimoga`.
+  - Created public GitHub repository `https://github.com/dayashimoga/web-repo-to-ai` via GitHub REST API with issues enabled.
+  - Configured Git remote `origin` pointing to `https://github.com/dayashimoga/web-repo-to-ai.git`.
+  - Pushed `main` branch with upstream tracking (`git push -u origin main`).
+  - Verified remote tracking and commit SHA alignment (`98cc1decf23f270aef970877eb3a4b574b86d822 refs/heads/main`).
+
 ### 2026-11-16 — Phase 0.1: Repository and Governance Initialization (`0.1.1` – `0.1.5`)
 
 #### Added

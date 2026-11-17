@@ -146,12 +146,43 @@
 
 ---
 
-### Phase 0.2 — GitHub and CI foundation (Upcoming — Awaiting User Approval for `0.2.1`)
+### Phase 0.2 — GitHub and CI foundation
+
+#### Subphase `0.2.1` — Create or connect GitHub repository
+- **Unique ID:** `0.2.1`
+- **Objective:** Create or connect GitHub repository (`web-repo-to-ai`) using available GitHub credentials, configure remote `origin`, and push `main` branch with upstream tracking.
+- **Scope:** `.git/config` remote `origin`, GitHub repository `dayashimoga/web-repo-to-ai`, and tracking ledgers.
+- **Prerequisites:** `0.1.5` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `.git/config` (remote `origin`)
+  - `PROJECT_STATUS.md`, `IMPLEMENTATION_LEDGER.md`, `TODO.md`, `CHANGELOG.md`
+- **Implementation Tasks:**
+  1. Inspect Git Credential Manager token scopes via GitHub REST API (`gist, repo, workflow` confirmed).
+  2. Query GitHub API for `dayashimoga/web-repo-to-ai`; verify repository does not exist yet.
+  3. Create public repository `web-repo-to-ai` under `dayashimoga` with issues enabled via `POST /user/repos`.
+  4. Configure local Git remote `origin` pointing to `https://github.com/dayashimoga/web-repo-to-ai.git`.
+  5. Push `main` branch with upstream tracking (`git push -u origin main`).
+  6. Verify remote tracking branch and commit SHA alignment via `git ls-remote origin`.
+- **Acceptance Criteria:**
+  - Remote repository `web-repo-to-ai` exists on GitHub, `origin` remote configured, and `main` branch pushed and verified with `git ls-remote origin`.
+- **Tests:** Executed `git ls-remote origin` confirming `refs/heads/main` matches local commit `98cc1decf23f270aef970877eb3a4b574b86d822`.
+- **Security Considerations:** No raw tokens or credentials written to tracked files or logs; Git Credential Manager token accessed in memory only.
+- **Performance Considerations:** Direct REST creation and Git push completed in <5 seconds.
+- **Documentation Requirements:** Updated `PROJECT_STATUS.md`, `IMPLEMENTATION_LEDGER.md`, `TODO.md`, and `CHANGELOG.md`.
+- **Validation Evidence:**
+  - Remote repository live at `https://github.com/dayashimoga/web-repo-to-ai`.
+  - `git status` reports: `On branch main, Your branch is up to date with 'origin/main', nothing to commit, working tree clean`.
+  - `git ls-remote origin` output: `98cc1decf23f270aef970877eb3a4b574b86d822 refs/heads/main`.
+- **Git Commit Reference:** Recorded in commit for subphase 0.2.1 docs update
+- **Status:** `ACCEPTED`
+
+---
+
+### Phase 0.2 — Upcoming Subphases (Awaiting User Approval for `0.2.2`)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `0.2.1` | Create or connect GitHub repository (`web-repo-to-ai`) using available GitHub credentials or document exact authorization step if token scope is restricted | `0.1.5` (`ACCEPTED`) | `.git/config` remote `origin`, `PROJECT_STATUS.md`, `IMPLEMENTATION_LEDGER.md` | `NOT_STARTED` |
-| `0.2.2` | Configure branch protection and repository settings where authorized | `0.2.1` | GitHub repository settings / `docs/DEVELOPMENT.md` | `NOT_STARTED` |
+| `0.2.2` | Configure branch protection and repository settings where authorized | `0.2.1` (`ACCEPTED`) | GitHub repository settings / `docs/DEVELOPMENT.md` | `NOT_STARTED` |
 | `0.2.3` | Create GitHub Actions CI workflows (`ci.yml`, `build.yml`, `release.yml`, `container.yml`) | `0.2.2` | `.github/workflows/{ci,build,release,container}.yml` | `NOT_STARTED` |
 | `0.2.4` | Configure linting, formatting and test checks across Rust and Frontend | `0.2.3` | `.github/workflows/ci.yml`, root lint/format configs | `NOT_STARTED` |
 | `0.2.5` | Configure security and dependency scanning (`security.yml`, `dependency-review.yml`, `codeql.yml`, `deny.toml`) | `0.2.4` | `.github/workflows/{security,dependency-review,codeql}.yml`, `deny.toml` | `NOT_STARTED` |

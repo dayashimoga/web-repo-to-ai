@@ -13,8 +13,8 @@
 - [x] **[0.1.4]** Create `AGENTS.md`, 9 specialized agent definitions, 10 `.agent/skills/*/SKILL.md`, 10 `.agent/rules/*.md`, and 10 `.agent/workflows/*.md` *(Completed 2026-11-16, commit `f2aa8e9`)*
 - [x] **[0.1.5]** Create `ROADMAP.md`, `docs/ROADMAP.md`, `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, and `scripts/verify-bootstrap.ps1` *(Completed 2026-11-16)*
 
-### Phase 0.2 — GitHub and CI foundation (Pending Approval)
-- [ ] **[0.2.1]** Create or connect GitHub remote repository (`web-repo-to-ai`) and push `main` branch (or document exact external authorization step if credential scope restricts repo creation)
+### Phase 0.2 — GitHub and CI foundation
+- [x] **[0.2.1]** Create or connect GitHub remote repository (`web-repo-to-ai`) and push `main` branch *(Completed 2026-11-17, https://github.com/dayashimoga/web-repo-to-ai)*
 - [ ] **[0.2.2]** Configure branch protection and repository settings where authorized
 - [ ] **[0.2.3]** Create executable GitHub Actions CI workflows (`ci.yml`, `build.yml`, `release.yml`, `container.yml`)
 - [ ] **[0.2.4]** Configure linting, formatting, and test checks for Rust and Frontend
