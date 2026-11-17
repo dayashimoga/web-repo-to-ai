@@ -271,7 +271,7 @@
 - **Validation Evidence:**
   - `scripts/check-all.ps1`: ALL GATES PASSED (0 failures).
   - `scripts/verify-bootstrap.ps1`: 183/183 checks passed (0 failures).
-- **Git Commit Reference:** Recorded in commit for subphase 0.2.4
+- **Git Commit Reference:** `5342058`
 - **Status:** `ACCEPTED`
 
 ---
