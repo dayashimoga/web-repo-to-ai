@@ -19,6 +19,7 @@ pub mod dom;
 pub mod elements;
 pub mod error;
 pub mod http;
+pub mod provenance;
 pub mod url;
 
 pub use article::{
@@ -51,6 +52,11 @@ pub use http::{
     RedirectTracker, ReqwestTransport, TransportResponse, WebFetcher, DEFAULT_ACCEPT_ENCODING,
     DEFAULT_CHUNK_READ_TIMEOUT, DEFAULT_CONNECT_TIMEOUT, DEFAULT_MAX_BODY_BYTES,
     DEFAULT_MAX_REDIRECTS, DEFAULT_REQUEST_TIMEOUT, DEFAULT_TOTAL_TIMEOUT, DEFAULT_USER_AGENT,
+};
+pub use provenance::{
+    BrowserDiagnostics, CapturedMetadata, ContentHashes, HttpProvenance, MetadataExtractor,
+    ProvenanceBuilder, ProvenanceCitations, ProvenanceWarning, RedirectHopRecord,
+    SourceAttribution, WarningSeverity,
 };
 pub use url::{classify_url, WebPageType, WebTarget};
 

@@ -23,6 +23,7 @@ use crate::dom::{CleanedDocument, DomParser};
 use crate::elements::{ElementsExtractor, ElementsOptions, ExtractedElements};
 use crate::error::WebExtractorError;
 use crate::http::{FetchedResponse, WebFetcher};
+use crate::provenance::{ProvenanceBuilder, ProvenanceWarning, SourceAttribution, WarningSeverity};
 use crate::url::WebTarget;
 
 /// Default minimum character threshold for static text before evaluating SPA fallback.
@@ -128,6 +129,8 @@ pub struct ExtractedWebpage {
     pub elements: ExtractedElements,
     /// Comprehensive extraction provenance and runtime diagnostics.
     pub provenance: DynamicProvenance,
+    /// Complete source attribution, cryptographic hashes, HTTP provenance, and citations.
+    pub attribution: SourceAttribution,
 }
 
 /// Heuristic analyzer detecting whether a static HTML document is an SPA shell requiring browser rendering.
@@ -300,6 +303,11 @@ impl DynamicWebExtractor {
                                 "Dynamic fallback indicated but browser worker client is not configured."
                                     .to_string(),
                             );
+                            static_page.attribution.warnings.push(ProvenanceWarning::new(
+                                "BROWSER_CLIENT_UNCONFIGURED",
+                                "Dynamic fallback indicated but browser worker client is not configured.",
+                                WarningSeverity::Warning,
+                            ));
                             return Ok(static_page);
                         }
 
@@ -310,6 +318,11 @@ impl DynamicWebExtractor {
                                 // Graceful degradation: preserve static extraction result with diagnostic warning
                                 static_page.provenance.warnings.push(format!(
                                     "Dynamic browser rendering failed: {dyn_err}; degraded to static extraction."
+                                ));
+                                static_page.attribution.warnings.push(ProvenanceWarning::new(
+                                    "BROWSER_DEGRADED_TO_STATIC",
+                                    format!("Dynamic browser rendering failed: {dyn_err}; degraded to static extraction."),
+                                    WarningSeverity::Critical,
                                 ));
                                 Ok(static_page)
                             }
@@ -385,6 +398,14 @@ impl DynamicWebExtractor {
             warnings: Vec::new(),
         };
 
+        let attribution = ProvenanceBuilder::build_static(
+            &fetched,
+            &cleaned_doc,
+            &html,
+            start_time,
+            &self.policy,
+        );
+
         Ok(ExtractedWebpage {
             url: target.as_str().to_string(),
             title,
@@ -393,6 +414,7 @@ impl DynamicWebExtractor {
             documentation,
             elements,
             provenance,
+            attribution,
         })
     }
 
@@ -429,7 +451,7 @@ impl DynamicWebExtractor {
         let final_url = if resp.url.is_empty() {
             target.as_str().to_string()
         } else {
-            resp.url
+            resp.url.clone()
         };
 
         let canonical_target =
@@ -450,7 +472,7 @@ impl DynamicWebExtractor {
             .extract(&resp.html, Some(&canonical_target))?;
 
         let title = if !resp.title.is_empty() {
-            resp.title
+            resp.title.clone()
         } else if let Some(ref meta_title) = cleaned_doc.metadata.title {
             meta_title.clone()
         } else {
@@ -462,12 +484,20 @@ impl DynamicWebExtractor {
             http_status: resp.status_code,
             load_time_ms: start_time.elapsed().as_millis() as u64,
             final_url: final_url.clone(),
-            redirects: resp.redirects,
-            console_messages: resp.console_messages,
-            page_errors: resp.page_errors,
-            blocked_subresources: resp.blocked_subresources,
+            redirects: resp.redirects.clone(),
+            console_messages: resp.console_messages.clone(),
+            page_errors: resp.page_errors.clone(),
+            blocked_subresources: resp.blocked_subresources.clone(),
             warnings: Vec::new(),
         };
+
+        let attribution = ProvenanceBuilder::build_dynamic(
+            target.as_str(),
+            &resp,
+            &cleaned_doc,
+            start_time,
+            &self.policy,
+        );
 
         Ok(ExtractedWebpage {
             url: final_url,
@@ -477,6 +507,7 @@ impl DynamicWebExtractor {
             documentation,
             elements,
             provenance,
+            attribution,
         })
     }
 }
@@ -593,6 +624,17 @@ mod tests {
             .cleaned_text
             .contains("Tokio is an asynchronous runtime"));
         assert!(result.article.is_some());
+        assert_eq!(
+            result.attribution.canonical_url,
+            "https://example.com/tokio"
+        );
+        assert_eq!(
+            result.attribution.extraction_method,
+            ExtractionMethod::Static
+        );
+        assert_eq!(result.attribution.content_hashes.raw_html_sha256.len(), 64);
+        assert_eq!(result.attribution.content_hashes.raw_html_blake3.len(), 64);
+        assert!(result.attribution.markdown_citation().contains("Source"));
     }
 
     #[tokio::test]
@@ -676,6 +718,13 @@ mod tests {
             .cleaned_text
             .contains("Client-Side Hydration Complete"));
         assert!(result.article.is_some());
+        assert_eq!(result.attribution.canonical_url, "https://example.com/spa");
+        assert_eq!(
+            result.attribution.extraction_method,
+            ExtractionMethod::DynamicBrowser
+        );
+        assert!(result.attribution.browser_diagnostics.is_some());
+        assert_eq!(result.attribution.content_hashes.raw_html_blake3.len(), 64);
     }
 
     #[tokio::test]
@@ -728,5 +777,17 @@ mod tests {
             .contains("Minimal fallback text available"));
         assert!(!result.provenance.warnings.is_empty());
         assert!(result.provenance.warnings[0].contains("Dynamic browser rendering failed"));
+        assert_eq!(
+            result.attribution.canonical_url,
+            "https://example.com/sparse"
+        );
+        assert_eq!(
+            result.attribution.extraction_method,
+            ExtractionMethod::Static
+        );
+        assert!(result
+            .attribution
+            .warning_codes()
+            .contains(&"BROWSER_DEGRADED_TO_STATIC"));
     }
 }

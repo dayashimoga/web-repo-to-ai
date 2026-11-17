@@ -102,8 +102,9 @@
 - [x] **[3.3.3]** Resource limits, navigation timeouts, and sandbox isolation in services/browser-worker *(Completed 2026-11-17, ConcurrencyLimiter with FIFO queue & 429 Retry-After, automated Chromium recycling, hard session deadline timer, dialog auto-dismissal, max 200 subresources limit, 10 MB HTML ceiling, hardened SSRF filtering across IPv4/IPv6/CGNAT/metadata, BrowserWorkerError::TooManyRequests & PayloadTooLarge, 29 passing Node.js tests, 110 web-extractor tests, 271 workspace tests)*
 - [x] **[3.3.4]** Dynamic DOM extraction and post-render hydration in crates/web-extractor *(Completed 2026-11-17, DynamicWebExtractor, SpaDetector heuristics, ExtractionStrategy, DynamicProvenance, ExtractedWebpage, post-render hydration into DomParser/ArticleExtractor/DocExtractor/ElementsExtractor, graceful degradation on worker timeout, 114 passing web-extractor tests, 275 workspace tests — PHASE 3.3 CERTIFIED)*
 
-### Phase 3.4 — Extraction quality (`IN_PROGRESS` / `NEXT`)
-- [ ] **[3.4.1]** Source attribution, HTTP provenance, and metadata capture in crates/web-extractor
+### Phase 3.4 — Extraction quality (`IN_PROGRESS`)
+- [x] **[3.4.1]** Source attribution, HTTP provenance, and metadata capture in crates/web-extractor *(Completed 2026-11-17, SourceAttribution, HttpProvenance, ContentHashes with dual SHA-256 and BLAKE3, MetadataExtractor for Schema.org JSON-LD and OpenGraph/Twitter cascading, ProvenanceBuilder citations and warnings, 117 passing web-extractor tests, 278 workspace tests)*
+- [ ] **[3.4.2]** Duplicate detection and canonical URL resolution in crates/web-extractor
 - [ ] **[3.4.2]** Duplicate detection and canonical URL resolution in crates/web-extractor
 - [ ] **[3.4.3]** Content completeness scoring and extraction warnings in crates/web-extractor
 - [ ] **[3.4.4]** Golden dataset test suite for universal webpage extraction in crates/web-extractor

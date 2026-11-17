@@ -6,6 +6,21 @@
 
 ## [Unreleased] — Stage 3: Universal Webpage Extraction
 
+### 2026-11-17 — Phase 3.4: Extraction Quality (`3.4.1`)
+
+#### Added
+- **`[3.4.1]` Implement Source Attribution, HTTP Provenance, and Metadata Capture in `crates/web-extractor`:**
+  - Added `blake3` and `sha2` workspace dependencies to `crates/web-extractor/Cargo.toml`.
+  - Implemented strongly-typed source attribution models in `crates/web-extractor/src/provenance/model.rs`: `SourceAttribution`, `HttpProvenance`, `RedirectHopRecord`, `ContentHashes`, `CapturedMetadata`, `BrowserDiagnostics`, `ProvenanceCitations`, `ProvenanceWarning`, and `WarningSeverity`.
+  - Implemented dual cryptographic content hash computation (`ContentHashes::compute`) generating SHA-256 and BLAKE3 lowercase hex digests over raw response markup bytes and extracted plain text.
+  - Implemented `MetadataExtractor` in `crates/web-extractor/src/provenance/extractor.rs` extracting and parsing Schema.org JSON-LD structured data blocks (`<script type="application/ld+json">`) and cascading metadata precedence (OpenGraph -> Twitter -> HTML `<head>` -> Schema.org).
+  - Implemented `ProvenanceBuilder` in `crates/web-extractor/src/provenance/extractor.rs` synthesizing `SourceAttribution` for both static acquisition (`build_static`) and dynamic browser rendering (`build_dynamic`), capturing HTTP headers, ETag, Last-Modified, cache-control, server, pinned IP, redirect history, and generating formatted citations (concise, markdown callout, plaintext).
+  - Implemented diagnostic warning classification detecting canonical URL mismatches (`CANONICAL_URL_MISMATCH`), missing cache validators (`MISSING_HTTP_CACHE_VALIDATORS`), missing author metadata (`MISSING_AUTHOR`), blocked subresources, and dynamic-to-static degradation (`BROWSER_DEGRADED_TO_STATIC`).
+  - Integrated `SourceAttribution` directly into `ExtractedWebpage` in `crates/web-extractor/src/browser/extractor.rs` for all static and dynamic execution paths.
+  - Re-exported provenance types in `crates/web-extractor/src/lib.rs`.
+  - Added unit and integration tests covering content hash computation, Schema.org JSON-LD extraction, metadata precedence cascading, and provenance builder warning generation, bringing `crates/web-extractor` to 117/117 passing tests and workspace to 278/278 passing tests.
+  - Verified 117/117 tests in `crates/web-extractor`, 278/278 workspace tests, 29/29 Node.js tests in `services/browser-worker`, 184/184 frontend tests in `apps/web`, and 100% pass rate across all 5 monorepo verification gates.
+
 ### 2026-11-17 — Phase 3.3: Dynamic Extraction (`3.3.4`) — PHASE 3.3 CERTIFIED
 
 #### Added

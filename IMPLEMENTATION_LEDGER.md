@@ -2820,11 +2820,61 @@
 
 ---
 
+### Phase 3.4 — Extraction quality
+
+#### Subphase `3.4.1` — Source attribution, HTTP provenance, and metadata capture in crates/web-extractor
+- **Unique ID:** `3.4.1`
+- **Objective:** Implement comprehensive source attribution, HTTP transport provenance, dual cryptographic content hashes (SHA-256 and BLAKE3), Schema.org JSON-LD extraction, metadata precedence cascading, and structured citation formatting in `crates/web-extractor`.
+- **Scope:** `crates/web-extractor/Cargo.toml`, `crates/web-extractor/src/provenance/*`, `crates/web-extractor/src/browser/extractor.rs`, `crates/web-extractor/src/lib.rs`.
+- **Prerequisites:** `3.3.4` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/web-extractor/Cargo.toml`
+  - `crates/web-extractor/src/lib.rs`
+  - `crates/web-extractor/src/provenance/mod.rs`
+  - `crates/web-extractor/src/provenance/model.rs`
+  - `crates/web-extractor/src/provenance/extractor.rs`
+  - `crates/web-extractor/src/browser/extractor.rs`
+- **Implementation Tasks:**
+  1. Add `blake3` and `sha2` workspace dependencies to `crates/web-extractor/Cargo.toml`.
+  2. Implement strongly-typed source attribution models in `crates/web-extractor/src/provenance/model.rs`: `SourceAttribution`, `HttpProvenance`, `RedirectHopRecord`, `ContentHashes`, `CapturedMetadata`, `BrowserDiagnostics`, `ProvenanceCitations`, `ProvenanceWarning`, and `WarningSeverity`.
+  3. Implement dual cryptographic content hash computation (`ContentHashes::compute`) generating SHA-256 and BLAKE3 lowercase hex digests over raw response markup bytes and extracted plain text.
+  4. Implement `MetadataExtractor` in `crates/web-extractor/src/provenance/extractor.rs` extracting and parsing Schema.org JSON-LD structured data blocks (`<script type="application/ld+json">`) and cascading metadata precedence (OpenGraph -> Twitter -> HTML `<head>` -> Schema.org).
+  5. Implement `ProvenanceBuilder` in `crates/web-extractor/src/provenance/extractor.rs` synthesizing `SourceAttribution` for both static acquisition (`build_static`) and dynamic browser rendering (`build_dynamic`), capturing HTTP headers, ETag, Last-Modified, cache-control, server, pinned IP, redirect history, and generating formatted citations (concise, markdown callout, plaintext).
+  6. Implement diagnostic warning classification detecting canonical URL mismatches (`CANONICAL_URL_MISMATCH`), missing cache validators (`MISSING_HTTP_CACHE_VALIDATORS`), missing author metadata (`MISSING_AUTHOR`), blocked subresources, and dynamic-to-static degradation (`BROWSER_DEGRADED_TO_STATIC`).
+  7. Integrate `SourceAttribution` directly into `ExtractedWebpage` in `crates/web-extractor/src/browser/extractor.rs` for all static and dynamic execution paths.
+  8. Re-export provenance types in `crates/web-extractor/src/lib.rs`.
+  9. Add unit and integration tests covering content hash computation, Schema.org JSON-LD extraction, metadata precedence cascading, and provenance builder warning generation.
+  10. Run all 5 monorepo verification gates in `scripts/check-all.ps1`.
+- **Acceptance Criteria:**
+  - Dual SHA-256 and BLAKE3 content hashes are computed over raw bytes and extracted text.
+  - HTTP headers, status code, pinned IP, and redirect history are captured in `HttpProvenance`.
+  - Schema.org JSON-LD blocks are parsed and merged into `CapturedMetadata`.
+  - Diagnostic warnings are emitted for canonical mismatches and missing cache headers.
+  - Markdown callout, concise, and plaintext citations are formatted.
+  - 100% of workspace Rust tests pass (117 in web-extractor, 278 total), all 29 browser-worker Node.js tests pass, and all 5 monorepo verification gates pass.
+- **Tests:** `cargo test -p web-repo-to-ai-web-extractor`, `cargo test --workspace`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, `npm test` (`services/browser-worker`), `npm test` (`apps/web`), `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, 01, 04, 05: Cryptographic provenance verification with SHA-256 and BLAKE3; canonical URL join and SSRF validation; zero plaintext secret exposure in headers.
+- **Performance Considerations:** Single-pass cryptographic hashing using streaming digesters; bounded memory consumption during JSON-LD parsing.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-web-extractor`: 117/117 tests passed.
+  - `cargo test --workspace`: 278/278 tests passed.
+  - `npm test` (`services/browser-worker`): 29/29 tests passed across 7 suites.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors.
+  - `cargo fmt --all -- --check`: 100% code style compliance.
+  - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
+  - `npm test` (`apps/web`): 184/184 tests passed across 15 suites.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
+- **Git Commit Reference:** `73d766d`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 3 — Universal Webpage Extraction)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `3.4.1` | Source attribution, HTTP provenance, and metadata capture in crates/web-extractor | `3.3.4` (`ACCEPTED`) | `crates/web-extractor/*` | `NOT_STARTED` |
+| `3.4.2` | Duplicate detection and canonical URL resolution in crates/web-extractor | `3.4.1` (`ACCEPTED`) | `crates/web-extractor/*` | `NOT_STARTED` |
 
 ---
 

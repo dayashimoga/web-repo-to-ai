@@ -2624,6 +2624,7 @@ name = "web-repo-to-ai-web-extractor"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "blake3",
  "brotli",
  "bytes",
  "chrono",
@@ -2632,6 +2633,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
+ "sha2",
  "thiserror 1.0.69",
  "tl",
  "tokio",
