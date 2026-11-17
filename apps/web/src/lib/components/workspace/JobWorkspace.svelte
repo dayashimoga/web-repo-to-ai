@@ -2,6 +2,7 @@
   import { Badge, Button } from '$lib/components/ui';
   import { Mono } from '$lib/components/typography';
   import PreviewPanel from './PreviewPanel.svelte';
+  import TokenBudgetBar from './TokenBudgetBar.svelte';
   import type { PreviewFormat } from '$lib/types/preview';
   import {
     type ConversionJob,
@@ -289,6 +290,12 @@
       {/each}
     </div>
   </div>
+
+  <!-- Token Statistics & Context Window Budget Utilization -->
+  <TokenBudgetBar
+    bind:metrics={job.tokenMetrics}
+    bind:modelPreset={job.modelPreset}
+  />
 
   <!-- Completeness File Accounting Matrix -->
   <div class="p-6 rounded-2xl bg-theme-panel border border-theme-subtle space-y-4 shadow-elevation-1">

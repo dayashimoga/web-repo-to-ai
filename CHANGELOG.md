@@ -6,6 +6,26 @@
 
 ## [Unreleased] — Stage 1: Frontend and Product Experience
 
+### 2026-11-17 — Phase 1.3: Conversion Workspace (`1.3.3`)
+
+#### Added
+- **`[1.3.3]` Token Statistics Interface, Context Window Budget Bar & Headroom Metrics:**
+  - Defined token budget evaluation domain model and calculations in `apps/web/src/lib/types/token-budget.ts`:
+    - Mathematical helpers: `calculateSavingsPct` (token reduction ratio), `calculateUtilizationPct` (budget consumption), and `calculateHeadroom` (available conversational reasoning buffer).
+    - Evaluation engine `evaluateBudgetUtilization` supporting 3 status levels: `optimal` (utilization $\le 85\%$), `warning` ($> 85\%$ and $\le 100\%$), and `exceeded` ($> 100\%$).
+    - Calibration across AI model context windows (Gemini 2M, Gemini 1M, Claude 200k, GPT-4o 128k, Local 32k).
+  - Authored accessible, interactive `TokenBudgetBar.svelte` in `apps/web/src/lib/components/workspace/TokenBudgetBar.svelte`:
+    - Region landmark (`role="region"`, `aria-label="Token Statistics and Context Budget Bar"`).
+    - 4-card metric grid: Raw Ingested Tokens, Deduplicated Tokens, Final Context Output, and Token Optimization Savings with reduction badge.
+    - Dual-layer progress bar (`role="progressbar"`, `aria-valuenow`, `aria-valuemin="0"`, `aria-valuemax="100"`) showing Final Tokens, ghost Deduplication Savings segment, and 80% safety margin threshold line.
+    - Dynamic model preset switcher allowing instant re-evaluation against all major model context windows.
+    - Headroom callout displaying remaining tokens for conversation prompts and completions.
+    - Accessible context overflow alert banner (`role="alert"`) with one-click model upgrade switch to Gemini 1.5 Pro.
+    - Re-exported via `apps/web/src/lib/components/workspace/index.ts`.
+  - Integrated `TokenBudgetBar` into `JobWorkspace.svelte` positioned between the 4-stage pipeline execution cards and completeness accounting matrix.
+  - Authored comprehensive automated test suite `apps/web/tests/token-budget.test.ts` (15 tests) validating savings math, headroom math, utilization bounds, ARIA landmarks, preset switching, and workspace integration.
+  - Expanded total automated test suite to 122/122 passing tests across 12 test suites.
+
 ### 2026-11-17 — Phase 1.3: Conversion Workspace (`1.3.2`)
 
 #### Added

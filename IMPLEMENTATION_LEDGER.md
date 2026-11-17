@@ -1139,11 +1139,62 @@
 
 ---
 
-### Upcoming Subphase (Awaiting User Approval after 1.3.2)
+#### Subphase `1.3.3` — Build token statistics interface and budget bar
+- **Unique ID:** `1.3.3`
+- **Objective:** Implement interactive token statistics interface and dual-layer visual context budget utilization bar (`TokenBudgetBar.svelte`) comparing raw vs. deduplicated vs. final tokens against calibrated target AI model context windows (Gemini 2M, Claude 200k, GPT-4o 128k, Local 32k), computing savings percentage, headroom buffer, and overflow warning alerts.
+- **Scope:** `apps/web/src/lib/types/token-budget.ts`, `apps/web/src/lib/components/workspace/TokenBudgetBar.svelte`, `apps/web/src/lib/components/workspace/JobWorkspace.svelte`, `apps/web/src/lib/components/workspace/index.ts`, `apps/web/tests/token-budget.test.ts`, `PROJECT_STATUS.md`, `IMPLEMENTATION_LEDGER.md`.
+- **Prerequisites:** `1.3.2` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `apps/web/src/lib/types/token-budget.ts`
+  - `apps/web/src/lib/components/workspace/TokenBudgetBar.svelte`
+  - `apps/web/src/lib/components/workspace/JobWorkspace.svelte`
+  - `apps/web/src/lib/components/workspace/index.ts`
+  - `apps/web/tests/token-budget.test.ts`
+  - `PROJECT_STATUS.md`
+  - `IMPLEMENTATION_LEDGER.md`
+- **Implementation Tasks:**
+  1. Author token budget domain model and evaluation rules in `apps/web/src/lib/types/token-budget.ts`:
+     - Mathematical helpers: `calculateSavingsPct`, `calculateUtilizationPct`, `calculateHeadroom`.
+     - Utilization evaluation engine: `evaluateBudgetUtilization` supporting 3 status levels (`optimal`, `warning`, `exceeded`).
+     - Integration with calibrated model presets in `settings.ts`.
+  2. Author accessible `TokenBudgetBar.svelte` component (`apps/web/src/lib/components/workspace/TokenBudgetBar.svelte`):
+     - Interactive model preset switcher pills (Gemini 2M, Gemini 1M, Claude 200k, GPT-4o 128k, Local 32k) dynamically re-evaluating context fit.
+     - 4-card metric grid: Raw Ingested Tokens, Deduplicated Tokens, Final Context Output, and Token Optimization Savings with badge.
+     - Dual-layer progress bar (`role="progressbar"`, `aria-valuenow`, `aria-valuemin="0"`, `aria-valuemax="100"`) showing Final Tokens, ghost Deduplication Savings segment, and 80% safety margin marker line.
+     - Headroom callout displaying remaining tokens available for conversation turns.
+     - Accessible warning banner (`role="alert"`) when budget ceiling is exceeded with one-click model upgrade switch.
+  3. Export `TokenBudgetBar` from `apps/web/src/lib/components/workspace/index.ts`.
+  4. Integrate `TokenBudgetBar` into `apps/web/src/lib/components/workspace/JobWorkspace.svelte` positioned between the pipeline tracker cards and completeness accounting matrix.
+  5. Author automated test suite `apps/web/tests/token-budget.test.ts` (15 tests) validating savings math, headroom math, utilization bounds, ARIA landmarks, preset switching, and workspace integration.
+  6. Run all quality gates: `npm run lint`, `npm run check`, `npm test`, `npm run build`, and `scripts/check-all.*`.
+- **Acceptance Criteria:**
+  - Token budget bar accurately calculates and renders token consumption, savings percentage, and headroom buffer.
+  - Model preset switcher dynamically updates budget ceiling and advisory status.
+  - Progress bar renders semantic ARIA attributes (`role="progressbar"`, `aria-valuenow`, `aria-valuemin`, `aria-valuemax`).
+  - Alert banner triggers reliably when final tokens exceed the budget threshold.
+  - 100% of automated tests pass (122/122 tests across 12 test suites); `svelte-check` reports 0 errors and 0 warnings.
+  - All 5 monorepo verification gates in `scripts/check-all.*` pass.
+- **Tests:** `npm test` in `apps/web`, `npm run check`, `npm run lint`, `npm run build`, and `scripts/check-all.ps1` / `scripts/check-all.sh`.
+- **Security Considerations:** All displayed token metrics and model metadata are strongly typed and sanitized; no external AI calls required.
+- **Performance Considerations:** Pure reactive derivation using Svelte 5 `$derived` runes; zero re-render overhead.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`.
+- **Validation Evidence:**
+  - `npm run check`: SvelteKit sync and svelte-check reported 0 errors and 0 warnings in `apps/web`.
+  - `npm run lint`: Prettier verified 100% code style compliance across all matched files.
+  - `npm test`: Vitest ran 12 test suites, passing 122/122 automated unit, responsive, domain model, and component invariant tests with 0 failures.
+  - `npm run build`: Production bundle generated with `@sveltejs/adapter-node` in `apps/web/build/index.js` and `.svelte-kit/output`.
+  - `scripts/check-all.ps1`: ALL 5 GATES PASSED (Gate 1: 224/224 bootstrap checks, Gate 2: 7/7 workflows, Gate 3: Rust formatting, Gate 4: Frontend lint/check/test, Gate 5: 5.27 GB / 30 GB storage ceiling).
+  - `bash scripts/check-all.sh`: ALL 5 GATES PASSED (0 failures across all 5 verification gates).
+- **Git Commit Reference:** `c868a97`
+- **Status:** `ACCEPTED`
+
+---
+
+### Upcoming Subphase (Awaiting User Approval after 1.3.3)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `1.3.3` | Build token statistics interface and budget bar | `1.3.2` (`ACCEPTED`) | `apps/web/src/lib/components/workspace/TokenBudgetBar.svelte` | `NOT_STARTED` |
+| `1.3.4` | Build format selection and download controls | `1.3.3` (`ACCEPTED`) | `apps/web/src/lib/components/workspace/DownloadControls.svelte` | `NOT_STARTED` |
 
 ---
 

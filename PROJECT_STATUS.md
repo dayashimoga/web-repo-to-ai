@@ -4,15 +4,15 @@
 **Last Updated:** 2026-11-17  
 **Current Stage:** `STAGE 1 — FRONTEND AND PRODUCT EXPERIENCE` (`IN_PROGRESS`)  
 **Current Phase:** `Phase 1.3 — Conversion workspace` (`IN_PROGRESS`)  
-**Active Subphase:** `1.3.3 — Build token statistics interface and budget bar` (`NOT_STARTED` / `Awaiting User Approval`)  
-**Last Completed Subphase:** `1.3.2 — Build syntax-highlighted content preview panels` (`ACCEPTED`)  
-**Next Upcoming Subphase:** `1.3.3 — Build token statistics interface and budget bar`
+**Active Subphase:** `1.3.4 — Build format selection and download controls` (`NOT_STARTED` / `Awaiting User Approval`)  
+**Last Completed Subphase:** `1.3.3 — Build token statistics interface and budget bar` (`ACCEPTED`)  
+**Next Upcoming Subphase:** `1.3.4 — Build format selection and download controls`
 
 ---
 
 ## 1. Executive Summary
 
-Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Phase 1.1 (`1.1.1` – `1.1.3`, 3 subphases), and Phase 1.2 (`1.2.1` – `1.2.4`, 4 subphases) are certified and accepted. In Phase 1.3 ("Conversion workspace"), Subphases `1.3.1` ("Build conversion job workspace") and `1.3.2` ("Build syntax-highlighted content preview panels") are completed and accepted. Subphase `1.3.3` is queued for user confirmation.
+Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Phase 1.1 (`1.1.1` – `1.1.3`, 3 subphases), and Phase 1.2 (`1.2.1` – `1.2.4`, 4 subphases) are certified and accepted. In Phase 1.3 ("Conversion workspace"), Subphases `1.3.1` ("Build conversion job workspace"), `1.3.2` ("Build syntax-highlighted content preview panels"), and `1.3.3` ("Build token statistics interface and budget bar") are completed and accepted. Subphase `1.3.4` is queued for user confirmation.
 
 ---
 
@@ -20,12 +20,12 @@ Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Phase 1.1 (`1.1.1` – `1.1.3`, 3 s
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 24 | `0.1.1` – `0.3.5`, `1.1.1` – `1.3.2` |
+| `ACCEPTED` | 25 | `0.1.1` – `0.3.5`, `1.1.1` – `1.3.3` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 173 | `1.3.3` – `11.4.5` |
+| `NOT_STARTED` | 172 | `1.3.4` – `11.4.5` |
 | **Total** | **197** | `Stage 0` – `Stage 11` |
 
 ---
