@@ -95,7 +95,8 @@ $docFiles = @(
     "docs/TESTING.md",
     "docs/PERFORMANCE.md",
     "docs/LICENSING.md",
-    "docs/ROADMAP.md"
+    "docs/ROADMAP.md",
+    "docs/DESIGN_SYSTEM.md"
 )
 foreach ($doc in $docFiles) {
     $exists = Test-Path -Path $doc -PathType Leaf

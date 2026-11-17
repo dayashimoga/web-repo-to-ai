@@ -641,16 +641,85 @@
   - `npm run build`: Production bundle generated with `@sveltejs/adapter-node` in `apps/web/build/index.js`.
   - `scripts/check-all.ps1`: ALL 5 GATES PASSED (Gate 1: 223/223 bootstrap checks, Gate 2: 7/7 workflows, Gate 3: Rust formatting, Gate 4: Frontend lint/check/test, Gate 5: 5.27 GB / 30 GB storage ceiling).
   - `bash scripts/check-all.sh`: ALL 5 GATES PASSED (0 failures).
-- **Git Commit Reference:** `83e86df`
+- **Git Commit Reference:** `4423982`
 - **Status:** `ACCEPTED`
 
 ---
 
-### Upcoming Subphase (Awaiting User Approval after 1.1.1)
+#### Subphase `1.1.2` — Typography, spacing & color systems
+- **Unique ID:** `1.1.2`
+- **Objective:** Implement the typography scale components, spacing grid layout primitives, accessible high-contrast color utilities, and author the comprehensive design system specification in `docs/DESIGN_SYSTEM.md`.
+- **Scope:** `apps/web/src/lib/components/typography/*`, `apps/web/src/lib/components/layout/*`, `apps/web/src/lib/tokens/color-utils.ts`, `apps/web/tests/typography.test.ts`, `apps/web/tests/color-utils.test.ts`, `docs/DESIGN_SYSTEM.md`, `apps/web/src/routes/+page.svelte`, `PROJECT_STATUS.md`, `IMPLEMENTATION_LEDGER.md`.
+- **Prerequisites:** `1.1.1` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `apps/web/src/lib/components/typography/Heading.svelte`
+  - `apps/web/src/lib/components/typography/Text.svelte`
+  - `apps/web/src/lib/components/typography/Code.svelte`
+  - `apps/web/src/lib/components/typography/Mono.svelte`
+  - `apps/web/src/lib/components/typography/index.ts`
+  - `apps/web/src/lib/components/layout/Container.svelte`
+  - `apps/web/src/lib/components/layout/Stack.svelte`
+  - `apps/web/src/lib/components/layout/Grid.svelte`
+  - `apps/web/src/lib/components/layout/index.ts`
+  - `apps/web/src/lib/tokens/color-utils.ts`
+  - `apps/web/tests/typography.test.ts`
+  - `apps/web/tests/color-utils.test.ts`
+  - `apps/web/src/routes/+page.svelte`
+  - `docs/DESIGN_SYSTEM.md`
+  - `PROJECT_STATUS.md`
+  - `IMPLEMENTATION_LEDGER.md`
+- **Implementation Tasks:**
+  1. Author accessible typography scale components in Svelte 5:
+     - `Heading.svelte`: Semantic levels 1 through 6 (`h1`–`h6`), proportional sizing (`5xl` down to `base`), tight tracking, and theme color classes.
+     - `Text.svelte`: Body text sizes (`xs`, `sm`, `base`, `lg`, `xl`), weights, muted/secondary/primary tone variants, and responsive line heights.
+     - `Code.svelte` & `Mono.svelte`: Inline and block monospace code presentation with syntax background, border styling, and token counter styling.
+  2. Author layout primitives enforcing the 4px spacing grid:
+     - `Container.svelte`: Responsive max-width wrappers (`sm`, `md`, `lg`, `xl`, `full`) with responsive horizontal padding.
+     - `Stack.svelte`: Vertical or horizontal flex layout with typed 4px grid spacing props (`gap-1` to `gap-12`).
+     - `Grid.svelte`: Responsive grid layouts (1 to 12 columns, customizable responsive breakpoints).
+  3. Author color contrast and accessibility utilities (`color-utils.ts`):
+     - WCAG AA (4.5:1 for normal text, 3.0:1 for large text / UI components) and AAA (7.0:1) verification functions.
+     - Dynamic text color picker (`getAccessibleTextColor`) returning light or dark text based on background luminance.
+     - Accessible focus ring styling classes.
+  4. Author `docs/DESIGN_SYSTEM.md` documenting:
+     - Design principles (clarity, density, responsiveness, accessibility first).
+     - Full typography hierarchy, line heights, font stacks, and code typography.
+     - 4px spacing rhythm and container sizing rules.
+     - Color system, surface layers, token budget warning bands, and WCAG AA/AAA verification.
+  5. Update `apps/web/src/routes/+page.svelte` demonstrating typography components, layout containers, and contrast verification in action.
+  6. Author unit tests `apps/web/tests/typography.test.ts` and `apps/web/tests/color-utils.test.ts`.
+  7. Verify all gates: `npm run lint`, `npm run check`, `npm test`, `npm run build`, and `scripts/check-all.*`.
+- **Acceptance Criteria:**
+  - All typography components (`Heading`, `Text`, `Code`, `Mono`) render semantic elements with Svelte 5 runes.
+  - Layout primitives (`Container`, `Stack`, `Grid`) support flexible 4px grid spacing.
+  - Color utilities validate WCAG AA/AAA compliance programmatically.
+  - `docs/DESIGN_SYSTEM.md` is complete, structured, and non-empty.
+  - Automated tests pass with 100% success.
+  - Svelte-check passes with 0 errors and 0 warnings.
+  - All monorepo verification gates in `scripts/check-all.*` pass.
+- **Tests:** `npm test` in `apps/web`, `npm run check`, `npm run lint`, `npm run build`, and monorepo runner `scripts/check-all.ps1`.
+- **Security Considerations:** No external web fonts or CDN links; all typography relies on safe system font stacks and CSS custom properties; no user-supplied HTML injection without escaping.
+- **Performance Considerations:** Components compile to lean Svelte 5 JavaScript; zero runtime CSS overhead; layout primitives use native flexbox and CSS grid.
+- **Documentation Requirements:** Updated `docs/DESIGN_SYSTEM.md`, `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`.
+- **Validation Evidence:**
+  - `apps/web/tests/color-utils.test.ts`: 11/11 tests passed (0 failures).
+  - `apps/web/tests/tokens.test.ts`: 18/18 tests passed (0 failures).
+  - `apps/web/tests/typography.test.ts`: 2/2 tests passed (0 failures).
+  - `npm run check` (svelte-check): 0 errors, 0 warnings.
+  - `npm run lint` (prettier): All matched files use Prettier code style.
+  - `npm run build`: Production bundle generated with `@sveltejs/adapter-node` in `apps/web/build/index.js`.
+  - `scripts/check-all.ps1`: ALL 5 GATES PASSED (Gate 1: 224/224 bootstrap checks including `docs/DESIGN_SYSTEM.md`, Gate 2: 7/7 workflows, Gate 3: Rust formatting, Gate 4: Frontend lint/check/test, Gate 5: 5.27 GB / 30 GB storage ceiling).
+  - `bash scripts/check-all.sh`: ALL 5 GATES PASSED (0 failures).
+- **Git Commit Reference:** `7e5117f`
+- **Status:** `ACCEPTED`
+
+---
+
+### Upcoming Subphase (Awaiting User Approval after 1.1.2)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `1.1.2` | Typography, spacing & color systems | `1.1.1` (`ACCEPTED`) | `apps/web/src/lib/components/typography/*`, `docs/DESIGN_SYSTEM.md` | `NOT_STARTED` |
+| `1.1.3` | Reusable accessible components | `1.1.2` (`ACCEPTED`) | `apps/web/src/lib/components/ui/*` | `NOT_STARTED` |
 
 ---
 

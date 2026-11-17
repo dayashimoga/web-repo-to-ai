@@ -33,7 +33,7 @@
 
 ### Phase 1.1 — Design system (`IN_PROGRESS`)
 - [x] **[1.1.1]** Scaffold SvelteKit + Svelte 5 + TypeScript + Tailwind CSS application in `apps/web` and establish visual design token system *(Completed 2026-11-17, brand/accent/surface palettes, token budget indicators, tokens.css, Tailwind theme)*
-- [ ] **[1.1.2]** Implement typography scale, spacing system, and accessible color contrast utilities
+- [x] **[1.1.2]** Implement typography scale, spacing system, and accessible color contrast utilities *(Completed 2026-11-17, Heading/Text/Code/Mono, Container/Stack/Grid, color-utils, docs/DESIGN_SYSTEM.md)*
 - [ ] **[1.1.3]** Build reusable accessible UI component primitives (Button, Input, Toggle, Badge, Modal, Tooltip)
 
 ### Phase 1.2 — Main website

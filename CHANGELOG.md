@@ -6,6 +6,17 @@
 
 ## [Unreleased] — Stage 1: Frontend and Product Experience
 
+### 2026-11-17 — Phase 1.1: Design System (`1.1.2`)
+
+#### Added
+- **`[1.1.2]` Typography Hierarchy, Spacing Primitives & WCAG Contrast Systems:**
+  - Authored accessible typography scale components in `apps/web/src/lib/components/typography/`: `Heading.svelte` supporting levels 1–6 (`h1`–`h6`) with proportional sizes `xs` to `5xl`, `Text.svelte` supporting body sizes, weights, and semantic tone variants, `Code.svelte` for inline and block code, and `Mono.svelte` for tabular numbers and token metrics.
+  - Authored layout primitives in `apps/web/src/lib/components/layout/`: `Container.svelte` with responsive breakpoint max-widths, `Stack.svelte` supporting vertical/horizontal direction and 4px baseline gap spacing (`gap-0` to `gap-12`), and `Grid.svelte` supporting responsive 1–12 columns.
+  - Implemented color contrast and accessibility utilities in `apps/web/src/lib/tokens/color-utils.ts` verifying WCAG 2.1 AA/AAA compliance thresholds, automatic text contrast selection, token budget status badge styling, and universal visible focus rings.
+  - Published comprehensive design system specification in `docs/DESIGN_SYSTEM.md` covering typography hierarchy, 4px baseline rhythm, container breakpoints, surface layers, token budget bands, and WCAG AA/AAA certification tables.
+  - Updated showcase page `apps/web/src/routes/+page.svelte` integrating typography and layout components with interactive budget controls.
+  - Authored unit test suites `apps/web/tests/typography.test.ts` and `apps/web/tests/color-utils.test.ts`, expanding total test count to 31/31 passed tests.
+
 ### 2026-11-17 — Phase 1.1: Design System (`1.1.1`)
 
 #### Added
