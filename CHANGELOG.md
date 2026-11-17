@@ -6,6 +6,21 @@
 
 ## [Unreleased] — Stage 3: Universal Webpage Extraction
 
+### 2026-11-17 — Phase 3.1: Secure Acquisition (`3.1.3`)
+
+#### Added
+- **`[3.1.3]` Implement HTTP Fetching, Streaming Bodies, and Redirect Revalidation in `crates/web-extractor`:**
+  - Added `reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "stream"] }` to root `Cargo.toml`.
+  - Added `reqwest`, `async-trait`, `bytes`, `futures`, `chrono`, and `tokio` to `crates/web-extractor/Cargo.toml`.
+  - Added `"CDLA-Permissive-2.0"` to permitted licenses in `deny.toml` to support `webpki-roots` (Mozilla root CA store for pure-Rust TLS without C OpenSSL).
+  - Implemented `WebExtractorError` in `crates/web-extractor/src/error.rs` covering `UrlSecurity`, `Http`, `RedirectLoop`, `TooManyRedirects`, `MissingLocationHeader`, `InvalidRedirectUrl`, `PayloadTooLarge`, `Timeout`, and `Network`, with seamless conversion into `CoreError`.
+  - Implemented `RedirectHop` and `RedirectTracker` in `crates/web-extractor/src/http/redirect.rs` tracking hop history, detecting URL cycles, and enforcing max redirect limits.
+  - Implemented `FetchedResponse` in `crates/web-extractor/src/http/response.rs` capturing initial URL, terminal canonical URL, status code, response headers, body bytes, pinned IP address, redirect history, ETag, and Last-Modified headers.
+  - Defined asynchronous `HttpTransport` trait with production `ReqwestTransport` (configured with `Policy::none()` to disable automatic redirects and enforce connection to pinned socket addresses) and programmable `MockHttpTransport` in `crates/web-extractor/src/http/transport.rs`.
+  - Implemented `WebFetcher` and `FetchOptions` in `crates/web-extractor/src/http/fetcher.rs` coordinating hop-by-hop DNS resolution & IP pinning via `SecureDnsResolver`, custom User-Agent and Accept header injection, redirect revalidation, and streaming chunked body consumption bounded by `max_body_bytes`.
+  - Fixed target URL propagation in `SecureDnsResolver::resolve_and_pin` when reusing cached DNS resolutions.
+  - Added 8 unit and integration tests in `crates/web-extractor/src/lib.rs` (16 total in crate), expanding workspace tests to 177 passing across all 17 crates with 100% pass rate across all 5 monorepo verification gates.
+
 ### 2026-11-17 — Phase 3.1: Secure Acquisition (`3.1.2`)
 
 #### Added

@@ -106,7 +106,9 @@ impl SecureDnsResolver {
             let map = self.cache.read().await;
             if let Some(cached) = map.get(&cache_key) {
                 if !cached.is_expired() {
-                    return Ok(cached.clone());
+                    let mut target = cached.clone();
+                    target.url = url.clone();
+                    return Ok(target);
                 }
             }
         }

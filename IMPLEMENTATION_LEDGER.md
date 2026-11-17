@@ -2297,11 +2297,53 @@
 
 ---
 
+#### Subphase `3.1.3` — HTTP fetching, streaming bodies, and redirect revalidation in crates/web-extractor
+- **Unique ID:** `3.1.3`
+- **Objective:** Implement safe, streaming HTTP fetching with hop-by-hop redirect revalidation, DNS pinning integration, cycle detection, hop limits, request header injection, and bounded streaming body reading in `crates/web-extractor`.
+- **Scope:** `crates/web-extractor/Cargo.toml`, `crates/web-extractor/src/error.rs`, `crates/web-extractor/src/http/mod.rs`, `crates/web-extractor/src/http/redirect.rs`, `crates/web-extractor/src/http/response.rs`, `crates/web-extractor/src/http/transport.rs`, `crates/web-extractor/src/http/fetcher.rs`, `crates/web-extractor/src/lib.rs`, `crates/url-security/src/resolver.rs`, root `Cargo.toml`, `deny.toml`.
+- **Prerequisites:** `3.1.2` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `Cargo.toml`, `Cargo.lock`, `deny.toml`
+  - `crates/url-security/src/resolver.rs`
+  - `crates/web-extractor/Cargo.toml`, `crates/web-extractor/src/lib.rs`, `crates/web-extractor/src/error.rs`
+  - `crates/web-extractor/src/http/mod.rs`, `crates/web-extractor/src/http/redirect.rs`, `crates/web-extractor/src/http/response.rs`, `crates/web-extractor/src/http/transport.rs`, `crates/web-extractor/src/http/fetcher.rs`
+- **Implementation Tasks:**
+  1. Add `reqwest` (with `rustls-tls` and `stream` features, no default features) to root `Cargo.toml` and `crates/web-extractor/Cargo.toml` alongside `async-trait`, `bytes`, and `futures`.
+  2. Allow `CDLA-Permissive-2.0` in `deny.toml` for `webpki-roots`.
+  3. Implement `WebExtractorError` in `crates/web-extractor/src/error.rs` covering URL security errors, HTTP transport errors, redirect loops, max redirect limit exceeded, missing redirect location, invalid redirect target, payload too large, timeouts, and network failures, with seamless mapping into `CoreError`.
+  4. Implement `RedirectHop` and `RedirectTracker` in `crates/web-extractor/src/http/redirect.rs` tracking each redirect hop, detecting cyclic loops via normalized URL histories, and enforcing max redirect hop bounds.
+  5. Implement `FetchedResponse` in `crates/web-extractor/src/http/response.rs` recording the initial URL, terminal canonical URL, status code, response headers, byte body, pinned IP address, redirect history, ETag, and Last-Modified metadata.
+  6. Define `HttpTransport` trait with production `ReqwestTransport` (configured with `Policy::none()` to disable insecure automatic redirects and route connections to pinned socket addresses) and programmable `MockHttpTransport` in `crates/web-extractor/src/http/transport.rs`.
+  7. Implement `WebFetcher` and `FetchOptions` in `crates/web-extractor/src/http/fetcher.rs` orchestrating hop-by-hop DNS resolution & IP pinning via `SecureDnsResolver`, custom User-Agent and Accept header injection, redirect revalidation, and streaming chunked body consumption bounded by `max_body_bytes`.
+  8. Fix URL cache assignment in `SecureDnsResolver::resolve_and_pin` so cached DNS targets preserve the requested path.
+  9. Add 8 comprehensive unit and integration tests in `crates/web-extractor/src/lib.rs` testing 200 OK responses, multi-hop redirects, redirect loops, max redirect boundaries, SSRF blocking on redirect hops to private/metadata IPs, invalid redirect schemes, missing location headers, and payload size bounds.
+- **Acceptance Criteria:**
+  - Automatic redirects are disabled; every redirect hop is explicitly re-evaluated against SSRF IP filters, hostname blocklists, and redirect loop history.
+  - Streaming body consumption halts immediately when `max_body_bytes` is reached, preventing memory exhaustion.
+  - Pinned IP addresses are preserved and propagated into the terminal `FetchedResponse` provenance.
+  - 100% of workspace Rust tests pass (16 in `crates/web-extractor`, 177 workspace tests); 184/184 frontend tests pass; zero warnings and clean monorepo gates.
+- **Tests:** `cargo test -p web-repo-to-ai-web-extractor` (16 passed), `cargo test --workspace` (177 passed), `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, `pnpm --filter web test:unit` (184 passed), `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, 02, and 05: SSRF protection across all redirect hops; prevents DNS rebinding by retaining pinned IP addresses during HTTP connection; disables automatic redirects (`Policy::none()`) to prevent bypass of IP filters; bounds body ingestion against memory exhaustion attacks.
+- **Performance Considerations:** Streaming body consumption reads in chunks (`BytesStream`) with early termination if payload exceeds byte quota; reusable `ReqwestClient` connection pool avoids socket thrashing; in-memory `RedirectTracker` uses O(1) set lookups.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-web-extractor`: 16/16 tests passed in 0.00s.
+  - `cargo test --workspace`: 177/177 tests passed across all 17 crates.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors.
+  - `cargo fmt --all -- --check`: 100% code style compliance.
+  - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
+  - `pnpm --filter web test:unit`: 184/184 tests passed in 2.65s.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
+- **Git Commit Reference:** `2e2c5c4`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 3 — Universal Webpage Extraction)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `3.1.3` | HTTP fetching, streaming bodies, and redirect revalidation in crates/web-extractor | `3.1.2` (`ACCEPTED`) | `crates/web-extractor/*` | `NOT_STARTED` |
+| `3.1.4` | Compression bombs, timeouts, and body size limits in crates/web-extractor | `3.1.3` (`ACCEPTED`) | `crates/web-extractor/*` | `NOT_STARTED` |
 
 ---
 
