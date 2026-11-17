@@ -235,7 +235,7 @@
 - **Validation Evidence:**
   - `python scripts/validate-workflows.py`: 4/4 workflows passed (verified triggers, permissions, jobs).
   - `scripts/verify-bootstrap.ps1`: 178/178 checks passed (0 failures).
-- **Git Commit Reference:** Recorded in commit for subphase 0.2.3
+- **Git Commit Reference:** `40453f1`
 - **Status:** `ACCEPTED`
 
 ---
