@@ -6,6 +6,19 @@
 
 ## [Unreleased] — Stage 3: Universal Webpage Extraction
 
+### 2026-11-17 — Phase 3.4: Extraction Quality (`3.4.2`)
+
+#### Added
+- **`[3.4.2]` Implement Duplicate Detection and Canonical URL Resolution in `crates/web-extractor`:**
+  - Implemented deduplication models in `crates/web-extractor/src/dedup/model.rs`: `CanonicalSource`, `CanonicalResolution`, `DuplicateClassification`, `DuplicateRecord`, `DedupOptions`.
+  - Implemented `CanonicalUrlResolver` in `crates/web-extractor/src/dedup/canonical.rs` resolving `<link rel="canonical">` tags with relative URL resolution, cross-domain canonical detection, and SSRF security validation preventing private IP or loopback targets from polluting canonical resolution.
+  - Implemented 64-bit `SimHasher` in `crates/web-extractor/src/dedup/simhash.rs` utilizing unigram tokenization, term-frequency weighting, 64-bit FNV-1a hashing, Hamming distance computation, and Jaccard token similarity for robust near-duplicate detection.
+  - Implemented thread-safe `DuplicateRegistry` in `crates/web-extractor/src/dedup/registry.rs` indexing canonical URLs, BLAKE3 content digests, and 64-bit SimHash fingerprints, classifying incoming documents as `Unique`, `ExactCanonical`, `ExactContent`, or `NearDuplicate`.
+  - Integrated `CanonicalUrlResolver` into `ProvenanceBuilder::build_static` and `ProvenanceBuilder::build_dynamic` in `crates/web-extractor/src/provenance/extractor.rs`, automatically recording canonical resolutions on `SourceAttribution`.
+  - Re-exported `dedup` types in `crates/web-extractor/src/lib.rs`.
+  - Added 10 unit and integration tests covering canonical resolution, cross-domain and SSRF security handling, SimHash Hamming distance similarity, and concurrent registry duplicate classification, bringing `crates/web-extractor` to 127/127 passing tests and the workspace to 288/288 passing tests.
+  - Verified 127/127 tests in `crates/web-extractor`, 288/288 workspace tests, 29/29 Node.js tests in `services/browser-worker`, 184/184 frontend tests in `apps/web`, and 100% pass rate across all 5 monorepo verification gates.
+
 ### 2026-11-17 — Phase 3.4: Extraction Quality (`3.4.1`)
 
 #### Added

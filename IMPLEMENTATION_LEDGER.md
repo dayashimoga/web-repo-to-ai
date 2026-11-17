@@ -2870,11 +2870,59 @@
 
 ---
 
+#### Subphase `3.4.2` — Duplicate detection and canonical URL resolution in crates/web-extractor
+- **Unique ID:** `3.4.2`
+- **Objective:** Implement duplicate detection and canonical URL resolution in `crates/web-extractor`, providing RFC-compliant `<link rel="canonical">` parsing, relative URL resolution, SSRF validation, cross-domain canonical detection, 64-bit SimHash near-duplicate fingerprinting with term-frequency weighting, cryptographic BLAKE3 exact duplicate matching, and an in-memory thread-safe `DuplicateRegistry`.
+- **Scope:** `crates/web-extractor/src/dedup/*`, `crates/web-extractor/src/provenance/*`, `crates/web-extractor/src/lib.rs`.
+- **Prerequisites:** `3.4.1` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/web-extractor/src/dedup/mod.rs`
+  - `crates/web-extractor/src/dedup/model.rs`
+  - `crates/web-extractor/src/dedup/canonical.rs`
+  - `crates/web-extractor/src/dedup/simhash.rs`
+  - `crates/web-extractor/src/dedup/registry.rs`
+  - `crates/web-extractor/src/provenance/model.rs`
+  - `crates/web-extractor/src/provenance/extractor.rs`
+  - `crates/web-extractor/src/lib.rs`
+- **Implementation Tasks:**
+  1. Implement duplicate detection data models in `crates/web-extractor/src/dedup/model.rs`: `CanonicalSource`, `CanonicalResolution`, `DuplicateClassification`, `DuplicateRecord`, `DedupOptions`.
+  2. Implement `CanonicalUrlResolver` in `crates/web-extractor/src/dedup/canonical.rs` parsing HTML `<link rel="canonical">`, resolving relative hrefs, validating candidates through `UrlSecurityPolicy` to prevent SSRF and loopback canonical exploits, detecting cross-domain canonicals, and assigning confidence scores (`High`, `Medium`, `Low`, `None`).
+  3. Implement 64-bit `SimHasher` in `crates/web-extractor/src/dedup/simhash.rs` with unigram tokenization, term-frequency weighting, 64-bit FNV-1a hashing, Hamming distance computation, and Jaccard token similarity.
+  4. Implement `DuplicateRegistry` in `crates/web-extractor/src/dedup/registry.rs` using `RwLock` concurrency to index canonical URLs, BLAKE3 content hashes, and SimHash fingerprints, classifying documents as `Unique`, `ExactCanonical`, `ExactContent`, or `NearDuplicate`.
+  5. Integrate `CanonicalUrlResolver` into `ProvenanceBuilder::build_static` and `build_dynamic` in `crates/web-extractor/src/provenance/extractor.rs`, populating `canonical_resolution` on `SourceAttribution`.
+  6. Re-export `dedup` types in `crates/web-extractor/src/lib.rs`.
+  7. Add 10 comprehensive unit and integration tests across canonical resolution, SSRF resistance, SimHash Hamming distance, and registry duplicate classification, bringing `crates/web-extractor` to 127 passing tests and the workspace to 288 passing tests.
+  8. Run all 5 monorepo verification gates in `scripts/check-all.ps1`.
+- **Acceptance Criteria:**
+  - SSRF-safe canonical link resolution rejects localhost/private IP/metadata targets in canonical tags.
+  - Cross-domain canonical links are identified and flagged with lower confidence.
+  - BLAKE3 hashes detect exact byte and text duplicates.
+  - 64-bit SimHash identifies near-duplicates within Hamming distance $\le 8$ ($\ge 87.5\%$ similarity).
+  - `DuplicateRegistry` correctly categorizes unique, exact, and near-duplicate pages concurrently.
+  - All 127 tests in `crates/web-extractor` pass; all 288 workspace tests pass; all 5 monorepo verification gates pass with 0 failures.
+- **Tests:** `cargo test -p web-repo-to-ai-web-extractor`, `cargo test --workspace`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, `npm test` (`services/browser-worker`), `npm test` (`apps/web`), `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, 01, 04, 05: Canonical URL targets are validated against `UrlSecurityPolicy` using `ValidatedUrl::parse` to prevent SSRF poisoning or redirect bypassing via malicious canonical tags; thread-safe deduplication registry prevents race conditions.
+- **Performance Considerations:** In-memory registry with $O(1)$ hash map lookups for exact canonical and BLAKE3 duplicates; lightweight 64-bit bitwise Hamming distance operations for SimHash checks.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-web-extractor`: 127/127 tests passed.
+  - `cargo test --workspace`: 288/288 tests passed.
+  - `npm test` (`services/browser-worker`): 29/29 tests passed across 7 suites.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors.
+  - `cargo fmt --all -- --check`: 100% code style compliance.
+  - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
+  - `npm test` (`apps/web`): 184/184 tests passed across 15 suites.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
+- **Git Commit Reference:** `PENDING_COMMIT_HASH`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 3 — Universal Webpage Extraction)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `3.4.2` | Duplicate detection and canonical URL resolution in crates/web-extractor | `3.4.1` (`ACCEPTED`) | `crates/web-extractor/*` | `NOT_STARTED` |
+| `3.4.3` | Content completeness scoring and extraction warnings in crates/web-extractor | `3.4.2` (`ACCEPTED`) | `crates/web-extractor/*` | `NOT_STARTED` |
 
 ---
 

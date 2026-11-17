@@ -14,6 +14,7 @@
 pub mod article;
 pub mod browser;
 pub mod compression;
+pub mod dedup;
 pub mod docs;
 pub mod dom;
 pub mod elements;
@@ -33,6 +34,10 @@ pub use browser::{
     DEFAULT_CLIENT_TIMEOUT, DEFAULT_MIN_CONTENT_DENSITY, DEFAULT_MIN_STATIC_TEXT_LENGTH,
 };
 pub use compression::{BodyLimits, BoundedDecompressor, ContentEncoding};
+pub use dedup::{
+    CanonicalResolution, CanonicalSource, CanonicalUrlResolver, DedupOptions,
+    DuplicateClassification, DuplicateRecord, DuplicateRegistry, SimHasher,
+};
 pub use docs::{
     Admonition, AdmonitionType, BreadcrumbItem, DocExtractor, DocFramework, DocLink, DocPagination,
     DocSection, DocVersionInfo, ExtractedDocumentation, TocItem,

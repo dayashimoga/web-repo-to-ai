@@ -16,6 +16,7 @@ use super::model::{
 };
 use crate::browser::model::BrowserRenderResponse;
 use crate::browser::ExtractionMethod;
+use crate::dedup::{CanonicalResolution, CanonicalSource, CanonicalUrlResolver, DedupOptions};
 use crate::dom::{CleanedDocument, DocumentMetadata};
 use crate::http::FetchedResponse;
 
@@ -298,23 +299,41 @@ impl ProvenanceBuilder {
         let mut warnings = Vec::new();
 
         // 1. Resolve canonical URL & compare against fetched URL
-        let terminal_url = fetched.url.as_str().to_string();
-        let mut canonical_url = terminal_url.clone();
+        let canonical_resolution = CanonicalUrlResolver::resolve(
+            &fetched.initial_url,
+            &fetched.url,
+            captured_metadata.canonical_link.as_deref(),
+            captured_metadata
+                .opengraph
+                .get("og:url")
+                .map(|s| s.as_str()),
+            None,
+            &DedupOptions::default(),
+            policy,
+        );
 
-        if let Some(ref link) = captured_metadata.canonical_link {
-            if let Ok(parsed_canonical) = ValidatedUrl::parse(link, policy) {
-                let parsed_str = parsed_canonical.as_str();
-                if parsed_str.trim_end_matches('/') != terminal_url.trim_end_matches('/') {
-                    warnings.push(ProvenanceWarning::new(
-                        "CANONICAL_URL_MISMATCH",
-                        format!(
-                            "HTML rel=canonical '{parsed_str}' differs from HTTP final URL '{terminal_url}'."
-                        ),
-                        WarningSeverity::Warning,
-                    ));
-                }
-                canonical_url = parsed_str.to_string();
-            }
+        let canonical_url = canonical_resolution.canonical_url.as_str().to_string();
+        let terminal_url = fetched.url.as_str().to_string();
+
+        if canonical_url.trim_end_matches('/') != terminal_url.trim_end_matches('/') {
+            warnings.push(ProvenanceWarning::new(
+                "CANONICAL_URL_MISMATCH",
+                format!(
+                    "Canonical URL '{canonical_url}' differs from HTTP final URL '{terminal_url}'."
+                ),
+                WarningSeverity::Warning,
+            ));
+        }
+
+        if canonical_resolution.is_cross_domain {
+            warnings.push(ProvenanceWarning::new(
+                "CROSS_DOMAIN_CANONICAL",
+                format!(
+                    "Canonical URL points to external domain '{}'.",
+                    canonical_resolution.canonical_url.host_str()
+                ),
+                WarningSeverity::Info,
+            ));
         }
 
         // 2. HTTP Cache validator warnings
@@ -372,6 +391,7 @@ impl ProvenanceBuilder {
 
         SourceAttribution {
             canonical_url,
+            canonical_resolution,
             initial_url: fetched.initial_url.as_str().to_string(),
             retrieved_at,
             load_duration_ms,
@@ -403,27 +423,63 @@ impl ProvenanceBuilder {
 
         let mut warnings = Vec::new();
 
-        let terminal_url = if resp.url.is_empty() {
-            initial_url.to_string()
+        let terminal_str = if resp.url.is_empty() {
+            initial_url
         } else {
-            resp.url.clone()
+            &resp.url
         };
 
-        let mut canonical_url = terminal_url.clone();
-        if let Some(ref link) = captured_metadata.canonical_link {
-            if let Ok(parsed_canonical) = ValidatedUrl::parse(link, policy) {
-                let parsed_str = parsed_canonical.as_str();
-                if parsed_str.trim_end_matches('/') != terminal_url.trim_end_matches('/') {
-                    warnings.push(ProvenanceWarning::new(
-                        "CANONICAL_URL_MISMATCH",
-                        format!(
-                            "HTML rel=canonical '{parsed_str}' differs from browser final URL '{terminal_url}'."
-                        ),
-                        WarningSeverity::Warning,
-                    ));
+        let initial_val = ValidatedUrl::parse(initial_url, policy).ok();
+        let terminal_val = ValidatedUrl::parse(terminal_str, policy).ok();
+
+        let canonical_resolution = match (&initial_val, &terminal_val) {
+            (Some(init), Some(term)) => CanonicalUrlResolver::resolve(
+                init,
+                term,
+                captured_metadata.canonical_link.as_deref(),
+                captured_metadata
+                    .opengraph
+                    .get("og:url")
+                    .map(|s| s.as_str()),
+                None,
+                &DedupOptions::default(),
+                policy,
+            ),
+            _ => {
+                let fallback = terminal_val.or(initial_val).unwrap_or_else(|| {
+                    ValidatedUrl::parse("https://example.com", policy).expect("valid fallback")
+                });
+                CanonicalResolution {
+                    canonical_url: fallback,
+                    source: CanonicalSource::OriginalRequest,
+                    raw_candidate: None,
+                    is_cross_domain: false,
+                    confidence: 50,
+                    warnings: Vec::new(),
                 }
-                canonical_url = parsed_str.to_string();
             }
+        };
+
+        let canonical_url = canonical_resolution.canonical_url.as_str().to_string();
+        if canonical_url.trim_end_matches('/') != terminal_str.trim_end_matches('/') {
+            warnings.push(ProvenanceWarning::new(
+                "CANONICAL_URL_MISMATCH",
+                format!(
+                    "Canonical URL '{canonical_url}' differs from browser final URL '{terminal_str}'."
+                ),
+                WarningSeverity::Warning,
+            ));
+        }
+
+        if canonical_resolution.is_cross_domain {
+            warnings.push(ProvenanceWarning::new(
+                "CROSS_DOMAIN_CANONICAL",
+                format!(
+                    "Canonical URL points to external domain '{}'.",
+                    canonical_resolution.canonical_url.host_str()
+                ),
+                WarningSeverity::Info,
+            ));
         }
 
         if !resp.blocked_subresources.is_empty() {
@@ -484,6 +540,7 @@ impl ProvenanceBuilder {
 
         SourceAttribution {
             canonical_url,
+            canonical_resolution,
             initial_url: initial_url.to_string(),
             retrieved_at,
             load_duration_ms,
@@ -660,6 +717,10 @@ mod tests {
             ProvenanceBuilder::build_static(&fetched, &cleaned_doc, html, Instant::now(), &policy);
 
         assert_eq!(attribution.canonical_url, "https://example.com/rust-tips");
+        assert_eq!(
+            attribution.canonical_resolution.source,
+            CanonicalSource::HtmlLinkRelCanonical
+        );
         assert_eq!(attribution.extraction_method, ExtractionMethod::Static);
         assert!(attribution.has_warnings());
 

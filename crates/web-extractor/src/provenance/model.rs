@@ -12,6 +12,7 @@ use sha2::{Digest, Sha256};
 
 use crate::browser::model::{BlockedSubresource, BrowserTiming, ConsoleMessage, PageError};
 use crate::browser::ExtractionMethod;
+use crate::dedup::CanonicalResolution;
 
 /// Cryptographic content hashes computed over raw response bytes and extracted clean text.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -193,6 +194,8 @@ pub struct ProvenanceCitations {
 pub struct SourceAttribution {
     /// The terminal canonical URL resolved for this webpage.
     pub canonical_url: String,
+    /// Detailed canonical URL resolution signal and confidence metrics.
+    pub canonical_resolution: CanonicalResolution,
     /// The original requested URL provided by the caller.
     pub initial_url: String,
     /// UTC timestamp when content acquisition completed.

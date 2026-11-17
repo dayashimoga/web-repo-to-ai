@@ -104,8 +104,7 @@
 
 ### Phase 3.4 — Extraction quality (`IN_PROGRESS`)
 - [x] **[3.4.1]** Source attribution, HTTP provenance, and metadata capture in crates/web-extractor *(Completed 2026-11-17, SourceAttribution, HttpProvenance, ContentHashes with dual SHA-256 and BLAKE3, MetadataExtractor for Schema.org JSON-LD and OpenGraph/Twitter cascading, ProvenanceBuilder citations and warnings, 117 passing web-extractor tests, 278 workspace tests)*
-- [ ] **[3.4.2]** Duplicate detection and canonical URL resolution in crates/web-extractor
-- [ ] **[3.4.2]** Duplicate detection and canonical URL resolution in crates/web-extractor
+- [x] **[3.4.2]** Duplicate detection and canonical URL resolution in crates/web-extractor *(Completed 2026-11-17, CanonicalUrlResolver with SSRF check, 64-bit SimHasher with term-frequency weighting, DuplicateRegistry concurrent deduplication, 127 passing web-extractor tests, 288 workspace tests)*
 - [ ] **[3.4.3]** Content completeness scoring and extraction warnings in crates/web-extractor
 - [ ] **[3.4.4]** Golden dataset test suite for universal webpage extraction in crates/web-extractor
 
