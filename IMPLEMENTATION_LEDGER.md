@@ -3672,7 +3672,7 @@
   - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
   - `npm test` (`apps/web`): 184/184 tests passed across 15 suites; `svelte-check` reports 0 errors and 0 warnings.
   - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures across all 5 verification gates, Podman storage 5.27 GB / 30 GB, 17.6%).
-- **Git Commit Reference:** PENDING_COMMIT
+- **Git Commit Reference:** `2e53391`
 - **Status:** `ACCEPTED`
 
 ---
@@ -3683,7 +3683,7 @@
   - `4.3.1`: ZIP package generation in `crates/exporters` (`ACCEPTED`, commit `bd9b6ec` / `064beed`)
   - `4.3.2`: Manifest & checksums generation in `crates/exporters` (`ACCEPTED`, commit `6fae508` / `1f8babc`)
   - `4.3.3`: Streaming downloads in `services/api` (`ACCEPTED`, commit `b79cf24` / `a5b756a`)
-  - `4.3.4`: Export integrity tests in `crates/exporters` (`ACCEPTED`, commit `PENDING_COMMIT`)
+  - `4.3.4`: Export integrity tests in `crates/exporters` (`ACCEPTED`, commit `2e53391`)
 - **Certification Date:** 2026-11-17
 - **Certification Summary:**
   1. Complete export engine producing deterministic, reproducible ZIP archives packaging Markdown, PlainText, Canonical CDM JSON, Structured JSON, HTML5, JSONL RAG chunks, raw source code trees, `manifest.json`, `provenance.json`, `quality-report.json`, and coreutils `checksums.sha256`.
