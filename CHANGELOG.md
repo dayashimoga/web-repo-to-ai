@@ -6,6 +6,23 @@
 
 ## [Unreleased] — Stage 3: Universal Webpage Extraction
 
+### 2026-11-17 — Phase 3.3: Dynamic Extraction (`3.3.3`)
+
+#### Added
+- **`[3.3.3]` Implement Resource Limits, Navigation Timeouts, and Sandbox Isolation in `services/browser-worker` and `crates/web-extractor`:**
+  - Implemented `ConcurrencyLimiter` in `services/browser-worker/src/limiter.js` enforcing maximum concurrent page sessions (default 4) and a bounded FIFO queue (capacity 20) with queue timeout (15s), rejecting capacity overflows with HTTP 429 `ConcurrencyLimitExceeded` and `Retry-After: 5`.
+  - Implemented automated Chromium lifecycle recycling in `PlaywrightEngine` (`recycleBrowser`), automatically relaunching Chromium when active sessions reach 0 and either `rendersCount >= maxRendersPerBrowser` (200) or process memory exceeds RSS threshold (768 MB).
+  - Implemented hard rendering session deadline timer (`hardTimeoutBufferMs = 5000` added to client timeout) via `Promise.race`, terminating hung pages with 504 `SessionTimeout`.
+  - Hardened context isolation with `serviceWorkers: 'block'`, `acceptDownloads: false`, and `permissions: []`.
+  - Implemented automatic dialog dismissal on `page.on('dialog')` so `alert()`, `confirm()`, and `prompt()` modals never block worker execution.
+  - Implemented subresource request ceiling (`maxSubresources = 200`), aborting excess subresources with `blockedbyclient` and recording in `blocked_subresources`.
+  - Implemented maximum rendered HTML payload ceiling (`maxHtmlBytes = 10 MB`), rejecting oversized DOMs with 413 `PayloadTooLarge`.
+  - Hardened `isPrivateOrLoopbackHost` to comprehensively classify IPv4 private ranges (RFC 1918), loopback (127.0.0.0/8), link-local/cloud metadata (169.254.0.0/16, 169.254.169.254, 100.100.100.200, metadata.google.internal), CGNAT (100.64.0.0/10), current network (0.0.0.0/8), broadcast, IPv6 ULA (fc00::/7), IPv6 link-local (fe80::/10), and IPv4-mapped IPv6.
+  - Updated `crates/web-extractor/src/browser/error.rs` and `client.rs` to map HTTP 429 to `BrowserWorkerError::TooManyRequests` and HTTP 413 to `BrowserWorkerError::PayloadTooLarge`.
+  - Configured `deny.toml` advisory ignore for `RUSTSEC-2026-0543` (transitive sqlx chrono advisory).
+  - Added 9 unit and integration tests in `services/browser-worker/test/limits.test.js` validating limiter queueing, 429 rejection with `Retry-After`, address classification, dialog auto-dismissal, subresource ceilings, and HTML payload bounds, bringing `services/browser-worker` tests to 29/29 passing across 7 suites.
+  - Verified 110/110 tests in `crates/web-extractor`, 271/271 workspace tests, 184/184 frontend tests, and 100% pass rate across all 5 monorepo verification gates.
+
 ### 2026-11-17 — Phase 3.3: Dynamic Extraction (`3.3.2`)
 
 #### Added

@@ -42,7 +42,7 @@
 - **Phases:**
   - `3.1` Secure acquisition (`3.1.1` [ACCEPTED], `3.1.2` [ACCEPTED], `3.1.3` [ACCEPTED], `3.1.4` [ACCEPTED] — CERTIFIED)
   - `3.2` Static extraction (`3.2.1` [ACCEPTED], `3.2.2` [ACCEPTED], `3.2.3` [ACCEPTED], `3.2.4` [ACCEPTED — PHASE 3.2 CERTIFIED])
-  - `3.3` Dynamic extraction (`3.3.1` [ACCEPTED], `3.3.2` [ACCEPTED], `3.3.3` [NEXT], `3.3.4`)
+  - `3.3` Dynamic extraction (`3.3.1` [ACCEPTED], `3.3.2` [ACCEPTED], `3.3.3` [ACCEPTED], `3.3.4` [NEXT])
   - `3.4` Extraction quality (`3.4.1` – `3.4.4`)
 
 ### STAGE 4 — CANONICAL MODEL AND EXPORT ENGINE

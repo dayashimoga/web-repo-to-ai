@@ -1,11 +1,13 @@
 /**
  * @file engine.js
  * @description Playwright / Chromium dynamic browser rendering engine with lifecycle
- * management, per-request context isolation, and SSRF subresource interception.
+ * management, concurrency bounds, hard session deadlines, per-request context isolation,
+ * dialog auto-dismissal, and hardened SSRF subresource interception.
  */
 
 import { chromium } from 'playwright-core';
 import { createRenderResponse } from './protocol.js';
+import { ConcurrencyLimiter } from './limiter.js';
 
 export const DEFAULT_CHROMIUM_ARGS = [
   '--no-sandbox',
@@ -26,9 +28,14 @@ export const DEFAULT_CHROMIUM_ARGS = [
 
 export const MAX_CONSOLE_MESSAGES = 100;
 export const MAX_PAGE_ERRORS = 50;
+export const DEFAULT_MAX_SUBRESOURCES = 200;
+export const DEFAULT_MAX_HTML_BYTES = 10 * 1024 * 1024; // 10 MB payload limit
+export const DEFAULT_MAX_RENDERS_PER_BROWSER = 200;
+export const DEFAULT_MAX_MEMORY_RSS_BYTES = 768 * 1024 * 1024; // 768 MB RSS ceiling
+export const DEFAULT_HARD_TIMEOUT_BUFFER_MS = 5000; // 5s buffer over client timeout
 
 /**
- * Custom error class representing rendering execution and timeout failures.
+ * Custom error class representing rendering execution, security, and timeout failures.
  */
 export class RenderEngineError extends Error {
   /**
@@ -46,7 +53,7 @@ export class RenderEngineError extends Error {
 }
 
 /**
- * Manages Chromium browser lifecycle and isolated page rendering sessions.
+ * Manages Chromium browser lifecycle, concurrency queues, resource limits, and isolated page rendering.
  */
 export class PlaywrightEngine {
   /**
@@ -54,14 +61,43 @@ export class PlaywrightEngine {
    * @param {typeof chromium} [options.chromiumModule] - Dependency injection for testing.
    * @param {string[]} [options.args] - Custom Chromium CLI arguments.
    * @param {string} [options.executablePath] - Custom browser executable path.
+   * @param {number} [options.maxConcurrent] - Maximum simultaneous active renders.
+   * @param {number} [options.maxQueueSize] - Maximum queue capacity.
+   * @param {number} [options.queueTimeoutMs] - Maximum queue wait timeout in ms.
+   * @param {number} [options.maxSubresources] - Maximum subresource requests allowed per page.
+   * @param {number} [options.maxHtmlBytes] - Maximum rendered HTML payload size in bytes.
+   * @param {number} [options.maxRendersPerBrowser] - Lifetime render count before browser recycling.
+   * @param {number} [options.maxMemoryRssBytes] - Process RSS memory threshold triggering browser recycling.
+   * @param {number} [options.hardTimeoutBufferMs] - Buffer added to request timeout for hard deadline timer.
    */
   constructor(options = {}) {
     this.chromiumModule = options.chromiumModule || chromium;
     this.args = options.args || DEFAULT_CHROMIUM_ARGS;
     this.executablePath = options.executablePath || process.env.CHROME_BIN || process.env.BROWSER_PATH || null;
+    this.limiter = new ConcurrencyLimiter({
+      maxConcurrent: options.maxConcurrent,
+      maxQueueSize: options.maxQueueSize,
+      queueTimeoutMs: options.queueTimeoutMs,
+    });
+    this.maxSubresources =
+      typeof options.maxSubresources === 'number'
+        ? options.maxSubresources
+        : Number.parseInt(process.env.MAX_SUBRESOURCES_PER_PAGE || '', 10) || DEFAULT_MAX_SUBRESOURCES;
+    this.maxHtmlBytes = typeof options.maxHtmlBytes === 'number' ? options.maxHtmlBytes : DEFAULT_MAX_HTML_BYTES;
+    this.maxRendersPerBrowser =
+      typeof options.maxRendersPerBrowser === 'number'
+        ? options.maxRendersPerBrowser
+        : Number.parseInt(process.env.MAX_RENDERS_PER_BROWSER || '', 10) || DEFAULT_MAX_RENDERS_PER_BROWSER;
+    this.maxMemoryRssBytes =
+      typeof options.maxMemoryRssBytes === 'number' ? options.maxMemoryRssBytes : DEFAULT_MAX_MEMORY_RSS_BYTES;
+    this.hardTimeoutBufferMs =
+      typeof options.hardTimeoutBufferMs === 'number' ? options.hardTimeoutBufferMs : DEFAULT_HARD_TIMEOUT_BUFFER_MS;
+
     this.browser = null;
     this.launchPromise = null;
     this.closed = false;
+    this.rendersCount = 0;
+    this.totalRendersServed = 0;
   }
 
   /**
@@ -111,7 +147,7 @@ export class PlaywrightEngine {
     try {
       return await this.chromiumModule.launch(baseOptions);
     } catch (defaultErr) {
-      // If explicit path was provided or browser not found, attempt channel fallbacks on developer hosts
+      // If executable not found on developer hosts, attempt channel fallbacks
       const isMissingExecutable =
         defaultErr.message.includes("Executable doesn't exist") ||
         defaultErr.message.includes('browserType.launch: Executable');
@@ -131,7 +167,6 @@ export class PlaywrightEngine {
               channel: 'msedge',
             });
           } catch {
-            // Throw original error with helpful guidance
             throw new RenderEngineError(
               'BrowserLaunchFailed',
               `Could not launch Chromium: ${defaultErr.message}`,
@@ -150,7 +185,24 @@ export class PlaywrightEngine {
   }
 
   /**
-   * Probes whether the browser is currently launched and ready to serve requests.
+   * Recycles the Chromium browser process to free memory and clean up zombie workers.
+   *
+   * @returns {Promise<void>}
+   */
+  async recycleBrowser() {
+    if (this.browser) {
+      try {
+        await this.browser.close();
+      } catch {
+        // Ignored during recycling
+      }
+      this.browser = null;
+      this.rendersCount = 0;
+    }
+  }
+
+  /**
+   * Probes whether the browser is currently operational and responsive.
    *
    * @returns {Promise<boolean>}
    */
@@ -160,37 +212,82 @@ export class PlaywrightEngine {
     }
     try {
       const browser = await this.getBrowser();
-      return browser && browser.isConnected();
+      return Boolean(browser && browser.isConnected());
     } catch {
       return false;
     }
   }
 
   /**
-   * Renders a webpage inside a completely isolated BrowserContext and extracts the DOM.
+   * Renders a webpage with concurrency bounding, hard session timeouts, and sandbox isolation.
    *
    * @param {import('./protocol.js').RenderRequest} reqData - Validated render request parameters.
    * @returns {Promise<import('./protocol.js').RenderResponse>}
    */
   async render(reqData) {
-    const browser = await this.getBrowser();
+    // 1. Acquire concurrency token (or wait in bounded queue; throws 429 if full, 504 if queue timeout)
+    await this.limiter.acquire();
 
-    // Context isolation: each render request receives a fresh, isolated BrowserContext
-    const context = await browser.newContext({
-      viewport: reqData.viewport,
-      userAgent: reqData.user_agent || undefined,
-      extraHTTPHeaders: reqData.headers && Object.keys(reqData.headers).length > 0 ? reqData.headers : undefined,
-      javaScriptEnabled: reqData.javascript_enabled !== false,
-      ignoreHTTPSErrors: false,
-    });
+    let context = null;
+    let deadlineTimer = null;
 
     try {
-      return await this.executeRenderSession(context, reqData);
+      const browser = await this.getBrowser();
+
+      // 2. Context isolation & sandbox hardening:
+      // - block ServiceWorkers
+      // - disable file downloads
+      // - revoke all device/sensor permissions
+      context = await browser.newContext({
+        viewport: reqData.viewport,
+        userAgent: reqData.user_agent || undefined,
+        extraHTTPHeaders: reqData.headers && Object.keys(reqData.headers).length > 0 ? reqData.headers : undefined,
+        javaScriptEnabled: reqData.javascript_enabled !== false,
+        ignoreHTTPSErrors: false,
+        serviceWorkers: 'block',
+        acceptDownloads: false,
+        permissions: [],
+      });
+
+      // 3. Set up hard session deadline timer (client timeout + buffer)
+      const hardTimeoutMs = reqData.timeout_ms + this.hardTimeoutBufferMs;
+      const deadlinePromise = new Promise((_, reject) => {
+        deadlineTimer = setTimeout(() => {
+          reject(
+            new RenderEngineError(
+              'SessionTimeout',
+              `Hard rendering session deadline of ${hardTimeoutMs}ms exceeded.`,
+              504
+            )
+          );
+        }, hardTimeoutMs);
+      });
+
+      // 4. Race session execution against hard deadline
+      const sessionPromise = this.executeRenderSession(context, reqData);
+      return await Promise.race([sessionPromise, deadlinePromise]);
     } catch (err) {
       throw this.mapRenderError(err, reqData);
     } finally {
+      if (deadlineTimer) {
+        clearTimeout(deadlineTimer);
+      }
       // Unconditionally close the isolated context to prevent process and RAM leaks
-      await context.close().catch(() => {});
+      if (context) {
+        await context.close().catch(() => {});
+      }
+      // Release concurrency token
+      this.limiter.release();
+      this.rendersCount++;
+      this.totalRendersServed++;
+
+      // Check for memory/render count recycling threshold when idle
+      if (
+        this.limiter.activeCount === 0 &&
+        (this.rendersCount >= this.maxRendersPerBrowser || process.memoryUsage().rss > this.maxMemoryRssBytes)
+      ) {
+        await this.recycleBrowser();
+      }
     }
   }
 
@@ -207,10 +304,16 @@ export class PlaywrightEngine {
     page.setDefaultNavigationTimeout(reqData.timeout_ms);
     page.setDefaultTimeout(reqData.timeout_ms);
 
+    // Auto-dismiss dialogs (alert, confirm, prompt, beforeunload) so page never hangs
+    page.on('dialog', async (dialog) => {
+      await dialog.dismiss().catch(() => {});
+    });
+
     const redirects = [];
     const consoleMessages = [];
     const pageErrors = [];
     const blockedSubresources = [];
+    let subresourcesCount = 0;
 
     // Track HTTP redirect responses
     page.on('response', (response) => {
@@ -247,47 +350,55 @@ export class PlaywrightEngine {
       }
     });
 
-    // Subresource SSRF protection: block non-HTTP and private destinations
-    if (reqData.block_subresource_ips) {
-      await page.route('**/*', (route) => {
-        const req = route.request();
-        const reqUrl = req.url();
+    // Subresource filtering: max subresources limit & SSRF protection
+    await page.route('**/*', (route) => {
+      const req = route.request();
+      const reqUrl = req.url();
 
-        // Always allow data: and blob: inline assets
-        if (reqUrl.startsWith('data:') || reqUrl.startsWith('blob:')) {
-          return route.continue();
-        }
+      // Always allow data: and blob: inline assets
+      if (reqUrl.startsWith('data:') || reqUrl.startsWith('blob:')) {
+        return route.continue();
+      }
 
-        try {
-          const parsed = new URL(reqUrl);
+      // Enforce max subresource ceiling per page
+      if (subresourcesCount >= this.maxSubresources) {
+        blockedSubresources.push({
+          url: reqUrl,
+          reason: `Subresource count exceeded maximum limit of ${this.maxSubresources}`,
+          resource_type: req.resourceType(),
+        });
+        return route.abort('blockedbyclient');
+      }
 
-          // Block unsupported schemes
-          if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-            blockedSubresources.push({
-              url: reqUrl,
-              reason: `Blocked unsupported scheme '${parsed.protocol}'`,
-              resource_type: req.resourceType(),
-            });
-            return route.abort('blockedbyclient');
-          }
+      try {
+        const parsed = new URL(reqUrl);
 
-          // Block private / loopback / cloud metadata IP destinations
-          const host = parsed.hostname.toLowerCase();
-          if (this.isPrivateOrLoopbackHost(host)) {
-            blockedSubresources.push({
-              url: reqUrl,
-              reason: `Blocked private/loopback destination: ${host}`,
-              resource_type: req.resourceType(),
-            });
-            return route.abort('blockedbyclient');
-          }
-        } catch {
+        // Block unsupported or dangerous schemes
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+          blockedSubresources.push({
+            url: reqUrl,
+            reason: `Blocked unsupported scheme '${parsed.protocol}'`,
+            resource_type: req.resourceType(),
+          });
           return route.abort('blockedbyclient');
         }
 
+        // SSRF protection: block private, loopback, CGNAT, link-local, and metadata destinations
+        if (reqData.block_subresource_ips && this.isPrivateOrLoopbackHost(parsed.hostname)) {
+          blockedSubresources.push({
+            url: reqUrl,
+            reason: `Blocked private/loopback destination: ${parsed.hostname}`,
+            resource_type: req.resourceType(),
+          });
+          return route.abort('blockedbyclient');
+        }
+
+        subresourcesCount++;
         return route.continue();
-      });
-    }
+      } catch {
+        return route.abort('blockedbyclient');
+      }
+    });
 
     const navStart = Date.now();
 
@@ -314,6 +425,16 @@ export class PlaywrightEngine {
     const finalUrl = page.url();
     const statusCode = mainResponse ? mainResponse.status() : 200;
 
+    // Enforce HTML payload size ceiling
+    const htmlBytes = Buffer.byteLength(html, 'utf8');
+    if (htmlBytes > this.maxHtmlBytes) {
+      throw new RenderEngineError(
+        'PayloadTooLarge',
+        `Rendered HTML payload size (${htmlBytes} bytes) exceeds maximum ceiling of ${this.maxHtmlBytes} bytes`,
+        413
+      );
+    }
+
     return createRenderResponse({
       url: finalUrl,
       status_code: statusCode,
@@ -333,34 +454,111 @@ export class PlaywrightEngine {
   }
 
   /**
-   * Determines if a hostname is private, loopback, or cloud metadata.
+   * Determines if a hostname is private, loopback, CGNAT, link-local, or cloud metadata.
    *
-   * @param {string} host
+   * @param {string} rawHost
    * @returns {boolean}
    */
-  isPrivateOrLoopbackHost(host) {
+  isPrivateOrLoopbackHost(rawHost) {
+    if (!rawHost || typeof rawHost !== 'string') {
+      return true;
+    }
+
+    let host = rawHost.trim().toLowerCase();
+
+    // Strip brackets if IPv6
+    if (host.startsWith('[') && host.endsWith(']')) {
+      host = host.slice(1, -1);
+    }
+
+    // 1. Hostname suffixes & names
     if (
       host === 'localhost' ||
-      host === '127.0.0.1' ||
-      host === '::1' ||
-      host === '169.254.169.254' ||
       host.endsWith('.localhost') ||
-      host.endsWith('.local')
+      host === 'local' ||
+      host.endsWith('.local') ||
+      host.endsWith('.internal') ||
+      host.endsWith('.test') ||
+      host.endsWith('.example') ||
+      host.endsWith('.invalid') ||
+      host === 'metadata.google.internal' ||
+      host === 'instance-data'
     ) {
       return true;
     }
 
-    if (host.startsWith('10.') || host.startsWith('192.168.')) {
-      return true;
-    }
-
-    // 172.16.0.0/12
-    const match172 = host.match(/^172\.(\d+)\./);
-    if (match172) {
-      const octet = Number.parseInt(match172[1], 10);
-      if (octet >= 16 && octet <= 31) {
+    // 2. IPv6 Checks
+    if (host.includes(':')) {
+      // Loopback & Unspecified
+      if (host === '::1' || host === '::' || host === '0:0:0:0:0:0:0:1' || host === '0:0:0:0:0:0:0:0') {
         return true;
       }
+      // Link-local (fe80::/10 -> fe8, fe9, fea, feb)
+      if (/^fe[89ab]/i.test(host)) {
+        return true;
+      }
+      // Unique Local Address (fc00::/7 -> fc, fd)
+      if (/^f[cd]/i.test(host)) {
+        return true;
+      }
+      // IPv4-mapped IPv6 (::ffff:x.x.x.x or ::ffff:hex)
+      if (host.startsWith('::ffff:')) {
+        const remainder = host.slice(7);
+        if (remainder.includes('.')) {
+          return this.isPrivateOrLoopbackHost(remainder);
+        }
+        // Hex representation (e.g. 7f00:1)
+        const hexParts = remainder.split(':');
+        if (hexParts.length === 2) {
+          const high = Number.parseInt(hexParts[0], 16);
+          const low = Number.parseInt(hexParts[1], 16);
+          const ip = `${(high >> 8) & 0xff}.${high & 0xff}.${(low >> 8) & 0xff}.${low & 0xff}`;
+          return this.isPrivateOrLoopbackHost(ip);
+        }
+        return true;
+      }
+      return false;
+    }
+
+    // 3. IPv4 Checks
+    const ipv4Parts = host.split('.');
+    if (ipv4Parts.length === 4 && ipv4Parts.every((p) => /^\d+$/.test(p))) {
+      const [o1, o2, o3, o4] = ipv4Parts.map((p) => Number.parseInt(p, 10));
+      if ([o1, o2, o3, o4].some((o) => o < 0 || o > 255)) {
+        return true;
+      }
+
+      // 0.0.0.0/8 (Current network)
+      if (o1 === 0) return true;
+
+      // 10.0.0.0/8 (Private RFC 1918)
+      if (o1 === 10) return true;
+
+      // 127.0.0.0/8 (Loopback)
+      if (o1 === 127) return true;
+
+      // 169.254.0.0/16 (Link-local / Cloud metadata)
+      if (o1 === 169 && o2 === 254) return true;
+
+      // 172.16.0.0/12 (Private RFC 1918)
+      if (o1 === 172 && o2 >= 16 && o2 <= 31) return true;
+
+      // 192.168.0.0/16 (Private RFC 1918)
+      if (o1 === 192 && o2 === 168) return true;
+
+      // 100.64.0.0/10 (Carrier-Grade NAT)
+      if (o1 === 100 && o2 >= 64 && o2 <= 127) return true;
+
+      // 100.100.100.200 (Alibaba Cloud metadata)
+      if (o1 === 100 && o2 === 100 && o3 === 100 && o4 === 200) return true;
+
+      // 198.18.0.0/15 (Benchmarking)
+      if (o1 === 198 && (o2 === 18 || o2 === 19)) return true;
+
+      // 224.0.0.0/4 (Multicast) & 240.0.0.0/4 (Reserved) & 255.255.255.255
+      if (o1 >= 224) return true;
+
+      return false;
     }
 
     return false;
@@ -425,6 +623,20 @@ export class PlaywrightEngine {
       `Dynamic page rendering failed: ${msg}`,
       500
     );
+  }
+
+  /**
+   * Returns current engine performance, queue, and memory stats.
+   *
+   * @returns {object}
+   */
+  getStats() {
+    return {
+      concurrency: this.limiter.getStats(),
+      renders_count: this.rendersCount,
+      total_renders_served: this.totalRendersServed,
+      memory_rss_bytes: process.memoryUsage().rss,
+    };
   }
 
   /**

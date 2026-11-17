@@ -17,6 +17,10 @@ pub enum BrowserWorkerError {
     BrowserCrash(String),
     /// Underlying HTTP network transport error connecting to browser-worker service.
     HttpTransportError(String),
+    /// Worker concurrency or queue capacity exceeded (HTTP 429).
+    TooManyRequests(String),
+    /// Rendered HTML or request payload exceeded size ceiling (HTTP 413).
+    PayloadTooLarge(String),
     /// Browser worker returned an unexpected HTTP status code.
     UnexpectedStatus {
         /// HTTP status code.
@@ -36,6 +40,12 @@ impl fmt::Display for BrowserWorkerError {
             Self::BlockedUrl(msg) => write!(f, "Browser URL blocked by security policy: {msg}"),
             Self::BrowserCrash(msg) => write!(f, "Browser worker crashed: {msg}"),
             Self::HttpTransportError(msg) => write!(f, "HTTP transport error: {msg}"),
+            Self::TooManyRequests(msg) => {
+                write!(f, "Browser worker concurrency limit exceeded: {msg}")
+            }
+            Self::PayloadTooLarge(msg) => {
+                write!(f, "Browser worker payload size limit exceeded: {msg}")
+            }
             Self::UnexpectedStatus { status, message } => {
                 write!(f, "Browser worker returned HTTP {status}: {message}")
             }

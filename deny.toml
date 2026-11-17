@@ -14,7 +14,9 @@ version = 2
 unmaintained = "all"
 unsound = "all"
 yanked = "warn"
-ignore = []
+ignore = [
+    "RUSTSEC-2026-0543", # chrono unmaintained advisory (transitive dependency of sqlx)
+]
 
 [licenses]
 confidence-threshold = 0.8

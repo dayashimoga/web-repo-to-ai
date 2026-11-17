@@ -156,14 +156,28 @@ impl BrowserWorkerClient {
                 "InvalidScheme" | "BlockedHost" | "BlockedUrl" => {
                     return Err(BrowserWorkerError::BlockedUrl(detail));
                 }
-                "NavigationTimeout" | "SelectorTimeout" => {
+                "NavigationTimeout" | "SelectorTimeout" | "SessionTimeout" | "QueueTimeout" => {
                     return Err(BrowserWorkerError::NavigationTimeout(detail));
+                }
+                "ConcurrencyLimitExceeded" | "TooManyRequests" => {
+                    return Err(BrowserWorkerError::TooManyRequests(detail));
+                }
+                "PayloadTooLarge" => {
+                    return Err(BrowserWorkerError::PayloadTooLarge(detail));
                 }
                 "BrowserCrash" => {
                     return Err(BrowserWorkerError::BrowserCrash(detail));
                 }
                 _ => {}
             }
+        }
+
+        if status_code == 429 {
+            return Err(BrowserWorkerError::TooManyRequests(body_text));
+        }
+
+        if status_code == 413 {
+            return Err(BrowserWorkerError::PayloadTooLarge(body_text));
         }
 
         Err(BrowserWorkerError::UnexpectedStatus {
@@ -257,6 +271,22 @@ mod tests {
                                 body
                             );
                             let _ = socket.write_all(resp.as_bytes()).await;
+                        } else if req_str.contains("concurrency.example.com") {
+                            let body = r#"{"type":"https://web-repo-to-ai.dev/errors/concurrencylimitexceeded","title":"ConcurrencyLimitExceeded","status":429,"detail":"Concurrency limit reached","error_code":"ConcurrencyLimitExceeded"}"#;
+                            let resp = format!(
+                                "HTTP/1.1 429 Too Many Requests\r\nContent-Type: application/problem+json\r\nRetry-After: 5\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                                body.len(),
+                                body
+                            );
+                            let _ = socket.write_all(resp.as_bytes()).await;
+                        } else if req_str.contains("huge.example.com") {
+                            let body = r#"{"type":"https://web-repo-to-ai.dev/errors/payloadtoolarge","title":"PayloadTooLarge","status":413,"detail":"Rendered HTML payload size exceeds maximum limit","error_code":"PayloadTooLarge"}"#;
+                            let resp = format!(
+                                "HTTP/1.1 413 Payload Too Large\r\nContent-Type: application/problem+json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                                body.len(),
+                                body
+                            );
+                            let _ = socket.write_all(resp.as_bytes()).await;
                         } else {
                             let body = r#"{
                                 "url":"https://example.com/app",
@@ -320,6 +350,26 @@ mod tests {
                 assert!(msg.contains("Timed out waiting for selector"));
             }
             other => panic!("Expected NavigationTimeout error, got {other:?}"),
+        }
+
+        // 6. Render concurrency limit error (HTTP 429)
+        let concurrency_req = BrowserRenderRequest::new("https://concurrency.example.com");
+        let err = client.render(&concurrency_req).await.unwrap_err();
+        match err {
+            BrowserWorkerError::TooManyRequests(msg) => {
+                assert!(msg.contains("Concurrency limit reached"));
+            }
+            other => panic!("Expected TooManyRequests error, got {other:?}"),
+        }
+
+        // 7. Render payload too large error (HTTP 413)
+        let huge_req = BrowserRenderRequest::new("https://huge.example.com");
+        let err = client.render(&huge_req).await.unwrap_err();
+        match err {
+            BrowserWorkerError::PayloadTooLarge(msg) => {
+                assert!(msg.contains("Rendered HTML payload size exceeds maximum limit"));
+            }
+            other => panic!("Expected PayloadTooLarge error, got {other:?}"),
         }
     }
 }

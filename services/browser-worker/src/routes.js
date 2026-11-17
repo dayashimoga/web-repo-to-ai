@@ -25,10 +25,12 @@ export async function handleRequest(req, res, options = {}) {
 
   // Liveness check
   if ((path === '/health' || path === '/live') && method === 'GET') {
+    const stats = typeof engine.getStats === 'function' ? engine.getStats() : undefined;
     return sendJson(res, 200, {
       status: 'ok',
       service: SERVICE_NAME,
       version: SERVICE_VERSION,
+      stats,
       timestamp: new Date().toISOString(),
     });
   }
@@ -37,11 +39,13 @@ export async function handleRequest(req, res, options = {}) {
   if (path === '/ready' && method === 'GET') {
     const isReady = await engine.isReady();
     const statusCode = isReady ? 200 : 503;
+    const stats = typeof engine.getStats === 'function' ? engine.getStats() : undefined;
     return sendJson(res, statusCode, {
       status: isReady ? 'ready' : 'not_ready',
       service: SERVICE_NAME,
       version: SERVICE_VERSION,
       browser_ready: isReady,
+      stats,
       timestamp: new Date().toISOString(),
     });
   }
@@ -74,7 +78,8 @@ export async function handleRequest(req, res, options = {}) {
         return sendJson(res, 200, responseData);
       } catch (renderErr) {
         if (renderErr instanceof RenderEngineError) {
-          return sendProblem(res, renderErr.statusCode, renderErr.code, renderErr.detail);
+          const extraHeaders = renderErr.statusCode === 429 ? { 'Retry-After': '5' } : {};
+          return sendProblem(res, renderErr.statusCode, renderErr.code, renderErr.detail, extraHeaders);
         }
         return sendProblem(res, 500, 'RenderExecutionError', renderErr.message || String(renderErr));
       }
@@ -124,14 +129,16 @@ function readBody(req) {
  * @param {import('node:http').ServerResponse} res
  * @param {number} status
  * @param {unknown} data
- * @param {string} contentType
+ * @param {string} [contentType='application/json']
+ * @param {Record<string, string>} [extraHeaders={}]
  */
-function sendJson(res, status, data, contentType = 'application/json') {
+function sendJson(res, status, data, contentType = 'application/json', extraHeaders = {}) {
   const body = JSON.stringify(data);
   res.writeHead(status, {
     'Content-Type': contentType,
     'Content-Length': Buffer.byteLength(body),
     'Connection': 'keep-alive',
+    ...extraHeaders,
   });
   res.end(body);
 }
@@ -143,8 +150,9 @@ function sendJson(res, status, data, contentType = 'application/json') {
  * @param {number} status
  * @param {string} code
  * @param {string} detail
+ * @param {Record<string, string>} [extraHeaders={}]
  */
-function sendProblem(res, status, code, detail) {
+function sendProblem(res, status, code, detail, extraHeaders = {}) {
   const problem = createProblemDetails(code, detail, status);
-  sendJson(res, status, problem, 'application/problem+json');
+  sendJson(res, status, problem, 'application/problem+json', extraHeaders);
 }

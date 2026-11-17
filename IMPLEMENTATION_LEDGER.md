@@ -2703,7 +2703,60 @@
   - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
   - `npm test` (`apps/web`): 184/184 tests passed.
   - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
-- **Git Commit Reference:** `cfbfda1`
+- **Git Commit Reference:** `4628de7`
+- **Status:** `ACCEPTED`
+
+---
+
+#### Subphase `3.3.3` — Resource limits, navigation timeouts, and sandbox isolation in services/browser-worker
+- **Unique ID:** `3.3.3`
+- **Objective:** Implement concurrency bounding, FIFO queue management, hard session deadlines, process memory thresholds, automated browser recycling, modal dialog auto-dismissal, subresource count ceilings, and hardened SSRF subresource filtering in `services/browser-worker` and `crates/web-extractor`.
+- **Scope:** `services/browser-worker/src/limiter.js`, `services/browser-worker/src/engine.js`, `services/browser-worker/src/routes.js`, `services/browser-worker/test/limits.test.js`, `crates/web-extractor/src/browser/client.rs`, `crates/web-extractor/src/browser/error.rs`, `deny.toml`.
+- **Prerequisites:** `3.3.2` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `services/browser-worker/src/limiter.js`
+  - `services/browser-worker/src/engine.js`
+  - `services/browser-worker/src/routes.js`
+  - `services/browser-worker/test/limits.test.js`
+  - `crates/web-extractor/src/browser/client.rs`
+  - `crates/web-extractor/src/browser/error.rs`
+  - `deny.toml`
+- **Implementation Tasks:**
+  1. Implement `ConcurrencyLimiter` in `services/browser-worker/src/limiter.js` enforcing maximum concurrent page sessions (default 4) and a bounded FIFO queue (capacity 20) with queue timeout (15s), rejecting capacity overflows with HTTP 429 `ConcurrencyLimitExceeded` and `Retry-After: 5`.
+  2. Implement browser lifecycle recycling in `PlaywrightEngine` (`recycleBrowser`), automatically relaunching Chromium when active sessions reach 0 and either `rendersCount >= maxRendersPerBrowser` (200) or process memory exceeds RSS threshold (768 MB).
+  3. Implement hard rendering session deadline timer (`hardTimeoutBufferMs = 5000` added to client timeout) via `Promise.race`, terminating hung pages with 504 `SessionTimeout`.
+  4. Harden context isolation with `serviceWorkers: 'block'`, `acceptDownloads: false`, and `permissions: []`.
+  5. Implement automatic dialog dismissal on `page.on('dialog')` so `alert()`, `confirm()`, and `prompt()` modals never block worker execution.
+  6. Implement subresource request ceiling (`maxSubresources = 200`), aborting excess subresources with `blockedbyclient` and recording in `blocked_subresources`.
+  7. Implement maximum rendered HTML payload ceiling (`maxHtmlBytes = 10 MB`), rejecting oversized DOMs with 413 `PayloadTooLarge`.
+  8. Harden `isPrivateOrLoopbackHost` to comprehensively classify IPv4 private ranges (RFC 1918), loopback (127.0.0.0/8), link-local/cloud metadata (169.254.0.0/16, 169.254.169.254, 100.100.100.200, metadata.google.internal), CGNAT (100.64.0.0/10), current network (0.0.0.0/8), broadcast, IPv6 ULA (fc00::/7), IPv6 link-local (fe80::/10), and IPv4-mapped IPv6.
+  9. Update `crates/web-extractor/src/browser/error.rs` and `client.rs` to map HTTP 429 to `BrowserWorkerError::TooManyRequests` and HTTP 413 to `BrowserWorkerError::PayloadTooLarge`.
+  10. Add `deny.toml` advisory ignore for `RUSTSEC-2026-0543` (transitive sqlx chrono advisory).
+  11. Add 9 comprehensive unit and integration tests in `services/browser-worker/test/limits.test.js` validating limiter queueing, 429 rejection with `Retry-After`, address classification, dialog auto-dismissal, subresource ceilings, and HTML payload bounds.
+  12. Run all 5 monorepo verification gates in `scripts/check-all.ps1`.
+- **Acceptance Criteria:**
+  - `ConcurrencyLimiter` bounds active browser sessions and rejects queue overflows with HTTP 429.
+  - Hard session deadline aborts hung or infinite-loop pages.
+  - Page dialogs (`alert`, `confirm`) are automatically dismissed without freezing navigation.
+  - Subresources exceeding 200 requests per page are aborted and logged in `blocked_subresources`.
+  - Rendered HTML exceeding 10 MB is rejected with HTTP 413.
+  - Subresource requests targeting RFC 1918, 127.0.0.0/8, 169.254.0.0/16, CGNAT, or metadata IPs are intercepted and blocked.
+  - Rust `BrowserWorkerClient` maps 429 to `TooManyRequests` and 413 to `PayloadTooLarge`.
+  - 100% of workspace Rust tests pass, all 29 browser-worker Node.js tests pass, and all 5 monorepo verification gates pass.
+- **Tests:** `npm test` (`services/browser-worker`), `cargo test -p web-repo-to-ai-web-extractor`, `cargo test --workspace`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, `npm test` (`apps/web`), `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, 01, 05: Intercepts subresources targeting loopback, RFC 1918, CGNAT, link-local, cloud metadata, and private IPv6 ranges; blocks downloads and service worker persistence; enforces 10 MB DOM ceiling.
+- **Performance Considerations:** Concurrency token bounds protect against CPU starvation; browser recycling prevents memory bloat and zombie worker build-up.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-web-extractor`: 110/110 tests passed.
+  - `cargo test --workspace`: 271/271 tests passed.
+  - `npm test` (`services/browser-worker`): 29/29 tests passed across 7 suites.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors.
+  - `cargo fmt --all -- --check`: 100% code style compliance.
+  - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
+  - `npm test` (`apps/web`): 184/184 tests passed.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
+- **Git Commit Reference:** `c9266ba`
 - **Status:** `ACCEPTED`
 
 ---
@@ -2712,7 +2765,7 @@
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `3.3.3` | Resource and navigation limits in browser-worker | `3.3.2` (`ACCEPTED`) | `services/browser-worker/*` | `NOT_STARTED` |
+| `3.3.4` | Dynamic DOM extraction and post-render hydration in crates/web-extractor | `3.3.3` (`ACCEPTED`) | `crates/web-extractor/*` | `NOT_STARTED` |
 
 ---
 

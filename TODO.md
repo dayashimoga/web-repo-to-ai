@@ -99,7 +99,7 @@
 ### Phase 3.3 — Dynamic extraction (`IN_PROGRESS`)
 - [x] **[3.3.1]** Browser worker architecture and IPC protocol in services/browser-worker *(Completed 2026-11-17, Node.js HTTP service on port 3000, validateRenderRequest, createProblemDetails, createRenderResponse, BrowserWorkerClient async Rust client, BrowserRenderRequest/Response, BrowserWorkerHealth, error mapping to CoreError, 13 passing Node.js tests, 110 passing web-extractor tests, 271 workspace tests)*
 - [x] **[3.3.2]** Playwright/Chromium dynamic fallback integration in services/browser-worker *(Completed 2026-11-17, PlaywrightEngine with Chromium launch fallback, isolated BrowserContext lifecycle, SSRF subresource request filtering, console/error capture, RFC 7807 problem details mapping, SelectorTimeout support in BrowserWorkerClient, 20 passing Node.js tests, 110 web-extractor tests, 271 workspace tests)*
-- [ ] **[3.3.3]** Resource limits, navigation timeouts, and sandbox isolation in services/browser-worker
+- [x] **[3.3.3]** Resource limits, navigation timeouts, and sandbox isolation in services/browser-worker *(Completed 2026-11-17, ConcurrencyLimiter with FIFO queue & 429 Retry-After, automated Chromium recycling, hard session deadline timer, dialog auto-dismissal, max 200 subresources limit, 10 MB HTML ceiling, hardened SSRF filtering across IPv4/IPv6/CGNAT/metadata, BrowserWorkerError::TooManyRequests & PayloadTooLarge, 29 passing Node.js tests, 110 web-extractor tests, 271 workspace tests)*
 - [ ] **[3.3.4]** Dynamic DOM extraction and post-render hydration in crates/web-extractor
 
 ### Phase 3.4 — Extraction quality (`NOT_STARTED`)
