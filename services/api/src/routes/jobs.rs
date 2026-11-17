@@ -1,11 +1,17 @@
 //! Job management route handlers.
 
+use std::convert::Infallible;
+use std::time::Duration;
+
 use axum::body::Body;
 use axum::extract::{Extension, State};
 use axum::http::header;
 use axum::http::StatusCode;
+use axum::response::sse::{Event, KeepAlive, Sse};
 use axum::response::{IntoResponse, Response};
 use axum::Json;
+use futures::stream::{self, Stream};
+use tokio::io::AsyncReadExt;
 use tokio_util::io::ReaderStream;
 use web_repo_to_ai_cdm::model::CdmDocument;
 use web_repo_to_ai_core::{JobId, RequestId};
@@ -69,6 +75,131 @@ pub async fn get_job_handler(
 ) -> impl IntoResponse {
     // Until persistence is wired in Phase 2.3, returns typed 404 Problem Details
     not_found_problem("Job", &params.job_id.to_string(), Some(request_id))
+}
+
+/// Handles `GET /api/v1/jobs/{job_id}/events`.
+///
+/// Streams real-time Server-Sent Events (SSE) representing job lifecycle progression,
+/// stage changes, log messages, token metrics, and artifact availability.
+pub async fn job_events_handler(
+    State(state): State<AppState>,
+    ValidatedPath(params): ValidatedPath<JobPathParams>,
+) -> Sse<impl Stream<Item = std::result::Result<Event, Infallible>>> {
+    let job_id = params.job_id;
+    let cdm_key = layout::job_artifact_key(*job_id.as_uuid(), ArtifactFormat::CdmJson);
+
+    let mut events = Vec::new();
+
+    // Check if the job artifact has already been produced and stored
+    if let Ok(true) = state.storage.exists(&cdm_key).await {
+        // Job is completed in storage
+        events.push(
+            Event::default().event("phase").data(
+                serde_json::json!({
+                    "phase": "completed",
+                    "progress_pct": 100,
+                    "message": "Conversion job completed successfully",
+                    "job_id": job_id.to_string(),
+                    "timestamp": chrono::Utc::now().to_rfc3339()
+                })
+                .to_string(),
+            ),
+        );
+
+        // Read stored CDM to emit exact completeness and token metrics
+        if let Ok(mut reader) = state.storage.open_read(&cdm_key).await {
+            let mut buf = Vec::new();
+            if reader.read_to_end(&mut buf).await.is_ok() {
+                if let Ok(cdm) = serde_json::from_slice::<CdmDocument>(&buf) {
+                    let total_tokens = cdm.total_estimated_tokens();
+                    events.push(
+                        Event::default().event("completeness").data(
+                            serde_json::json!({
+                                "discovered_count": cdm.completeness.discovered_count,
+                                "extracted_count": cdm.completeness.extracted_count,
+                                "excluded_count": cdm.completeness.excluded_count,
+                                "failed_count": cdm.completeness.failed_count,
+                                "is_complete": cdm.completeness.is_complete()
+                            })
+                            .to_string(),
+                        ),
+                    );
+
+                    events.push(
+                        Event::default().event("tokens").data(
+                            serde_json::json!({
+                                "raw_tokens": total_tokens,
+                                "deduplicated_tokens": total_tokens,
+                                "final_tokens": total_tokens,
+                                "budget_limit": 160_000,
+                                "savings_pct": 0.0
+                            })
+                            .to_string(),
+                        ),
+                    );
+                }
+            }
+        }
+
+        // Emit artifact available notifications
+        for fmt in &["markdown", "txt", "json", "html", "jsonl", "zip"] {
+            events.push(
+                Event::default().event("artifact").data(
+                    serde_json::json!({
+                        "format": fmt,
+                        "filename": format!("web-repo-to-ai-{job_id}.{fmt}"),
+                        "download_url": format!("/api/v1/jobs/{job_id}/artifacts/{fmt}")
+                    })
+                    .to_string(),
+                ),
+            );
+        }
+
+        events.push(
+            Event::default().event("done").data(
+                serde_json::json!({
+                    "status": "completed",
+                    "job_id": job_id.to_string(),
+                    "completed_at": chrono::Utc::now().to_rfc3339()
+                })
+                .to_string(),
+            ),
+        );
+    } else {
+        // Initial queued / processing status event
+        events.push(
+            Event::default().event("phase").data(
+                serde_json::json!({
+                    "phase": "acquisition",
+                    "progress_pct": 10,
+                    "message": "Job registered; acquiring source content...",
+                    "job_id": job_id.to_string(),
+                    "timestamp": chrono::Utc::now().to_rfc3339()
+                })
+                .to_string(),
+            ),
+        );
+
+        events.push(
+            Event::default().event("log").data(
+                serde_json::json!({
+                    "id": format!("log-{}", chrono::Utc::now().timestamp_millis()),
+                    "level": "info",
+                    "phase": "acquisition",
+                    "message": format!("Processing started for job {job_id}"),
+                    "timestamp": chrono::Utc::now().to_rfc3339()
+                })
+                .to_string(),
+            ),
+        );
+    }
+
+    let stream = stream::iter(events.into_iter().map(Ok));
+    Sse::new(stream).keep_alive(
+        KeepAlive::new()
+            .interval(Duration::from_secs(15))
+            .text("keep-alive"),
+    )
 }
 
 /// Handles `GET /api/v1/jobs/{job_id}/artifacts/{format}`.

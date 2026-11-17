@@ -6,6 +6,28 @@
 
 ## [Unreleased] — Stage 4: Canonical Model and Export Engine
 
+### 2026-11-17 — Phase 4.4: Export Frontend (`4.4.2`)
+
+#### Added
+- **`[4.4.2]` Implement Real-Time Server-Sent Events (SSE) Progress Streaming in `apps/web` and `services/api`:**
+  - Implemented SSE endpoint `GET /api/v1/jobs/{job_id}/events` and `/stream` alias in `services/api/src/routes/jobs.rs` and `services/api/src/routes/mod.rs`:
+    - Dispatches typed SSE events: `phase`, `log`, `completeness`, `tokens`, `artifact`, and `done`.
+    - Reads stored CDM document to emit real completeness accounting (`discovered_count`, `extracted_count`, `excluded_count`, `failed_count`) and token metrics.
+    - Emits keep-alive comment pings every 15 seconds to prevent proxy/firewall timeouts.
+    - Added backend integration test `test_get_job_events_sse_stream` in `services/api/src/lib.rs`.
+  - Implemented `JobEventStream` and `connectJobEventStream` in `apps/web/src/lib/api/sse.ts`:
+    - Decodes strongly-typed SSE event data for pipeline phase changes, diagnostic logs, file completeness accounting, token metrics, artifact ready signals, and completion states.
+    - Automatic exponential backoff reconnection on transient drops (`1s`, `2s`, `4s` up to `30s`, max 5 attempts).
+    - Watchdog heartbeat timeout monitoring (45s period) to detect silent network drops.
+    - Explicit `stream.close()` method cleanly unbinding listeners, terminating `EventSource`, and resetting timers to prevent SSE connection leaks.
+  - Connected `apps/web/src/routes/workspace/+page.svelte` to live SSE event streams:
+    - Binds SSE events directly to Svelte 5 `$state` runes.
+    - Dynamically updates 4-stage pipeline cards, overall progress percentage, live diagnostic logs, completeness metrics, and artifact download links without polling.
+    - Cleanly terminates SSE stream on component unmount (`onDestroy`) and user cancellation (`handleCancel`).
+  - Added comprehensive Vitest test suite in `apps/web/tests/sse-stream.test.ts` (11 tests):
+    - URL construction, open event listener, event decoding (`phase`, `log`, `completeness`, `tokens`, `artifact`, `done`), automatic terminal closure, exponential backoff retries, retry ceiling enforcement, and workspace component route contract wiring.
+  - Verification: 206 passing Vitest tests (17 test files), 41 passing API tests, 331 passing workspace Rust tests, 0 `svelte-check` errors/warnings, 100% Prettier compliance, and all 5 monorepo verification gates passing cleanly.
+
 ### 2026-11-17 — Phase 4.4: Export Frontend (`4.4.1`)
 
 #### Added

@@ -526,6 +526,32 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_get_job_events_sse_stream() {
+        let app = setup_test_app();
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/jobs/019335c4-7c20-7000-8000-000000000001/events")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let content_type = response
+            .headers()
+            .get(header::CONTENT_TYPE)
+            .unwrap()
+            .to_str()
+            .unwrap();
+        assert!(content_type.contains("text/event-stream"));
+        let body = body_to_string(response.into_body()).await;
+        assert!(body.contains("event: phase"));
+        assert!(body.contains("event: log"));
+    }
+
+    #[tokio::test]
     async fn test_rfc7807_content_type_header() {
         let app = setup_test_app();
         let response = app

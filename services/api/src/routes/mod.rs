@@ -55,6 +55,8 @@ pub fn create_router(state: AppState) -> Router {
             post(jobs::create_job_handler).get(jobs::list_jobs_handler),
         )
         .route("/jobs/:job_id", get(jobs::get_job_handler))
+        .route("/jobs/:job_id/events", get(jobs::job_events_handler))
+        .route("/jobs/:job_id/stream", get(jobs::job_events_handler))
         .route(
             "/jobs/:job_id/artifacts/:format",
             get(jobs::get_artifact_handler),

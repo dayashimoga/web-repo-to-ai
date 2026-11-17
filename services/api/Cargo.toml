@@ -29,6 +29,7 @@ web-repo-to-ai-observability = { workspace = true }
 web-repo-to-ai-exporters = { workspace = true }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "signal", "net", "time"] }
 tokio-util = { workspace = true, features = ["io"] }
+futures = { workspace = true }
 tracing = { workspace = true }
 axum = { workspace = true }
 tower = { workspace = true }

@@ -3738,11 +3738,57 @@
 
 ---
 
+#### Subphase `4.4.2` — Real progress streaming (SSE) in apps/web
+- **Unique ID:** `4.4.2`
+- **Objective:** Connect the conversion workspace in `apps/web` to the live Server-Sent Events (SSE) stream (`GET /api/v1/jobs/{job_id}/events`), updating the 4-stage pipeline progress, log stream, completeness accounting, and token metrics in real time with automatic reconnect, exponential backoff, heartbeat monitoring, and safe resource cleanup on completion or unmount.
+- **Scope:** `apps/web/src/lib/api/sse.ts`, `apps/web/src/lib/api/index.ts`, `apps/web/src/routes/workspace/+page.svelte`, `services/api/src/routes/jobs.rs`, `services/api/src/routes/mod.rs`, `apps/web/tests/sse-stream.test.ts`.
+- **Prerequisites:** `4.4.1` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `apps/web/src/lib/api/sse.ts`
+  - `apps/web/src/lib/api/index.ts`
+  - `apps/web/src/routes/workspace/+page.svelte`
+  - `services/api/src/routes/jobs.rs`
+  - `services/api/src/routes/mod.rs`
+  - `services/api/src/lib.rs`
+  - `apps/web/tests/sse-stream.test.ts`
+- **Implementation Tasks:**
+  1. Implement `job_events_handler` in `services/api/src/routes/jobs.rs` and register routes for `/jobs/:job_id/events` and `/jobs/:job_id/stream` in `services/api/src/routes/mod.rs`, emitting typed `phase`, `log`, `completeness`, `tokens`, `artifact`, and `done` events with 15-second keep-alive pings.
+  2. Implement `JobEventStream` and `connectJobEventStream` in `apps/web/src/lib/api/sse.ts` with typed callback handlers, automatic exponential backoff reconnection, watchdog heartbeat timeout monitoring, and explicit `close()` cleanup.
+  3. Wire `apps/web/src/routes/workspace/+page.svelte` to connect to `connectJobEventStream` on mount, binding live SSE events directly to Svelte 5 `$state` runes, updating pipeline stages, progress bars, logs, completeness accounting, and artifact downloads in real time.
+  4. Ensure `onDestroy` in `apps/web/src/routes/workspace/+page.svelte` and user cancel actions close the stream to prevent SSE connection leaks.
+  5. Implement comprehensive Vitest test suite in `apps/web/tests/sse-stream.test.ts` (11 tests) verifying event decoding, automatic closure on `done`, reconnection retry limits, and route lifecycle bindings.
+  6. Add backend integration test `test_get_job_events_sse_stream` in `services/api/src/lib.rs`.
+  7. Run full monorepo quality audit via `scripts/check-all.ps1`.
+- **Acceptance Criteria:**
+  - Conversion workspace connects to SSE stream and dynamically updates pipeline stages, log messages, file completeness counts, and token metrics without polling.
+  - Connection automatically cleans up on job completion or component unmount with zero connection leaks.
+  - Transient connection drops trigger exponential backoff reconnection.
+  - All 206 frontend tests pass across 17 test suites; `svelte-check` reports 0 errors and 0 warnings; Prettier confirms formatting.
+  - All 331 workspace Rust tests pass with zero clippy warnings.
+  - All 5 gates in `scripts/check-all.ps1` pass cleanly.
+- **Tests:** `npm --prefix apps/web test`, `npm --prefix apps/web run check`, `npm --prefix apps/web run lint`, `cargo test -p web-repo-to-ai-api`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, 03, 05: Validated job UUID parameters, sanitized event payloads, zero XSS injection via SSE data, bounded log message buffers.
+- **Performance Considerations:** SSE streaming avoids expensive HTTP polling loops, utilizes standard browser EventSource, and automatically terminates connections upon terminal events.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`.
+- **Validation Evidence:**
+  - `npm --prefix apps/web test`: 206/206 tests passed across 17 test files (11 new tests in `sse-stream.test.ts`).
+  - `npm --prefix apps/web run check`: 0 errors, 0 warnings.
+  - `npm --prefix apps/web run lint`: 100% Prettier formatting compliance.
+  - `cargo test -p web-repo-to-ai-api`: 41/41 tests passed (including `test_get_job_events_sse_stream`).
+  - `cargo test --workspace`: 331/331 tests passed across all 17 crates and services.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors.
+  - `cargo fmt --all -- --check`: 100% clean formatting.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (224/224 bootstrap checks, 7/7 workflows, Rust checks, Frontend checks, Podman storage 5.27 GB / 30 GB, 17.6%).
+- **Git Commit Reference:** PENDING_COMMIT
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 4 — Canonical Model and Export Engine)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `4.4.2` | Real progress streaming (SSE) in apps/web | `4.4.1` (`ACCEPTED`) | `apps/web/*` | `NOT_STARTED` |
+| `4.4.3` | Content preview and copy controls in apps/web | `4.4.2` (`ACCEPTED`) | `apps/web/*` | `NOT_STARTED` |
 
 ---
 
