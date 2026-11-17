@@ -112,11 +112,11 @@
 
 ## Stage 4: Canonical Model and Export Engine (`IN_PROGRESS`)
 
-### Phase 4.1 — Canonical Context Document Model (CDM) (`IN_PROGRESS`)
+### Phase 4.1 — Canonical Context Document Model (CDM) (`COMPLETED` / `ACCEPTED` — **PHASE 4.1 CERTIFIED**)
 - [x] **[4.1.1]** Canonical Context Document Model (CDM) schema in crates/cdm *(Completed 2026-11-17, CdmDocument, CdmSection, SourceIdentity, RevisionInfo, DocumentMetadata, HierarchyNode, Relationship, Citation, ExtractionStatus, ExtractionWarning, ExclusionRecord, CompletenessReport with invariant formula, CdmDocumentBuilder, CdmSectionBuilder, 19 passing cdm tests, 322 workspace tests)*
 - [x] **[4.1.2]** CDM JSON serialization and deserialization in crates/cdm *(Completed 2026-11-17, CdmError taxonomy, JsonOptions, to_json_pretty/compact, streaming to_writer/from_reader, bounded payload ceiling defense, 32 passing cdm tests, 335 workspace tests)*
 - [x] **[4.1.3]** CDM schema validation and invariant checks in crates/cdm *(Completed 2026-11-17, ValidationConfig, ValidationReport, CdmValidator, 60 passing cdm tests, 363 workspace tests)*
-- [ ] **[4.1.4]** Schema versioning and migration framework in crates/cdm
+- [x] **[4.1.4]** Schema versioning and migration framework in crates/cdm *(Completed 2026-11-17, SchemaVersion SemVer, MigrationStep, MigrationRegistry, SchemaDiff, auto_migrate, 78 passing cdm tests, 381 workspace tests — PHASE 4.1 CERTIFIED)*
 
 ### Phase 4.2 — Format generators
 - [ ] **[4.2.1]** Markdown generator in crates/exporters

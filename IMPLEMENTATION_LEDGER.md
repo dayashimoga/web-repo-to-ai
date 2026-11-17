@@ -3212,11 +3212,63 @@
 
 ---
 
+#### Subphase `4.1.4` — Schema versioning and migration framework in crates/cdm
+- **Unique ID:** `4.1.4`
+- **Objective:** Implement a forward- and backward-compatible schema versioning, introspection, diffing, and automated migration framework in `crates/cdm`, providing strongly-typed semver version negotiation (`SchemaVersion`), sequential migration step pipelines (`MigrationStep`, `MigrationRegistry`) transforming historical schemas (`v0.8.0` $\to$ `v0.9.0` $\to$ `v1.0.0`), document diffing utilities (`SchemaDiff`), transparent auto-migration during JSON deserialization via `JsonOptions`, and full invariant compliance validation on all migrated documents.
+- **Scope:** `crates/cdm/Cargo.toml`, `crates/cdm/src/version.rs`, `crates/cdm/src/migration.rs`, `crates/cdm/src/diff.rs`, `crates/cdm/src/error.rs`, `crates/cdm/src/json.rs`, `crates/cdm/src/model.rs`, `crates/cdm/src/lib.rs`, `crates/cdm/tests/schema_migration.rs`.
+- **Prerequisites:** `4.1.3` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/cdm/src/version.rs`
+  - `crates/cdm/src/migration.rs`
+  - `crates/cdm/src/diff.rs`
+  - `crates/cdm/src/error.rs`
+  - `crates/cdm/src/json.rs`
+  - `crates/cdm/src/model.rs`
+  - `crates/cdm/src/lib.rs`
+  - `crates/cdm/tests/schema_migration.rs`
+- **Implementation Tasks:**
+  1. Implement `crates/cdm/src/version.rs` providing `SchemaVersion` with full SemVer parsing, ordering, display, compatibility checks (`is_compatible_with`), and constants for current and supported versions.
+  2. Implement `crates/cdm/src/migration.rs` providing:
+     - `MigrationStep` trait with `from_version`, `to_version`, `description`, and `migrate(&Value) -> Result<Value, CdmError>`.
+     - Sequential step execution through a graph/chain in `MigrationRegistry`.
+     - Concrete migrations for `v0.8.0` $\to$ `v0.9.0` (mapping `content_blocks` $\to$ `sections`, normalising status codes) and `v0.9.0` $\to$ `v1.0.0` (deriving `completeness` report, populating missing BLAKE3 content hashes, establishing root `hierarchy` tree, and bumping `schema_version`).
+  3. Implement `crates/cdm/src/diff.rs` providing `SchemaDiff` computing structural and semantic differences between documents or revisions (added/removed/modified sections, metadata shifts, completeness differences).
+  4. Extend `CdmError` in `crates/cdm/src/error.rs` with `MigrationError` and `UnregisteredMigration`.
+  5. Integrate auto-migration into `JsonOptions` and `from_json` / `from_reader` in `crates/cdm/src/json.rs`, allowing seamless transparent migration of legacy payloads.
+  6. Add convenience methods on `CdmDocument` in `crates/cdm/src/model.rs` (`diff`, `from_json_migrated`, `from_value_migrated`).
+  7. Re-export versioning, migration, and diffing primitives in `crates/cdm/src/lib.rs`.
+  8. Implement comprehensive integration tests in `crates/cdm/tests/schema_migration.rs` verifying multi-step migration, field remapping, hash population, completeness invariant preservation, error handling for unregistered migrations, and diffing.
+  9. Run all 5 monorepo verification gates in `scripts/check-all.ps1`.
+- **Acceptance Criteria:**
+  - `SchemaVersion` correctly parses, orders, and compares semantic version strings.
+  - Legacy payloads from `v0.8.0` and `v0.9.0` migrate losslessly into `v1.0.0` `CdmDocument` instances.
+  - Migrated documents satisfy all `CdmValidator` invariants (`validate().is_ok() == true`).
+  - Unsupported or invalid migration paths return strongly-typed `CdmError`.
+  - Schema diffing accurately detects added, removed, and modified sections and metadata.
+  - All workspace tests, clippy, fmt, and all 5 monorepo gates pass with zero errors.
+- **Tests:** `cargo test -p web-repo-to-ai-cdm`, `cargo test --workspace`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, 01, 04, 05: Auto-migration respects payload byte boundaries (`DEFAULT_MAX_JSON_BYTES`), avoids uncontrolled allocation, and validates migrated payloads against cryptographic invariants.
+- **Performance Considerations:** Migrations operate on `serde_json::Value` in a single pass without unnecessary re-serialization roundtrips.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-cdm`: 78 passed (40 unit + 7 JSON serde integration + 7 schema migration integration + 8 schema validation integration + 16 validation invariants integration), 0 failed.
+  - `cargo test --workspace`: 381 passed, 0 failed across all monorepo crates.
+  - `apps/web` (SvelteKit + Vitest): 184 passed, 0 failed across 15 test suites.
+  - `services/browser-worker` (Node.js + Jest): 29 passed, 0 failed across 7 test suites.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, clean pass.
+  - `cargo fmt --all -- --check`: Clean formatting verified across all Rust crates.
+  - `cargo deny check`: Licenses, bans, advisories, and sources passed with zero violations.
+  - Monorepo 5-gate audit (`powershell scripts/check-all.ps1`): ALL 5 GATES PASSED (100% pass rate).
+- **Git Commit Reference:** PENDING_COMMIT
+- **Status:** `ACCEPTED` (Phase 4.1 Certified)
+
+---
+
 ### Upcoming Subphase (Stage 4 — Canonical Model and Export Engine)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `4.1.4` | Schema versioning and migration framework in crates/cdm | `4.1.3` (`ACCEPTED`) | `crates/cdm/*` | `NOT_STARTED` |
+| `4.2.1` | Markdown generator in crates/exporters | `4.1.4` (`ACCEPTED`) | `crates/exporters/*` | `NOT_STARTED` |
 
 ---
 

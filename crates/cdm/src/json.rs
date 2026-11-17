@@ -21,6 +21,8 @@ pub struct JsonOptions {
     pub verify_hashes: bool,
     /// Strictly validates that the schema version string matches supported versions.
     pub validate_version: bool,
+    /// Automatically detects and up-migrates legacy schemas (e.g. `v0.8.0`, `v0.9.0`) to current version.
+    pub auto_migrate: bool,
 }
 
 impl Default for JsonOptions {
@@ -30,6 +32,7 @@ impl Default for JsonOptions {
             max_bytes: DEFAULT_MAX_JSON_BYTES,
             verify_hashes: false,
             validate_version: true,
+            auto_migrate: false,
         }
     }
 }
@@ -43,6 +46,7 @@ impl JsonOptions {
             max_bytes: DEFAULT_MAX_JSON_BYTES,
             verify_hashes: false,
             validate_version: true,
+            auto_migrate: false,
         }
     }
 
@@ -54,6 +58,7 @@ impl JsonOptions {
             max_bytes: DEFAULT_MAX_JSON_BYTES,
             verify_hashes: false,
             validate_version: true,
+            auto_migrate: false,
         }
     }
 
@@ -75,6 +80,13 @@ impl JsonOptions {
     #[must_use]
     pub const fn with_validate_version(mut self, validate: bool) -> Self {
         self.validate_version = validate;
+        self
+    }
+
+    /// Toggles automatic migration of legacy schema representations.
+    #[must_use]
+    pub const fn with_auto_migrate(mut self, auto: bool) -> Self {
+        self.auto_migrate = auto;
         self
     }
 }
@@ -137,6 +149,14 @@ pub fn from_json_with_options(json_str: &str, options: &JsonOptions) -> Result<C
         });
     }
 
+    if options.auto_migrate {
+        let value: serde_json::Value =
+            serde_json::from_str(json_str).map_err(CdmError::Deserialization)?;
+        let doc = crate::migration::MigrationRegistry::default().migrate_and_deserialize(value)?;
+        post_deserialize_validate(&doc, options)?;
+        return Ok(doc);
+    }
+
     let doc: CdmDocument = serde_json::from_str(json_str).map_err(CdmError::Deserialization)?;
     post_deserialize_validate(&doc, options)?;
     Ok(doc)
@@ -161,6 +181,14 @@ pub fn from_slice_with_options(slice: &[u8], options: &JsonOptions) -> Result<Cd
             actual_bytes,
             max_bytes: options.max_bytes,
         });
+    }
+
+    if options.auto_migrate {
+        let value: serde_json::Value =
+            serde_json::from_slice(slice).map_err(CdmError::Deserialization)?;
+        let doc = crate::migration::MigrationRegistry::default().migrate_and_deserialize(value)?;
+        post_deserialize_validate(&doc, options)?;
+        return Ok(doc);
     }
 
     let doc: CdmDocument = serde_json::from_slice(slice).map_err(CdmError::Deserialization)?;
@@ -198,6 +226,14 @@ pub fn from_reader_with_options<R: Read>(reader: R, options: &JsonOptions) -> Re
             actual_bytes: buffer.len(),
             max_bytes: options.max_bytes,
         });
+    }
+
+    if options.auto_migrate {
+        let value: serde_json::Value =
+            serde_json::from_slice(&buffer).map_err(CdmError::Deserialization)?;
+        let doc = crate::migration::MigrationRegistry::default().migrate_and_deserialize(value)?;
+        post_deserialize_validate(&doc, options)?;
+        return Ok(doc);
     }
 
     let doc: CdmDocument = serde_json::from_slice(&buffer).map_err(CdmError::Deserialization)?;

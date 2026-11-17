@@ -6,6 +6,35 @@
 
 ## [Unreleased] — Stage 4: Canonical Model and Export Engine
 
+### 2026-11-17 — Phase 4.1: Canonical Context Document Model (`4.1.4`) — PHASE 4.1 CERTIFIED
+
+#### Added
+- **`[4.1.4]` Implement Schema Versioning and Migration Framework in `crates/cdm` (Phase 4.1 Certified):**
+  - Implemented semantic versioning representation in `crates/cdm/src/version.rs`:
+    - `SchemaVersion`: Strongly-typed SemVer struct (`major`, `minor`, `patch`, `pre_release`) implementing parsing via `FromStr`, `Display`, ordering via `Ord`/`PartialOrd`, string serde roundtrips, and compatibility negotiation via `is_compatible_with` (`major == target.major`).
+    - Standard version constants: `current()`, `v0_8_0()`, `v0_9_0()`, `v1_0_0()`.
+  - Implemented migration step architecture in `crates/cdm/src/migration.rs`:
+    - `MigrationStep` trait with `from_version()`, `to_version()`, `description()`, and `migrate(&Value) -> Result<Value, CdmError>`.
+    - `Migration0_8To0_9`: Migrates legacy `content_blocks` to normalized `sections`, extracts `source_url`, sets initial `source_identity` coordinates, and upgrades schema version to `0.9.0`.
+    - `Migration0_9To1_0`: Establishes root `hierarchy` tree, derives mathematical `CompletenessReport` preserving invariants, populates missing BLAKE3 content hashes and baseline token metrics, initializes auxiliary collections (`exclusions`, `warnings`, `citations`, `relationships`), and bumps schema version to `1.0.0`.
+    - `MigrationRegistry`: Thread-safe registry finding shortest migration chains using Breadth-First Search (BFS), executing sequential transformations on `serde_json::Value` payloads, and providing `migrate_and_deserialize` into [`CdmDocument`].
+    - Added helper migration functions `migrate_document_json` and `migrate_document_value`.
+  - Implemented schema and document diffing in `crates/cdm/src/diff.rs`:
+    - `SchemaDiff`: Computes differences between two document instances, detecting schema version shifts, added sections, removed sections, modified sections (`body`, `content_hash`, `line_range`, `byte_range`, `title`), hierarchy modifications, and completeness shifts.
+    - `SectionDiff`: Detailed attribute-level section comparison.
+  - Extended `JsonOptions` and JSON deserialization in `crates/cdm/src/json.rs`:
+    - Added `auto_migrate: bool` to `JsonOptions` and fluent builder `.with_auto_migrate(bool)`.
+    - Updated `from_json_with_options`, `from_slice_with_options`, and `from_reader_with_options` to seamlessly up-migrate legacy payloads when `auto_migrate` is enabled.
+  - Added convenience methods to `CdmDocument` in `crates/cdm/src/model.rs`:
+    - `doc.diff(&other) -> SchemaDiff`
+    - `CdmDocument::from_json_migrated(json_str) -> Result<CdmDocument>`
+    - `CdmDocument::from_value_migrated(value) -> Result<CdmDocument>`
+  - Added `#[serde(default)]` to `DocumentMetadata` and `RevisionInfo` for robust forward/backward compatibility when deserializing partial schema payloads.
+  - Re-exported versioning, migration, and diffing primitives in `crates/cdm/src/lib.rs`.
+  - Added comprehensive integration tests in `crates/cdm/tests/schema_migration.rs` verifying multi-step migration (`v0.8.0` $\to$ `v0.9.0` $\to$ `v1.0.0`), direct preview migration, streaming reader/slice auto-migration, document diffing, and error handling for unregistered version jumps and downgrade attempts.
+  - Verified 78/78 tests in `crates/cdm` (40 unit + 7 JSON serde + 7 schema migration + 8 schema validation + 16 validation invariants), 381/381 workspace tests, 29/29 Node.js tests in `services/browser-worker`, 184/184 frontend tests in `apps/web`, and 100% pass rate across all 5 monorepo verification gates.
+  - Formally completed and certified **Phase 4.1 (Canonical Context Document Model)** across all 4 subphases (`4.1.1` through `4.1.4`).
+
 ### 2026-11-17 — Phase 4.1: Canonical Context Document Model (`4.1.3`)
 
 #### Added

@@ -13,18 +13,22 @@
 
 pub mod builder;
 pub mod completeness;
+pub mod diff;
 pub mod error;
 pub mod hierarchy;
 pub mod json;
 pub mod metadata;
+pub mod migration;
 pub mod model;
 pub mod relationships;
 pub mod section;
 pub mod validator;
+pub mod version;
 
 // Primary re-exports
 pub use builder::{CdmDocumentBuilder, CdmSectionBuilder};
 pub use completeness::CompletenessReport;
+pub use diff::{SchemaDiff, SectionDiff};
 pub use error::{CdmError, Result};
 pub use hierarchy::{HierarchyKind, HierarchyNode};
 pub use json::{
@@ -33,6 +37,10 @@ pub use json::{
     JsonOptions, DEFAULT_MAX_JSON_BYTES,
 };
 pub use metadata::{Citation, DocumentMetadata, ExclusionReason, ExclusionRecord};
+pub use migration::{
+    migrate_document_json, migrate_document_value, Migration0_8To0_9, Migration0_9To1_0,
+    MigrationRegistry, MigrationStep,
+};
 pub use model::{
     CdmDocument, ExtractionStatus, ExtractionWarning, RevisionInfo, SourceIdentity, SourceType,
     WarningSeverity,
@@ -42,6 +50,7 @@ pub use section::{ByteRange, CdmSection, LineRange, SectionKind, SectionTokenMet
 pub use validator::{
     CdmValidator, ValidationConfig, ValidationIssue, ValidationReport, ValidationSeverity,
 };
+pub use version::SchemaVersion;
 
 /// Canonical Context Document Model (CDM) schema version constant.
 pub const SCHEMA_VERSION: &str = "1.0.0";

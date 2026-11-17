@@ -64,6 +64,26 @@ pub enum CdmError {
         summary: String,
     },
 
+    /// Failure encountered during schema document migration.
+    #[error("CDM migration error from '{from}' to '{to}': {reason}")]
+    MigrationError {
+        /// Originating schema version.
+        from: String,
+        /// Target schema version.
+        to: String,
+        /// Specific error description.
+        reason: String,
+    },
+
+    /// No registered migration path between the specified schema versions.
+    #[error("No registered CDM migration path from schema '{from}' to '{to}'")]
+    UnregisteredMigration {
+        /// Originating schema version.
+        from: String,
+        /// Target schema version.
+        to: String,
+    },
+
     /// Standard I/O error during streaming read or write.
     #[error("CDM I/O error: {0}")]
     Io(#[from] std::io::Error),
@@ -110,6 +130,14 @@ impl From<CdmError> for CoreError {
             } => Self::Validation {
                 field: "cdm_document".to_string(),
                 reason: format!("{error_count} validation error(s): {summary}"),
+            },
+            CdmError::MigrationError { from, to, reason } => Self::Validation {
+                field: "schema_version".to_string(),
+                reason: format!("migration failed from '{from}' to '{to}': {reason}"),
+            },
+            CdmError::UnregisteredMigration { from, to } => Self::Validation {
+                field: "schema_version".to_string(),
+                reason: format!("no migration registered from '{from}' to '{to}'"),
             },
             CdmError::Io(e) => Self::Io(e),
         }

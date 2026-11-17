@@ -84,6 +84,7 @@ impl SourceIdentity {
 
 /// Versioning and revision identifiers for cache validation and provenance.
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(default)]
 pub struct RevisionInfo {
     /// Full 40-character Git commit SHA, if extracted from a Git repository.
     pub git_commit: Option<String>,
@@ -350,5 +351,27 @@ impl CdmDocument {
     /// Returns [`crate::error::CdmError::ValidationFailed`] if any invariant error or warning is detected.
     pub fn validate_strict(&self) -> crate::error::Result<()> {
         crate::validator::CdmValidator::validate_document_strict(self)
+    }
+
+    /// Computes a structural and content diff between `self` and another [`CdmDocument`].
+    #[must_use]
+    pub fn diff(&self, other: &Self) -> crate::diff::SchemaDiff {
+        crate::diff::SchemaDiff::between(self, other)
+    }
+
+    /// Deserializes a [`CdmDocument`] from a JSON string, automatically up-migrating legacy schemas.
+    ///
+    /// # Errors
+    /// Returns [`crate::error::CdmError`] if parsing, migration, or deserialization fails.
+    pub fn from_json_migrated(json_str: &str) -> crate::error::Result<Self> {
+        crate::migration::migrate_document_json(json_str)
+    }
+
+    /// Deserializes a [`CdmDocument`] from a JSON [`serde_json::Value`], automatically up-migrating legacy schemas.
+    ///
+    /// # Errors
+    /// Returns [`crate::error::CdmError`] if migration or deserialization fails.
+    pub fn from_value_migrated(value: serde_json::Value) -> crate::error::Result<Self> {
+        crate::migration::migrate_document_value(value)
     }
 }

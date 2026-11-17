@@ -9,6 +9,7 @@ use std::collections::BTreeMap;
 
 /// High-level descriptive metadata for an entire converted document or repository.
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(default)]
 pub struct DocumentMetadata {
     /// Document or repository title (e.g. webpage `<title>` or repo `owner/name`).
     pub title: Option<String>,

@@ -3,16 +3,16 @@
 **Project:** `web-repo-to-ai` (Universal URL & GitHub Repository → AI-Ready Content Converter)  
 **Last Updated:** 2026-11-17  
 **Current Stage:** `STAGE 4 — CANONICAL MODEL AND EXPORT ENGINE` (`IN_PROGRESS`)  
-**Current Phase:** `Phase 4.1 — Canonical Context Document Model (CDM)` (`IN_PROGRESS`)  
-**Active Subphase:** `4.1.4 — Schema versioning and migration framework in crates/cdm` (`NOT_STARTED` / `Next Eligible Subphase`)  
-**Last Completed Subphase:** `4.1.3 — CDM schema validation and invariant checks in crates/cdm` (`ACCEPTED`)  
-**Next Upcoming Subphase:** `4.1.4 — Schema versioning and migration framework in crates/cdm`
+**Current Phase:** `Phase 4.1 — Canonical Context Document Model (CDM)` (`COMPLETED` / `ACCEPTED` — **PHASE 4.1 CERTIFIED**)  
+**Active Subphase:** `4.2.1 — Markdown generator in crates/exporters` (`NOT_STARTED` / `Next Eligible Subphase`)  
+**Last Completed Subphase:** `4.1.4 — Schema versioning and migration framework in crates/cdm` (`ACCEPTED` — **PHASE 4.1 CERTIFIED**)  
+**Next Upcoming Subphase:** `4.2.1 — Markdown generator in crates/exporters`
 
 ---
 
 ## 1. Executive Summary
 
-Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 subphases), Stage 2 (`2.1.1` – `2.4.4`, 15 subphases), and Stage 3 (`3.1.1` – `3.4.4`, 16 subphases) are 100% complete, verified, certified, and accepted. Subphase `4.1.1` ("Canonical Context Document Model (CDM) schema in crates/cdm") and Subphase `4.1.2` ("CDM JSON serialization and deserialization in crates/cdm") are complete, verified, and accepted. **Subphase `4.1.3` ("CDM schema validation and invariant checks in crates/cdm") is complete, verified, and accepted.** `crates/cdm` implements a comprehensive structural, semantic, and cryptographic validation engine: `ValidationConfig`, `ValidationIssue`, `ValidationReport`, `CdmValidator`, verifying schema version, section ID uniqueness, line/byte range monotonic sanity, cryptographic BLAKE3 hashes, tree hierarchy acyclicity and referential integrity, relationship references, and completeness invariant accounting ($\text{discovered} = \text{extracted} + \text{excluded} + \text{failed} + \text{unsupported}$). 363/363 automated Rust workspace tests pass (60 in `crates/cdm`), 29/29 Node.js tests pass in `services/browser-worker`, 184/184 frontend tests pass in `apps/web`, and all 5 monorepo verification gates pass cleanly with zero failures. Subphase `4.1.4` is queued as the next active subphase.
+Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 subphases), Stage 2 (`2.1.1` – `2.4.4`, 15 subphases), and Stage 3 (`3.1.1` – `3.4.4`, 16 subphases) are 100% complete, verified, certified, and accepted. **Phase 4.1 ("Canonical Context Document Model (CDM)") is now 100% complete, verified, certified, and accepted across all 4 subphases (`4.1.1` through `4.1.4`).** Subphase `4.1.4` ("Schema versioning and migration framework in crates/cdm") implements a complete SemVer version negotiation engine (`SchemaVersion`), sequential migration step registry (`MigrationStep`, `MigrationRegistry`) up-migrating historical schemas (`v0.8.0` $\to$ `v0.9.0` $\to$ `v1.0.0`), document diffing utilities (`SchemaDiff`), and auto-migration during JSON deserialization (`JsonOptions::with_auto_migrate`). 381/381 automated Rust workspace tests pass (78 in `crates/cdm`), 29/29 Node.js tests pass in `services/browser-worker`, 184/184 frontend tests pass in `apps/web`, and all 5 monorepo verification gates pass cleanly with zero failures. Subphase `4.2.1` is queued as the next active subphase.
 
 ---
 
@@ -20,12 +20,12 @@ Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 su
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 63 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1`, `4.1.2`, `4.1.3` |
+| `ACCEPTED` | 64 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1`, `4.1.2`, `4.1.3`, `4.1.4` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 134 | `4.1.4` – `11.4.5` |
+| `NOT_STARTED` | 133 | `4.2.1` – `11.4.5` |
 | **Total** | **197** | `Stage 0` – `Stage 11` |
 
 ---
