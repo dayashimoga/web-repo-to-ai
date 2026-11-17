@@ -340,7 +340,7 @@
 - **Validation Evidence:**
   - `podman-compose config` CLI verification: exit code 0, 5 services parsed.
   - `scripts/check-all.ps1`: ALL GATES PASSED (194/194 checks passed).
-- **Git Commit Reference:** Recorded in commit for subphase 0.3.1
+- **Git Commit Reference:** `1e8d4e8`
 - **Status:** `ACCEPTED`
 
 ---
