@@ -6,6 +6,17 @@
 
 ## [Unreleased] — Stage 2: Backend and Processing Foundation
 
+### 2026-11-17 — Phase 2.4: Storage (`2.4.3`)
+
+#### Added
+- **`[2.4.3]` Implement Artifact Retention and Ephemeral Cleanup Policies in `crates/storage`:**
+  - Implemented `RetentionPolicy` in `crates/storage/src/retention.rs` with configurable TTLs (`default_ttl`, `max_ttl`, `ephemeral_ttl`), high/low capacity watermarks (`high_watermark_bytes`, `low_watermark_bytes`), batch sizes, invariant validation, and bounded `calculate_expires_at` deadline computation.
+  - Implemented `CleanupReport` tracking evaluated artifacts, deleted artifacts, bytes freed, deleted ephemeral staging files, freed ephemeral bytes, and non-fatal error accumulators with merge and inspection helpers.
+  - Implemented relational repository `ArtifactRepository` providing SQLx CRUD operations on `job_artifacts` with non-blocking transactional batch deletion using `FOR UPDATE SKIP LOCKED`.
+  - Extended `StorageBackend` trait, `LocalFsStorage`, and `InMemoryStorage` with `cleanup_stale_staging_files` scanning for and purging orphaned temporary staging files (`.*.tmp.*`).
+  - Implemented central lifecycle coordinator `RetentionManager` executing expired database artifact sweeps, orphaned staging file cleanup, job directory deletion, and capacity watermark enforcement (pruning oldest artifacts down to low watermark threshold).
+  - Added 7 unit tests in `crates/storage/src/retention.rs` covering policy validations, TTL calculations, report merging/metrics, in-memory stale staging cleanup, watermark capacity enforcement, filesystem staging cleanup, and job directory purging, expanding storage crate tests to 48 and automated Rust workspace tests to 135/135 passing. Verified all 5 monorepo gates pass cleanly.
+
 ### 2026-11-17 — Phase 2.4: Storage (`2.4.2`)
 
 #### Added

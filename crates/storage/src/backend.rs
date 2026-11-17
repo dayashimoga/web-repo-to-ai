@@ -88,6 +88,16 @@ pub trait StorageBackend: Send + Sync + std::fmt::Debug {
     ///
     /// Returns [`CoreError::Storage`] if capacity query fails.
     async fn storage_capacity(&self) -> Result<StorageUsage, CoreError>;
+
+    /// Cleans up stale temporary staging files older than the specified duration.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CoreError::Storage`] if traversal or cleanup fails.
+    async fn cleanup_stale_staging_files(
+        &self,
+        max_age: chrono::Duration,
+    ) -> Result<(usize, u64), CoreError>;
 }
 
 #[async_trait]
@@ -131,6 +141,13 @@ impl StorageBackend for LocalFsStorage {
 
     async fn storage_capacity(&self) -> Result<StorageUsage, CoreError> {
         self.storage_capacity().await
+    }
+
+    async fn cleanup_stale_staging_files(
+        &self,
+        max_age: chrono::Duration,
+    ) -> Result<(usize, u64), CoreError> {
+        self.cleanup_stale_staging_files(max_age).await
     }
 }
 
@@ -389,6 +406,43 @@ impl StorageBackend for InMemoryStorage {
             total_artifact_bytes,
             artifact_count,
         })
+    }
+
+    async fn cleanup_stale_staging_files(
+        &self,
+        max_age: chrono::Duration,
+    ) -> Result<(usize, u64), CoreError> {
+        let now = Utc::now();
+        let mut entries = self
+            .entries
+            .write()
+            .map_err(|_| CoreError::Storage("Poisoned lock in InMemoryStorage".to_string()))?;
+        let mut timestamps = self
+            .created_timestamps
+            .write()
+            .map_err(|_| CoreError::Storage("Poisoned lock in InMemoryStorage".to_string()))?;
+
+        let mut keys_to_remove = Vec::new();
+        let mut bytes_freed = 0u64;
+
+        for (key, ts) in timestamps.iter() {
+            let file_name = key.rsplit('/').next().unwrap_or(key);
+            if file_name.starts_with('.') && file_name.contains(".tmp.") {
+                let age = now.signed_duration_since(*ts);
+                if age >= max_age {
+                    keys_to_remove.push(key.clone());
+                }
+            }
+        }
+
+        for key in &keys_to_remove {
+            timestamps.remove(key);
+            if let Some(bytes) = entries.remove(key) {
+                bytes_freed += bytes.len() as u64;
+            }
+        }
+
+        Ok((keys_to_remove.len(), bytes_freed))
     }
 }
 

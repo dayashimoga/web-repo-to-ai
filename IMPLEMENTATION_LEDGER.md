@@ -2098,7 +2098,47 @@
   - `cargo fmt --all -- --check`: 100% code style compliance.
   - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
   - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
-- **Git Commit Reference:** `1c2655f`
+- **Git Commit Reference:** `c91a1d1`
+- **Status:** `ACCEPTED`
+
+---
+
+#### Subphase `2.4.3` — Implement artifact retention and ephemeral cleanup policies in crates/storage
+- **Unique ID:** `2.4.3`
+- **Objective:** Implement artifact retention policies (`RetentionPolicy`), structured cleanup reporting (`CleanupReport`), transactional artifact persistence operations on `job_artifacts` (`ArtifactRepository`), and coordinated lifecycle management (`RetentionManager`) executing expired database sweeps, stale staging file purges, and disk capacity watermark enforcement across storage backends.
+- **Scope:** `crates/storage/src/retention.rs`, `crates/storage/src/local_fs.rs`, `crates/storage/src/backend.rs`, `crates/storage/src/lib.rs`.
+- **Prerequisites:** `2.4.2` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/storage/src/retention.rs`
+  - `crates/storage/src/local_fs.rs`
+  - `crates/storage/src/backend.rs`
+  - `crates/storage/src/lib.rs`
+- **Implementation Tasks:**
+  1. Define `RetentionPolicy` with `default_ttl`, `max_ttl`, `ephemeral_ttl`, `high_watermark_bytes`, `low_watermark_bytes`, and `batch_size`, including constructors (`from_config`), builders, invariant validations, and `calculate_expires_at` deadline calculations.
+  2. Implement `CleanupReport` tracking evaluated artifacts, deleted artifacts, bytes freed, deleted ephemeral files, freed ephemeral bytes, and error accumulators.
+  3. Implement `ArtifactRepository` providing SQLx relational CRUD for `job_artifacts`: `create_artifact`, `get_artifact`, `get_artifact_by_format`, `list_artifacts_for_job`, `find_expired_artifacts`, `delete_artifact`, `delete_job_artifacts`, `delete_expired_artifacts_batch` (using `FOR UPDATE SKIP LOCKED`), `find_oldest_artifacts`, `count_artifacts`, and `total_artifact_bytes`.
+  4. Extend `StorageBackend` trait, `LocalFsStorage`, and `InMemoryStorage` with `cleanup_stale_staging_files(&self, max_age: Duration)` identifying and removing orphaned temporary staging files (`.*.tmp.*`).
+  5. Implement `RetentionManager` coordinating storage backends and PostgreSQL: `cleanup_expired_artifacts`, `cleanup_job_artifacts`, `cleanup_job_storage`, `cleanup_stale_staging_files`, `enforce_capacity_watermark` (pruning oldest artifacts when usage exceeds high watermark until below low watermark), and `run_full_sweep`.
+  6. Re-export `retention` in `crates/storage/src/lib.rs`.
+  7. Add 7 unit tests in `crates/storage/src/retention.rs` covering policy defaults/validations, TTL calculations, report merging/metrics, in-memory stale staging cleanup, in-memory watermark capacity enforcement, filesystem stale staging cleanup, and job directory purging. Expand storage crate tests to 48/48 and workspace tests to 135/135 passing.
+- **Acceptance Criteria:**
+  - `RetentionPolicy` validates duration ordering and capacity watermark boundaries.
+  - `CleanupReport` accurately tallies deleted files, freed bytes, and non-fatal errors.
+  - `ArtifactRepository` performs atomic batch deletions without holding blocking table locks.
+  - `RetentionManager` successfully purges expired DB records and corresponding physical storage files, cleans orphaned staging files, and prunes storage down to low watermark when capacity threshold is breached.
+  - 100% of Rust tests pass (48 in `crates/storage`, 135 across workspace); zero clippy warnings; all 5 monorepo verification gates pass cleanly.
+- **Tests:** `cargo test -p web-repo-to-ai-storage` (48/48 passed), `cargo test --workspace` (135/135 passed), `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Complies with Rule 00, 02, and 05: `#![forbid(unsafe_code)]` enforced; staging cleanup strictly restricts deletion to temporary files (`.*.tmp.*`), preserving legitimate user and job artifacts; batch deletion uses bounded sizes preventing connection pool exhaustion; path traversal safety is maintained.
+- **Performance Considerations:** Batch queries utilize `FOR UPDATE SKIP LOCKED` preventing lock contention with active worker pipelines; staging scans skip non-staging files; watermark pruning executes in FIFO order minimizing storage fragmentation.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-storage`: 48/48 tests passed in 0.02s.
+  - `cargo test --workspace`: 135/135 tests passed.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors.
+  - `cargo fmt --all -- --check`: 100% code style compliance.
+  - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
+- **Git Commit Reference:** `9df8180`
 - **Status:** `ACCEPTED`
 
 ---
@@ -2107,7 +2147,7 @@
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `2.4.3` | Implement artifact retention and ephemeral cleanup policies in crates/storage | `2.4.2` (`ACCEPTED`) | `crates/storage/*` | `NOT_STARTED` |
+| `2.4.4` | Implement artifact checksum validation and verification in crates/storage | `2.4.3` (`ACCEPTED`) | `crates/storage/*` | `NOT_STARTED` |
 
 ---
 

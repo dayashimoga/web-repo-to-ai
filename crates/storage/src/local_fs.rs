@@ -550,6 +550,71 @@ impl LocalFsStorage {
 
         Ok(usage)
     }
+
+    /// Scans the storage directory for stale temporary staging files (`.*.tmp.*`) older than `max_age` and removes them.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CoreError::Storage`] if directory scanning fails.
+    pub async fn cleanup_stale_staging_files(
+        &self,
+        max_age: chrono::Duration,
+    ) -> Result<(usize, u64), CoreError> {
+        let base_dir = &self.base_dir;
+        if !tokio::fs::try_exists(base_dir).await.unwrap_or(false) {
+            return Ok((0, 0));
+        }
+
+        let mut deleted_count = 0;
+        let mut bytes_freed = 0;
+        let mut dirs_to_visit = vec![base_dir.clone()];
+        let now = Utc::now();
+
+        while let Some(current_dir) = dirs_to_visit.pop() {
+            let mut read_dir = match tokio::fs::read_dir(&current_dir).await {
+                Ok(entries) => entries,
+                Err(err) => {
+                    return Err(CoreError::Storage(format!(
+                        "Failed to read directory '{}' during staging cleanup: {err}",
+                        current_dir.display()
+                    )));
+                }
+            };
+
+            while let Some(entry) = read_dir.next_entry().await.map_err(|err| {
+                CoreError::Storage(format!(
+                    "Failed to read directory entry during staging cleanup: {err}"
+                ))
+            })? {
+                let file_type = entry.file_type().await.map_err(|err| {
+                    CoreError::Storage(format!("Failed to query file type: {err}"))
+                })?;
+
+                let path = entry.path();
+                if file_type.is_dir() {
+                    dirs_to_visit.push(path);
+                } else if file_type.is_file() {
+                    let file_name = entry.file_name().to_string_lossy().to_string();
+                    if file_name.starts_with('.') && file_name.contains(".tmp.") {
+                        if let Ok(meta) = entry.metadata().await {
+                            let modified_at =
+                                meta.modified().map(DateTime::<Utc>::from).unwrap_or(now);
+                            let age = now.signed_duration_since(modified_at);
+                            if age >= max_age {
+                                let size = meta.len();
+                                if tokio::fs::remove_file(&path).await.is_ok() {
+                                    deleted_count += 1;
+                                    bytes_freed += size;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok((deleted_count, bytes_freed))
+    }
 }
 
 #[cfg(test)]

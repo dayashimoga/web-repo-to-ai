@@ -4,15 +4,15 @@
 **Last Updated:** 2026-11-17  
 **Current Stage:** `STAGE 2 — BACKEND AND PROCESSING FOUNDATION` (`IN_PROGRESS`)  
 **Current Phase:** `Phase 2.4 — Storage` (`IN_PROGRESS`)  
-**Active Subphase:** `2.4.3 — Implement artifact retention and ephemeral cleanup policies in crates/storage` (`NOT_STARTED` / `Next Eligible Subphase`)  
-**Last Completed Subphase:** `2.4.2 — Implement pluggable storage backend trait in crates/storage` (`ACCEPTED`)  
-**Next Upcoming Subphase:** `2.4.3 — Implement artifact retention and ephemeral cleanup policies in crates/storage`
+**Active Subphase:** `2.4.4 — Implement artifact checksum validation and verification in crates/storage` (`NOT_STARTED` / `Next Eligible Subphase`)  
+**Last Completed Subphase:** `2.4.3 — Implement artifact retention and ephemeral cleanup policies in crates/storage` (`ACCEPTED`)  
+**Next Upcoming Subphase:** `2.4.4 — Implement artifact checksum validation and verification in crates/storage`
 
 ---
 
 ## 1. Executive Summary
 
-Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 subphases), Phase 2.1 (`2.1.1` – `2.1.3`), Phase 2.2 (`2.2.1` – `2.2.4`), and Phase 2.3 (`2.3.1` – `2.3.4`) are 100% complete, verified, certified, and accepted. Stage 2 ("Backend and Processing Foundation") is advancing through Phase 2.4 ("Storage"): **Subphase `2.4.2` ("Implement pluggable storage backend trait in crates/storage") has been successfully implemented, verified, and accepted**. Pluggable asynchronous storage backend trait `StorageBackend` provides an object-safe dynamic storage abstraction (`DynStorage`), stream alias (`AsyncReadStream`), full `StorageBackend` implementation for `LocalFsStorage`, thread-safe `InMemoryStorage` implementation (zero-mock, fully functional in-memory storage backing for isolated testing and high-speed runs), and runtime backend factory `create_storage_backend`. 128/128 automated Rust tests pass across all workspace crates (41 in `crates/storage`), 184/184 frontend tests pass in `apps/web`, and all 5 monorepo verification gates pass cleanly. Subphase `2.4.3` ("Implement artifact retention and ephemeral cleanup policies in crates/storage") is queued as the next eligible subphase.
+Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 subphases), Phase 2.1 (`2.1.1` – `2.1.3`), Phase 2.2 (`2.2.1` – `2.2.4`), and Phase 2.3 (`2.3.1` – `2.3.4`) are 100% complete, verified, certified, and accepted. Stage 2 ("Backend and Processing Foundation") is advancing through Phase 2.4 ("Storage"): **Subphase `2.4.3` ("Implement artifact retention and ephemeral cleanup policies in crates/storage") has been successfully implemented, verified, and accepted**. Retention policies (`RetentionPolicy`) govern bounded artifact time-to-live periods, ephemeral staging file limits, and disk high/low watermarks with validation and TTL computation. Relational repository `ArtifactRepository` performs atomic batch queries and deletions on `job_artifacts` with row-level skip locking (`FOR UPDATE SKIP LOCKED`). Storage backends (`LocalFsStorage` and `InMemoryStorage`) implement stale staging file detection and removal (`cleanup_stale_staging_files`). Central coordinator `RetentionManager` orchestrates expired database artifact sweeps, orphaned staging file purges, job directory cleanups, and disk capacity watermark enforcement. 135/135 automated Rust tests pass across all workspace crates (48 in `crates/storage`), 184/184 frontend tests pass in `apps/web`, and all 5 monorepo verification gates pass cleanly. Subphase `2.4.4` ("Implement artifact checksum validation and verification in crates/storage") is queued as the next eligible subphase.
 
 ---
 
@@ -20,12 +20,12 @@ Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 su
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 42 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.1.3`, `2.2.1` – `2.2.4`, `2.3.1` – `2.3.4`, `2.4.1` – `2.4.2` |
+| `ACCEPTED` | 43 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.1.3`, `2.2.1` – `2.2.4`, `2.3.1` – `2.3.4`, `2.4.1` – `2.4.3` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 155 | `2.4.3` – `11.4.5` |
+| `NOT_STARTED` | 154 | `2.4.4` – `11.4.5` |
 | **Total** | **197** | `Stage 0` – `Stage 11` |
 
 ---

@@ -77,7 +77,7 @@
 ### Phase 2.4 — Storage (`IN_PROGRESS`)
 - [x] **[2.4.1]** Implement local filesystem artifact storage in crates/storage *(Completed 2026-11-17, LocalFsStorage, atomic staging writes, path traversal guards, layout helpers, storage_capacity accounting, 36 passing storage tests, 123 workspace tests)*
 - [x] **[2.4.2]** Implement pluggable storage backend trait in crates/storage *(Completed 2026-11-17, StorageBackend trait, DynStorage, AsyncReadStream, LocalFsStorage impl, InMemoryStorage impl, create_storage_backend factory, 41 passing storage tests, 128 workspace tests)*
-- [ ] **[2.4.3]** Implement artifact retention and ephemeral cleanup policies in crates/storage
+- [x] **[2.4.3]** Implement artifact retention and ephemeral cleanup policies in crates/storage *(Completed 2026-11-17, RetentionPolicy, CleanupReport, ArtifactRepository with FOR UPDATE SKIP LOCKED, RetentionManager with expired DB sweep, staging file purge, and watermark capacity enforcement, 48 passing storage tests, 135 workspace tests)*
 - [ ] **[2.4.4]** Implement artifact checksum validation and verification in crates/storage
 
 ---
