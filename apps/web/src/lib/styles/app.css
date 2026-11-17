@@ -1,0 +1,51 @@
+@import "./tokens.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    scroll-behavior: smooth;
+  }
+
+  code,
+  pre,
+  kbd {
+    font-family: var(--font-mono);
+  }
+
+  /* Universal accessible focus ring styles */
+  :focus-visible {
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
+  }
+}
+
+@layer utilities {
+  .bg-theme-canvas {
+    background-color: var(--theme-bg-canvas);
+  }
+  .bg-theme-panel {
+    background-color: var(--theme-bg-panel);
+  }
+  .bg-theme-subtle {
+    background-color: var(--theme-bg-subtle);
+  }
+  .text-theme-primary {
+    color: var(--theme-text-primary);
+  }
+  .text-theme-secondary {
+    color: var(--theme-text-secondary);
+  }
+  .text-theme-muted {
+    color: var(--theme-text-muted);
+  }
+  .border-theme-subtle {
+    border-color: var(--theme-border-subtle);
+  }
+  .border-theme-strong {
+    border-color: var(--theme-border-strong);
+  }
+}

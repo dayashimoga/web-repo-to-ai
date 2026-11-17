@@ -29,8 +29,33 @@
 
 ---
 
+## Stage 1 — Frontend and Product Experience (`IN_PROGRESS`)
+
+### Phase 1.1 — Design system (`IN_PROGRESS`)
+- [x] **[1.1.1]** Scaffold SvelteKit + Svelte 5 + TypeScript + Tailwind CSS application in `apps/web` and establish visual design token system *(Completed 2026-11-17, brand/accent/surface palettes, token budget indicators, tokens.css, Tailwind theme)*
+- [ ] **[1.1.2]** Implement typography scale, spacing system, and accessible color contrast utilities
+- [ ] **[1.1.3]** Build reusable accessible UI component primitives (Button, Input, Toggle, Badge, Modal, Tooltip)
+
+### Phase 1.2 — Main website
+- [ ] **[1.2.1]** Implement landing page with conversion flow
+- [ ] **[1.2.2]** Implement URL input with instant source detection
+- [ ] **[1.2.3]** Implement conversion settings panel
+- [ ] **[1.2.4]** Implement responsive layouts (mobile, tablet, desktop)
+
+### Phase 1.3 — Conversion workspace
+- [ ] **[1.3.1]** Build conversion job workspace
+- [ ] **[1.3.2]** Build syntax-highlighted content preview panels
+- [ ] **[1.3.3]** Build token statistics interface and budget bar
+- [ ] **[1.3.4]** Build format selection and download controls
+
+### Phase 1.4 — UX validation
+- [ ] **[1.4.1]** Execute keyboard navigation and accessibility audits
+- [ ] **[1.4.2]** Execute mobile, tablet, and desktop viewport tests
+- [ ] **[1.4.3]** Execute UI performance and visual regression verification
+
+---
+
 ## Subsequent Stages (Queued)
-- [ ] **[Stage 1]** Frontend and Product Experience (`1.1.1` – `1.4.3`)
 - [ ] **[Stage 2]** Backend and Processing Foundation (`2.1.1` – `2.4.4`)
 - [ ] **[Stage 3]** Universal Webpage Extraction (`3.1.1` – `3.4.4`)
 - [ ] **[Stage 4]** Canonical Model and Export Engine (`4.1.1` – `4.4.4`)

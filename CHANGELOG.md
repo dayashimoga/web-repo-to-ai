@@ -6,6 +6,18 @@
 
 ## [Unreleased] — Stage 1: Frontend and Product Experience
 
+### 2026-11-17 — Phase 1.1: Design System (`1.1.1`)
+
+#### Added
+- **`[1.1.1]` SvelteKit 2 + Svelte 5 Foundation & Visual Design Tokens:**
+  - Initialized `apps/web` with SvelteKit 2, Svelte 5 runes (`$state`, `$derived`, `$props`), strict TypeScript, Tailwind CSS, PostCSS, Autoprefixer, `@sveltejs/adapter-node`, Vitest, and Prettier.
+  - Implemented atomic design token module `apps/web/src/lib/tokens/index.ts` defining brand primary AI violet/indigo (`#6366f1`), accent telemetry cyan (`#06b6d4`), neutral slate surfaces (`#090d16` canvas to `#f8fafc`), semantic status indicators (`success`, `warning`, `error`, `info`), and context token budget indicators (`safe` <=80%, `warning` >80%, `critical` >100%).
+  - Implemented CSS custom properties stylesheet `apps/web/src/lib/styles/tokens.css` with `:root` and `.dark` variables, alongside base styling `apps/web/src/lib/styles/app.css`.
+  - Configured `apps/web/tailwind.config.ts` cleanly integrating design tokens into the Tailwind theme engine.
+  - Authored root layout `+layout.svelte` and interactive token budget test showcase `+page.svelte`.
+  - Authored automated Vitest suite `apps/web/tests/tokens.test.ts` verifying token completeness, hex regex validation, budget threshold logic, WCAG AAA dark background contrast (>= 7:1), WCAG AA brand contrast (>= 4.5:1), and CSS variable flattening.
+  - Verified all 5 monorepo verification gates with 0 errors across PowerShell and POSIX runners.
+
 ---
 
 ## Stage 0: Project Bootstrap and Engineering Foundation (`COMPLETED` / `ACCEPTED`)
@@ -21,6 +33,17 @@
   - Authored Production Hardening Guidelines covering Caddy automatic HTTPS reverse proxy configuration with TLS headers, secret manager injection, block-level encryption at rest, AES-256-GCM token encryption, read-only container filesystems, dropped Linux capabilities, and container resource limits.
   - Extended bootstrap verification suite (`scripts/verify-bootstrap.ps1`) to 223/223 automated checks.
   - Formally certified completion of **Stage 0: Project Bootstrap and Engineering Foundation** (Phases `0.1`, `0.2`, `0.3`, 15 subphases `0.1.1` – `0.3.5` all `ACCEPTED`).
+
+### 2026-11-17 — Phase 0.3: Containerized Development Foundation (`0.3.4`)
+
+#### Added
+- **`[0.3.4]` Reproducible Container Builds & Architecture Validation:**
+  - Authored `scripts/verify-container-builds.ps1` and `scripts/verify-container-builds.sh` auditing `deploy/podman-compose.yml` and all 4 Containerfiles.
+  - Validated multi-stage build patterns, minimal slim/Alpine runtime base images, unprivileged runtime users (`appuser` UID 1000, `pwuser`, `node` UID 1000), network isolation boundaries (`browser_net` vs `internal_net`), and security sandbox flags (`no-new-privileges:true`).
+  - Executed live container healthcheck verification on PostgreSQL 16 Alpine and validated persistent volume retention (`deploy_postgres_data`) across teardown.
+  - Validated total Podman storage usage is strictly within the 30 GB ceiling (5.27 GB / 30 GB, 17.6%).
+  - Documented container verification and reproducibility standards in `docs/DEPLOYMENT.md`.
+  - Expanded bootstrap verification suite (`scripts/verify-bootstrap.ps1`) to 216/216 checks.
 
 ### 2026-11-17 — Phase 0.3: Containerized Development Foundation (`0.3.4`)
 

@@ -558,7 +558,7 @@
   - `scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
   - `bash scripts/check-all.sh`: ALL 5 GATES PASSED (0 failures).
   - Storage budget verified: 5.27 GB / 30 GB (17.6%) [HEALTHY_WITHIN_BUDGET].
-- **Git Commit Reference:** `7506b73`
+- **Git Commit Reference:** `c549b14`
 - **Status:** `ACCEPTED`
 
 ---
@@ -583,11 +583,74 @@
 
 ---
 
-### Upcoming Subphase (Awaiting User Approval for Stage 1 Phase 1.1)
+## STAGE 1 — FRONTEND AND PRODUCT EXPERIENCE
+
+### Phase 1.1 — Design system
+
+#### Subphase `1.1.1` — Visual design tokens
+- **Unique ID:** `1.1.1`
+- **Objective:** Scaffold the modern SvelteKit + Svelte 5 + TypeScript + Tailwind CSS application foundation in `apps/web` and establish the complete visual design token architecture (color palettes, typography scale, spacing grid, border radii, elevations/shadows, CSS custom properties, and programmatic design token exports with WCAG AA compliance).
+- **Scope:** `apps/web/package.json`, `apps/web/svelte.config.js`, `apps/web/vite.config.ts`, `apps/web/tsconfig.json`, `apps/web/tailwind.config.ts`, `apps/web/postcss.config.js`, `apps/web/src/app.html`, `apps/web/src/app.d.ts`, `apps/web/src/routes/+layout.svelte`, `apps/web/src/routes/+page.svelte`, `apps/web/src/lib/styles/*`, `apps/web/src/lib/tokens/*`, `apps/web/tests/tokens.test.ts`.
+- **Prerequisites:** `0.3.5` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `apps/web/package.json`
+  - `apps/web/svelte.config.js`
+  - `apps/web/vite.config.ts`
+  - `apps/web/tsconfig.json`
+  - `apps/web/tailwind.config.ts`
+  - `apps/web/postcss.config.js`
+  - `apps/web/src/app.html`
+  - `apps/web/src/app.d.ts`
+  - `apps/web/src/routes/+layout.svelte`
+  - `apps/web/src/routes/+page.svelte`
+  - `apps/web/src/lib/tokens/index.ts`
+  - `apps/web/src/lib/styles/tokens.css`
+  - `apps/web/src/lib/styles/app.css`
+  - `apps/web/tests/tokens.test.ts`
+  - `PROJECT_STATUS.md`
+  - `IMPLEMENTATION_LEDGER.md`
+- **Implementation Tasks:**
+  1. Initialize `apps/web` with SvelteKit 2, Svelte 5 runes support, strict TypeScript, Tailwind CSS, PostCSS, Autoprefixer, `@sveltejs/adapter-node`, Vitest, and Prettier.
+  2. Implement visual design tokens module (`apps/web/src/lib/tokens/index.ts`) providing strongly-typed tokens for:
+     - Colors: brand primary (AI violet/indigo), secondary/cyan, neutral scales (slate/zinc for dark and light surfaces), semantic states (success, warning, error, info), and context token budget indicators (safe, warning >80%, critical >100%).
+     - Typography: font families (sans system and monospace code/token stacks), size scale (`xs` through `5xl`), line heights, and weights.
+     - Spacing & Layout: 4px grid (`1` = 4px to `24` = 96px), container breakpoints.
+     - Elevation & Radii: Shadows `sm` to `2xl`, border radius scales `sm` to `full`.
+     - Focus & Accessibility: high-contrast visible focus rings (`2px` with offset).
+  3. Author CSS custom properties in `apps/web/src/lib/styles/tokens.css` mapping design tokens to CSS variables with automatic dark-mode support via `:root` and `.dark` selectors.
+  4. Integrate design tokens into `apps/web/tailwind.config.ts` extending the Tailwind theme cleanly.
+  5. Author root layout (`+layout.svelte`) importing design token styles, and initial token showcase root page (`+page.svelte`).
+  6. Author comprehensive automated unit test suite `apps/web/tests/tokens.test.ts` validating token invariants, format consistency, hex color validity, WCAG contrast calculation, and CSS variable exports.
+  7. Verify all quality gates: `npm run lint`, `npm run check`, `npm test`, `npm run build`, and `scripts/check-all.*`.
+- **Acceptance Criteria:**
+  - `apps/web` has functional SvelteKit + Svelte 5 + TypeScript + Tailwind CSS setup.
+  - Design tokens are programmatically accessible via `src/lib/tokens/index.ts` and styled via `src/lib/styles/tokens.css`.
+  - Semantic status colors and token budget warning indicators (>80%, >100%) are formally defined.
+  - Automated tests in `apps/web/tests/tokens.test.ts` pass with 100% success.
+  - `npm run check` (svelte-check) passes with 0 errors and 0 warnings.
+  - `npm run build` generates valid node build in `apps/web/build`.
+  - All monorepo verification gates in `scripts/check-all.*` pass.
+- **Tests:** `npm test` in `apps/web`, `npm run check`, `npm run lint`, `npm run build`, and monorepo runner `scripts/check-all.ps1`.
+- **Security Considerations:** No third-party external CDN scripts or stylesheets; fonts use local/system font stacks to prevent privacy leaks and external network dependencies; strict Content Security Policy compliance.
+- **Performance Considerations:** Atomic CSS via Tailwind eliminates unused stylesheet bloat; zero runtime CSS-in-JS overhead; production build is statically optimized and minified.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`.
+- **Validation Evidence:**
+  - `apps/web/tests/tokens.test.ts`: 18/18 tests passed (0 failures).
+  - `npm run check` (svelte-check): 0 errors, 0 warnings.
+  - `npm run lint` (prettier): All matched files use Prettier code style.
+  - `npm run build`: Production bundle generated with `@sveltejs/adapter-node` in `apps/web/build/index.js`.
+  - `scripts/check-all.ps1`: ALL 5 GATES PASSED (Gate 1: 223/223 bootstrap checks, Gate 2: 7/7 workflows, Gate 3: Rust formatting, Gate 4: Frontend lint/check/test, Gate 5: 5.27 GB / 30 GB storage ceiling).
+  - `bash scripts/check-all.sh`: ALL 5 GATES PASSED (0 failures).
+- **Git Commit Reference:** `83e86df`
+- **Status:** `ACCEPTED`
+
+---
+
+### Upcoming Subphase (Awaiting User Approval after 1.1.1)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `1.1.1` | Visual design tokens | `0.3.5` (`ACCEPTED`) | `apps/web/src/lib/styles/*`, `apps/web/tailwind.config.js` | `NOT_STARTED` |
+| `1.1.2` | Typography, spacing & color systems | `1.1.1` (`ACCEPTED`) | `apps/web/src/lib/components/typography/*`, `docs/DESIGN_SYSTEM.md` | `NOT_STARTED` |
 
 ---
 
