@@ -4,15 +4,15 @@
 **Last Updated:** 2026-11-17  
 **Current Stage:** `STAGE 2 — BACKEND AND PROCESSING FOUNDATION` (`IN_PROGRESS`)  
 **Current Phase:** `Phase 2.1 — Rust architecture` (`IN_PROGRESS`)  
-**Active Subphase:** `2.1.2 — Implement typed domain errors, results, and configuration loader in crates/core` (`NOT_STARTED` / `Next Eligible Subphase`)  
-**Last Completed Subphase:** `2.1.1 — Create Rust workspace and crate structure` (`ACCEPTED`)  
-**Next Upcoming Subphase:** `2.1.2 — Implement typed domain errors, results, and configuration loader in crates/core`
+**Active Subphase:** `2.1.3 — Set up structured logging, OpenTelemetry tracing, and Prometheus metrics in crates/observability` (`NOT_STARTED` / `Next Eligible Subphase`)  
+**Last Completed Subphase:** `2.1.2 — Implement typed domain errors, results, and configuration loader in crates/core` (`ACCEPTED`)  
+**Next Upcoming Subphase:** `2.1.3 — Set up structured logging, OpenTelemetry tracing, and Prometheus metrics in crates/observability`
 
 ---
 
 ## 1. Executive Summary
 
-Stage 0 (`0.1.1` – `0.3.5`, 15 subphases) and Stage 1 (`1.1.1` – `1.4.3`, 15 subphases) are 100% complete, verified, certified, and accepted. Stage 2 ("Backend and Processing Foundation") is underway with Subphase `2.1.1` ("Create Rust workspace and crate structure") fully implemented and accepted: root Cargo workspace manifest with 2 services and 15 internal crates configured, `deny.toml` updated for cargo-deny 0.20+, `rustfmt.toml` standard configuration, 17/17 Rust unit tests passing, and all 5 monorepo verification gates passing cleanly on both PowerShell and POSIX bash. Subphase `2.1.2` is queued as the next eligible subphase.
+Stage 0 (`0.1.1` – `0.3.5`, 15 subphases) and Stage 1 (`1.1.1` – `1.4.3`, 15 subphases) are 100% complete, verified, certified, and accepted. Stage 2 ("Backend and Processing Foundation") is actively underway with Subphases `2.1.1` ("Create Rust workspace and crate structure") and `2.1.2` ("Implement typed domain errors, results, and configuration loader in crates/core") accepted: unified domain error taxonomy (`CoreError`), RFC 7807 error envelopes, strongly-typed UUID v7 domain identifiers (`JobId`, `DocumentId`, `TenantId`, `RequestId`, `ArtifactId`), core traits (`Identifiable`, `Clock`, `SystemClock`, `Validatable`), and hierarchical configuration loader (`AppConfig` with environment variable overrides and domain validation) in `crates/core`. 34/34 automated Rust tests pass across the workspace, and all 5 monorepo verification gates pass cleanly on both PowerShell and POSIX bash. Subphase `2.1.3` is queued as the next eligible subphase.
 
 ---
 
@@ -20,12 +20,12 @@ Stage 0 (`0.1.1` – `0.3.5`, 15 subphases) and Stage 1 (`1.1.1` – `1.4.3`, 15
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 30 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` |
+| `ACCEPTED` | 31 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1`, `2.1.2` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 167 | `2.1.2` – `11.4.5` |
+| `NOT_STARTED` | 166 | `2.1.3` – `11.4.5` |
 | **Total** | **197** | `Stage 0` – `Stage 11` |
 
 ---

@@ -12,5 +12,8 @@ repository.workspace = true
 workspace = true
 
 [dependencies]
+chrono = { workspace = true, features = ["clock", "serde"] }
 serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
 thiserror = { workspace = true }
+uuid = { workspace = true, features = ["v4", "v7", "serde", "std", "rng"] }

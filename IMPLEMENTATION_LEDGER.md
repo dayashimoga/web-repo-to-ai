@@ -1506,14 +1506,60 @@
 
 ---
 
+#### Subphase `2.1.2` — Implement typed domain errors, results, and configuration loader in crates/core
+- **Unique ID:** `2.1.2`
+- **Objective:** Implement domain-wide error taxonomy (`CoreError`, `ErrorCode`, `ApiError`, `ApiErrorEnvelope`), standard `Result` type alias, strongly-typed time-ordered domain identifiers (`JobId`, `DocumentId`, `TenantId`, `RequestId`, `ArtifactId`), core traits (`Identifiable`, `Clock`, `SystemClock`, `Validatable`), and hierarchical configuration loader (`AppConfig` with environment variable overrides and domain validation) in `crates/core`.
+- **Scope:** `crates/core/src/{lib.rs, error.rs, id.rs, config.rs, traits.rs}`, `crates/core/Cargo.toml`, `Cargo.lock`.
+- **Prerequisites:** `2.1.1` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/core/Cargo.toml`
+  - `crates/core/src/lib.rs`
+  - `crates/core/src/error.rs`
+  - `crates/core/src/id.rs`
+  - `crates/core/src/config.rs`
+  - `crates/core/src/traits.rs`
+  - `Cargo.lock`
+- **Implementation Tasks:**
+  1. Define machine-readable `ErrorCode` enum and HTTP status code mappings matching RFC 7807 and `docs/API.md`.
+  2. Implement `CoreError` with `thiserror`, standard `Result` type alias, and conversion to `ApiErrorEnvelope`.
+  3. Define strongly-typed UUID v7 time-ordered domain IDs (`JobId`, `DocumentId`, `TenantId`, `RequestId`, `ArtifactId`) with full Display, FromStr, and Serde implementations.
+  4. Implement `AppConfig` and sub-configs (`ServerConfig`, `DatabaseConfig`, `StorageConfig`, `SecurityConfig`, `ExtractionConfig`, `OptimizationConfig`) with `from_env()` parsing and invariant validation.
+  5. Implement `Identifiable`, `Clock`, `SystemClock`, and `Validatable` traits.
+  6. Author comprehensive unit tests across all modules asserting error envelopes, UUID v7 ordering, config validation rules, and environment parsing.
+- **Acceptance Criteria:**
+  - `CoreError` covers all system failure modes with typed variants and maps to appropriate HTTP status codes.
+  - RFC 7807 compliant JSON error serialization works as documented in `docs/API.md`.
+  - Strongly-typed IDs prevent ID mixing at compile time and serialize transparently.
+  - `AppConfig` loads defaults with zero mandatory env vars for local development.
+  - Validation catches invalid ports, inverted connection limits, budget overflows, and production SSRF relaxation.
+  - All workspace crates compile with `#![forbid(unsafe_code)]` and zero clippy warnings.
+  - 100% of Rust unit tests pass in `crates/core` (18 tests) and workspace (34 tests).
+  - All 5 monorepo verification gates pass in `scripts/check-all.ps1` and `scripts/check-all.sh`.
+- **Tests:** `cargo test -p web-repo-to-ai-core` (18/18 passed), `cargo test --workspace` (34/34 passed), `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, `bash scripts/check-all.sh`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces production SSRF invariant: `allow_private_ips` cannot be enabled when `Environment::Production`; forbids unsafe code (`#![forbid(unsafe_code)]`); protects against integer overflows and payload budget exhaustion.
+- **Performance Considerations:** Zero-allocation UUID formatting; zero-copy newtypes; fast time-ordered UUID v7 indexing; zero-cost abstraction for domain identifiers.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-core`: 18/18 tests passed in 0.00s.
+  - `cargo test --workspace`: 34/34 tests passed in 5.10s.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors in 2.07s.
+  - `cargo fmt --all -- --check`: 100% code style compliance.
+  - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
+  - `bash scripts/check-all.sh`: ALL 5 GATES PASSED (0 failures).
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
+- **Git Commit Reference:** `5b4e937`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `2.1.2` | Implement typed domain errors, results, and configuration loader in crates/core | `2.1.1` (`ACCEPTED`) | `crates/core/src/*`, `crates/core/Cargo.toml` | `NOT_STARTED` |
+| `2.1.3` | Set up structured logging, OpenTelemetry tracing, and Prometheus metrics in crates/observability | `2.1.2` (`ACCEPTED`) | `crates/observability/src/*`, `crates/observability/Cargo.toml` | `NOT_STARTED` |
 
 ---
 
 ## STAGES 2 – 11 QUEUED LEDGER SUMMARY
 
-All subsequent subphases for **Stage 2** (`2.1.2`–`2.4.4`), **Stage 3** (`3.1.1`–`3.4.4`), **Stage 4** (`4.1.1`–`4.4.4`), **Stage 5** (`5.1.1`–`5.5.4`), **Stage 6** (`6.1.1`–`6.4.4`), **Stage 7** (`7.1.1`–`7.4.4`), **Stage 8** (`8.1.1`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.
+All subsequent subphases for **Stage 2** (`2.1.3`–`2.4.4`), **Stage 3** (`3.1.1`–`3.4.4`), **Stage 4** (`4.1.1`–`4.4.4`), **Stage 5** (`5.1.1`–`5.5.4`), **Stage 6** (`6.1.1`–`6.4.4`), **Stage 7** (`7.1.1`–`7.4.4`), **Stage 8** (`8.1.1`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.

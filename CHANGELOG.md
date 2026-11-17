@@ -6,6 +6,24 @@
 
 ## [Unreleased] — Stage 2: Backend and Processing Foundation
 
+### 2026-11-17 — Phase 2.1: Rust Architecture (`2.1.2`)
+
+#### Added
+- **`[2.1.2]` Implement Typed Domain Errors, Results, and Configuration Loader in `crates/core`:**
+  - Implemented typed domain error taxonomy in `crates/core/src/error.rs`:
+    - Defined machine-readable `ErrorCode` enum and HTTP status code mappings (`INVALID_REQUEST_SCHEMA`, `UNSUPPORTED_URL_SCHEME`, `SSRF_ADDRESS_BLOCKED`, `UNAUTHORIZED_GITHUB_REPO`, `RESOURCE_NOT_FOUND`, `RATE_LIMIT_EXCEEDED`, `PAYLOAD_TOO_LARGE`, `EXTRACTION_TIMEOUT`, `CONFIG_ERROR`, `VALIDATION_ERROR`, `STORAGE_ERROR`, `JOB_ENGINE_ERROR`, `INTERNAL_SERVER_ERROR`).
+    - Implemented `CoreError` with `thiserror`, standard `Result<T, E = CoreError>` type alias, and conversion into RFC 7807 compliant `ApiErrorEnvelope` / `ApiError` payloads.
+  - Implemented strongly-typed domain identifiers in `crates/core/src/id.rs`:
+    - Defined time-ordered UUID v7 newtypes: `JobId`, `DocumentId`, `TenantId`, `RequestId`, `ArtifactId`.
+    - Implemented `Display`, `FromStr`, `From<Uuid>`, `Into<Uuid>`, `PartialEq`, `Eq`, `PartialOrd`, `Ord`, `Hash`, and transparent Serde serialization.
+  - Implemented hierarchical configuration loader in `crates/core/src/config.rs`:
+    - Defined `AppConfig` and modular sub-configurations: `ServerConfig`, `DatabaseConfig`, `StorageConfig`, `SecurityConfig`, `ExtractionConfig`, `OptimizationConfig`.
+    - Provided default development values requiring zero mandatory environment variables.
+    - Implemented `from_env()` parsing environment variable overrides (`PORT`, `HOST`, `DATABASE_URL`, `STORAGE_DIR`, etc.).
+    - Implemented self-validation enforcing ports, non-zero payloads, connection bounds, budget ceilings, and strict production SSRF invariants (`allow_private_ips` prohibited in production).
+  - Implemented core shared traits in `crates/core/src/traits.rs`: `Identifiable`, `Clock`, `SystemClock`, and `Validatable`.
+  - Added 18 unit tests in `crates/core`, increasing total workspace tests to 34/34 passing. Verified all 5 gates pass cleanly.
+
 ### 2026-11-17 — Phase 2.1: Rust Architecture (`2.1.1`)
 
 #### Added
