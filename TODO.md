@@ -128,7 +128,7 @@
 - [x] **[4.3.1]** ZIP package generation in crates/exporters *(Completed 2026-11-17, ZipPackageExporter, ZipPackageOptions, zip v9.6.1 deflate/zlib-rs, deterministic timestamps, manifest/provenance/quality reports, checksums.sha256, path traversal defense, 9 passing tests, 62 exporter tests, 442 workspace tests)*
 - [x] **[4.3.2]** Manifest & checksums generation in crates/exporters *(Completed 2026-11-17, PackageManifest, PackageFileEntry with dual SHA-256 and BLAKE3 digests, PackageProvenance, PackageQualityReport, ManifestExporter, generate/parse/verify coreutils checksums, ChecksumVerificationReport, 11 passing tests, 73 exporter tests, 453 workspace tests)*
 - [x] **[4.3.3]** Streaming downloads in services/api *(Completed 2026-11-17, get_artifact_handler in services/api/src/routes/jobs.rs, ReaderStream async chunk streaming from StorageBackend, on-demand CDM rendering fallback, standard headers nosniff/cache-control/content-disposition, 4 new test suites, 41 api tests, 457 workspace tests)*
-- [ ] **[4.3.4]** Export integrity tests in crates/exporters
+- [x] **[4.3.4]** Export integrity tests in crates/exporters *(Completed 2026-11-17, PackageIntegrityReport, verify_zip_package_bytes, verify_zip_package_integrity, format syntax verifiers, zip-slip defense, 9 integration tests, 82 exporter tests, 330 workspace tests, Phase 4.3 Certified)*
 
 ### Phase 4.4 — Website integration
 - [ ] **[4.4.1]** Connect actual conversion API in apps/web

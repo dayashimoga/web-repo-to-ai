@@ -3630,11 +3630,75 @@
 
 ---
 
+#### Subphase `4.3.4` — Export integrity tests in crates/exporters
+- **Unique ID:** `4.3.4`
+- **Objective:** Implement comprehensive export integrity verification suites and runtime package validation in `crates/exporters`, guaranteeing lossless multi-format content fidelity, complete package checksum verification, zip-slip and adversarial path containment, token budget truncation resilience, corruption and tampering detection, and zero-loss roundtrip extraction across all 6 artifact formats, metadata manifests, and compressed ZIP archives.
+- **Scope:** `crates/exporters/src/integrity.rs`, `crates/exporters/src/lib.rs`, `crates/exporters/tests/export_integrity.rs`.
+- **Prerequisites:** `4.3.3` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/exporters/src/integrity.rs`
+  - `crates/exporters/src/lib.rs`
+  - `crates/exporters/tests/export_integrity.rs`
+- **Implementation Tasks:**
+  1. Implement `crates/exporters/src/integrity.rs`:
+     - `PackageIntegrityReport`: Diagnostic report model capturing validation status, verified files, checksum mismatches, missing files, unlisted entries, path traversal violations, and deserialized summaries (`manifest`, `provenance`, `quality_report`).
+     - `verify_zip_package_integrity`: In-memory and streaming verification function that unpacks a generated ZIP archive, verifies `manifest.json` schema, cross-checks each entry in `checksums.sha256` against extracted bytes, verifies declared file sizes and digests in `manifest.json`, and audits entry paths against zip-slip directory traversal vulnerabilities.
+  2. Re-export integrity verification types in `crates/exporters/src/lib.rs`.
+  3. Implement comprehensive integration tests in `crates/exporters/tests/export_integrity.rs`:
+     - Test 1: Complete package integrity verification roundtrip (100% valid package).
+     - Test 2: Tampered entry detection (corrupted byte in bundled file detected by SHA-256 mismatch).
+     - Test 3: Truncated entry detection (partial file detected by size & hash mismatch).
+     - Test 4: Missing file detection (file listed in manifest or checksums but missing from archive).
+     - Test 5: Unlisted rogue file detection (file in archive but absent from manifest).
+     - Test 6: Adversarial path sanitization & zip-slip resistance (`../`, `/etc/passwd`, `C:\Windows\System32`, `\nul`).
+     - Test 7: Multi-format lossless text fidelity (content roundtrip across Markdown, PlainText, JSON, HTML, and JSONL).
+     - Test 8: Token budget truncation integrity (enforcing truncation without corrupting JSON/HTML/Markdown syntax).
+     - Test 9: Edge cases (empty documents, unicode RTL/CJK/emoji sequences, deeply nested directory trees).
+  4. Run all 5 monorepo verification gates in `scripts/check-all.ps1`.
+- **Acceptance Criteria:**
+  - `verify_zip_package_integrity` successfully validates valid export packages and flags tampered, truncated, missing, unlisted, or traversal-violating entries with exact diagnostic error details.
+  - All 6 format generators preserve content losslessly and maintain valid structural syntax even under aggressive token budget truncation.
+  - All workspace tests pass, clippy has 0 warnings, formatting is clean, and cargo deny passes.
+- **Tests:** `cargo test -p web-repo-to-ai-exporters --test export_integrity`, `cargo test --workspace`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `cargo deny check`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, 01, 04, 05: Cryptographic hash validation, path sanitization preventing zip-slip directory traversal, memory bounded streaming and parsing, no panics.
+- **Performance Considerations:** In-memory and streaming archive validation using single-pass hash computation and zero redundant buffering.
+- **Documentation Requirements:** Updated `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-exporters --test export_integrity`: 9/9 integration tests passed (valid package roundtrip, tampered entry detection, truncated entry detection, missing file detection, unlisted rogue file detection, zip-slip & path traversal defense, syntax verifiers, token budget truncation fidelity, and unicode/deeply-nested directory trees).
+  - `cargo test -p web-repo-to-ai-exporters`: 82/82 tests passed across 8 test suites.
+  - `cargo test --workspace`: 330/330 tests passed across all 17 crates and services.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors.
+  - `cargo fmt --all -- --check`: 100% clean formatting.
+  - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
+  - `npm test` (`apps/web`): 184/184 tests passed across 15 suites; `svelte-check` reports 0 errors and 0 warnings.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures across all 5 verification gates, Podman storage 5.27 GB / 30 GB, 17.6%).
+- **Git Commit Reference:** PENDING_COMMIT
+- **Status:** `ACCEPTED`
+
+---
+
+### Phase 4.3 Milestone Certification (`4.3.1` – `4.3.4`)
+- **Phase 4.3 Goal:** Multi-format packaging, coreutils manifests and checksums, streaming API endpoints, and export integrity verification.
+- **Subphases Completed & Accepted:**
+  - `4.3.1`: ZIP package generation in `crates/exporters` (`ACCEPTED`, commit `bd9b6ec` / `064beed`)
+  - `4.3.2`: Manifest & checksums generation in `crates/exporters` (`ACCEPTED`, commit `6fae508` / `1f8babc`)
+  - `4.3.3`: Streaming downloads in `services/api` (`ACCEPTED`, commit `b79cf24` / `a5b756a`)
+  - `4.3.4`: Export integrity tests in `crates/exporters` (`ACCEPTED`, commit `PENDING_COMMIT`)
+- **Certification Date:** 2026-11-17
+- **Certification Summary:**
+  1. Complete export engine producing deterministic, reproducible ZIP archives packaging Markdown, PlainText, Canonical CDM JSON, Structured JSON, HTML5, JSONL RAG chunks, raw source code trees, `manifest.json`, `provenance.json`, `quality-report.json`, and coreutils `checksums.sha256`.
+  2. Single-pass chunked streaming download endpoints in `services/api` via `tokio-util` and `axum::body::Body::from_stream` with zero-RAM-buffering, on-demand CDM fallback rendering, and RFC 7807/RFC 7231 compliance.
+  3. Strict package integrity verification engine auditing cryptographic SHA-256 and BLAKE3 digests, exact file sizes, zip-slip directory traversal sanitization, and rogue unlisted file auditing.
+  4. 82 tests passing in `crates/exporters`, 41 tests passing in `services/api`, 330 tests passing across the workspace with zero clippy warnings.
+- **Phase Status:** `COMPLETED` / `ACCEPTED` (Certified 2026-11-17)
+
+---
+
 ### Upcoming Subphase (Stage 4 — Canonical Model and Export Engine)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `4.3.4` | Export integrity tests in crates/exporters | `4.3.3` (`ACCEPTED`) | `crates/exporters/*` | `NOT_STARTED` |
+| `4.4.1` | Connect actual conversion API in apps/web | `4.3.4` (`ACCEPTED`) | `apps/web/*` | `NOT_STARTED` |
 
 ---
 

@@ -6,6 +6,27 @@
 
 ## [Unreleased] — Stage 4: Canonical Model and Export Engine
 
+### 2026-11-17 — Phase 4.3 Certification & Subphase `4.3.4`
+
+#### Added
+- **`[4.3.4]` Implement Export Integrity Test Suite and Verification Engine in `crates/exporters`:**
+  - Implemented `crates/exporters/src/integrity.rs`:
+    - `PackageIntegrityReport`: Diagnostic report model capturing `is_valid`, `verified_files`, `mismatched_checksums`, `missing_files`, `unlisted_files`, `path_traversal_violations`, and deserialized `manifest`, `provenance`, and `quality_report` structures.
+    - `verify_zip_package_bytes` and `verify_zip_package_integrity`: Comprehensive in-memory and streaming verification engine scanning entry paths for zip-slip directory traversal (`..`, `\`, leading `/`, null bytes), reading and validating `manifest.json`, cross-checking all files in `checksums.sha256` against extracted contents, validating declared sizes and dual SHA-256 / BLAKE3 digests, and auditing for rogue unlisted files.
+    - Format syntax verifiers: `verify_markdown_syntax` (balanced backtick code fences), `verify_json_syntax` (JSON parseability), `verify_html_syntax` (standalone DOCTYPE and closing html tag validation), and `verify_jsonl_syntax` (per-line JSON validation).
+  - Re-exported integrity verification API in `crates/exporters/src/lib.rs`.
+  - Added exhaustive integration test suite in `crates/exporters/tests/export_integrity.rs` (9 tests):
+    1. `test_integrity_valid_package_roundtrip`: 100% cryptographic and structural integrity across all 12 package files.
+    2. `test_integrity_tampered_entry_detection`: 1 corrupted byte in `context.md` detected via SHA-256 hash mismatch.
+    3. `test_integrity_truncated_entry_detection`: Truncated `context.txt` detected via size and checksum mismatch.
+    4. `test_integrity_missing_file_detection`: Missing file declared in manifest correctly flagged in `missing_files`.
+    5. `test_integrity_unlisted_rogue_file_detection`: Injected rogue backdoor script detected in `unlisted_files`.
+    6. `test_integrity_zip_slip_and_path_traversal_detection`: Adversarial paths (`../../etc/shadow`, `C:\Windows\System32\calc.exe`, `/var/run/secret`) flagged in `path_traversal_violations`.
+    7. `test_integrity_format_syntax_verifiers`: Syntax validation across Markdown, JSON, HTML, and JSONL.
+    8. `test_integrity_token_budget_truncation_fidelity`: Budget truncation produces syntactically valid Markdown, HTML, JSON, and JSONL.
+    9. `test_integrity_edge_cases_and_multi_byte_unicode`: Multi-byte Arabic RTL, CJK Kanji, mathematical symbols, Emojis, and deeply nested paths verify with 100% cryptographic integrity.
+  - Phase 4.3 Milestone Certification: All 4 subphases (`4.3.1` through `4.3.4`) verified and accepted.
+
 ### 2026-11-17 — Phase 4.3: Export (`4.3.3`)
 
 #### Added

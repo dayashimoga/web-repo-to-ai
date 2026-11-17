@@ -14,6 +14,7 @@
 pub mod checksum;
 pub mod error;
 pub mod html;
+pub mod integrity;
 pub mod json;
 pub mod jsonl;
 pub mod manifest;
@@ -31,6 +32,10 @@ pub use checksum::{
 };
 pub use error::{ExporterError, Result};
 pub use html::{export_html, export_html_to_writer, HtmlExporter, DEFAULT_HTML_CSS};
+pub use integrity::{
+    verify_html_syntax, verify_json_syntax, verify_jsonl_syntax, verify_markdown_syntax,
+    verify_zip_package_bytes, verify_zip_package_integrity, PackageIntegrityReport,
+};
 pub use json::{
     export_json, export_json_to_writer, JsonExporter, StructuredCitation, StructuredCompleteness,
     StructuredContextEnvelope, StructuredExclusion, StructuredHierarchyNode, StructuredMetrics,
