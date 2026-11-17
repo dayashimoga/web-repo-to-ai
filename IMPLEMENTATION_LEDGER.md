@@ -2865,7 +2865,7 @@
   - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
   - `npm test` (`apps/web`): 184/184 tests passed across 15 suites.
   - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
-- **Git Commit Reference:** `73d766d`
+- **Git Commit Reference:** `f8caa8f`
 - **Status:** `ACCEPTED`
 
 ---
