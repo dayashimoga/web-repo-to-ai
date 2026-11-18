@@ -6731,13 +6731,66 @@
 
 ---
 
+#### Subphase `7.3.3` — Security review context profile in crates/context-optimizer
+- **Unique ID:** `7.3.3`
+- **Objective:** Implement the specialized Security Review context profile (`SecurityReviewProfile`, `SecurityReviewConfig`, `SecurityCategory`) in `crates/context-optimizer` that prioritizes attack surface, authentication/authorization paths, cryptographic implementations, secrets handling, input validation/sanitization, security policies (`SECURITY.md`), and security test suites while suppressing benign presentation components (CSS, UI templates, styling) and non-security documentation to maximize vulnerability analysis context headroom.
+- **Scope:** `crates/context-optimizer/src/profiles/security_review.rs`, `crates/context-optimizer/src/profiles/mod.rs`, `crates/context-optimizer/src/lib.rs`, `crates/context-optimizer/tests/security_review_profile_test.rs`.
+- **Prerequisites:** `7.3.2` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/context-optimizer/src/profiles/security_review.rs`
+  - `crates/context-optimizer/src/profiles/mod.rs`
+  - `crates/context-optimizer/src/lib.rs`
+  - `crates/context-optimizer/tests/security_review_profile_test.rs`
+- **Implementation Tasks:**
+  1. Implement `SecurityCategory` taxonomy (`AuthAndAccessControl`, `CryptographyAndSecrets`, `AttackSurfaceAndEndpoints`, `InputValidationAndSanitizers`, `SecurityPolicyAndDocs`, `SecurityManifests`, `SecurityTests`, `GeneralImplementation`, `BenignPresentationOrAsset`) in `crates/context-optimizer/src/profiles/security_review.rs`.
+  2. Implement `SecurityReviewConfig` with controls for `include_auth_and_crypto` (default `true`), `include_attack_surface` (default `true`), `include_input_validation` (default `true`), `include_security_docs` (default `true`), `include_security_manifests` (default `true`), `include_security_tests` (default `true`), `include_benign_components` (default `false`), `pinned_paths`, and `custom_target_keywords`.
+  3. Implement `SecurityReviewProfile` implementing `ContextProfile`:
+     - Classifies sections into `SecurityCategory` using path, kind, attribute, and keyword heuristics.
+     - Unconditionally pins authentication, authorization, cryptographic implementations, and security policy documents (`SECURITY.md`) with `PinStatus::MustInclude`.
+     - Prioritizes attack surface (routes, endpoints, fetchers), input validators, and security test suites with `PinStatus::Normal`.
+     - Suppresses benign presentation components (UI components, styles, design tokens) and non-security documentation (`CHANGELOG.md`, `ROADMAP.md`) with `PinStatus::MustExclude` by default.
+     - Enforces `ContextBudgetOptimizer` greedy knapsack allocation and boundary truncation.
+     - Computes `ProfileMetrics` category distribution.
+  4. Expose `SecurityCategory`, `SecurityReviewConfig`, and `SecurityReviewProfile` in `crates/context-optimizer/src/profiles/mod.rs`.
+  5. Expose public convenience APIs `apply_security_review_profile` and `apply_security_review_profile_for_model` in `crates/context-optimizer/src/lib.rs`.
+  6. Implement comprehensive integration test suite `crates/context-optimizer/tests/security_review_profile_test.rs` (6 integration tests validating auth/crypto/policy pinning, benign component suppression, security test elevation, model-targeted optimization, tight budget boundary truncation, custom keywords/paths, and report serialization).
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-context-optimizer`
+  - `cargo test --workspace`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - Authentication, authorization, cryptography, and security policy documents are pinned with `PinStatus::MustInclude`.
+  - Network attack surface, API routes, and input validation modules are prioritized.
+  - Benign presentation components and non-security documentation are suppressed by default (`include_benign_components: false`).
+  - Strict compliance with model token budgets (`TargetModel::Gpt4o`, `Claude35Sonnet`, `Gemini15Pro`, `Llama3`) with clean boundary truncation.
+  - All 39 crate tests pass, all 680+ workspace tests pass, zero clippy warnings, zero fmt diffs, cargo deny passed, all check-all gates pass (5/5).
+- **Risk Analysis:**
+  - Risk: Security-critical code located in unexpected directories or non-standard naming schemes might be misclassified as benign.
+  - Mitigation: `SecurityReviewConfig` provides `with_pinned_paths` and `with_custom_target_keywords` allowing callers to explicitly elevate any bespoke security modules or terms.
+- **Rollback Plan:**
+  - Revert Subphase 7.3.3 additions via `git reset --hard HEAD~1` and restore Subphase 7.3.2 baseline.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-context-optimizer`: 39 tests passing (17 unit tests, 22 integration tests across 4 test suites).
+  - Full workspace tests: 680+ tests passing across all crates and services with 0 failures.
+  - Workspace linter: `cargo clippy --workspace --all-targets -- -D warnings` clean with 0 warnings.
+  - Formatting: `cargo fmt --all -- --check` clean with 0 diffs.
+  - Dependency audit: `cargo deny check` passed (advisories ok, bans ok, licenses ok, sources ok).
+  - Monorepo gatekeeper: `powershell scripts/check-all.ps1` completed with `ALL GATES PASSED (0 failures)`.
+- **Git Commit Reference:** `85c937a`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 7 — AI Context and Token Optimization)
 
 #### Phase 7.3 — Context profiles
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `7.3.3` | Security review context profile | `7.3.2` (`ACCEPTED`) | `crates/context-optimizer/*` | `NOT_STARTED` |
+| `7.3.4` | Debugging and documentation context profile | `7.3.3` (`ACCEPTED`) | `crates/context-optimizer/*` | `NOT_STARTED` |
 
 ---
 

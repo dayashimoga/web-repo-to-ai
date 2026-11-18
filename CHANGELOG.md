@@ -6,6 +6,23 @@
 
 ## [Unreleased] — Stage 7: AI Context and Token Optimization
 
+### 2026-11-18 — Phase 7.3: Context profiles (`7.3.3`)
+
+#### Added
+- **`[7.3.3]` Security Review Context Profile & Attack Surface Prioritization in `crates/context-optimizer`:**
+  - Implemented specialized Security Review configuration and engine in `crates/context-optimizer/src/profiles/security_review.rs`:
+    - `SecurityCategory` taxonomy: classifies content sections into `AuthAndAccessControl`, `CryptographyAndSecrets`, `AttackSurfaceAndEndpoints`, `InputValidationAndSanitizers`, `SecurityPolicyAndDocs`, `SecurityManifests`, `SecurityTests`, `GeneralImplementation`, and `BenignPresentationOrAsset`.
+    - `SecurityReviewConfig`: controls inclusion policies for authentication/crypto, network attack surface, input validation/sanitization, security documentation (`SECURITY.md`), security manifests (`deny.toml`, security workflows), security test suites, benign presentation components (`include_benign_components: false` by default), custom pinned paths, and custom target keywords.
+    - `SecurityReviewProfile`: implements `ContextProfile`:
+      - Unconditionally pins authentication, authorization, cryptographic operations, secrets handling, and security policy documents (`SECURITY.md`) with `PinStatus::MustInclude`.
+      - Prioritizes attack surface (routes, endpoints, fetchers), input validators, and security-centric unit/regression tests with `PinStatus::Normal`.
+      - Suppresses benign presentation components (UI templates, CSS, design tokens) and non-security documentation (`CHANGELOG.md`, `ROADMAP.md`) with `PinStatus::MustExclude` by default to maximize vulnerability reasoning headroom.
+      - Enforces `ContextBudgetOptimizer` greedy knapsack allocation and boundary truncation under constrained token ceilings.
+      - Computes `ProfileMetrics` category distribution.
+  - Public convenience APIs in `crates/context-optimizer/src/lib.rs`: `apply_security_review_profile` and `apply_security_review_profile_for_model`.
+  - Authored integration test suite `crates/context-optimizer/tests/security_review_profile_test.rs` (6 integration tests validating auth/crypto/policy pinning, benign presentation suppression, security test elevation, model-targeted optimization, tight budget boundary truncation, custom keywords/paths, and report serialization).
+  - 100% passing quality gates: 39 crate tests passed, 680+ workspace tests passed, zero clippy warnings, zero fmt diffs, cargo deny passed, and 5/5 check-all gates passed.
+
 ### 2026-11-18 — Phase 7.3: Context profiles (`7.3.2`)
 
 #### Added

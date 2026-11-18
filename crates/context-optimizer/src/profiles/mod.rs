@@ -9,9 +9,11 @@
 
 pub mod code_review;
 pub mod general_ai;
+pub mod security_review;
 
 pub use code_review::{CodeReviewConfig, CodeReviewProfile};
 pub use general_ai::{GeneralAiConfig, GeneralAiProfile};
+pub use security_review::{SecurityCategory, SecurityReviewConfig, SecurityReviewProfile};
 
 use crate::budget::ContextBudget;
 use crate::error::ContextOptimizerError;
