@@ -160,6 +160,30 @@ pub struct FileAccountingBalanceSheet {
 }
 
 impl FileAccountingBalanceSheet {
+    /// Creates a new empty `FileAccountingBalanceSheet` for the given repository.
+    #[must_use]
+    pub fn new(target_repo: impl Into<String>) -> Self {
+        Self {
+            target_repo: target_repo.into(),
+            target_ref: None,
+            pinned_sha: None,
+            discovered_blobs: 0,
+            eligible_blobs: 0,
+            expected_excluded_blobs: 0,
+            actual_extracted: 0,
+            actual_excluded: 0,
+            actual_failed: 0,
+            actual_unsupported: 0,
+            missing_unaccounted: 0,
+            unexpected_extra: 0,
+            byte_size_mismatches: 0,
+            git_sha_mismatches: 0,
+            discovered_bytes: 0,
+            extracted_bytes: 0,
+            discrepancies: Vec::new(),
+        }
+    }
+
     /// Verifies the arithmetic conservation identity:
     /// `discovered_blobs == actual_extracted + actual_excluded + actual_failed + actual_unsupported + missing_unaccounted`
     #[must_use]

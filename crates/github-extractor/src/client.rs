@@ -24,6 +24,7 @@ use crate::config_test::{ConfigTestExtractionReport, ExtractedConfigFile, Extrac
 use crate::dependency::{DependencyExtractionReport, ExtractedDependencyFile};
 use crate::documentation::{DocExtractionReport, ExtractedDocFile};
 use crate::error::{redact_secrets, GitHubExtractorError};
+use crate::exclusion::{ExclusionAuditReport, ExclusionReportGenerator};
 use crate::hash_validator::{ContentHashValidator, HashValidationConfig, HashValidationReport};
 use crate::manifest::RepoFileManifest;
 use crate::metadata::{
@@ -1688,6 +1689,55 @@ impl GitHubApiClient {
             config,
             target_repo,
         )
+    }
+
+    /// Generates missing and excluded repository file reports and diagnostics from manifests or extraction reports.
+    #[must_use]
+    #[allow(clippy::too_many_arguments)]
+    pub fn generate_exclusion_report(
+        &self,
+        manifest: Option<&RepoFileManifest>,
+        classification: Option<&TreeClassificationReport>,
+        sources: Option<&SourceExtractionReport>,
+        docs: Option<&DocExtractionReport>,
+        dependencies: Option<&DependencyExtractionReport>,
+        configs_tests: Option<&ConfigTestExtractionReport>,
+        balance_sheet: Option<&FileAccountingBalanceSheet>,
+        target_repo: impl Into<String>,
+        target_ref: Option<String>,
+        pinned_sha: Option<String>,
+    ) -> ExclusionAuditReport {
+        let repo = target_repo.into();
+        if let Some(m) = manifest {
+            ExclusionReportGenerator::generate_from_manifest(
+                m,
+                balance_sheet,
+                repo,
+                target_ref,
+                pinned_sha,
+            )
+        } else if let Some(c) = classification {
+            ExclusionReportGenerator::generate_from_reports(
+                c,
+                sources,
+                docs,
+                dependencies,
+                configs_tests,
+                balance_sheet,
+                repo,
+                target_ref,
+                pinned_sha,
+            )
+        } else {
+            let empty_manifest = RepoFileManifest::from_entries(Vec::new());
+            ExclusionReportGenerator::generate_from_manifest(
+                &empty_manifest,
+                balance_sheet,
+                repo,
+                target_ref,
+                pinned_sha,
+            )
+        }
     }
 }
 

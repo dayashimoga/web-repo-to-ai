@@ -20,6 +20,7 @@ pub mod config_test;
 pub mod dependency;
 pub mod documentation;
 pub mod error;
+pub mod exclusion;
 pub mod hash_validator;
 pub mod manifest;
 pub mod metadata;
@@ -66,6 +67,10 @@ pub use documentation::{
     DocFormat, DocType, ExtractedDocFile,
 };
 pub use error::{redact_secrets, GitHubExtractorError};
+pub use exclusion::{
+    ExcludedFileRecord, ExclusionAuditReport, ExclusionCategory, ExclusionReportGenerator,
+    ExtractionFailureCategory, FailedFileRecord, MissingFileRecord,
+};
 pub use hash_validator::{
     ContentHashValidator, HashAlgorithm, HashCheckMetric, HashValidationConfig,
     HashValidationFailure, HashValidationReport,

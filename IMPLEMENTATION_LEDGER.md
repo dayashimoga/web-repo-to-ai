@@ -4899,11 +4899,84 @@
 
 ### Upcoming Subphase (Stage 5 — Public GitHub Repository Extraction)
 
+---
+
+#### Subphase `5.5.3` — Missing & excluded file reports in crates/github-extractor
+- **Unique ID:** `5.5.3`
+- **Objective:** Implement structured diagnostics, categorizations, and formal reporting for files that were intentionally excluded (oversized, generated/lockfiles, vendor/dependencies, binaries, policy filters, sensitive credentials) or failed extraction in `crates/github-extractor`. Provide granular root-cause classification, remediation recommendations, multi-report integration, GFM Markdown audit tables, JSON serialization, and bidirectional mapping to Canonical Context Document Model [`ExclusionRecord`] structures.
+- **Scope:** `crates/github-extractor/src/exclusion.rs`, `crates/github-extractor/src/client.rs`, `crates/github-extractor/src/lib.rs`, `crates/github-extractor/tests/missing_excluded_reports_test.rs`.
+- **Prerequisites:** `5.5.2` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/github-extractor/src/exclusion.rs`
+  - `crates/github-extractor/src/client.rs`
+  - `crates/github-extractor/src/lib.rs`
+  - `crates/github-extractor/tests/missing_excluded_reports_test.rs`
+- **Implementation Tasks:**
+  1. Implement `crates/github-extractor/src/exclusion.rs`:
+     - Domain models:
+       - `ExclusionCategory`: strongly-typed exclusion taxonomy (`OversizedFile`, `GeneratedOrLockfile`, `VendorOrThirdParty`, `BinaryOrAsset`, `SubmoduleOrSymlink`, `PolicyPattern`, `SensitiveSecurityPattern`, `Other`).
+       - `ExtractionFailureCategory`: strongly-typed failure taxonomy (`NetworkTimeout`, `RateLimitExceeded`, `BlobTooLarge`, `CorruptedContent`, `SubtreeTraversalFailed`, `IoOrStorage`, `Unknown`).
+       - `ExcludedFileRecord`: path, git_sha, category, size_bytes, language, rationale, pattern, remediation.
+       - `FailedFileRecord`: path, git_sha, error_category, error_message, retry_eligible, http_status.
+       - `MissingFileRecord`: path, git_sha, expected_size, diagnostics.
+       - `ExclusionAuditReport`: target_repo, target_ref, pinned_sha, total_discovered, total_excluded, total_failed, total_missing, excluded_bytes, exclusion_breakdown, failure_breakdown, lists of records.
+       - Query & audit methods:
+         - `is_clean(&self) -> bool`: returns true if 0 missing files and 0 failed files.
+         - `has_critical_issues(&self) -> bool`: returns true if any missing or failed files exist.
+         - `retryable_failures(&self) -> Vec<&FailedFileRecord>`: filters failures eligible for HTTP/exponential backoff retry.
+         - `to_cdm_exclusion_records(&self) -> Vec<ExclusionRecord>`: maps excluded files directly into CDM [`ExclusionRecord`] structures with appropriate [`ExclusionReason`].
+     - Generator engine `ExclusionReportGenerator`:
+       - Reconciles tree classifications, manifests, and accounting balance sheets into a unified `ExclusionAuditReport`.
+       - Generates actionable remediation recommendations per category.
+     - Formatters & serializers:
+       - `to_markdown(&self) -> String`: generates a clean GFM audit report with executive summary, category breakdown tables, and itemized logs.
+       - `to_json(&self) -> Result<String, serde_json::Error>` and `to_json_compact(&self)`: structured JSON serialization.
+       - `to_cdm_section(&self, doc_canonical_url) -> CdmSection`: Canonical Context Document Model representation with `SectionKind::Manifest`, `manifest_role: "exclusion_and_missing_report"`, and BLAKE3 hash.
+  2. Extend `GitHubApiClient` in `crates/github-extractor/src/client.rs`:
+     - `generate_exclusion_report`: client method assembling the report from repository artifacts.
+  3. Re-export exclusion models and functions in `crates/github-extractor/src/lib.rs`.
+  4. Author comprehensive integration tests in `crates/github-extractor/tests/missing_excluded_reports_test.rs` covering all exclusion categories, failure classifications, missing file diagnostics, remediation recommendations, CDM `ExclusionRecord` translation, GFM formatting, JSON serialization, and live API client integration.
+  5. Run full quality gate (`cargo test`, `cargo clippy`, `cargo fmt`, `cargo deny`, `scripts/check-all.ps1`).
+- **Acceptance Criteria:**
+  - Granular categorization of all excluded files with explicit reasons and remediation actions.
+  - Accurately captures failures and unaccounted missing files with severity indicators.
+  - Converts cleanly to CDM `ExclusionRecord` items with correct pattern and reason mappings.
+  - Produces valid GFM Markdown, JSON, and schema-valid CDM sections.
+  - 100% test pass rate, 0 clippy warnings, clean formatting.
+- **Tests:** `cargo test -p web-repo-to-ai-github-extractor --test missing_excluded_reports_test`, `cargo test --workspace`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, Rule 04, Rule 05: Path sanitization, secret redaction in error messages and excluded file paths, zero leakage of authorization headers.
+- **Performance Considerations:** Single-pass aggregation, deterministic sorting by path, bounded memory footprints.
+- **Documentation Requirements:** Module and type documentation in `crates/github-extractor`, tracking updates in `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`.
+- **Validation Evidence:**
+  - `crates/github-extractor/tests/missing_excluded_reports_test.rs`: 11 integration tests executed and passing:
+    - `test_exclusion_category_inference`: validates category inference for sensitive patterns (`.env`, `secrets.json`, `.pem`, `id_rsa`), vendor directories (`node_modules/`, `target/`), binary assets (`.wasm`, `.png`), generated lockfiles (`.lock`), and fallback categories.
+    - `test_exclusion_category_cdm_mapping_and_remediation`: validates bidirectional translation to CDM [`ExclusionReason`] (`SizeLimit`, `ExcludedExtension`, `RulePattern`, `BinaryFile`, `SecurityRestricted`, `UnsupportedType`) and non-empty remediation guidance.
+    - `test_extraction_failure_category_inference_and_retryability`: verifies root-cause extraction failure taxonomy and retry eligibility.
+    - `test_excluded_file_record_and_cdm_conversion`: verifies CDM [`ExclusionRecord`] struct generation with path, pattern, rationale, and size.
+    - `test_failed_file_record_creation`: validates error categorizations and HTTP status capture.
+    - `test_missing_file_record_creation`: verifies unaccounted dropped file tracking.
+    - `test_exclusion_audit_report_clean_vs_critical`: verifies `is_clean()` and `has_critical_issues()` integrity predicates.
+    - `test_generate_from_manifest_with_mixed_entries`: verifies multi-item aggregation, category breakdown distribution, balance sheet discrepancy merging, and retry filtering.
+    - `test_exclusion_audit_report_markdown_and_json_formatting`: verifies GFM tables, badge rendering, and JSON roundtrip serialization.
+    - `test_exclusion_audit_report_cdm_section_generation`: verifies CDM manifest section construction with BLAKE3 content hashing and token estimation.
+    - `test_client_generate_exclusion_report_integration`: verifies end-to-end integration with `GitHubApiClient`.
+  - Full crate test suite: 119 tests passing across unit and integration targets with 0 failures.
+  - Full workspace clippy check: `cargo clippy --workspace --all-targets -- -D warnings` passed with 0 warnings.
+  - Code formatting: `cargo fmt --all -- --check` clean.
+  - Dependency audit: `cargo deny check` passed (advisories ok, bans ok, licenses ok, sources ok).
+  - Monorepo gatekeeper: `powershell scripts/check-all.ps1` completed with `ALL GATES PASSED (0 failures)` including 213 frontend vitest tests and 17.6% Podman storage footprint.
+- **Git Commit Reference:** `826e13d`
+- **Status:** `ACCEPTED`
+
+---
+
+### Upcoming Subphase (Stage 5 — Public GitHub Repository Extraction)
+
 #### Phase 5.5 — Integrity
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `5.5.3` | Missing & excluded file reports | `5.5.2` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
+| `5.5.4` | Large repository regression tests | `5.5.3` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
 
 ---
 

@@ -4,15 +4,15 @@
 **Last Updated:** 2026-11-18  
 **Current Stage:** `STAGE 5 — PUBLIC GITHUB REPOSITORY EXTRACTION` (`IN_PROGRESS`)  
 **Current Phase:** `Phase 5.5 — Integrity` (`IN_PROGRESS`)  
-**Active Subphase:** `None` (Ready for Subphase `5.5.3`)  
-**Last Completed Subphase:** `5.5.2 — Content hash validation in crates/github-extractor` (`ACCEPTED`)  
-**Next Upcoming Subphase:** `5.5.3 — Missing & excluded file reports in crates/github-extractor`
+**Active Subphase:** `None` (Subphase `5.5.3` completed; awaiting explicit user instruction to begin `5.5.4`)  
+**Last Completed Subphase:** `5.5.3 — Missing & excluded file reports in crates/github-extractor` (`ACCEPTED`)  
+**Next Upcoming Subphase:** `5.5.4 — Large repository regression tests in crates/github-extractor`
 
 ---
 
 ## 1. Executive Summary
 
-Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 subphases), Stage 2 (`2.1.1` – `2.4.4`, 15 subphases), Stage 3 (`3.1.1` – `3.4.4`, 16 subphases), and Stage 4 (`4.1.1` – `4.4.4`, 16 subphases) are 100% complete, verified, certified, and accepted across 76 subphases. Stage 5 ("Public GitHub Repository Extraction") certified Phase 5.1 ("GitHub metadata", `5.1.1` – `5.1.4`), Phase 5.2 ("File discovery", `5.2.1` – `5.2.4`), Phase 5.3 ("File extraction", `5.3.1` – `5.3.4`), and Phase 5.4 ("Repository packaging", `5.4.1` – `5.4.4`). Phase 5.5 ("Integrity", `5.5.1` – `5.5.4`) is active: Subphases `5.5.1` ("Expected-vs-actual file accounting") and `5.5.2` ("Content hash validation") are accepted, providing robust mathematical completeness verification and multi-algorithm cryptographic integrity checking (Git Object SHA-1, BLAKE3, SHA-256). The engine is ready for Subphase `5.5.3` ("Missing & excluded file reports").
+Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 subphases), Stage 2 (`2.1.1` – `2.4.4`, 15 subphases), Stage 3 (`3.1.1` – `3.4.4`, 16 subphases), and Stage 4 (`4.1.1` – `4.4.4`, 16 subphases) are 100% complete, verified, certified, and accepted across 76 subphases. Stage 5 ("Public GitHub Repository Extraction") certified Phase 5.1 ("GitHub metadata", `5.1.1` – `5.1.4`), Phase 5.2 ("File discovery", `5.2.1` – `5.2.4`), Phase 5.3 ("File extraction", `5.3.1` – `5.3.4`), and Phase 5.4 ("Repository packaging", `5.4.1` – `5.4.4`). Phase 5.5 ("Integrity", `5.5.1` – `5.5.4`) is active: Subphases `5.5.1` ("Expected-vs-actual file accounting"), `5.5.2` ("Content hash validation"), and `5.5.3` ("Missing & excluded file reports") are accepted. Subphase `5.5.4` ("Large repository regression tests") is queued to complete Phase 5.5 and Stage 5!
 
 ---
 
@@ -20,12 +20,12 @@ Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 su
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 94 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.2` |
+| `ACCEPTED` | 95 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.3` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 103 | `5.5.3` – `11.4.5` |
+| `NOT_STARTED` | 102 | `5.5.4` – `11.4.5` |
 | **Total** | **197** | `Stage 0` – `Stage 11` |
 
 ---

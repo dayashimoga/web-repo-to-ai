@@ -6,6 +6,28 @@
 
 ## [Unreleased] — Stage 5: Public GitHub Repository Extraction
 
+### 2026-11-18 — Phase 5.5: Integrity (`5.5.3`)
+
+#### Added
+- **`[5.5.3]` Missing & Excluded File Reports in `crates/github-extractor`:**
+  - Implemented structured diagnostics, root-cause categorizations, remediation guidance, and formal audit reporting for excluded, dropped, and failed repository items in `crates/github-extractor/src/exclusion.rs`:
+    - `ExclusionCategory`: strongly-typed exclusion taxonomy (`OversizedFile`, `GeneratedOrLockfile`, `VendorOrThirdParty`, `BinaryOrAsset`, `SubmoduleOrSymlink`, `PolicyPattern`, `SensitiveSecurityPattern`, `Other`) with `to_cdm_reason()` and `default_remediation()` recommendations.
+    - `ExtractionFailureCategory`: strongly-typed failure taxonomy (`NetworkTimeout`, `RateLimitExceeded`, `BlobTooLarge`, `CorruptedContent`, `SubtreeTraversalFailed`, `IoOrStorage`, `Unknown`) with `is_retryable()` predicate for automated retry scheduling.
+    - `ExcludedFileRecord`: structured record capturing relative path, git blob SHA, exclusion category, size bytes, language, rationale, matched pattern, and remediation advice.
+    - `FailedFileRecord`: record capturing extraction failures, root-cause error category, error message, HTTP status code, and retry eligibility.
+    - `MissingFileRecord`: record capturing eligible discovered files completely unaccounted for in extraction artifacts.
+    - `ExclusionAuditReport`: consolidated report model capturing target repo, target ref, pinned commit SHA, discovered blobs, excluded files count & byte metrics, failed files count, missing files count, category distribution maps, and itemized record lists.
+    - Integrity predicates: `is_clean()` (zero missing and zero failed items) and `has_critical_issues()`.
+    - Bidirectional CDM mapping: `to_cdm_exclusion_records()` translating records directly into Canonical Context Document Model [`ExclusionRecord`] items with standardized [`ExclusionReason`] types.
+    - `ExclusionReportGenerator`: multi-report synthesis engine reconciling `RepoFileManifest`, direct extraction reports (`SourceExtractionReport`, `DocExtractionReport`, `DependencyExtractionReport`, `ConfigTestExtractionReport`), and `FileAccountingBalanceSheet`.
+    - Formatters & serializers: `to_markdown()` producing structured GFM status summaries, breakdown tables, and failure logs; `to_json()` / `to_json_compact()` for structured JSON export; `to_cdm_section()` generating schema-valid `CdmSection` with `SectionKind::Manifest`, `manifest_role: "exclusion_and_missing_report"`, and BLAKE3 hash.
+  - Extended `GitHubApiClient` in `crates/github-extractor/src/client.rs`:
+    - `generate_exclusion_report`: client method generating missing and excluded diagnostics from repository artifacts.
+  - Re-exported exclusion models and generator in `crates/github-extractor/src/lib.rs`.
+  - Authored comprehensive integration tests in `crates/github-extractor/tests/missing_excluded_reports_test.rs`:
+    - 11 test suites validating category inference across patterns and directories, CDM exclusion mapping, failure category inference and retryability, record models, audit report clean vs critical states, multi-report manifest aggregation, GFM Markdown formatting, JSON serialization roundtrip, CDM manifest section generation, and live API client integration.
+  - Verified 501 passing workspace Rust tests (165 in `crates/github-extractor` + 1 doc-test), 213 frontend tests, zero clippy warnings, zero fmt diffs, and 100% passing gates across all 5 checks in `scripts/check-all.ps1`.
+
 ### 2026-11-18 — Phase 5.5: Integrity (`5.5.2`)
 
 #### Added
