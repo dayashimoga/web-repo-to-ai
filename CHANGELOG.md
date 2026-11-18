@@ -6,6 +6,32 @@
 
 ## [Unreleased] — Stage 6: Private GitHub Repositories
 
+### 2026-11-18 — Phase 6.3: Private extraction (`6.3.2`)
+
+#### Added
+- **`[6.3.2]` Selected Repository Access, Traversal, Search & Dynamic Grant Synchronization in `crates/github-extractor`:**
+  - Implemented `SelectedRepositoryListing` in `crates/github-extractor/src/selected_repositories.rs`:
+    - Captures `total_count`, `repository_selection`, `repositories`, `pages_fetched`, and `is_complete`.
+    - Implemented helper methods: `is_empty`, `len`, `full_names`, `has_repository`, `find_by_slug`, `search`, and `filter_by_visibility`.
+  - Implemented `RepositoryAccessStatus` taxonomy:
+    - `Granted(InstalledRepositorySummary)`
+    - `NotGranted { owner, repo, reason }`
+    - `TokenInvalid { reason }`
+    - `RateLimited { retry_after_secs }`
+  - Implemented `SelectedRepositoryManager`:
+    - `fetch_all(&self, installation_token)`: Bounded pagination traversal across `GET /installation/repositories` honoring `max_pages` (default 50) and `per_page` (clamped to 100).
+    - `fetch_all_for_user(&self, user_token, installation_id)`: Paginated enumeration across `GET /user/installations/{id}/repositories`.
+    - `verify_repository_access(&self, token, owner, repo)`: Direct access verification handling 200 (Granted), 404 (NotGranted), 401 (TokenInvalid), and 403/429 (RateLimited).
+    - `sync_grant_change(&self, store, installation_id, added, removed)`: Synchronizes repository grants from webhook events across all sessions in the store.
+  - Extended `GitHubApiClient` in `crates/github-extractor/src/client.rs`:
+    - Added `list_user_installation_repositories(&self, user_token, installation_id, page, per_page) -> Result<InstallationRepositoriesResponse, GitHubExtractorError>`.
+  - Implemented `From<RepositoryAccessDetails> for InstalledRepositorySummary` in `crates/github-extractor/src/installation.rs`.
+  - Extended `InstallationTokenStore` and `InMemoryInstallationTokenStore` in `crates/github-extractor/src/token_refresh.rs`:
+    - Added `sync_installation_repositories(&self, installation_id, added, removed) -> Result<usize, GitHubExtractorError>`.
+  - Authored comprehensive test suite in `crates/github-extractor/tests/selected_repositories_test.rs`:
+    - 11 integration tests validating single-page and multi-page pagination, page cap limits, user installation retrieval, keyword search, visibility filtering, access verification, and multi-session grant synchronization.
+  - 100% passing quality gates: 11/11 new tests passed, 12/12 authorization tests passed, zero clippy warnings, zero fmt diffs, cargo deny passed, and 5/5 check-all gates passed.
+
 ### 2026-11-18 — Phase 6.3: Private extraction (`6.3.1`)
 
 #### Added

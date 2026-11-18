@@ -33,6 +33,7 @@ pub mod oauth;
 pub mod permissions;
 pub mod recovery;
 pub mod revocation;
+pub mod selected_repositories;
 pub mod source;
 pub mod target;
 pub mod token_refresh;
@@ -121,6 +122,10 @@ pub use recovery::{
 };
 pub use revocation::{
     RevocationOutcome, RevocationSummary, TokenRevocationCoordinator, WebhookLifecycleAction,
+};
+pub use selected_repositories::{
+    RepositoryAccessStatus, SelectedRepositoryListing, SelectedRepositoryManager, SyncSummary,
+    DEFAULT_MAX_PAGINATION_PAGES, DEFAULT_REPOSITORIES_PER_PAGE,
 };
 pub use source::{
     compute_blake3_hash, compute_git_blob_sha, compute_sha256_hash, decode_base64,

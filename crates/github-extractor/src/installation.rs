@@ -261,6 +261,21 @@ pub struct RepositoryAccessDetails {
     pub permissions: Option<RepositoryPermissions>,
 }
 
+impl From<RepositoryAccessDetails> for InstalledRepositorySummary {
+    fn from(details: RepositoryAccessDetails) -> Self {
+        Self {
+            id: details.id,
+            node_id: String::new(),
+            name: details.name,
+            full_name: details.full_name,
+            private: details.private,
+            default_branch: details.default_branch,
+            description: details.description,
+            html_url: details.html_url,
+        }
+    }
+}
+
 /// Short-lived installation access token for executing authenticated repository operations.
 ///
 /// Under Rule 05, the `token` string is strictly masked in [`fmt::Debug`] and [`fmt::Display`].

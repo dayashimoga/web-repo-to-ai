@@ -28,7 +28,10 @@ use uuid::Uuid;
 use crate::app_manifest::GitHubAppConfig;
 use crate::client::GitHubApiClient;
 use crate::error::GitHubExtractorError;
-use crate::installation::{GitHubInstallationToken, InstallationTokenRequest, RepositorySelection};
+use crate::installation::{
+    GitHubInstallationToken, InstallationTokenRequest, InstalledRepositorySummary,
+    RepositorySelection,
+};
 use crate::permissions::PermissionPolicy;
 
 /// Freshness classification for an installation token relative to its expiration deadline.
@@ -344,6 +347,14 @@ pub trait InstallationTokenStore: Send + Sync {
         session_id: &Uuid,
         account_login: &str,
     ) -> Result<Option<(i64, StoredTokenRecord)>, GitHubExtractorError>;
+
+    /// Dynamically synchronizes added and removed repository grants for an installation across all session records.
+    async fn sync_installation_repositories(
+        &self,
+        installation_id: i64,
+        added: &[InstalledRepositorySummary],
+        removed: &[InstalledRepositorySummary],
+    ) -> Result<usize, GitHubExtractorError>;
 }
 
 /// Thread-safe in-memory implementation of [`InstallationTokenStore`].
@@ -451,6 +462,37 @@ impl InstallationTokenStore for InMemoryInstallationTokenStore {
             }
         }
         Ok(None)
+    }
+
+    async fn sync_installation_repositories(
+        &self,
+        installation_id: i64,
+        added: &[InstalledRepositorySummary],
+        removed: &[InstalledRepositorySummary],
+    ) -> Result<usize, GitHubExtractorError> {
+        let mut lock = self.records.write().await;
+        let mut updated = 0;
+        let added_names: Vec<String> = added.iter().map(|r| r.full_name.clone()).collect();
+        let removed_names: Vec<String> = removed.iter().map(|r| r.full_name.clone()).collect();
+
+        for ((_session_id, inst_id), record) in lock.iter_mut() {
+            if *inst_id == installation_id {
+                let mut current = record.repositories.take().unwrap_or_default();
+                current.retain(|name| {
+                    !removed_names
+                        .iter()
+                        .any(|rem| rem.eq_ignore_ascii_case(name))
+                });
+                for add in &added_names {
+                    if !current.iter().any(|cur| cur.eq_ignore_ascii_case(add)) {
+                        current.push(add.clone());
+                    }
+                }
+                record.repositories = Some(current);
+                updated += 1;
+            }
+        }
+        Ok(updated)
     }
 }
 

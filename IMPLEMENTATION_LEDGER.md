@@ -5664,7 +5664,65 @@
   - `cargo fmt --all -- --check`: verified clean formatting with 0 diffs.
   - `cargo deny check`: passed (advisories ok, bans ok, licenses ok, sources ok).
   - `powershell scripts/check-all.ps1`: completed with `ALL GATES PASSED (0 failures)` (all 5 gates passed: Bootstrap & Governance, Workflow Validation, Rust Workspace, Frontend Web [213 vitest passed], Resource Budget & 30 GB Storage Ceiling [5.27 GB / 30 GB, 17.6%]).
-- **Git Commit Reference:** `4504c77`
+- **Git Commit Reference:** `ef1a6c9`
+- **Status:** `ACCEPTED`
+
+---
+
+### Active Subphase (Stage 6 — Private GitHub Repositories)
+
+#### Phase 6.3 — Private extraction
+
+#### Subphase `6.3.2` — Selected repository access in crates/github-extractor
+- **Unique ID:** `6.3.2`
+- **Objective:** Implement comprehensive repository discovery, pagination traversal, search, and dynamic repository access grant synchronization for GitHub App installations configured with `repository_selection: "selected"` in `crates/github-extractor`. Provide full pagination across `GET /installation/repositories` and `GET /user/installations/{id}/repositories`, local and remote filtering, and synchronization with `StoredTokenRecord` and `InstallationTokenStore` on webhook events.
+- **Scope:** `crates/github-extractor/src/selected_repositories.rs`, `crates/github-extractor/src/client.rs`, `crates/github-extractor/src/installation.rs`, `crates/github-extractor/src/token_refresh.rs`, `crates/github-extractor/src/lib.rs`, and `crates/github-extractor/tests/selected_repositories_test.rs`.
+- **Prerequisites:** `6.3.1` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/github-extractor/src/selected_repositories.rs`: Implemented `SelectedRepositoryListing`, `RepositoryAccessStatus`, `SyncSummary`, and `SelectedRepositoryManager`.
+  - `crates/github-extractor/src/client.rs`: Added `list_user_installation_repositories`.
+  - `crates/github-extractor/src/installation.rs`: Implemented `From<RepositoryAccessDetails>` for `InstalledRepositorySummary`.
+  - `crates/github-extractor/src/token_refresh.rs`: Added `sync_installation_repositories` to `InstallationTokenStore` and `InMemoryInstallationTokenStore`.
+  - `crates/github-extractor/src/lib.rs`: Re-exported `selected_repositories` module and key types.
+  - `crates/github-extractor/tests/selected_repositories_test.rs`: 11 integration tests verifying pagination, search, verification, and dynamic grant synchronization.
+- **Implementation Tasks:**
+  1. Define `SelectedRepositoryListing` holding total count, repository selection mode, list of repositories, pages fetched, and completeness flag.
+  2. Implement `SelectedRepositoryManager` providing `fetch_all`, `fetch_all_for_user`, `search`, `filter_by_visibility`, `find_by_slug`, `verify_repository_access`, and `sync_grant_change`.
+  3. Extend `GitHubApiClient` with `list_user_installation_repositories` (`GET /user/installations/{id}/repositories`).
+  4. Extend `InstallationTokenStore` and `InMemoryInstallationTokenStore` with `sync_installation_repositories` to synchronize added/removed grants across session records.
+  5. Author integration tests in `crates/github-extractor/tests/selected_repositories_test.rs`.
+  6. Run monorepo verification checks (`cargo test`, `cargo fmt`, `cargo clippy`, `cargo deny check`, `scripts/check-all.ps1`).
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-github-extractor --test selected_repositories_test`
+  - `cargo test -p web-repo-to-ai-github-extractor --test authorization_test`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - Multi-page repository listings are traversed correctly using GitHub API pagination parameters (`page`, `per_page`) with configurable `max_pages` bounds.
+  - Both installation tokens (`Bearer ghs_*`) and user tokens (`Bearer ghu_*`) can enumerate authorized repositories.
+  - Search and filter utilities accurately match names, descriptions, and visibility without case sensitivity issues.
+  - Webhook repository grant additions and removals properly synchronize cached token records across all sessions.
+  - Secret masking is strictly maintained across all debug logs and error formats.
+  - 100% of workspace tests, lints, and format checks pass.
+- **Dependencies:** `web-repo-to-ai-core`, `web-repo-to-ai-observability`, `reqwest`, `serde`, `chrono`, `uuid`.
+- **Security Considerations:**
+  - Tenant isolation: Grant updates are scoped to the matching installation ID across sessions.
+  - Rule 05 least-privilege: Repository access is strictly constrained to what GitHub has granted.
+  - Zero token leakage: Sensitive bearer tokens are masked.
+- **Performance Considerations:**
+  - Pagination stops when all items are fetched (`accumulated.len() >= total_count`).
+  - Cached repository lists are used to prevent redundant GitHub API requests.
+- **Documentation Requirements:** Documented selected repository management and pagination logic in `crates/github-extractor/src/selected_repositories.rs`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-github-extractor --test selected_repositories_test`: 11/11 passed in 0.05s.
+  - `cargo test -p web-repo-to-ai-github-extractor --test authorization_test`: 12/12 passed in 0.01s.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: passed with 0 warnings.
+  - `cargo fmt --all -- --check`: verified clean formatting with 0 diffs.
+  - `cargo deny check`: passed (advisories ok, bans ok, licenses ok, sources ok).
+  - `powershell scripts/check-all.ps1`: completed with `ALL GATES PASSED (0 failures)` (all 5 gates passed: Bootstrap & Governance, Workflow Validation, Rust Workspace, Frontend Web [213 vitest passed], Resource Budget & 30 GB Storage Ceiling [5.27 GB / 30 GB, 17.6%]).
+- **Git Commit Reference:** `a513dbe`
 - **Status:** `ACCEPTED`
 
 ---
@@ -5675,7 +5733,7 @@
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `6.3.2` | Selected repository access | `6.3.1` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
+| `6.3.3` | Private tree & source extraction | `6.3.2` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
 
 ---
 

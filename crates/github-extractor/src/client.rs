@@ -2001,6 +2001,40 @@ impl GitHubApiClient {
             })
     }
 
+    /// Lists all repositories accessible to an installation under a user access token (`GET /user/installations/{installation_id}/repositories`).
+    pub async fn list_user_installation_repositories(
+        &self,
+        user_token: &str,
+        installation_id: u64,
+        page: Option<u32>,
+        per_page: Option<u32>,
+    ) -> Result<InstallationRepositoriesResponse, GitHubExtractorError> {
+        let base = self
+            .base_url_override
+            .as_deref()
+            .unwrap_or("https://api.github.com");
+        let page_num = page.unwrap_or(1);
+        let per_page_num = per_page.unwrap_or(self.per_page as u32).min(100);
+        let url = format!("{base}/user/installations/{installation_id}/repositories?page={page_num}&per_page={per_page_num}");
+
+        let mut headers = self.prepare_headers();
+        let auth_val = format!("Bearer {user_token}");
+        if let Ok(hv) = HeaderValue::from_str(&auth_val) {
+            headers.insert(AUTHORIZATION, hv);
+        }
+
+        let req = self.client.get(&url).headers(headers);
+        let (res, _) = self.execute_request(req, &url).await?;
+
+        res.json::<InstallationRepositoriesResponse>()
+            .await
+            .map_err(|e| {
+                GitHubExtractorError::JsonDecodeError(format!(
+                    "Failed to decode user installation repositories response: {e}"
+                ))
+            })
+    }
+
     /// Explicitly revokes an installation access token (`DELETE /installation/token`).
     ///
     /// Per the GitHub REST API specification, invalidating an installation token returns
