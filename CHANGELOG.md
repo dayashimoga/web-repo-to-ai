@@ -6,6 +6,31 @@
 
 ## [Unreleased] — Stage 7: AI Context and Token Optimization
 
+### 2026-11-18 — Phase 7.2: Token intelligence (`7.2.2`)
+
+#### Added
+- **`[7.2.2]` Model-Specific Counting Engines, Injection Defenses & Cross-Model Comparison in `crates/tokenizer`:**
+  - Implemented dedicated, architecture-specific token counting engines in `crates/tokenizer/src/tokenizers/`:
+    - `Cl100kTokenizer` (`cl100k_base`): 100k vocabulary rules, 4-space indentation merging, 3-digit number grouping, code keywords, and multi-byte UTF-8 byte fallback.
+    - `O200kTokenizer` (`o200k_base`): 200k vocabulary rules, 8-space indentation merging, compound code operators (`::`, `->`, `=>`, `===`, `!==`, `&&`, `||`, `??`), and 1.5-2x enhanced Unicode compression for CJK, Devanagari, Arabic, and Cyrillic scripts.
+    - `ClaudeTokenizer` (`claude_bpe`): XML tag preservation (`<thinking>`, `<artifacts>`, `<code>`), Markdown structural heading preservation, and 2/4/8 space indentation merging.
+    - `GeminiTokenizer` (`gemini_sp`): SentencePiece style whitespace prefixing, large numeric grouping (up to 5 digits), and dense global Unicode compression.
+    - `LlamaTokenizer` (`llama3_bpe`): 128k Llama 3 BPE boundary handling, code bracket sensitivity, and 4-space indentation merging.
+    - `MistralTokenizer` (`mistral_tekken`): Tekken 131k tokenizer with aggressive code symbol merging and multi-language efficiency.
+  - Implemented LLM special control token prompt-injection defenses in `crates/tokenizer/src/special_tokens.rs`:
+    - `SpecialTokenPolicy`: `CountAsSingleToken`, `Disallow`, and `IgnoreOrEscape`.
+    - `validate_special_tokens`: zero-trust detection and rejection of embedded control tokens (`<|endoftext|>`, `<|im_start|>`, `<|fim_prefix|>`) returning `TokenizerError::SpecialTokenForbidden`.
+    - `find_special_tokens`: discovers and locates special tokens embedded inside text across OpenAI, Llama, and Mistral families.
+  - Implemented granular syntax and structural token breakdown in `crates/tokenizer/src/syntax.rs`:
+    - `TokenSyntaxBreakdown`: segments token spend across code syntax, natural prose, markup, whitespace, and special tokens with percentage shares, GFM Markdown summary table generation, and JSON serialization.
+  - Implemented cross-model token intelligence and efficiency comparison in `crates/tokenizer/src/comparison.rs`:
+    - `ModelTokenComparison` & `ModelComparisonEntry`: evaluates token counts and context window utilization across all supported model architectures (`Gpt4o`, `Gpt4Turbo`, `Claude35Sonnet`, `Gemini15Pro`, `Llama3`, `MistralLarge`), calculates efficiency ratios relative to baseline `cl100k`, computes max token variance percentages, renders formatted GFM comparison tables, and supports JSON serialization.
+    - `compare_document`: whole-document multi-model token comparison across all sections in a `CdmDocument`.
+  - Added `MistralAdapter` and registered `MistralAdapter`, `Claude3Opus`, and `Llama370B` in `TokenizerRegistry`.
+  - Added convenience functions in `crates/tokenizer/src/lib.rs`: `compare_models_for_text`, `analyze_token_syntax`.
+  - Implemented integration test suite `crates/tokenizer/tests/model_specific_counting_test.rs` (9 integration tests).
+  - 100% passing quality gates: 42 crate tests passed, 636+ workspace tests passed, zero clippy warnings, zero fmt diffs, cargo deny passed, and 5/5 check-all gates passed.
+
 ### 2026-11-18 — Phase 7.2: Token intelligence (`7.2.1`)
 
 #### Added

@@ -47,14 +47,22 @@ pub enum TargetModel {
     Gpt4Turbo,
     /// Anthropic Claude 3.5 Sonnet (200k context window).
     Claude35Sonnet,
+    /// Anthropic Claude 3 Opus (200k context window).
+    Claude3Opus,
     /// Anthropic Claude 3 Haiku (200k context window).
     Claude3Haiku,
     /// Google Gemini 1.5 Pro (2,000,000 token context window).
     Gemini15Pro,
     /// Google Gemini 1.5 Flash (1,000,000 token context window).
     Gemini15Flash,
-    /// Meta Llama 3 / 3.1 (128k token context window).
+    /// Meta Llama 3 / 3.1 8B (128k token context window).
     Llama3,
+    /// Meta Llama 3 / 3.1 70B (128k token context window).
+    Llama370B,
+    /// Mistral Large (128k token context window, Tekken 131k tokenizer).
+    MistralLarge,
+    /// Mixtral 8x7B (32k token context window).
+    Mixtral8x7B,
     /// Generic fallback model (32k token conservative baseline).
     GenericFallback,
 }
@@ -67,10 +75,14 @@ impl TargetModel {
             Self::Gpt4o => "gpt-4o",
             Self::Gpt4Turbo => "gpt-4-turbo",
             Self::Claude35Sonnet => "claude-3-5-sonnet",
+            Self::Claude3Opus => "claude-3-opus",
             Self::Claude3Haiku => "claude-3-haiku",
             Self::Gemini15Pro => "gemini-1-5-pro",
             Self::Gemini15Flash => "gemini-1-5-flash",
             Self::Llama3 => "llama-3",
+            Self::Llama370B => "llama-3-70b",
+            Self::MistralLarge => "mistral-large",
+            Self::Mixtral8x7B => "mixtral-8x7b",
             Self::GenericFallback => "generic-fallback",
         }
     }
@@ -87,12 +99,16 @@ impl TargetModel {
             "claude-3-5-sonnet" | "claude-3.5-sonnet" | "claude-sonnet" | "claude" => {
                 Some(Self::Claude35Sonnet)
             }
+            "claude-3-opus" | "claude-opus" => Some(Self::Claude3Opus),
             "claude-3-haiku" | "claude-haiku" => Some(Self::Claude3Haiku),
             "gemini-1-5-pro" | "gemini-1.5-pro" | "gemini-pro" | "gemini" => {
                 Some(Self::Gemini15Pro)
             }
             "gemini-1-5-flash" | "gemini-1.5-flash" | "gemini-flash" => Some(Self::Gemini15Flash),
             "llama-3" | "llama-3.1" | "llama3" => Some(Self::Llama3),
+            "llama-3-70b" | "llama-3.1-70b" | "llama3-70b" => Some(Self::Llama370B),
+            "mistral-large" | "mistral" | "tekken" => Some(Self::MistralLarge),
+            "mixtral-8x7b" | "mixtral" => Some(Self::Mixtral8x7B),
             "generic" | "fallback" | "default" => Some(Self::GenericFallback),
             _ => None,
         }
@@ -103,9 +119,10 @@ impl TargetModel {
     pub const fn model_family(self) -> ModelFamily {
         match self {
             Self::Gpt4o | Self::Gpt4Turbo => ModelFamily::OpenAi,
-            Self::Claude35Sonnet | Self::Claude3Haiku => ModelFamily::Anthropic,
+            Self::Claude35Sonnet | Self::Claude3Opus | Self::Claude3Haiku => ModelFamily::Anthropic,
             Self::Gemini15Pro | Self::Gemini15Flash => ModelFamily::Google,
-            Self::Llama3 => ModelFamily::Meta,
+            Self::Llama3 | Self::Llama370B => ModelFamily::Meta,
+            Self::MistralLarge | Self::Mixtral8x7B => ModelFamily::Mistral,
             Self::GenericFallback => ModelFamily::Generic,
         }
     }
@@ -114,11 +131,13 @@ impl TargetModel {
     #[must_use]
     pub const fn context_window_limit(self) -> usize {
         match self {
-            Self::Gpt4o | Self::Gpt4Turbo | Self::Llama3 => 128_000,
-            Self::Claude35Sonnet | Self::Claude3Haiku => 200_000,
+            Self::Gpt4o | Self::Gpt4Turbo | Self::Llama3 | Self::Llama370B | Self::MistralLarge => {
+                128_000
+            }
+            Self::Claude35Sonnet | Self::Claude3Opus | Self::Claude3Haiku => 200_000,
             Self::Gemini15Pro => 2_000_000,
             Self::Gemini15Flash => 1_000_000,
-            Self::GenericFallback => 32_000,
+            Self::Mixtral8x7B | Self::GenericFallback => 32_000,
         }
     }
 
@@ -128,10 +147,11 @@ impl TargetModel {
         match self {
             Self::Gpt4o | Self::Gpt4Turbo => 4_096,
             Self::Claude35Sonnet => 8_192,
-            Self::Claude3Haiku => 4_096,
+            Self::Claude3Opus | Self::Claude3Haiku => 4_096,
             Self::Gemini15Pro | Self::Gemini15Flash => 8_192,
-            Self::Llama3 => 4_096,
-            Self::GenericFallback => 4_096,
+            Self::Llama3 | Self::Llama370B => 4_096,
+            Self::MistralLarge => 8_192,
+            Self::Mixtral8x7B | Self::GenericFallback => 4_096,
         }
     }
 
@@ -151,11 +171,25 @@ impl TargetModel {
         match self {
             Self::Gpt4o => "o200k_base",
             Self::Gpt4Turbo => "cl100k_base",
-            Self::Claude35Sonnet | Self::Claude3Haiku => "claude_bpe",
+            Self::Claude35Sonnet | Self::Claude3Opus | Self::Claude3Haiku => "claude_bpe",
             Self::Gemini15Pro | Self::Gemini15Flash => "gemini_sp",
-            Self::Llama3 => "llama3_bpe",
+            Self::Llama3 | Self::Llama370B => "llama3_bpe",
+            Self::MistralLarge | Self::Mixtral8x7B => "mistral_tekken",
             Self::GenericFallback => "calibrated_heuristic",
         }
+    }
+
+    /// Returns a slice of all standard supported production models for comparative analysis.
+    #[must_use]
+    pub const fn supported_models() -> &'static [TargetModel] {
+        &[
+            TargetModel::Gpt4o,
+            TargetModel::Gpt4Turbo,
+            TargetModel::Claude35Sonnet,
+            TargetModel::Gemini15Pro,
+            TargetModel::Llama3,
+            TargetModel::MistralLarge,
+        ]
     }
 }
 

@@ -12,22 +12,35 @@
 
 pub mod adapter;
 pub mod adapters;
+pub mod comparison;
 pub mod document;
 pub mod error;
 pub mod model;
 pub mod precision;
 pub mod registry;
+pub mod special_tokens;
+pub mod syntax;
+pub mod tokenizers;
 
 pub use adapter::TokenizerAdapter;
 pub use adapters::{
-    CalibratedHeuristicAdapter, ClaudeAdapter, GeminiAdapter, LlamaAdapter, OpenAiAdapter,
-    RegexBpeTokenizer,
+    CalibratedHeuristicAdapter, ClaudeAdapter, GeminiAdapter, LlamaAdapter, MistralAdapter,
+    OpenAiAdapter, RegexBpeTokenizer,
 };
+pub use comparison::{ModelComparisonEntry, ModelTokenComparison};
 pub use document::{count_section_tokens, enrich_document_token_metrics, DocumentTokenSummary};
 pub use error::TokenizerError;
 pub use model::{ModelFamily, TargetModel};
 pub use precision::{TokenCountResult, TokenPrecision, TruncationResult};
 pub use registry::TokenizerRegistry;
+pub use special_tokens::{
+    find_special_tokens, special_tokens_for_family, validate_special_tokens, SpecialTokenPolicy,
+};
+pub use syntax::TokenSyntaxBreakdown;
+pub use tokenizers::{
+    Cl100kTokenizer, ClaudeTokenizer, GeminiTokenizer, LlamaTokenizer, MistralTokenizer,
+    O200kTokenizer,
+};
 
 use std::sync::Arc;
 
@@ -53,6 +66,18 @@ pub fn truncate_tokens_for_model(
         .get_for_model(model)
         .unwrap_or_else(|| Arc::new(CalibratedHeuristicAdapter::default()));
     adapter.truncate_tokens(text, max_tokens)
+}
+
+/// Convenience function: Compares token counts and efficiencies across target models for `text`.
+#[must_use]
+pub fn compare_models_for_text(text: &str, models: &[TargetModel]) -> ModelTokenComparison {
+    ModelTokenComparison::compare_text(text, models)
+}
+
+/// Convenience function: Analyzes token distribution across code, prose, markup, and whitespace syntax.
+#[must_use]
+pub fn analyze_token_syntax(text: &str, target_model: TargetModel) -> TokenSyntaxBreakdown {
+    TokenSyntaxBreakdown::analyze(text, target_model)
 }
 
 /// Returns the unique crate identifier name.

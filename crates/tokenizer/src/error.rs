@@ -22,4 +22,8 @@ pub enum TokenizerError {
     /// Character encoding or string manipulation failure.
     #[error("Encoding or UTF-8 error: {0}")]
     EncodingError(String),
+
+    /// Forbidden special token detected when policy is Disallow.
+    #[error("Forbidden special token encountered: {0}")]
+    SpecialTokenForbidden(String),
 }

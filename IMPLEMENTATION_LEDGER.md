@@ -6451,11 +6451,80 @@
 
 ### Upcoming Subphase (Stage 7 — AI Context and Token Optimization)
 
+#### Subphase `7.2.2` — Model-specific counting in crates/tokenizer
+- **Unique ID:** `7.2.2`
+- **Objective:** Implement dedicated, architecture-specific token counting algorithms and boundary segmentation engines across major LLM providers (OpenAI cl100k and o200k, Anthropic Claude BPE, Google Gemini SentencePiece, Meta Llama 3 128k BPE, and Mistral Tekken), special control token prompt-injection defenses, syntax and structural token breakdown analysis, and cross-model efficiency comparisons.
+- **Scope:** `crates/tokenizer/*` (`special_tokens.rs`, `tokenizers/*`, `adapters/models.rs`, `syntax.rs`, `comparison.rs`, `lib.rs`, `tests/*`).
+- **Prerequisites:** `7.2.1` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/tokenizer/src/special_tokens.rs`
+  - `crates/tokenizer/src/tokenizers/mod.rs`
+  - `crates/tokenizer/src/tokenizers/cl100k.rs`
+  - `crates/tokenizer/src/tokenizers/o200k.rs`
+  - `crates/tokenizer/src/tokenizers/claude.rs`
+  - `crates/tokenizer/src/tokenizers/gemini.rs`
+  - `crates/tokenizer/src/tokenizers/llama.rs`
+  - `crates/tokenizer/src/tokenizers/mistral.rs`
+  - `crates/tokenizer/src/adapters/models.rs`
+  - `crates/tokenizer/src/adapters/mod.rs`
+  - `crates/tokenizer/src/registry.rs`
+  - `crates/tokenizer/src/syntax.rs`
+  - `crates/tokenizer/src/comparison.rs`
+  - `crates/tokenizer/src/model.rs`
+  - `crates/tokenizer/src/error.rs`
+  - `crates/tokenizer/src/lib.rs`
+  - `crates/tokenizer/tests/model_specific_counting_test.rs`
+- **Implementation Tasks:**
+  1. Implement `SpecialTokenPolicy` (`CountAsSingleToken`, `Disallow`, `IgnoreOrEscape`) and special token discovery/validation (`validate_special_tokens`, `find_special_tokens`) across OpenAI, Llama, and Mistral control sequences (`crates/tokenizer/src/special_tokens.rs`).
+  2. Implement dedicated model tokenizers in `crates/tokenizer/src/tokenizers/`:
+     - `Cl100kTokenizer`: 100k vocabulary rules, 4-space indentation merging, 3-digit number grouping, code keywords, and multi-byte UTF-8 byte fallback.
+     - `O200kTokenizer`: 200k vocabulary rules, 8-space indentation merging, compound code operators (`::`, `->`, `=>`, `===`, `!==`, `&&`, `||`, `??`), and 1.5-2x enhanced Unicode compression for CJK, Devanagari, Arabic, and Cyrillic scripts.
+     - `ClaudeTokenizer`: XML tag preservation (`<thinking>`, `<artifacts>`, `<code>`), Markdown structural heading preservation, and 2/4/8 space indentation merging.
+     - `GeminiTokenizer`: SentencePiece style whitespace prefixing, large numeric grouping (up to 5 digits), and dense global Unicode compression.
+     - `LlamaTokenizer`: 128k Llama 3 BPE boundary handling, code bracket sensitivity, and 4-space indentation merging.
+     - `MistralTokenizer`: Tekken 131k tokenizer with aggressive code symbol merging and multi-language efficiency.
+  3. Wire `OpenAiAdapter`, `ClaudeAdapter`, `GeminiAdapter`, `LlamaAdapter`, and new `MistralAdapter` in `crates/tokenizer/src/adapters/models.rs` directly to their dedicated counting engines.
+  4. Register `MistralAdapter`, `Claude3Opus`, and `Llama370B` in `TokenizerRegistry`.
+  5. Implement `TokenSyntaxBreakdown` in `crates/tokenizer/src/syntax.rs`, categorizing token spend across code syntax, natural prose, markup, whitespace, and special tokens with percentage shares, Markdown summary tables, and JSON roundtrip serialization.
+  6. Implement `ModelTokenComparison` in `crates/tokenizer/src/comparison.rs`, evaluating multi-model token counts across text and CDM documents, identifying the most and least compact models, calculating cross-model variance percentages, rendering GFM comparison tables, and supporting JSON serialization.
+  7. Implement integration test suite `crates/tokenizer/tests/model_specific_counting_test.rs` (9 integration tests) validating cl100k vs o200k compression, Claude XML tokenization, Gemini SentencePiece counting, Llama and Mistral adapters, special token injection blocking, syntax breakdowns, and cross-model comparison tables.
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-tokenizer`
+  - `cargo test --workspace`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - Dedicated counting engines for each model architecture produce distinct, verifiable token counts matching real-world BPE behaviors.
+  - `o200k_base` provably compresses 8-space indentation, compound operators, and CJK text into fewer tokens than `cl100k_base`.
+  - Special token prompt injection attempts cleanly rejected when `SpecialTokenPolicy::Disallow` is configured.
+  - Cross-model comparison report (`ModelTokenComparison`) and syntax breakdown (`TokenSyntaxBreakdown`) support GFM Markdown rendering and full JSON roundtrip serialization.
+  - All 42 crate tests pass, all 636+ workspace tests pass, zero clippy warnings, zero fmt diffs, cargo deny passed, all check-all gates pass.
+- **Risk Analysis:**
+  - Risk: Prompt injection through embedded LLM control tokens (e.g. `<|im_start|>`, `<|endoftext|>`).
+  - Mitigation: `validate_special_tokens` provides strict zero-trust detection and rejection before token emission.
+- **Rollback Plan:**
+  - Revert Subphase 7.2.2 additions via `git reset --hard HEAD~1` and restore Subphase 7.2.1 baseline.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-tokenizer`: 42 tests passing (25 unit tests, 17 integration tests across 2 test suites).
+  - Full workspace tests: 636+ tests passing across all crates and services with 0 failures.
+  - Workspace linter: `cargo clippy --workspace --all-targets -- -D warnings` clean with 0 warnings.
+  - Formatting: `cargo fmt --all -- --check` clean with 0 diffs.
+  - Dependency audit: `cargo deny check` passed (advisories ok, bans ok, licenses ok, sources ok).
+  - Monorepo gatekeeper: `powershell scripts/check-all.ps1` completed with `ALL GATES PASSED (0 failures)`.
+- **Git Commit Reference:** `3c0aaf5`
+- **Status:** `ACCEPTED`
+
+---
+
+### Upcoming Subphase (Stage 7 — AI Context and Token Optimization)
+
 #### Phase 7.2 — Token intelligence
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `7.2.2` | Model-specific counting | `7.2.1` (`ACCEPTED`) | `crates/tokenizer/*` | `NOT_STARTED` |
+| `7.2.3` | Cost estimation | `7.2.2` (`ACCEPTED`) | `crates/tokenizer/*` | `NOT_STARTED` |
 
 ---
 

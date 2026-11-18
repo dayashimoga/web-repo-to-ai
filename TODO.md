@@ -210,7 +210,7 @@
 
 ### Phase 7.2 — Token intelligence
 - [x] **[7.2.1]** Tokenizer adapter architecture in crates/tokenizer *(Completed 2026-11-18, TokenizerAdapter trait, ModelFamily & TargetModel with context window ceilings, TokenPrecision [Exact, CalibratedEstimate with uncertainty bounds], CalibratedHeuristicAdapter with content-awareness, RegexBpeTokenizer regex pre-tokenizer, OpenAi/Claude/Gemini/Llama adapters, TokenizerRegistry thread-safe lookup, UTF-8 clean truncation, CDM document enrichment & DocumentTokenSummary, 19 crate tests, 627+ workspace tests, 100% passing quality gates)*
-- [ ] **[7.2.2]** Model-specific counting in crates/tokenizer
+- [x] **[7.2.2]** Model-specific counting in crates/tokenizer *(Completed 2026-11-18, dedicated Cl100kTokenizer, O200kTokenizer [8-space merge, compound operators, CJK compression], ClaudeTokenizer [XML & markdown preservation], GeminiTokenizer [SentencePiece whitespace prefixing], LlamaTokenizer, MistralTokenizer, MistralAdapter, SpecialTokenPolicy prompt-injection defense, TokenSyntaxBreakdown, ModelTokenComparison cross-model analysis, 42 crate tests, 636+ workspace tests, 100% passing quality gates)*
 - [ ] **[7.2.3]** Cost estimation in crates/tokenizer
 - [ ] **[7.2.4]** Context-budget calculation in crates/context-optimizer
 

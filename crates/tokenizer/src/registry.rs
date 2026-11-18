@@ -8,7 +8,8 @@ use std::sync::Arc;
 
 use crate::adapter::TokenizerAdapter;
 use crate::adapters::{
-    CalibratedHeuristicAdapter, ClaudeAdapter, GeminiAdapter, LlamaAdapter, OpenAiAdapter,
+    CalibratedHeuristicAdapter, ClaudeAdapter, GeminiAdapter, LlamaAdapter, MistralAdapter,
+    OpenAiAdapter,
 };
 use crate::model::{ModelFamily, TargetModel};
 
@@ -34,6 +35,7 @@ impl Default for TokenizerRegistry {
         registry.register(Arc::new(ClaudeAdapter::for_model(
             TargetModel::Claude35Sonnet,
         )));
+        registry.register(Arc::new(ClaudeAdapter::for_model(TargetModel::Claude3Opus)));
         registry.register(Arc::new(ClaudeAdapter::for_model(
             TargetModel::Claude3Haiku,
         )));
@@ -46,8 +48,17 @@ impl Default for TokenizerRegistry {
 
         // 4. Meta Llama
         registry.register(Arc::new(LlamaAdapter::for_model(TargetModel::Llama3)));
+        registry.register(Arc::new(LlamaAdapter::for_model(TargetModel::Llama370B)));
 
-        // 5. Calibrated heuristic fallback
+        // 5. Mistral
+        registry.register(Arc::new(MistralAdapter::for_model(
+            TargetModel::MistralLarge,
+        )));
+        registry.register(Arc::new(MistralAdapter::for_model(
+            TargetModel::Mixtral8x7B,
+        )));
+
+        // 6. Calibrated heuristic fallback
         registry.register(Arc::new(CalibratedHeuristicAdapter::default()));
 
         registry

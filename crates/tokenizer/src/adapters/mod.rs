@@ -8,4 +8,4 @@ pub mod models;
 
 pub use bpe::RegexBpeTokenizer;
 pub use heuristic::CalibratedHeuristicAdapter;
-pub use models::{ClaudeAdapter, GeminiAdapter, LlamaAdapter, OpenAiAdapter};
+pub use models::{ClaudeAdapter, GeminiAdapter, LlamaAdapter, MistralAdapter, OpenAiAdapter};
