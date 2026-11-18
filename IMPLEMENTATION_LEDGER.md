@@ -4119,11 +4119,53 @@
 
 ---
 
+### Phase 5.2 — File discovery
+
+#### Subphase `5.2.1` — Git Trees integration in crates/github-extractor
+- **Unique ID:** `5.2.1`
+- **Objective:** Implement GitHub Git Trees API integration (`GET /repos/{owner}/{repo}/git/trees/{tree_sha}`) with recursive traversal (`?recursive=1`), typed file modes (`100644` regular, `100755` executable, `040000` directory, `120000` symlink, `160000` submodule), object types (`blob`, `tree`, `commit`), path sanitization and normalization, entry querying/filtering methods, and direct binding to `PinnedRevision.root_tree_sha`.
+- **Scope:** `crates/github-extractor/src/tree.rs`, `crates/github-extractor/src/client.rs`, `crates/github-extractor/src/lib.rs`, `crates/github-extractor/tests/git_trees_test.rs`.
+- **Prerequisites:** `5.1.4` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/github-extractor/src/tree.rs`
+  - `crates/github-extractor/src/client.rs`
+  - `crates/github-extractor/src/lib.rs`
+  - `crates/github-extractor/tests/git_trees_test.rs`
+- **Implementation Tasks:**
+  1. Define Git Trees models in `crates/github-extractor/src/tree.rs`: `GitFileMode`, `GitTreeEntryType`, `GitTreeEntry`, and `GitTreeResponse`.
+  2. Implement helper methods on `GitTreeEntry`: `file_name`, `extension`, `parent_path`, `is_blob`, `is_tree`, `is_submodule`, `depth`.
+  3. Implement helper and query methods on `GitTreeResponse`: `blob_count`, `tree_count`, `submodule_count`, `total_blob_size`, `blobs`, `find_by_path`, `filter_by_prefix`, `filter_by_extension`, `to_path_set`.
+  4. Implement `get_tree(&self, target: &GitHubTarget, tree_sha: &str, recursive: bool)` in `GitHubApiClient` querying GitHub REST API `/git/trees/{tree_sha}` with secret redaction and rate limiting.
+  5. Implement `fetch_pinned_tree(&self, pinned: &PinnedRevision, recursive: bool)` binding tree acquisition directly to `pinned.root_tree_sha()`.
+  6. Implement comprehensive integration tests in `crates/github-extractor/tests/git_trees_test.rs` with an in-process Axum test server validating recursive tree parsing, non-recursive mode, path helpers, mode classification, 404 handling, and token redaction under failure conditions.
+  7. Run full monorepo quality audit via `scripts/check-all.ps1`.
+- **Acceptance Criteria:**
+  - Git tree entries across all standard Git modes (`100644`, `100755`, `040000`, `120000`, `160000`) and types (`blob`, `tree`, `commit`) are accurately parsed.
+  - Path normalization strips leading slashes and validates against path traversal.
+  - `fetch_pinned_tree` retrieves the tree corresponding to `PinnedRevision.root_tree_sha`.
+  - 100% of tests pass, zero clippy warnings, zero fmt diffs, cargo-deny clean.
+- **Tests:** `cargo test -p web-repo-to-ai-github-extractor`, `cargo test --workspace`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, 04, 05: Path traversal protection on all tree entry paths; secret token redaction in tree request failures; zero untrusted code execution.
+- **Performance Considerations:** Single-pass tree deserialization, zero-copy string slicing for file extensions and directory names, lazy iterator over blobs.
+- **Documentation Requirements:** Module documentation in `crates/github-extractor`, tracking updates in `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-github-extractor`: 41/41 tests passed (1 lib unit test, 21 target decomposition tests, 7 ref discovery tests, 4 commit selection tests, 4 metadata extraction tests, 4 git trees tests).
+  - `cargo test --workspace`: 375/375 tests passed across all 17 crates and services.
+  - `cargo clippy -p web-repo-to-ai-github-extractor --all-targets -- -D warnings`: 0 warnings, 0 errors.
+  - `cargo fmt --all -- --check`: 100% clean formatting.
+  - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
+  - `npm test` (`apps/web`): 213/213 tests passed across 17 suites; `svelte-check` reports 0 errors and 0 warnings.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (224/224 bootstrap checks, 7/7 workflows, Rust checks, Frontend checks, Podman storage 5.27 GB / 30 GB, 17.6%).
+- **Git Commit Reference:** `010f446` / `4d84308`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 5 — Public GitHub Repository Extraction)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `5.2.1` | Git Trees integration | `5.1.4` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
+| `5.2.2` | Tree truncation detection | `5.2.1` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
 
 ---
 

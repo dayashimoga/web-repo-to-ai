@@ -16,6 +16,7 @@ pub mod error;
 pub mod metadata;
 pub mod models;
 pub mod target;
+pub mod tree;
 
 pub use client::{
     GitHubApiClient, DEFAULT_GITHUB_TIMEOUT, DEFAULT_MAX_PAGES, DEFAULT_PER_PAGE,
@@ -30,6 +31,7 @@ pub use target::{
     validate_repo, GitHubTarget, GitHubTargetType, GitHubUrlParser, DEFAULT_GITHUB_API_BASE,
     DEFAULT_GITHUB_HOST, DEFAULT_GITHUB_WWW_HOST, DEFAULT_RAW_GITHUB_USERCONTENT_BASE,
 };
+pub use tree::{GitFileMode, GitTreeEntry, GitTreeEntryType, GitTreeResponse};
 
 /// Returns the unique crate identifier name.
 #[must_use]

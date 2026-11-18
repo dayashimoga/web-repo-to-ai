@@ -6,6 +6,22 @@
 
 ## [Unreleased] — Stage 5: Public GitHub Repository Extraction
 
+### 2026-11-18 — Phase 5.2: File Discovery (`5.2.1`)
+
+#### Added
+- **`[5.2.1]` Git Trees Integration & Hierarchy Traversal in `crates/github-extractor`:**
+  - Implemented Git Trees models in `crates/github-extractor/src/tree.rs`:
+    - `GitFileMode`: typed POSIX file modes (`100644` regular file, `100755` executable file, `040000` directory subtree, `120000` symlink, `160000` submodule commit pointer, and `Other`), with query helpers (`is_file`, `is_directory`, `is_executable`, `is_symlink`, `is_submodule`).
+    - `GitTreeEntryType`: classification enum (`Blob`, `Tree`, `Commit`).
+    - `GitTreeEntry`: path-normalized tree object with `file_name()`, `extension()`, `parent_path()`, `depth()`, and byte size.
+    - `GitTreeResponse`: collection of tree entries with `blob_count()`, `tree_count()`, `submodule_count()`, `total_blob_size()`, `blobs()` iterator, path lookups (`find_by_path`), prefix filtering (`filter_by_prefix`), extension filtering (`filter_by_extension`), and path set generation (`to_path_set`).
+  - Extended REST client `GitHubApiClient` in `crates/github-extractor/src/client.rs`:
+    - `get_tree(&target, tree_sha, recursive)`: queries `GET /repos/{owner}/{repo}/git/trees/{tree_sha}` (with optional `?recursive=1`) with secret token redaction and rate limiting inspection.
+    - `fetch_pinned_tree(&pinned, recursive)`: directly queries the immutable `PinnedRevision.root_tree_sha()`, guaranteeing zero ref-drift during file discovery.
+  - Authored comprehensive integration tests in `crates/github-extractor/tests/git_trees_test.rs`:
+    - 4 test suites covering file mode classification, path normalization, tree queries/filters, and live in-process Axum mock server tests validating recursive vs. non-recursive modes, `fetch_pinned_tree`, 404 `ResourceNotFound` handling, and secret token redaction.
+  - Verified 375 passing workspace Rust tests (41 in `crates/github-extractor`), zero clippy warnings, zero fmt diffs, and 100% passing gates across all 5 checks in `scripts/check-all.ps1`.
+
 ### 2026-11-18 — Phase 5.1: GitHub Metadata (`5.1.4` — PHASE 5.1 CERTIFIED)
 
 #### Added

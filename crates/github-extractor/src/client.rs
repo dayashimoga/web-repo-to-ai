@@ -21,6 +21,7 @@ use crate::metadata::{
 };
 use crate::models::{GitHubBranch, GitHubRateLimit, GitHubTag, RefDiscoveryReport};
 use crate::target::GitHubTarget;
+use crate::tree::GitTreeResponse;
 
 /// Default HTTP request timeout for GitHub API calls.
 pub const DEFAULT_GITHUB_TIMEOUT: Duration = Duration::from_secs(30);
@@ -772,5 +773,67 @@ impl GitHubApiClient {
             languages,
             pinned_revision,
         ))
+    }
+
+    /// Retrieves a Git tree object for a repository by tree SHA, optionally requesting
+    /// full recursive traversal (`?recursive=1`).
+    ///
+    /// # Errors
+    /// Returns `GitHubExtractorError::ResourceNotFound` if the tree does not exist,
+    /// or `GitHubExtractorError::RateLimitExceeded` if API rate limits are breached.
+    pub async fn get_tree(
+        &self,
+        target: &GitHubTarget,
+        tree_sha: &str,
+        recursive: bool,
+    ) -> Result<(GitTreeResponse, Option<GitHubRateLimit>), GitHubExtractorError> {
+        let base_url = self.effective_base_url(target);
+        let url = if recursive {
+            format!(
+                "{base_url}/repos/{}/{}/git/trees/{tree_sha}?recursive=1",
+                target.owner, target.repo
+            )
+        } else {
+            format!(
+                "{base_url}/repos/{}/{}/git/trees/{tree_sha}",
+                target.owner, target.repo
+            )
+        };
+
+        let req = self
+            .client
+            .get(&url)
+            .headers(self.prepare_headers())
+            .timeout(self.timeout);
+
+        let (res, rate_limit) = self.execute_request(req, &url).await?;
+
+        let body_text = res.text().await.map_err(|e| {
+            let sanitized = redact_secrets(&e.to_string());
+            GitHubExtractorError::RequestFailed(sanitized)
+        })?;
+
+        let tree_res: GitTreeResponse = serde_json::from_str(&body_text).map_err(|e| {
+            let sanitized = redact_secrets(&e.to_string());
+            GitHubExtractorError::JsonDecodeError(sanitized)
+        })?;
+
+        Ok((tree_res, rate_limit))
+    }
+
+    /// Fetches the complete Git tree corresponding to an immutable `PinnedRevision`,
+    /// guaranteeing zero ref-drift by querying the pinned `root_tree_sha`.
+    ///
+    /// # Errors
+    /// Returns `GitHubExtractorError` if the tree query fails.
+    pub async fn fetch_pinned_tree(
+        &self,
+        pinned: &PinnedRevision,
+        recursive: bool,
+    ) -> Result<GitTreeResponse, GitHubExtractorError> {
+        let (tree_res, _rl) = self
+            .get_tree(pinned.target(), pinned.root_tree_sha(), recursive)
+            .await?;
+        Ok(tree_res)
     }
 }

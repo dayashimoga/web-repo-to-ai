@@ -147,7 +147,7 @@
 - [x] **[5.1.4]** Repository metadata extraction in crates/github-extractor *(Completed 2026-11-18, GitHubLicense, GitHubRepositoryMetadata, GitHubLanguages with percentage sorting, GitHubRepoContext, CDM DocumentMetadata integration, get_repo_metadata, get_repo_languages, fetch_repo_context, in-process Axum test server, 4 new integration tests, 371 workspace tests — PHASE 5.1 CERTIFIED)*
 
 ### Phase 5.2 — File discovery
-- [ ] **[5.2.1]** Git Trees integration in crates/github-extractor
+- [x] **[5.2.1]** Git Trees integration in crates/github-extractor *(Completed 2026-11-18, GitFileMode, GitTreeEntryType, GitTreeEntry, GitTreeResponse, recursive Git Trees API integration, path normalization, blobs/prefix/extension queries, fetch_pinned_tree, in-process Axum test server, 4 new integration tests, 375 workspace tests)*
 - [ ] **[5.2.2]** Tree truncation detection in crates/github-extractor
 - [ ] **[5.2.3]** Subtree recovery in crates/github-extractor
 - [ ] **[5.2.4]** File classification in crates/github-extractor
