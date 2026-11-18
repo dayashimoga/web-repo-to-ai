@@ -3964,11 +3964,58 @@
 
 ---
 
+#### Subphase `5.1.2` — Branch & tag discovery in crates/github-extractor
+- **Unique ID:** `5.1.2`
+- **Objective:** Implement asynchronous GitHub REST API client methods for branch and tag discovery (`/repos/{owner}/{repo}/branches`, `/repos/{owner}/{repo}/tags`), supporting pagination, rate limiting header inspection (`x-ratelimit-*`), commit SHA resolution, ref disambiguation for branches containing slashes, and optional authentication token support with strict redaction.
+- **Scope:** `crates/github-extractor/Cargo.toml`, `crates/github-extractor/src/client.rs`, `crates/github-extractor/src/models.rs`, `crates/github-extractor/src/error.rs`, `crates/github-extractor/src/lib.rs`, `crates/github-extractor/tests/ref_discovery_test.rs`.
+- **Prerequisites:** `5.1.1` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/github-extractor/Cargo.toml`
+  - `crates/github-extractor/src/error.rs`
+  - `crates/github-extractor/src/models.rs`
+  - `crates/github-extractor/src/client.rs`
+  - `crates/github-extractor/src/lib.rs`
+  - `crates/github-extractor/tests/ref_discovery_test.rs`
+- **Implementation Tasks:**
+  1. Add dependencies `reqwest`, `chrono`, and `tokio` to `crates/github-extractor/Cargo.toml`.
+  2. Define ref discovery models in `crates/github-extractor/src/models.rs`: `GitHubBranch`, `GitHubTag`, `GitHubRateLimit`, and `RefDiscoveryReport` with commit SHA resolution and disambiguation helper methods.
+  3. Expand `GitHubExtractorError` in `crates/github-extractor/src/error.rs` to handle HTTP errors, GitHub API errors (`RateLimitExceeded`, `ResourceNotFound`, `BadCredentials`, `Forbidden`), and JSON parsing errors with secret redaction.
+  4. Implement `GitHubApiClient` in `crates/github-extractor/src/client.rs`:
+     - Configurable timeout, base URL, optional auth token, custom reqwest HTTP client.
+     - `list_branches(&self, target: &GitHubTarget)` with pagination (`per_page=100`, page limits).
+     - `get_branch(&self, target: &GitHubTarget, branch: &str)`.
+     - `list_tags(&self, target: &GitHubTarget)` with pagination.
+     - `discover_refs(&self, target: &GitHubTarget)` orchestrating branches and tags discovery.
+     - `disambiguate_ref_and_subpath(&self, target: &GitHubTarget, raw_tail: &str, branches: &[GitHubBranch], tags: &[GitHubTag])` resolving ambiguous branches with slashes.
+     - Inspection and tracking of GitHub rate limit headers (`x-ratelimit-limit`, `x-ratelimit-remaining`, `x-ratelimit-reset`, `x-ratelimit-used`).
+  5. Implement comprehensive unit and integration tests in `crates/github-extractor/tests/ref_discovery_test.rs` validating pagination, rate limit extraction, 404/403/401 error handling, token redaction, and branch disambiguation with slash-separated branch names.
+  6. Run all monorepo quality gates via `scripts/check-all.ps1`.
+- **Acceptance Criteria:**
+  - `GitHubApiClient` retrieves branches and tags with automatic pagination and commit SHA extraction.
+  - Rate limiting headers are extracted and parsed accurately into `GitHubRateLimit`.
+  - Slash-separated branch names (`feature/new-pipeline/v2`) disambiguate correctly against repository subpaths.
+  - Authentication tokens are never exposed in error messages or logs.
+  - 100% of tests pass, zero clippy warnings, zero fmt diffs, cargo-deny clean.
+- **Tests:** `cargo test -p web-repo-to-ai-github-extractor`, `cargo test --workspace`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, 04, 05: Token redaction, SSRF validation, rate limit backpressure defense, bounded pagination ceiling (max 1000 refs).
+- **Performance Considerations:** Connection pooling via `reqwest::Client`, zero-copy parsing where feasible, streaming JSON deserialization.
+- **Documentation Requirements:** Module documentation in `crates/github-extractor`, tracking updates in `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-github-extractor`: 29/29 tests passed (1 lib unit test, 7 integration tests in `ref_discovery_test.rs`, 21 integration tests in `target_decomposition_test.rs`).
+  - `cargo test --workspace`: 363/363 tests passed across all 17 crates and services.
+  - `cargo clippy -p web-repo-to-ai-github-extractor --all-targets -- -D warnings`: 0 warnings, 0 errors.
+  - `cargo fmt --all -- --check`: 100% clean formatting.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (224/224 bootstrap checks, 7/7 workflows, Rust checks, Frontend checks, Podman storage 5.27 GB / 30 GB, 17.6%).
+- **Git Commit Reference:** `8d8ded7` / `2f0de6d`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 5 — Public GitHub Repository Extraction)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `5.1.2` | Branch & tag discovery | `5.1.1` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
+| `5.1.3` | Commit selection | `5.1.2` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
 
 ---
 

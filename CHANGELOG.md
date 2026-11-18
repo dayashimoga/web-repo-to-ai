@@ -6,6 +6,27 @@
 
 ## [Unreleased] — Stage 5: Public GitHub Repository Extraction
 
+### 2026-11-18 — Phase 5.1: GitHub Metadata (`5.1.2`)
+
+#### Added
+- **`[5.1.2]` Branch & Tag Discovery and Ref Disambiguation in `crates/github-extractor`:**
+  - Implemented ref discovery models in `crates/github-extractor/src/models.rs`:
+    - `GitHubRateLimit`: parses `x-ratelimit-limit`, `x-ratelimit-remaining`, `x-ratelimit-reset`, and `x-ratelimit-used` headers, providing `is_exhausted()` and `seconds_until_reset()` helpers.
+    - `GitHubBranch`: represents branch name, 40-character commit SHA, and branch protection status.
+    - `GitHubTag`: represents release tag name, 40-character commit SHA, zipball URL, and tarball URL.
+    - `RefDiscoveryReport`: aggregates discovered branches, tags, default branch resolution (`main`/`master`), rate limit status, commit SHA lookup, and longest-prefix disambiguation.
+  - Implemented asynchronous REST client `GitHubApiClient` in `crates/github-extractor/src/client.rs`:
+    - Configurable base URL, timeout, page size (default 100), and max pagination limit (default 10 pages / 1,000 items).
+    - `list_branches(&target)` and `list_tags(&target)` with automatic pagination.
+    - `get_branch(&target, branch_name)` for single branch retrieval.
+    - `discover_refs(&target)` running parallel branch and tag discovery via `tokio::join!`.
+    - `disambiguate_target(&target, &report)` refining ambiguous URLs where branches contain slashes (e.g. `feature/pipeline-v2/crates/core`).
+  - Implemented robust token redaction in `crates/github-extractor/src/error.rs` (`redact_secrets`):
+    - Sanitizes `ghp_`, `ghs_`, `ghu_`, `gho_`, `ghr_`, `github_pat_`, and `Bearer`/`token` strings from all error messages and logs.
+  - Authored comprehensive test suite in `crates/github-extractor/tests/ref_discovery_test.rs`:
+    - 7 tests validating rate limit parsing, token redaction, ref lookups, longest-prefix branch disambiguation, target refinement, and real in-process Axum HTTP server tests for pagination, single branch lookup, rate limit exhaustion (HTTP 403), unauthorized credentials (HTTP 401), and resource not found (HTTP 404).
+  - Verified 363 passing workspace Rust tests with zero clippy warnings and 100% passing gates in `scripts/check-all.ps1`.
+
 ### 2026-11-17 — Phase 5.1: GitHub Metadata (`5.1.1`)
 
 #### Added

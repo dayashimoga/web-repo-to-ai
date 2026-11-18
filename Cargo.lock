@@ -2578,10 +2578,14 @@ dependencies = [
 name = "web-repo-to-ai-github-extractor"
 version = "0.1.0"
 dependencies = [
+ "axum",
+ "chrono",
  "regex",
+ "reqwest",
  "serde",
  "serde_json",
  "thiserror 1.0.69",
+ "tokio",
  "tracing",
  "url",
  "web-repo-to-ai-cdm",

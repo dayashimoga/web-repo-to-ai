@@ -142,7 +142,7 @@
 
 ### Phase 5.1 — GitHub metadata (`IN_PROGRESS`)
 - [x] **[5.1.1]** Repository identification and URL decomposition in crates/github-extractor *(Completed 2026-11-17, GitHubTarget, GitHubTargetType, GitHubUrlParser, strict owner/repo validation, path traversal defense, SSH/git/shorthand/tree/blob/commit/tag/PR/issue parsing, CDM SourceIdentity mapping, 22 passing tests, 356 workspace tests)*
-- [ ] **[5.1.2]** Branch & tag discovery in crates/github-extractor
+- [x] **[5.1.2]** Branch & tag discovery in crates/github-extractor *(Completed 2026-11-18, GitHubApiClient, GitHubBranch, GitHubTag, GitHubRateLimit, RefDiscoveryReport, pagination, rate limit header tracking, token redaction, slash-separated branch disambiguation, in-process Axum test server, 7 new integration tests, 363 workspace tests)*
 - [ ] **[5.1.3]** Commit selection in crates/github-extractor
 - [ ] **[5.1.4]** Repository metadata extraction in crates/github-extractor
 
