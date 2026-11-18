@@ -166,7 +166,7 @@
 
 ### Phase 5.5 — Integrity
 - [x] **[5.5.1]** Expected-vs-actual file accounting in crates/github-extractor *(Completed 2026-11-18, FileAccountingBalanceSheet, FileAccountingAuditor, AccountingDiscrepancy, AccountingDiscrepancyKind, DiscrepancySeverity, conservation law verification, bidirectional set reconciliation, GFM markdown balance sheet, JSON serialization, CDM section mapping, 9 new integration tests, 143 crate tests, 479 workspace tests, 100% passing quality gates)*
-- [ ] **[5.5.2]** Content hash validation in crates/github-extractor
+- [x] **[5.5.2]** Content hash validation in crates/github-extractor *(Completed 2026-11-18, ContentHashValidator, HashValidationConfig, HashValidationReport, HashValidationFailure, HashAlgorithm, multi-algorithm integrity auditing [Git Object SHA-1, BLAKE3, SHA-256], report/manifest/CDM section verification, GFM markdown reporting, JSON serialization, CDM section mapping, 11 new integration tests, 154 crate tests, 490 workspace tests, 100% passing quality gates)*
 - [ ] **[5.5.3]** Missing & excluded file reports in crates/github-extractor
 - [ ] **[5.5.4]** Large repository regression tests in crates/github-extractor
 

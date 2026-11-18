@@ -24,6 +24,7 @@ use crate::config_test::{ConfigTestExtractionReport, ExtractedConfigFile, Extrac
 use crate::dependency::{DependencyExtractionReport, ExtractedDependencyFile};
 use crate::documentation::{DocExtractionReport, ExtractedDocFile};
 use crate::error::{redact_secrets, GitHubExtractorError};
+use crate::hash_validator::{ContentHashValidator, HashValidationConfig, HashValidationReport};
 use crate::manifest::RepoFileManifest;
 use crate::metadata::{
     GitHubLanguages, GitHubLicense, GitHubRepoContext, GitHubRepositoryMetadata,
@@ -1666,6 +1667,27 @@ impl GitHubApiClient {
                 pinned_sha,
             )
         }
+    }
+
+    /// Validates cryptographic content hashes (Git SHA-1, BLAKE3, SHA-256) across extracted repository reports.
+    #[must_use]
+    pub fn validate_content_hashes(
+        &self,
+        sources: Option<&SourceExtractionReport>,
+        docs: Option<&DocExtractionReport>,
+        dependencies: Option<&DependencyExtractionReport>,
+        configs_tests: Option<&ConfigTestExtractionReport>,
+        config: &HashValidationConfig,
+        target_repo: impl Into<String>,
+    ) -> HashValidationReport {
+        ContentHashValidator::validate_reports(
+            sources,
+            docs,
+            dependencies,
+            configs_tests,
+            config,
+            target_repo,
+        )
     }
 }
 

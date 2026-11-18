@@ -20,6 +20,7 @@ pub mod config_test;
 pub mod dependency;
 pub mod documentation;
 pub mod error;
+pub mod hash_validator;
 pub mod manifest;
 pub mod metadata;
 pub mod models;
@@ -65,6 +66,10 @@ pub use documentation::{
     DocFormat, DocType, ExtractedDocFile,
 };
 pub use error::{redact_secrets, GitHubExtractorError};
+pub use hash_validator::{
+    ContentHashValidator, HashAlgorithm, HashCheckMetric, HashValidationConfig,
+    HashValidationFailure, HashValidationReport,
+};
 pub use manifest::{FileExtractionStatus, ManifestFileEntry, RepoFileManifest};
 pub use metadata::{GitHubLanguages, GitHubLicense, GitHubRepoContext, GitHubRepositoryMetadata};
 pub use models::{GitHubBranch, GitHubRateLimit, GitHubTag, RefDiscoveryReport};

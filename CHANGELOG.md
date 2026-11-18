@@ -6,6 +6,25 @@
 
 ## [Unreleased] — Stage 5: Public GitHub Repository Extraction
 
+### 2026-11-18 — Phase 5.5: Integrity (`5.5.2`)
+
+#### Added
+- **`[5.5.2]` Content Hash Validation in `crates/github-extractor`:**
+  - Implemented comprehensive multi-algorithm cryptographic integrity auditing and content hash verification in `crates/github-extractor/src/hash_validator.rs`:
+    - `HashAlgorithm`: algorithm taxonomy supporting Git Object SHA-1 (`git_blob_sha1`, 40 hex chars), primary BLAKE3 (`blake3`, 64 hex chars), and secondary SHA-256 (`sha256`, 64 hex chars) with strict syntax/lowercase hex validation.
+    - `HashCheckMetric`: quantitative tracking per algorithm of evaluated, passed, and failed checks.
+    - `HashValidationFailure`: structured error model capturing relative path, algorithm, expected hash, calculated hash, and failure context/reason.
+    - `HashValidationConfig`: configuration switches allowing individual algorithm activation (`verify_git_sha`, `verify_blake3`, `verify_sha256`) and optional fail-fast termination.
+    - `HashValidationReport`: comprehensive report summarizing validation outcomes, breakdown tables per algorithm, failure lists, and overall status evaluation via `is_valid()`.
+    - `ContentHashValidator`: high-throughput verification engine supporting auditing of raw byte payloads, `RepoFileManifest` entries against content maps, extraction report collections (`SourceExtractionReport`, `DocExtractionReport`, `DependencyExtractionReport`, `ConfigTestExtractionReport`), and `CdmSection` lists.
+    - Formatters & serializers: `to_markdown()` producing structured GFM checksum breakdown tables and failure logs; `to_json()` / `to_json_compact()` for structured JSON export; `to_cdm_section()` generating a schema-valid `CdmSection` with `SectionKind::Manifest`, `manifest_role: "content_hash_validation"`, and BLAKE3 hash.
+  - Extended `GitHubApiClient` in `crates/github-extractor/src/client.rs`:
+    - `validate_content_hashes`: client method executing checksum validation across extracted artifacts.
+  - Re-exported hash validation models and functions in `crates/github-extractor/src/lib.rs`.
+  - Authored comprehensive integration tests in `crates/github-extractor/tests/hash_validation_test.rs`:
+    - 11 test suites validating valid content hash verification, Git SHA-1 mismatch detection, BLAKE3 mismatch detection, SHA-256 mismatch detection, malformed hex format detection, multi-report verification, manifest verification, CDM section verification, fail-fast behavior, and live API client integration.
+  - Verified 490 passing workspace Rust tests (154 in `crates/github-extractor` + 1 doc-test), 213 frontend tests, zero clippy warnings, zero fmt diffs, and 100% passing gates across all 5 checks in `scripts/check-all.ps1`.
+
 ### 2026-11-18 — Phase 5.5: Integrity (`5.5.1`)
 
 #### Added

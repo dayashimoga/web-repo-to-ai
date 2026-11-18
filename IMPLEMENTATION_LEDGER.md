@@ -4840,11 +4840,70 @@
 
 ### Upcoming Subphase (Stage 5 — Public GitHub Repository Extraction)
 
+---
+
+#### Subphase `5.5.2` — Content hash validation in crates/github-extractor
+- **Unique ID:** `5.5.2`
+- **Objective:** Implement comprehensive cryptographic checksum verification and content hash validation across all extracted repository files, manifests, reports, and CDM documents in `crates/github-extractor`. Enforce validation across three distinct cryptographic integrity layers: Git Object SHA-1 (verifying Git tree blob consistency), BLAKE3 (verifying primary content integrity and CDM section hash parity), and SHA-256 (verifying secondary standard hash parity). Surface any corruptions, transit truncations, tamperings, or malformed hashes through structured diagnostic audit reports.
+- **Scope:** `crates/github-extractor/src/hash_validator.rs`, `crates/github-extractor/src/client.rs`, `crates/github-extractor/src/lib.rs`, `crates/github-extractor/tests/hash_validation_test.rs`.
+- **Prerequisites:** `5.5.1` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/github-extractor/src/hash_validator.rs`
+  - `crates/github-extractor/src/client.rs`
+  - `crates/github-extractor/src/lib.rs`
+  - `crates/github-extractor/tests/hash_validation_test.rs`
+- **Implementation Tasks:**
+  1. Implement `crates/github-extractor/src/hash_validator.rs`:
+     - Domain models:
+       - `HashAlgorithm`: algorithm enum (`GitBlobSha1`, `Blake3`, `Sha256`).
+       - `HashCheckMetric`: quantitative metric tracking total checks, passed checks, and failed checks.
+       - `HashValidationFailure`: structured error record capturing path, algorithm, expected hash, calculated hash, and failure context/reason.
+       - `HashValidationConfig`: configuration switches for enabling/disabling individual algorithms (`verify_git_sha`, `verify_blake3`, `verify_sha256`) and fail-fast behavior.
+       - `HashValidationReport`: comprehensive report summarizing validation outcomes, metrics per algorithm, failure count, list of failures, and invariant query `is_valid(&self) -> bool`.
+     - Validation engine `ContentHashValidator`:
+       - `validate_manifest_entries`: validates manifest entries against content or expected hashes.
+       - `validate_reports`: validates all extracted items in `SourceExtractionReport`, `DocExtractionReport`, `DependencyExtractionReport`, and `ConfigTestExtractionReport`.
+       - `validate_cdm_sections`: validates `CdmSection`s ensuring `section.content_hash == compute_blake3_hash(section.body)` and `git_blob_sha == compute_git_blob_sha(section.body)`.
+       - `validate_raw_blob`: validates single byte payloads against expected Git SHA-1, BLAKE3, and SHA-256.
+     - Formatters & serializers:
+       - `to_markdown(&self) -> String`: GFM checksum validation report.
+       - `to_json(&self) -> Result<String, serde_json::Error>` and `to_json_compact(&self)`: structured JSON serialization.
+       - `to_cdm_section(&self, doc_canonical_url) -> CdmSection`: CDM manifest section with `manifest_role: "content_hash_validation"`, BLAKE3 hash, and validation metrics in attributes.
+  2. Extend `GitHubApiClient` in `crates/github-extractor/src/client.rs`:
+     - `validate_content_hashes`: client method executing checksum validation across extracted artifacts.
+  3. Re-export hash validation models and functions in `crates/github-extractor/src/lib.rs`.
+  4. Author comprehensive integration tests in `crates/github-extractor/tests/hash_validation_test.rs` covering valid extraction hash verification, corrupted payload detection, Git SHA mismatch detection, BLAKE3 mismatch detection, SHA-256 mismatch detection, multi-report verification, CDM section hash verification, and live API client integration.
+  5. Run full quality gate (`cargo test`, `cargo clippy`, `cargo fmt`, `cargo deny`, `scripts/check-all.ps1`).
+- **Acceptance Criteria:**
+  - Cryptographic verification passes 100% on valid extracted content across Git SHA-1, BLAKE3, and SHA-256.
+  - Accurately detects and pinpoints content corruptions, byte alterations, and malformed hash formats.
+  - Reconciles CDM document sections and manifest entries with zero false positives.
+  - Produces valid GFM Markdown, JSON, and schema-valid CDM sections.
+  - 100% test pass rate, 0 clippy warnings, clean formatting.
+- **Tests:** `cargo test -p web-repo-to-ai-github-extractor --test hash_validation_test`, `cargo test --workspace`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, Rule 04, Rule 05: Cryptographic integrity checking, defense against transit corruption, collision-resistant hash algorithms (BLAKE3 + SHA-256), safe string generation.
+- **Performance Considerations:** High-throughput streaming cryptographic computation via SIMD-accelerated BLAKE3, $O(N)$ single-pass evaluation.
+- **Documentation Requirements:** Module and type documentation in `crates/github-extractor`, tracking updates in `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-github-extractor --test hash_validation_test`: 11/11 tests passed in 0.00s covering valid hash verification, Git SHA-1 mismatch detection, BLAKE3 mismatch detection, SHA-256 mismatch detection, malformed hex format detection, multi-report verification, manifest verification, CDM section verification, fail-fast behavior, and live API client integration.
+  - `cargo test -p web-repo-to-ai-github-extractor`: 154/154 crate tests (+ 1 doctest) passed across 17 test suites with 0 failures.
+  - `cargo test --workspace`: 490/490 tests passed across all workspace crates and binaries with 0 failures.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings across all workspace targets.
+  - `cargo fmt --all -- --check`: 100% clean formatting.
+  - `cargo deny check`: Advisories ok, bans ok, licenses ok, sources ok.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (Gate 1: Bootstrap & Governance Integrity, Gate 2: Devops workflows, Gate 3: Rust Workspace Checks, Gate 4: Frontend Web Quality Checks [213 vitest tests passed, svelte-check 0 errors 0 warnings, prettier clean], Gate 5: Resource Budget & 30 GB Storage Ceiling [5.27 GB / 30 GB, 17.6%]).
+- **Git Commit Reference:** `24d740f`
+- **Status:** `ACCEPTED`
+
+---
+
+### Upcoming Subphase (Stage 5 — Public GitHub Repository Extraction)
+
 #### Phase 5.5 — Integrity
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `5.5.2` | Content hash validation | `5.5.1` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
+| `5.5.3` | Missing & excluded file reports | `5.5.2` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
 
 ---
 
