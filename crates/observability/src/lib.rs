@@ -18,8 +18,9 @@ pub mod trace;
 pub use logging::{init_tracing, LogFormat, LoggingConfig};
 pub use metrics::{AppMetrics, Counter, CounterVec, Gauge, Histogram, LATENCY_BUCKETS_MS};
 pub use redaction::{
-    is_sensitive_key, redact_json_value, redact_sensitive_text, REDACTED_API_KEY,
-    REDACTED_GITHUB_TOKEN, REDACTED_SECRET, REDACTED_TOKEN,
+    is_sensitive_key, redact_json_value, redact_sensitive_text, RedactingMakeWriter,
+    RedactingWriter, RedactionEngine, REDACTED_API_KEY, REDACTED_AWS_KEY, REDACTED_GITHUB_TOKEN,
+    REDACTED_PRIVATE_KEY, REDACTED_SECRET, REDACTED_SIGNATURE, REDACTED_TOKEN,
 };
 pub use trace::TraceContext;
 

@@ -5533,11 +5533,90 @@
 
 ### Upcoming Subphase (Stage 6 — Private GitHub Repositories)
 
-#### Phase 6.2 — Credential management
+#### Subphase `6.2.4` — Secret redaction in crates/observability & crates/github-extractor
+- **Unique ID:** `6.2.4`
+- **Objective:** Implement comprehensive secret and credential redaction across tracing spans, structured log events, telemetry layers, and domain error messages to ensure GitHub installation tokens (`ghs_*`), user tokens, refresh tokens, private keys, authorization headers, webhook secrets, and sensitive URL query parameters are never leaked to logs, error payloads, or external telemetry collectors.
+- **Scope:** `crates/observability/src/redaction.rs`, `crates/observability/src/logging.rs`, `crates/observability/src/lib.rs`, `crates/observability/tests/redaction_test.rs`, `crates/github-extractor/Cargo.toml`, `crates/github-extractor/src/error.rs`, `crates/github-extractor/src/client.rs`, `crates/github-extractor/src/lib.rs`, and `crates/github-extractor/tests/redaction_test.rs`.
+- **Prerequisites:** `6.2.3` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/observability/src/redaction.rs` (expand regex patterns for all GitHub token prefixes `ghs_`, `ghu_`, `ghr_`, `ghp_`, `gho_`, `github_pat_`, Authorization headers `token`/`Bearer`/`Basic`, URL query params, and PEM private keys; add `RedactionEngine`, `RedactingWriter`, and `RedactingMakeWriter`)
+  - `crates/observability/src/logging.rs` (wire `RedactingMakeWriter` into `init_tracing` when `redact_secrets` is enabled)
+  - `crates/observability/src/lib.rs` (re-export redaction engine and writer primitives)
+  - `crates/observability/tests/redaction_test.rs` (author tests for token patterns, PEM formats, JSON redaction, and tracing log redaction)
+  - `crates/github-extractor/Cargo.toml` (add `web-repo-to-ai-observability` dependency)
+  - `crates/github-extractor/src/error.rs` (integrate centralized redaction engine into `GitHubExtractorError` formatting and `redact_secrets`)
+  - `crates/github-extractor/src/client.rs` (sanitize error messages and response bodies in API client)
+  - `crates/github-extractor/tests/redaction_test.rs` (author extractor-level secret leakage and error sanitization tests)
+- **Implementation Tasks:**
+  1. Expand regex patterns in `crates/observability/src/redaction.rs` to cover all GitHub token prefixes (`ghs_`, `ghu_`, `ghr_`, `ghp_`, `gho_`, `github_pat_`), HTTP Authorization headers (`Bearer`, `token`, `Basic`), URL userinfo and sensitive query parameters (`?access_token=`, `?token=`, `?client_secret=`, etc.), and multi-format PEM private keys.
+  2. Implement `RedactionEngine` in `crates/observability/src/redaction.rs` supporting custom secret pattern registration and dynamic string masking.
+  3. Implement `RedactingWriter` and `RedactingMakeWriter` wrapping `std::io::Write` / `tracing_subscriber::fmt::MakeWriter` to scrub all emitted tracing lines before output.
+  4. Wire `RedactingMakeWriter` into `init_tracing` in `crates/observability/src/logging.rs` when `config.redact_secrets` is active.
+  5. Add `web-repo-to-ai-observability` to `crates/github-extractor/Cargo.toml`.
+  6. Refactor and strengthen `redact_secrets` in `crates/github-extractor/src/error.rs` to use `web_repo_to_ai_observability::redact_sensitive_text` and ensure `GitHubExtractorError` formatting scrubs all inner strings.
+  7. Sanitize error messages in `crates/github-extractor/src/client.rs` to prevent token leakage in HTTP failure details.
+  8. Author unit and integration tests in `crates/observability/tests/redaction_test.rs` and `crates/github-extractor/tests/redaction_test.rs`.
+  9. Run workspace verification checks (`cargo test`, `cargo clippy`, `cargo fmt`, `cargo deny check`, `scripts/check-all.ps1`).
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-observability`
+  - `cargo test -p web-repo-to-ai-github-extractor --test redaction_test`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - All GitHub token variations (`ghs_*`, `ghu_*`, `ghr_*`, `ghp_*`, `gho_*`, `github_pat_*`) are redacted to `[REDACTED_GITHUB_TOKEN]`.
+  - HTTP `Authorization: token ...`, `Authorization: Bearer ...`, and `Authorization: Basic ...` headers are redacted.
+  - URLs with embedded userinfo credentials and sensitive query parameters are redacted.
+  - Multi-line RSA, EC, and PKCS#8 private keys in PEM format are redacted to `[REDACTED_PRIVATE_KEY]`.
+  - Tracing logs emitted through subscriber with `redact_secrets: true` scrub all tokens before writing to stdout.
+  - `GitHubExtractorError` formatting and API client network error messages never leak tokens or private keys.
+  - All workspace tests pass, clippy is warning-free, and monorepo quality gates pass.
+- **Risk Analysis:**
+  - Risk: Overly aggressive regex expressions redacting harmless non-secret identifiers or causing regex catastrophic backtracking.
+  - Mitigation: Anchor regexes with word boundaries `\b` and strictly bounded character classes; enforce linear-time regex scanning without nested quantifiers.
+- **Rollback Plan:**
+  - Revert changes via Git reset to commit `629ba8f`.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-observability`: 20/20 unit tests passed in 0.01s.
+  - `cargo test -p web-repo-to-ai-observability --test redaction_test`: 7/7 integration tests passed in 0.01s.
+  - `cargo test -p web-repo-to-ai-github-extractor --test redaction_test`: 8/8 integration tests passed in 0.01s.
+  - `cargo test -p web-repo-to-ai-github-extractor --lib`: 30/30 unit tests passed in 0.01s.
+  - `cargo test -p web-repo-to-ai-github-extractor --test ref_discovery_test --test revocation_test --test token_refresh_test`: 24/24 integration tests passed.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: passed with 0 warnings.
+  - `cargo fmt --all -- --check`: verified clean formatting with 0 diffs.
+  - `cargo deny check`: passed (advisories ok, bans ok, licenses ok, sources ok).
+  - Cleaned 22.8 GB in accumulated debug binaries and incremental caches, restoring 27.1 GB free space.
+  - `powershell scripts/check-all.ps1`: completed with `ALL GATES PASSED (0 failures)` (all 5 gates passed: Bootstrap & Governance, Workflow Validation, Rust Workspace, Frontend Web [213 vitest passed], Resource Budget & 30 GB Storage Ceiling [5.27 GB / 30 GB, 17.6%]).
+- **Git Commit Reference:** `b8f095f`
+- **Status:** `ACCEPTED`
+
+---
+
+### Phase 6.2 Milestone Certification (`6.2.1` – `6.2.4`)
+- **Phase 6.2 Goal:** Complete end-to-end credential management for private GitHub repository extraction, including authenticated envelope encryption at rest, proactive token refresh with single-flight deduplication, multi-session revocation and webhook synchronization, and comprehensive secret redaction across logs, errors, and traces.
+- **Subphases Completed & Accepted (4 of 4):**
+  - `6.2.1`: Secure token storage in `crates/storage` & `crates/core` (`ACCEPTED`, commit `00863c1`)
+  - `6.2.2`: Token refresh & expiration in `crates/github-extractor` & `crates/storage` (`ACCEPTED`, commit `92b6c65`)
+  - `6.2.3`: Revocation in `crates/github-extractor` & `services/api` (`ACCEPTED`, commit `629ba8f`)
+  - `6.2.4`: Secret redaction in `crates/observability` & `crates/github-extractor` (`ACCEPTED`, commit `b8f095f`)
+- **Certification Date:** 2026-11-18
+- **Certification Summary:**
+  1. Authenticated AES-256-GCM envelope encryption (`Aes256GcmEngine`, `EncryptionKey`) cryptographically binding ciphertext to session and installation identifiers (`tenant:{owner_session_id}:installation:{github_installation_id}`), preventing cross-tenant decryption with volatile zeroization on drop.
+  2. Proactive token freshness evaluation with configurable safety margins, single-flight in-flight deduplication mutex registry (`InstallationTokenRefresher`), automatic exponential backoff retries, and strict Rule 05 read-only scope validation.
+  3. Upstream token revocation (`DELETE /installation/token`) with idempotent 204/401/404 handling, coordinated local storage zeroization and in-memory cache eviction, webhook lifecycle event handling (`installation.deleted`, `installation.suspend`), and tenant-scoped REST API endpoints (`GET /installations`, `DELETE /installations/:id`, `POST /webhook`).
+  4. Comprehensive secret redaction engine (`RedactionEngine`, `RedactingWriter`, `RedactingMakeWriter`) scrubbing all GitHub token variants (`ghs_*`, `ghu_*`, `ghr_*`, `ghp_*`, `gho_*`, `github_pat_*`), HTTP Authorization headers (`Bearer`, `token`, `Basic`), URL userinfo and sensitive query parameters, multi-format PEM private keys, and webhook HMAC signatures from structured logs, tracing spans, and domain error messages (`GitHubExtractorError::sanitized()`).
+- **Certification Status:** **PHASE 6.2 FORMALLY CERTIFIED & ACCEPTED**
+
+---
+
+### Upcoming Subphase (Stage 6 — Private GitHub Repositories)
+
+#### Phase 6.3 — Private extraction
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `6.2.4` | Secret redaction | `6.2.3` (`ACCEPTED`) | `crates/observability/*`, `crates/github-extractor/*` | `NOT_STARTED` |
+| `6.3.1` | Installation authorization | `6.2.4` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
 
 ---
 

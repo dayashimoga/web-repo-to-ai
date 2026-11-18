@@ -2600,6 +2600,7 @@ dependencies = [
  "uuid",
  "web-repo-to-ai-cdm",
  "web-repo-to-ai-core",
+ "web-repo-to-ai-observability",
  "web-repo-to-ai-url-security",
  "zip",
 ]

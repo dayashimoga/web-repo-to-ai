@@ -8,43 +8,10 @@ use thiserror::Error;
 use web_repo_to_ai_core::CoreError;
 use web_repo_to_ai_url_security::UrlSecurityError;
 
-/// Redacts potential GitHub authentication tokens from strings.
+/// Redacts potential GitHub authentication tokens, API keys, private keys, and credentials from strings.
 #[must_use]
 pub fn redact_secrets(input: &str) -> String {
-    let prefixes = ["ghp_", "ghs_", "ghu_", "gho_", "ghr_", "github_pat_"];
-    let mut result = input.to_string();
-
-    // Redact token prefixes (ghp_..., ghs_..., etc.)
-    for prefix in prefixes {
-        let mut search_from = 0;
-        while let Some(pos) = result[search_from..].find(prefix) {
-            let start = search_from + pos;
-            let secret_end = result[start..]
-                .find(|c: char| c.is_whitespace() || c == '"' || c == '\'' || c == ',' || c == ';')
-                .map(|len| start + len)
-                .unwrap_or(result.len());
-
-            result.replace_range(start..secret_end, "[REDACTED_TOKEN]");
-            search_from = start + "[REDACTED_TOKEN]".len();
-        }
-    }
-
-    // Redact Authorization headers: "Bearer ..." or "token ..."
-    for auth_prefix in ["Bearer ", "token "] {
-        let mut search_from = 0;
-        while let Some(pos) = result[search_from..].find(auth_prefix) {
-            let start = search_from + pos + auth_prefix.len();
-            let secret_end = result[start..]
-                .find(|c: char| c.is_whitespace() || c == '"' || c == '\'' || c == ',' || c == ';')
-                .map(|len| start + len)
-                .unwrap_or(result.len());
-
-            result.replace_range(start..secret_end, "[REDACTED_TOKEN]");
-            search_from = start + "[REDACTED_TOKEN]".len();
-        }
-    }
-
-    result
+    web_repo_to_ai_observability::redact_sensitive_text(input)
 }
 
 /// Error conditions encountered during GitHub URL decomposition and extraction.
@@ -185,4 +152,109 @@ pub enum GitHubExtractorError {
     /// Internal core system error.
     #[error("Core system error: {0}")]
     Core(#[from] CoreError),
+}
+
+impl GitHubExtractorError {
+    /// Returns a sanitized copy of the error where all sensitive credentials and tokens are scrubbed.
+    #[must_use]
+    pub fn sanitized(&self) -> Self {
+        match self {
+            Self::InvalidUrl(u) => Self::InvalidUrl(redact_secrets(u)),
+            Self::InvalidOwner { owner, reason } => Self::InvalidOwner {
+                owner: redact_secrets(owner),
+                reason: redact_secrets(reason),
+            },
+            Self::InvalidRepository { repo, reason } => Self::InvalidRepository {
+                repo: redact_secrets(repo),
+                reason: redact_secrets(reason),
+            },
+            Self::InvalidRef { ref_name, reason } => Self::InvalidRef {
+                ref_name: redact_secrets(ref_name),
+                reason: redact_secrets(reason),
+            },
+            Self::InvalidSubpath { path, reason } => Self::InvalidSubpath {
+                path: redact_secrets(path),
+                reason: redact_secrets(reason),
+            },
+            Self::ReservedPath(p) => Self::ReservedPath(redact_secrets(p)),
+            Self::UnsupportedHost(h) => Self::UnsupportedHost(redact_secrets(h)),
+            Self::EmbeddedCredentialsForbidden => Self::EmbeddedCredentialsForbidden,
+            Self::UrlSecurity(e) => Self::UrlSecurity(e.clone()),
+            Self::RateLimitExceeded {
+                limit,
+                reset_at,
+                message,
+            } => Self::RateLimitExceeded {
+                limit: *limit,
+                reset_at: *reset_at,
+                message: redact_secrets(message),
+            },
+            Self::ResourceNotFound { url, message } => Self::ResourceNotFound {
+                url: redact_secrets(url),
+                message: redact_secrets(message),
+            },
+            Self::BadCredentials { message } => Self::BadCredentials {
+                message: redact_secrets(message),
+            },
+            Self::Forbidden { message } => Self::Forbidden {
+                message: redact_secrets(message),
+            },
+            Self::HttpError { status, message } => Self::HttpError {
+                status: *status,
+                message: redact_secrets(message),
+            },
+            Self::RequestFailed(msg) => Self::RequestFailed(redact_secrets(msg)),
+            Self::JsonDecodeError(msg) => Self::JsonDecodeError(redact_secrets(msg)),
+            Self::ArchiveError(msg) => Self::ArchiveError(redact_secrets(msg)),
+            Self::BlobError { sha, message } => Self::BlobError {
+                sha: sha.clone(),
+                message: redact_secrets(message),
+            },
+            Self::AppConfiguration(msg) => Self::AppConfiguration(redact_secrets(msg)),
+            Self::PermissionViolation(msg) => Self::PermissionViolation(redact_secrets(msg)),
+            Self::CallbackSecurity(msg) => Self::CallbackSecurity(redact_secrets(msg)),
+            Self::Core(c) => Self::Core(CoreError::Internal(redact_secrets(&c.to_string()))),
+        }
+    }
+
+    /// Formats the error as a sanitized string guaranteed to have all credentials redacted.
+    #[must_use]
+    pub fn to_sanitized_string(&self) -> String {
+        redact_secrets(&self.to_string())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_error_sanitization_removes_tokens() {
+        let err = GitHubExtractorError::RequestFailed(
+            "HTTP failure while querying https://api.github.com with token ghs_123456789012345678901234567890123456".to_string()
+        );
+
+        let sanitized = err.sanitized();
+        let display = sanitized.to_string();
+        assert!(!display.contains("ghs_123456789012345678901234567890123456"));
+        assert!(display.contains("[REDACTED_GITHUB_TOKEN]"));
+
+        let sanitized_str = err.to_sanitized_string();
+        assert!(!sanitized_str.contains("ghs_123456789012345678901234567890123456"));
+        assert!(sanitized_str.contains("[REDACTED_GITHUB_TOKEN]"));
+    }
+
+    #[test]
+    fn test_http_error_redaction() {
+        let err = GitHubExtractorError::HttpError {
+            status: 401,
+            message: "Bad credentials for Bearer ghp_999999999999999999999999999999999999"
+                .to_string(),
+        };
+
+        let sanitized = err.sanitized();
+        let display = sanitized.to_string();
+        assert!(!display.contains("ghp_999999999999999999999999999999999999"));
+        assert!(display.contains("[REDACTED_GITHUB_TOKEN]"));
+    }
 }

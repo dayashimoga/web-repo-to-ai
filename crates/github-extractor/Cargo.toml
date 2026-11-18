@@ -15,6 +15,7 @@ workspace = true
 web-repo-to-ai-core = { workspace = true }
 web-repo-to-ai-cdm = { workspace = true }
 web-repo-to-ai-url-security = { workspace = true }
+web-repo-to-ai-observability = { workspace = true }
 serde = { workspace = true, features = ["derive", "std"] }
 serde_json = { workspace = true }
 url = { workspace = true }

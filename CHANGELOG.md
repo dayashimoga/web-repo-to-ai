@@ -6,6 +6,32 @@
 
 ## [Unreleased] — Stage 6: Private GitHub Repositories
 
+### 2026-11-18 — Phase 6.2: Credential management (`6.2.4`)
+
+#### Added
+- **`[6.2.4]` Comprehensive Secret Redaction & Tracing Scrubbing in `crates/observability` & `crates/github-extractor`:**
+  - Expanded secret and credential redaction engine in `crates/observability/src/redaction.rs`:
+    - Full GitHub token pattern support: personal access tokens (`ghp_*`), installation access tokens (`ghs_*`), user tokens (`ghu_*`), OAuth tokens (`gho_*`), refresh tokens (`ghr_*`), and fine-grained PATs (`github_pat_*`).
+    - HTTP Authorization header patterns: `Bearer ...`, `token ...`, and `Basic ...` credentials.
+    - URL userinfo credentials: `https://user:password@host` and embedded token URLs (`https://ghs_...[REDACTED_GITHUB_TOKEN]@github.com`).
+    - Sensitive URL query parameters: `?access_token=`, `?token=`, `?client_secret=`, `?api_key=`, `?password=`, `?signing_key=`, `?webhook_secret=`.
+    - Webhook signatures: HMAC-SHA256 digests (`sha256=[REDACTED_SIGNATURE]`).
+    - Multi-format PEM private keys: RSA, EC, OPENSSH, and PKCS#8 private keys (`[REDACTED_PRIVATE_KEY]`).
+    - `RedactionEngine`: Configurable builder supporting dynamic registration of custom secret literal strings and custom regex patterns.
+    - `RedactingWriter` and `RedactingMakeWriter`: `std::io::Write` and `tracing_subscriber::fmt::MakeWriter` adapters that buffer log records, scrub secrets through `redact_sensitive_text`, and guarantee zero plaintext credential leakage to stdout or container logs.
+  - Tracing subscriber integration in `crates/observability/src/logging.rs`:
+    - Wired `RedactingMakeWriter` into `init_tracing` across all output formats (Compact, Pretty, JSON) whenever `config.redact_secrets` is active (default true).
+  - Integration in `crates/github-extractor`:
+    - Added `web-repo-to-ai-observability` workspace dependency to `crates/github-extractor/Cargo.toml`.
+    - Integrated centralized redaction into `crates/github-extractor/src/error.rs` (`redact_secrets`, `GitHubExtractorError::sanitized()`, `GitHubExtractorError::to_sanitized_string()`).
+    - Sanitized upstream API error response payloads and transport failures in `crates/github-extractor/src/client.rs`.
+  - Authored comprehensive test coverage:
+    - 7 new integration tests in `crates/observability/tests/redaction_test.rs` validating token patterns, multi-secret payloads, PEM keys, recursive JSON redaction, and `RedactingWriter`.
+    - 8 new integration tests in `crates/github-extractor/tests/redaction_test.rs` verifying token variants, error sanitization, struct masking (`StoredTokenRecord`, `GitHubInstallationToken`, `GitHubOAuthTokenResponse`, `GitHubAppConfig`), and headers/URL redaction.
+    - 2 new unit tests in `crates/github-extractor/src/error.rs`.
+  - Verified 20/20 observability unit tests, 7/7 observability integration tests, 30/30 github-extractor unit tests, 32/32 extractor integration tests, zero clippy warnings, zero fmt diffs, and 100% passing gates across all 5 checks in `scripts/check-all.ps1`.
+  - **PHASE 6.2 FORMALLY CERTIFIED & ACCEPTED.**
+
 ### 2026-11-18 — Phase 6.2: Credential management (`6.2.3`)
 
 #### Added

@@ -2029,8 +2029,8 @@ impl GitHubApiClient {
         let resp = match req.send().await {
             Ok(r) => r,
             Err(e) => {
-                return Err(GitHubExtractorError::RequestFailed(format!(
-                    "Failed to send token revocation request to {url}: {e}"
+                return Err(GitHubExtractorError::RequestFailed(redact_secrets(
+                    &format!("Failed to send token revocation request to {url}: {e}"),
                 )));
             }
         };

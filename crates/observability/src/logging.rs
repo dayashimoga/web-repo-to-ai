@@ -98,22 +98,48 @@ pub fn init_tracing(config: &LoggingConfig) -> Result<()> {
 
     let registry = tracing_subscriber::registry().with(filter);
 
-    match config.format {
-        LogFormat::Json => {
-            let json_layer = tracing_subscriber::fmt::layer()
-                .json()
-                .with_target(config.with_target);
-            let _ = registry.with(json_layer).try_init();
+    if config.redact_secrets {
+        let make_writer = crate::redaction::RedactingMakeWriter::new(std::io::stdout);
+        match config.format {
+            LogFormat::Json => {
+                let json_layer = tracing_subscriber::fmt::layer()
+                    .json()
+                    .with_writer(make_writer)
+                    .with_target(config.with_target);
+                let _ = registry.with(json_layer).try_init();
+            }
+            LogFormat::Pretty => {
+                let pretty_layer = tracing_subscriber::fmt::layer()
+                    .with_writer(make_writer)
+                    .with_target(config.with_target);
+                let _ = registry.with(pretty_layer).try_init();
+            }
+            LogFormat::Compact => {
+                let compact_layer = tracing_subscriber::fmt::layer()
+                    .compact()
+                    .with_writer(make_writer)
+                    .with_target(config.with_target);
+                let _ = registry.with(compact_layer).try_init();
+            }
         }
-        LogFormat::Pretty => {
-            let pretty_layer = tracing_subscriber::fmt::layer().with_target(config.with_target);
-            let _ = registry.with(pretty_layer).try_init();
-        }
-        LogFormat::Compact => {
-            let compact_layer = tracing_subscriber::fmt::layer()
-                .compact()
-                .with_target(config.with_target);
-            let _ = registry.with(compact_layer).try_init();
+    } else {
+        match config.format {
+            LogFormat::Json => {
+                let json_layer = tracing_subscriber::fmt::layer()
+                    .json()
+                    .with_target(config.with_target);
+                let _ = registry.with(json_layer).try_init();
+            }
+            LogFormat::Pretty => {
+                let pretty_layer = tracing_subscriber::fmt::layer().with_target(config.with_target);
+                let _ = registry.with(pretty_layer).try_init();
+            }
+            LogFormat::Compact => {
+                let compact_layer = tracing_subscriber::fmt::layer()
+                    .compact()
+                    .with_target(config.with_target);
+                let _ = registry.with(compact_layer).try_init();
+            }
         }
     }
 

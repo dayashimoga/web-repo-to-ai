@@ -56,23 +56,26 @@ fn test_token_redaction_utility() {
     let pat = "Authentication failed with token ghp_1234567890abcdef1234567890abcdef123456";
     assert_eq!(
         redact_secrets(pat),
-        "Authentication failed with token [REDACTED_TOKEN]"
+        "Authentication failed with token [REDACTED_GITHUB_TOKEN]"
     );
 
     let app_token = "Error contacting API with ghs_9876543210zyxwvutsrqponmlkjihgfedcba";
     assert_eq!(
         redact_secrets(app_token),
-        "Error contacting API with [REDACTED_TOKEN]"
+        "Error contacting API with [REDACTED_GITHUB_TOKEN]"
     );
 
     let bearer = "Header: Bearer ghp_ABC123DEF456 failed";
     assert_eq!(
         redact_secrets(bearer),
-        "Header: Bearer [REDACTED_TOKEN] failed"
+        "Header: Bearer [REDACTED_GITHUB_TOKEN] failed"
     );
 
     let fine_grained = "Failed github_pat_11AAAAAAA00000000000000000_1234567890";
-    assert_eq!(redact_secrets(fine_grained), "Failed [REDACTED_TOKEN]");
+    assert_eq!(
+        redact_secrets(fine_grained),
+        "Failed [REDACTED_GITHUB_TOKEN]"
+    );
 }
 
 #[test]
@@ -474,7 +477,7 @@ async fn test_live_http_error_handling_and_token_redaction() {
     match err_unauth {
         GitHubExtractorError::BadCredentials { message } => {
             assert!(!message.contains("ghp_secret12345"));
-            assert!(message.contains("[REDACTED_TOKEN]"));
+            assert!(message.contains("[REDACTED_GITHUB_TOKEN]"));
         }
         other => panic!("Expected BadCredentials, got {other:?}"),
     }
