@@ -29,6 +29,7 @@ impl Default for TokenizerRegistry {
 
         // 1. OpenAI
         registry.register(Arc::new(OpenAiAdapter::for_model(TargetModel::Gpt4o)));
+        registry.register(Arc::new(OpenAiAdapter::for_model(TargetModel::Gpt4oMini)));
         registry.register(Arc::new(OpenAiAdapter::for_model(TargetModel::Gpt4Turbo)));
 
         // 2. Anthropic Claude
@@ -80,7 +81,8 @@ impl TokenizerRegistry {
         self.adapters_by_model
             .insert(adapter.target_model(), Arc::clone(&adapter));
         self.adapters_by_name
-            .insert(adapter.name().to_string(), Arc::clone(&adapter));
+            .entry(adapter.name().to_string())
+            .or_insert_with(|| Arc::clone(&adapter));
     }
 
     /// Retrieves an adapter specifically for the given [`TargetModel`].

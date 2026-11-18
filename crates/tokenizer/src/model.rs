@@ -43,6 +43,8 @@ impl ModelFamily {
 pub enum TargetModel {
     /// OpenAI GPT-4o (`o200k_base` vocabulary, 128k context window).
     Gpt4o,
+    /// OpenAI GPT-4o mini (`o200k_base` vocabulary, 128k context window, low cost).
+    Gpt4oMini,
     /// OpenAI GPT-4 Turbo (`cl100k_base` vocabulary, 128k context window).
     Gpt4Turbo,
     /// Anthropic Claude 3.5 Sonnet (200k context window).
@@ -73,6 +75,7 @@ impl TargetModel {
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::Gpt4o => "gpt-4o",
+            Self::Gpt4oMini => "gpt-4o-mini",
             Self::Gpt4Turbo => "gpt-4-turbo",
             Self::Claude35Sonnet => "claude-3-5-sonnet",
             Self::Claude3Opus => "claude-3-opus",
@@ -93,6 +96,7 @@ impl TargetModel {
         let clean = name.trim().to_ascii_lowercase();
         match clean.as_str() {
             "gpt-4o" | "gpt4o" | "o200k" | "o200k_base" => Some(Self::Gpt4o),
+            "gpt-4o-mini" | "gpt4o-mini" | "4o-mini" => Some(Self::Gpt4oMini),
             "gpt-4-turbo" | "gpt4-turbo" | "cl100k" | "cl100k_base" | "gpt-4" => {
                 Some(Self::Gpt4Turbo)
             }
@@ -118,7 +122,7 @@ impl TargetModel {
     #[must_use]
     pub const fn model_family(self) -> ModelFamily {
         match self {
-            Self::Gpt4o | Self::Gpt4Turbo => ModelFamily::OpenAi,
+            Self::Gpt4o | Self::Gpt4oMini | Self::Gpt4Turbo => ModelFamily::OpenAi,
             Self::Claude35Sonnet | Self::Claude3Opus | Self::Claude3Haiku => ModelFamily::Anthropic,
             Self::Gemini15Pro | Self::Gemini15Flash => ModelFamily::Google,
             Self::Llama3 | Self::Llama370B => ModelFamily::Meta,
@@ -131,9 +135,12 @@ impl TargetModel {
     #[must_use]
     pub const fn context_window_limit(self) -> usize {
         match self {
-            Self::Gpt4o | Self::Gpt4Turbo | Self::Llama3 | Self::Llama370B | Self::MistralLarge => {
-                128_000
-            }
+            Self::Gpt4o
+            | Self::Gpt4oMini
+            | Self::Gpt4Turbo
+            | Self::Llama3
+            | Self::Llama370B
+            | Self::MistralLarge => 128_000,
             Self::Claude35Sonnet | Self::Claude3Opus | Self::Claude3Haiku => 200_000,
             Self::Gemini15Pro => 2_000_000,
             Self::Gemini15Flash => 1_000_000,
@@ -146,6 +153,7 @@ impl TargetModel {
     pub const fn max_output_tokens(self) -> usize {
         match self {
             Self::Gpt4o | Self::Gpt4Turbo => 4_096,
+            Self::Gpt4oMini => 16_384,
             Self::Claude35Sonnet => 8_192,
             Self::Claude3Opus | Self::Claude3Haiku => 4_096,
             Self::Gemini15Pro | Self::Gemini15Flash => 8_192,
@@ -169,7 +177,7 @@ impl TargetModel {
     #[must_use]
     pub const fn default_tokenizer_name(self) -> &'static str {
         match self {
-            Self::Gpt4o => "o200k_base",
+            Self::Gpt4o | Self::Gpt4oMini => "o200k_base",
             Self::Gpt4Turbo => "cl100k_base",
             Self::Claude35Sonnet | Self::Claude3Opus | Self::Claude3Haiku => "claude_bpe",
             Self::Gemini15Pro | Self::Gemini15Flash => "gemini_sp",
@@ -184,9 +192,12 @@ impl TargetModel {
     pub const fn supported_models() -> &'static [TargetModel] {
         &[
             TargetModel::Gpt4o,
+            TargetModel::Gpt4oMini,
             TargetModel::Gpt4Turbo,
             TargetModel::Claude35Sonnet,
+            TargetModel::Claude3Haiku,
             TargetModel::Gemini15Pro,
+            TargetModel::Gemini15Flash,
             TargetModel::Llama3,
             TargetModel::MistralLarge,
         ]

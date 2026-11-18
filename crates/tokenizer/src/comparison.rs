@@ -64,7 +64,7 @@ impl ModelTokenComparison {
         let mut token_counts: BTreeMap<TargetModel, usize> = BTreeMap::new();
         for &model in models_to_eval {
             let count = match model {
-                TargetModel::Gpt4o => O200kTokenizer::count(text),
+                TargetModel::Gpt4o | TargetModel::Gpt4oMini => O200kTokenizer::count(text),
                 TargetModel::Gpt4Turbo => Cl100kTokenizer::count(text),
                 TargetModel::Claude35Sonnet
                 | TargetModel::Claude3Opus

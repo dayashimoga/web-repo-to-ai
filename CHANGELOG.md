@@ -6,6 +6,27 @@
 
 ## [Unreleased] — Stage 7: AI Context and Token Optimization
 
+### 2026-11-18 — Phase 7.2: Token intelligence (`7.2.3`)
+
+#### Added
+- **`[7.2.3]` Token Cost Estimation, Tiered Pricing Models & Budget Guardrails in `crates/tokenizer`:**
+  - Implemented high-precision token cost estimation and commercial pricing modeling in `crates/tokenizer/src/cost.rs`:
+    - `ModelPricingSchedule`: per-million-token pricing schedules covering all supported target models:
+      - OpenAI: `Gpt4o` ($2.50 input, $1.25 cached, $10.00 output), `Gpt4oMini` ($0.15 input, $0.075 cached, $0.60 output), `Gpt4Turbo` ($10.00 input, $30.00 output).
+      - Anthropic: `Claude35Sonnet` ($3.00 input, $0.30 cached, $15.00 output), `Claude3Opus` ($15.00 input, $1.50 cached, $75.00 output), `Claude3Haiku` ($0.25 input, $0.025 cached, $1.25 output).
+      - Google: `Gemini15Pro` ($3.50 input, $0.875 cached, $10.50 output), `Gemini15Flash` ($0.075 input, $0.01875 cached, $0.30 output).
+      - Meta / Self-Hosted: `Llama3`, `Llama370B`, `Llama2` ($0.00 input, $0.00 output, marked `is_free_or_self_hosted: true`).
+      - Mistral: `MistralLarge` ($2.00 input, $6.00 output), `MistralSmall` ($0.20 input, $0.60 output), `Mixtral8x7B` ($0.70 input, $0.70 output).
+      - Standard input rates, prompt caching read discounts (up to 90% discount on cache hits), output generation rates, and 50% batch API queue discounts.
+    - `CostBreakdown`: high-precision calculation of standard input cost, prompt-cache savings ($ and %), batch API savings ($ and %), and total generation spend.
+    - `CrossModelCostReport` & `ModelCostEntry`: multi-model cost analysis across all models for a given token count or document, identifying cheapest commercial model, computing cost variance ratio between most expensive and cheapest tiers, rendering formatted GFM Markdown comparison tables, and supporting JSON roundtrip serialization.
+    - `CostGuardrail` & `CostGuardrailEvaluation`: strict dollar spending ceiling evaluation (`max_budget_usd`), computing remaining budget headroom, identifying budget breaches (`is_within_budget: false`), and automatically recommending alternative economical models that satisfy the budget limit.
+    - `TokenizerError::CostBudgetExceeded { budget_usd, estimated_usd }`: added to domain errors in `crates/tokenizer/src/error.rs`.
+  - Added `TargetModel::Gpt4oMini` to model taxonomy, registry, and adapters for ultra-economical ($0.15/MTok) conversions in `crates/tokenizer/src/model.rs`, `registry.rs`, `adapters/models.rs`, and `comparison.rs`.
+  - Public convenience functions in `crates/tokenizer/src/lib.rs`: `estimate_token_cost` and `compare_token_costs`.
+  - Implemented comprehensive integration test suite `crates/tokenizer/tests/cost_estimation_test.rs` (6 integration tests validating pricing schedules, standard/cached/batch calculations, cross-model comparison tables, document-level cost estimates, budget guardrail enforcement, and 20M token volume scaling).
+  - 100% passing quality gates: 52 crate tests passed, 642+ workspace tests passed, zero clippy warnings, zero fmt diffs, cargo deny passed, and 5/5 check-all gates passed.
+
 ### 2026-11-18 — Phase 7.2: Token intelligence (`7.2.2`)
 
 #### Added

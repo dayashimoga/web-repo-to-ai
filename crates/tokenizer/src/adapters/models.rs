@@ -37,7 +37,7 @@ impl OpenAiAdapter {
 impl TokenizerAdapter for OpenAiAdapter {
     fn name(&self) -> &'static str {
         match self.target_model {
-            TargetModel::Gpt4o => "o200k_base",
+            TargetModel::Gpt4o | TargetModel::Gpt4oMini => "o200k_base",
             _ => "cl100k_base",
         }
     }
@@ -64,7 +64,7 @@ impl TokenizerAdapter for OpenAiAdapter {
         };
 
         let count = match self.target_model {
-            TargetModel::Gpt4o => O200kTokenizer::count(text),
+            TargetModel::Gpt4o | TargetModel::Gpt4oMini => O200kTokenizer::count(text),
             _ => Cl100kTokenizer::count(text),
         };
 
@@ -84,7 +84,9 @@ impl TokenizerAdapter for OpenAiAdapter {
         }
 
         let (truncated_text, resulting_tokens) = match self.target_model {
-            TargetModel::Gpt4o => O200kTokenizer::truncate(text, max_tokens),
+            TargetModel::Gpt4o | TargetModel::Gpt4oMini => {
+                O200kTokenizer::truncate(text, max_tokens)
+            }
             _ => Cl100kTokenizer::truncate(text, max_tokens),
         };
 

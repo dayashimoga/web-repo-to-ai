@@ -6520,11 +6520,66 @@
 
 ### Upcoming Subphase (Stage 7 — AI Context and Token Optimization)
 
+#### Subphase `7.2.3` — Cost estimation in crates/tokenizer
+- **Unique ID:** `7.2.3`
+- **Objective:** Implement financial cost modeling and intelligence in `crates/tokenizer`, including tiered pricing schedules per million tokens, prompt caching read discounts (up to 90%), batch API queue discounts (50%), cross-provider cost comparison reports, and strict dollar budget guardrails.
+- **Scope:** `crates/tokenizer/*` (`cost.rs`, `error.rs`, `model.rs`, `registry.rs`, `lib.rs`, `tests/*`).
+- **Prerequisites:** `7.2.2` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/tokenizer/src/cost.rs`
+  - `crates/tokenizer/src/error.rs`
+  - `crates/tokenizer/src/model.rs`
+  - `crates/tokenizer/src/registry.rs`
+  - `crates/tokenizer/src/comparison.rs`
+  - `crates/tokenizer/src/adapters/models.rs`
+  - `crates/tokenizer/src/lib.rs`
+  - `crates/tokenizer/tests/cost_estimation_test.rs`
+- **Implementation Tasks:**
+  1. Add `TokenizerError::CostBudgetExceeded { budget_usd, estimated_usd }` in `crates/tokenizer/src/error.rs`.
+  2. Implement `ModelPricingSchedule` covering all supported target models (GPT-4o, GPT-4o-mini, GPT-4 Turbo, Claude 3.5 Sonnet, Claude 3 Opus, Claude 3 Haiku, Gemini 1.5 Pro, Gemini 1.5 Flash, Llama 3, Llama 3 70B, Mistral Large, Mixtral 8x7B, GenericFallback), distinguishing standard input, prompt-cached read input, output generation, batch discounts, and free/self-hosted tiers (`crates/tokenizer/src/cost.rs`).
+  3. Implement `CostBreakdown` computing standard cost, prompt-cache savings (\$ and %), and batch API savings (\$ and %) with high-precision arithmetic (`crates/tokenizer/src/cost.rs`).
+  4. Implement `CrossModelCostReport` evaluating cost across all target models, identifying the cheapest commercial model, computing expensive-vs-cheapest cost ratios, rendering formatted GFM Markdown tables, and supporting JSON roundtrip serialization (`crates/tokenizer/src/cost.rs`).
+  5. Implement `CostGuardrail` and `CostGuardrailEvaluation` enforcing configurable dollar spending ceilings (`max_budget_usd`), calculating remaining budget headroom, identifying budget breaches, and recommending alternative economical models that fit within budget (`crates/tokenizer/src/cost.rs`).
+  6. Add `TargetModel::Gpt4oMini` to model taxonomy, registry, and adapters for low-cost ($0.15/MTok) conversions (`crates/tokenizer/src/model.rs`, `registry.rs`, `adapters/models.rs`).
+  7. Add convenience functions in `crates/tokenizer/src/lib.rs`: `estimate_token_cost`, `compare_token_costs`.
+  8. Implement integration test suite `crates/tokenizer/tests/cost_estimation_test.rs` (6 integration tests) validating pricing schedules, standard/cached/batch calculations, cross-model comparison tables, document-level cost estimates, budget guardrail enforcement, and extreme token volume scaling (20M tokens).
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-tokenizer`
+  - `cargo test --workspace`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - Pricing schedules precisely reflect commercial rates and prompt caching / batch discount mechanics.
+  - Self-hosted models (Llama 3, Llama 3 70B) correctly report $0.00 cost and `is_free_or_self_hosted: true`.
+  - Guardrail cleanly flags budget breaches and recommends viable cheaper alternative models.
+  - `CrossModelCostReport` GFM table and JSON serialization verified with 100% roundtrip fidelity.
+  - All 52 crate tests pass, all 642+ workspace tests pass, zero clippy warnings, zero fmt diffs, cargo deny passed, all check-all gates pass.
+- **Risk Analysis:**
+  - Risk: Provider pricing changes causing stale cost estimates.
+  - Mitigation: `ModelPricingSchedule` is fully modular and configurable per model; pricing schedules are explicitly version-controlled and verified with unit/integration tests.
+- **Rollback Plan:**
+  - Revert Subphase 7.2.3 additions via `git reset --hard HEAD~1` and restore Subphase 7.2.2 baseline.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-tokenizer`: 52 tests passing (29 unit tests, 23 integration tests across 3 test suites).
+  - Full workspace tests: 642+ tests passing across all crates and services with 0 failures.
+  - Workspace linter: `cargo clippy --workspace --all-targets -- -D warnings` clean with 0 warnings.
+  - Formatting: `cargo fmt --all -- --check` clean with 0 diffs.
+  - Dependency audit: `cargo deny check` passed (advisories ok, bans ok, licenses ok, sources ok).
+  - Monorepo gatekeeper: `powershell scripts/check-all.ps1` completed with `ALL GATES PASSED (0 failures)`.
+- **Git Commit Reference:** `668f2a9`
+- **Status:** `ACCEPTED`
+
+---
+
+### Upcoming Subphase (Stage 7 — AI Context and Token Optimization)
+
 #### Phase 7.2 — Token intelligence
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `7.2.3` | Cost estimation | `7.2.2` (`ACCEPTED`) | `crates/tokenizer/*` | `NOT_STARTED` |
+| `7.2.4` | Context-budget calculation | `7.2.3` (`ACCEPTED`) | `crates/context-optimizer/*` | `NOT_STARTED` |
 
 ---
 

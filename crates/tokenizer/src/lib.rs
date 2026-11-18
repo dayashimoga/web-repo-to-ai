@@ -13,6 +13,7 @@
 pub mod adapter;
 pub mod adapters;
 pub mod comparison;
+pub mod cost;
 pub mod document;
 pub mod error;
 pub mod model;
@@ -28,6 +29,10 @@ pub use adapters::{
     OpenAiAdapter, RegexBpeTokenizer,
 };
 pub use comparison::{ModelComparisonEntry, ModelTokenComparison};
+pub use cost::{
+    CostBreakdown, CostGuardrail, CostGuardrailEvaluation, CrossModelCostReport,
+    ModelPricingSchedule,
+};
 pub use document::{count_section_tokens, enrich_document_token_metrics, DocumentTokenSummary};
 pub use error::TokenizerError;
 pub use model::{ModelFamily, TargetModel};
@@ -78,6 +83,26 @@ pub fn compare_models_for_text(text: &str, models: &[TargetModel]) -> ModelToken
 #[must_use]
 pub fn analyze_token_syntax(text: &str, target_model: TargetModel) -> TokenSyntaxBreakdown {
     TokenSyntaxBreakdown::analyze(text, target_model)
+}
+
+/// Convenience function: Estimates dollar cost for processing tokens on a target model.
+#[must_use]
+pub fn estimate_token_cost(
+    tokens: usize,
+    model: TargetModel,
+    estimated_output: usize,
+) -> CostBreakdown {
+    CostBreakdown::calculate(tokens, model, estimated_output)
+}
+
+/// Convenience function: Compares dollar costs across target models for a given token volume.
+#[must_use]
+pub fn compare_token_costs(
+    input_tokens: usize,
+    estimated_output: usize,
+    models: &[TargetModel],
+) -> CrossModelCostReport {
+    CrossModelCostReport::compare(input_tokens, estimated_output, models)
 }
 
 /// Returns the unique crate identifier name.
