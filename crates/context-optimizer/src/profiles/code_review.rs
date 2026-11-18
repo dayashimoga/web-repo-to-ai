@@ -228,8 +228,15 @@ impl ContextProfile for CodeReviewProfile {
                 || path.contains("/benchmarks/")
                 || filename.contains("bench");
 
+            let is_cosmetic = filename.ends_with(".css")
+                || filename.ends_with(".svg")
+                || filename.ends_with(".png")
+                || filename.ends_with(".ico")
+                || path.starts_with("ui/")
+                || path.contains("/ui/");
+
             // Apply Code Review prioritization policy
-            if is_generated || is_benchmark {
+            if is_generated || is_benchmark || (is_cosmetic && !is_changed) {
                 s.attributes
                     .insert("pin".to_string(), "must_exclude".to_string());
             } else if is_changed {

@@ -15,6 +15,7 @@ pub mod budget;
 pub mod compression;
 pub mod error;
 pub mod exclusions;
+pub mod golden;
 pub mod optimizer;
 pub mod plan;
 pub mod preservation;
@@ -33,6 +34,10 @@ pub use exclusions::{
     ExclusionCategorySummary, ExclusionExplainer, ExclusionExplanation, ExclusionImpact,
     ExclusionReport, ExclusionSource, RemediationAdvice,
 };
+pub use golden::{
+    GoldenComparisonReport, GoldenProfileComparator, GoldenProfileConfig, GoldenRepositoryFixture,
+    ProfileGoldenEvaluation,
+};
 pub use optimizer::{BudgetOptimizationConfig, ContextBudgetOptimizer, TruncationStrategy};
 pub use plan::{BudgetAction, BudgetPlan, SectionBudgetDecision};
 pub use preservation::{
@@ -50,6 +55,20 @@ pub use report::ContextBudgetReport;
 
 use web_repo_to_ai_cdm::CdmDocument;
 use web_repo_to_ai_tokenizer::TargetModel;
+
+/// Convenience function: Generates the deterministic golden repository fixture.
+#[must_use]
+pub fn create_golden_repository_fixture() -> CdmDocument {
+    GoldenRepositoryFixture::create_default()
+}
+
+/// Convenience function: Runs cross-profile golden benchmarking and invariant verification.
+pub fn run_golden_profile_comparison(
+    doc: &CdmDocument,
+    config: &GoldenProfileConfig,
+) -> Result<GoldenComparisonReport, ContextOptimizerError> {
+    GoldenProfileComparator::compare(doc, config)
+}
 
 /// Convenience function: Generates structured diagnostic exclusion explanations comparing original and optimized documents.
 pub fn explain_exclusions(

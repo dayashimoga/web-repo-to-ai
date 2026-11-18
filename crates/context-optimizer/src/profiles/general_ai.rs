@@ -149,8 +149,16 @@ impl ContextProfile for GeneralAiProfile {
                 || filename.ends_with(".lock")
                 || filename.contains(".generated.");
 
+            let is_cosmetic = filename.ends_with(".css")
+                || filename.ends_with(".svg")
+                || filename.ends_with(".png")
+                || filename.ends_with(".ico")
+                || path.starts_with("ui/")
+                || path.contains("/ui/")
+                || filename.contains("changelog");
+
             // Tag pinning based on General AI policy
-            if is_generated || (is_benchmark && !self.config.include_benchmarks) {
+            if is_generated || is_cosmetic || (is_benchmark && !self.config.include_benchmarks) {
                 s.attributes
                     .insert("pin".to_string(), "must_exclude".to_string());
             } else if is_test {
@@ -162,6 +170,8 @@ impl ContextProfile for GeneralAiProfile {
                 || filename == "readme"
                 || filename == "architecture.md"
                 || s.kind == web_repo_to_ai_cdm::SectionKind::Manifest
+                || s.attributes.get("code_nature").map(|v| v.as_str())
+                    == Some("core_implementation")
             {
                 // Ensure prominent architectural sections are pinned for inclusion
                 if !s.attributes.contains_key("pin") {

@@ -370,6 +370,7 @@ impl SecurityReviewProfile {
         // 10. Check benign presentation and styling components
         let is_benign = normalized_path.contains("apps/web")
             || normalized_path.contains("/ui/")
+            || normalized_path.starts_with("ui/")
             || normalized_path.contains("/components/")
             || normalized_path.contains("tokens.css")
             || normalized_path.contains("tailwind")
@@ -378,7 +379,11 @@ impl SecurityReviewProfile {
             || normalized_path.contains("button.svelte")
             || normalized_path.contains("heading.svelte")
             || normalized_path.contains("modal.svelte")
-            || filename == "changelog.md"
+            || filename.ends_with(".css")
+            || filename.ends_with(".svg")
+            || filename.ends_with(".png")
+            || filename.ends_with(".ico")
+            || filename.contains("changelog")
             || filename == "roadmap.md"
             || filename == "contributing.md"
             || filename == "design_system.md";

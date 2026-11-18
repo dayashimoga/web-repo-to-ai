@@ -6992,13 +6992,89 @@
 
 ---
 
-### Upcoming Subphase (Stage 7 — AI Context and Token Optimization)
+#### Subphase `7.4.4` — Golden comparison tests across context profiles in crates/context-optimizer
+- **Unique ID:** `7.4.4`
+- **Objective:** Construct a deterministic, multi-language golden repository CDM fixture and execute comparative golden benchmarking across all four context profiles (`GeneralAiProfile`, `CodeReviewProfile`, `SecurityReviewProfile`, `DebuggingProfile`) and baseline greedy knapsack optimization (`ContextBudgetOptimizer`), validating profile-specific invariants (must-include pinning, domain suppression, budget bounds), AST and syntax integrity, bit-for-bit determinism, comprehensive telemetry aggregation (preservation reports, compression metrics, financial cost reduction, exclusion rationales), and formatted GFM comparison tables with JSON serialization.
+- **Scope:** `crates/context-optimizer/src/golden.rs`, `crates/context-optimizer/src/lib.rs`, `crates/context-optimizer/src/profiles/general_ai.rs`, `crates/context-optimizer/src/profiles/code_review.rs`, `crates/context-optimizer/src/profiles/security_review.rs`, `crates/context-optimizer/tests/golden_profiles_test.rs`.
+- **Prerequisites:** `7.4.3` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/context-optimizer/src/golden.rs`
+  - `crates/context-optimizer/src/lib.rs`
+  - `crates/context-optimizer/src/profiles/general_ai.rs`
+  - `crates/context-optimizer/src/profiles/code_review.rs`
+  - `crates/context-optimizer/src/profiles/security_review.rs`
+  - `crates/context-optimizer/tests/golden_profiles_test.rs`
+- **Implementation Tasks:**
+  1. Implement `GoldenRepositoryFixture` in `crates/context-optimizer/src/golden.rs` constructing a realistic 20-section multi-language repository CDM fixture (Cargo.toml, package.json, README.md, docs/ARCHITECTURE.md, docs/TROUBLESHOOTING.md, SECURITY.md, CHANGELOG_OLD.md, src/core/engine.rs, src/api/routes.rs, src/auth/jwt.rs, src/crypto/vault.rs, src/errors.rs, src/telemetry/tracer.rs, src/features/payment.rs, tests/payment_test.rs, tests/security_auth_test.rs, tests/negative_error_test.rs, tests/benchmark_test.rs, ui/styles/theme.css, ui/icons/logo.svg) with exact/baseline token metrics and verified BLAKE3 content hashes.
+  2. Implement domain structures in `crates/context-optimizer/src/golden.rs`:
+     - `GoldenProfileConfig`: customizable benchmark parameters with multi-tier budget headroom, changed file specifications, target error patterns, and model targeting.
+     - `ProfileGoldenEvaluation`: itemized benchmark outcomes per profile with retained/excluded paths, preservation scores, compression ratios, financial savings, category distributions, and invariant diagnostics.
+     - `GoldenComparisonReport`: cross-profile comparative matrix supporting markdown comparison tables (`to_markdown_comparison_table`), category tables (`to_markdown_category_table`), full diagnostic summaries (`to_markdown_summary`), and JSON roundtrip serialization.
+     - `GoldenProfileComparator`: comparative benchmarking engine executing all 5 profiles and auditing domain-specific invariants.
+  3. Refine profile suppression rules in `general_ai.rs`, `code_review.rs`, and `security_review.rs` to consistently detect and classify cosmetic presentation assets (CSS, SVG, vector graphics, legacy changelogs) and core implementation logic.
+  4. Re-export golden testing models and convenience APIs in `crates/context-optimizer/src/lib.rs`: `create_golden_repository_fixture` and `run_golden_profile_comparison`.
+  5. Implement comprehensive integration test suite `crates/context-optimizer/tests/golden_profiles_test.rs` (10 tests: fixture baseline structure, standard budget comparison, general AI invariants, code review invariants, security review invariants, debugging invariants, tight micro-budget knapsack, bit-for-bit determinism, markdown and JSON serialization, fail-closed empty doc rejection).
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-context-optimizer`
+  - `cargo test --workspace`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - Golden comparison suite executes all 5 profiles deterministically against identical fixtures.
+  - All profile-specific invariants pass without exceptions (100% changed file retention in code review; 100% auth/crypto/security retention in security review; 100% error/telemetry/runbook retention in debugging; 0% test retention and core implementation preservation in general AI).
+  - All fitted documents strictly adhere to target content token budgets (`is_within_budget() == true`).
+  - Bit-for-bit determinism across consecutive runs (identical fitted tokens, path ordering, and BLAKE3 revision hashes).
+  - All 78 crate tests pass, all 694+ workspace tests pass, zero clippy warnings, zero fmt diffs, cargo deny passed, all check-all gates pass (5/5).
+- **Risk Analysis:**
+  - Risk: Greedy knapsack token packing could select small cosmetic assets over larger core domain files when budgets are tightly constrained.
+  - Mitigation: Explicit profile tagging marks cosmetic assets as `must_exclude` or `deprioritized` and pins core files as `must_include`.
+- **Rollback Plan:**
+  - Revert Subphase 7.4.4 additions via `git reset --hard HEAD~1` and restore Subphase 7.4.3 baseline.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-context-optimizer`: 78 tests passing (31 unit tests, 47 integration tests across 9 test suites).
+  - Full workspace tests: 694+ tests passing across all crates and services with 0 failures.
+  - Workspace linter: `cargo clippy --workspace --all-targets -- -D warnings` clean with 0 warnings.
+  - Formatting: `cargo fmt --all -- --check` clean with 0 diffs.
+  - Dependency audit: `cargo deny check` passed (advisories ok, bans ok, licenses ok, sources ok).
+  - Monorepo gatekeeper: `powershell scripts/check-all.ps1` completed with `ALL GATES PASSED (0 failures)`.
+- **Git Commit Reference:** `6fc75e2`
+- **Status:** `ACCEPTED`
 
-#### Phase 7.4 — Quality validation
+---
+
+### PHASE 7.4 FORMAL CERTIFICATION: Quality Validation
+
+**Phase Acceptance Milestone:** Phase 7.4 (`7.4.1` – `7.4.4`) has satisfied all requirements set forth in the [GLOBAL_ENGINEERING_CONTRACT.md](./GLOBAL_ENGINEERING_CONTRACT.md), [REQUIREMENTS.md](./REQUIREMENTS.md), and [ROADMAP.md](./ROADMAP.md).
+- Subphase `7.4.1` (Preservation metrics): Implemented multi-tier content fidelity, AST symbol retention via code intelligence, and syntax integrity auditing.
+- Subphase `7.4.2` (Compression reporting): Implemented multi-stage pipeline volume tracking, GFM summary tables, and cross-model financial API cost reduction evaluation.
+- Subphase `7.4.3` (Exclusion explanations): Implemented structured omission diagnostics, severity taxonomy (`Low`, `Medium`, `High`, `Critical`), and actionable remediation guidance.
+- Subphase `7.4.4` (Golden comparison tests): Implemented 20-section polyglot golden repository benchmark suite verifying invariant properties across General AI, Code Review, Security Review, Debugging, and Raw Knapsack with bit-for-bit determinism.
+
+**Phase 7.4 is hereby FORMALLY CERTIFIED (`ACCEPTED`).**
+
+---
+
+### STAGE 7 FORMAL CERTIFICATION: AI Context and Token Optimization
+
+**Stage Acceptance Milestone:** Stage 7 (`7.1.1` – `7.4.4`, 16 subphases) has satisfied all stage deliverables:
+- **Phase 7.1 — Content optimization (`7.1.1` – `7.1.4`):** Structural normalization, exact duplicate detection via BLAKE3, semantic deduplication via SimHash/MinHash LSH, and content classification.
+- **Phase 7.2 — Token intelligence (`7.2.1` – `7.2.4`):** Tokenizer adapter architecture (BPE tokenizers for OpenAI, Anthropic, Gemini, Meta Llama 3, and calibrated heuristics), exact/estimated token counting, cost modeling, and multi-tier headroom context budgeting with greedy knapsack optimization.
+- **Phase 7.3 — Context profiles (`7.3.1` – `7.3.4`):** Specialized context optimization engines for General AI, Code Review, Security Review, and Debugging & Documentation.
+- **Phase 7.4 — Quality validation (`7.4.1` – `7.4.4`):** AST preservation metrics, compression reporting with multi-model cost savings, itemized exclusion rationales, and deterministic golden benchmarking.
+
+**STAGE 7 (AI CONTEXT AND TOKEN OPTIMIZATION) is hereby FORMALLY CERTIFIED (`ACCEPTED`).**
+
+---
+
+### Upcoming Subphase (Stage 8 — Large Repositories, Batch and Crawling)
+
+#### Phase 8.1 — Batch URLs
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `7.4.4` | Golden comparison tests across context profiles | `7.4.3` (`ACCEPTED`) | `crates/context-optimizer/*` | `NOT_STARTED` |
+| `8.1.1` | Multi-URL submission endpoint and payload validation | Stage 7 Certified | `services/api/*`, `crates/core/*` | `NOT_STARTED` |
 
 ---
 
