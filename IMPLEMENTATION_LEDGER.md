@@ -6568,18 +6568,75 @@
   - Formatting: `cargo fmt --all -- --check` clean with 0 diffs.
   - Dependency audit: `cargo deny check` passed (advisories ok, bans ok, licenses ok, sources ok).
   - Monorepo gatekeeper: `powershell scripts/check-all.ps1` completed with `ALL GATES PASSED (0 failures)`.
-- **Git Commit Reference:** `668f2a9`
+- **Git Commit Reference:** `783b77f`
+- **Status:** `ACCEPTED`
+
+---
+
+#### Subphase `7.2.4` — Context-budget calculation in crates/context-optimizer
+- **Unique ID:** `7.2.4`
+- **Objective:** Implement context budget modeling, headroom reservation calculation (system, response generation, query), section importance and density prioritization, greedy knapsack budget allocation, deterministic boundary truncation, and auditable exclusion logging in `crates/context-optimizer`.
+- **Scope:** `crates/context-optimizer/*` (`budget.rs`, `priority.rs`, `plan.rs`, `optimizer.rs`, `report.rs`, `error.rs`, `lib.rs`, `tests/*`).
+- **Prerequisites:** `7.2.3` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/context-optimizer/Cargo.toml`
+  - `crates/context-optimizer/src/budget.rs`
+  - `crates/context-optimizer/src/error.rs`
+  - `crates/context-optimizer/src/priority.rs`
+  - `crates/context-optimizer/src/plan.rs`
+  - `crates/context-optimizer/src/optimizer.rs`
+  - `crates/context-optimizer/src/report.rs`
+  - `crates/context-optimizer/src/lib.rs`
+  - `crates/context-optimizer/tests/context_budget_test.rs`
+- **Implementation Tasks:**
+  1. Add required workspace dependencies (`serde`, `serde_json`, `tracing`, `blake3`, `chrono`, `web-repo-to-ai-code-intelligence`) to `crates/context-optimizer/Cargo.toml`.
+  2. Implement domain error handling `ContextOptimizerError` (`InvalidBudget`, `BudgetTooSmall`, `DocumentEmpty`, `Tokenizer`, `Serialization`) in `crates/context-optimizer/src/error.rs`.
+  3. Implement `ContextBudget` and `BudgetHeadroomSummary` modeling total context capacity ceilings, multi-tier reserved allowances (system instructions, response generation, query prompts), available content capacity calculations, and proportional scaling for all target models in `crates/context-optimizer/src/budget.rs`.
+  4. Implement `SectionPriority`, `PriorityScoreFactors`, `PinStatus` (`MustInclude`, `Normal`, `Deprioritized`, `MustExclude`), and `SectionScorer` evaluating section kind weights, filename/path prominence, information density, upstream signal scores from Phase 7.1.4, architectural code roles, and test/generated/boilerplate penalties in `crates/context-optimizer/src/priority.rs`.
+  5. Implement `BudgetPlan`, `BudgetAction` (`Include`, `Truncate`, `Exclude`), and `SectionBudgetDecision` with token conservation tracking and GFM markdown summary tables in `crates/context-optimizer/src/plan.rs`.
+  6. Implement `ContextBudgetOptimizer`, `BudgetOptimizationConfig`, and `TruncationStrategy` (`HeadAndTail`, `HeadOnly`, `NoTruncation`) with greedy knapsack utility-per-token allocation, strict ceiling enforcement, BLAKE3 revision recalculation, and auditable `ExclusionRecord` logging (`ExclusionReason::SizeLimit`, `ExclusionReason::UserConfig`) in `crates/context-optimizer/src/optimizer.rs`.
+  7. Implement `ContextBudgetReport` telemetry engine with headroom breakdown tables, token conservation summaries, and JSON roundtrip serialization in `crates/context-optimizer/src/report.rs`.
+  8. Expose public convenience APIs `optimize_context_for_model` and `optimize_context_with_budget` in `crates/context-optimizer/src/lib.rs`.
+  9. Implement comprehensive integration test suite `crates/context-optimizer/tests/context_budget_test.rs` (6 integration tests validating multi-model allocations, knapsack prioritization, boundary truncation, zero silent drop conservation, serialization, and fail-closed error handling).
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-context-optimizer`
+  - `cargo test --workspace`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - Multi-tier headroom calculation correctly allocates system, output, and query reservations across all models.
+  - Knapsack greedy priority ordering correctly prioritizes READMEs, manifests, and high-signal core implementations over test fixtures and boilerplate.
+  - Zero silent drops (Rule 04 / Rule 09): Every excluded section is transparently logged in `document.exclusions` with `ExclusionReason::SizeLimit` or `UserConfig` and detailed metrics.
+  - Resulting optimized documents strictly never exceed `available_content_tokens`.
+  - Document revision BLAKE3 hash is recomputed to preserve cryptographic provenance.
+  - All 20 crate tests pass, all 662+ workspace tests pass, zero clippy warnings, zero fmt diffs, cargo deny passed, all check-all gates pass.
+  - Phase 7.2 ("Token intelligence") is 100% complete across all 4 subphases and fully certified.
+- **Risk Analysis:**
+  - Risk: Truncation omission markers inflating token counts and causing budget overruns.
+  - Mitigation: `truncate_section` explicitly accounts for omission marker tokens and applies a fail-safe post-condition clamp ensuring resulting tokens strictly `<= target_tokens`.
+- **Rollback Plan:**
+  - Revert Subphase 7.2.4 additions via `git reset --hard HEAD~1` and restore Subphase 7.2.3 baseline.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-context-optimizer`: 20 tests passing (14 unit tests, 6 integration tests).
+  - Full workspace tests: 662+ tests passing across all crates and services with 0 failures.
+  - Workspace linter: `cargo clippy --workspace --all-targets -- -D warnings` clean with 0 warnings.
+  - Formatting: `cargo fmt --all -- --check` clean with 0 diffs.
+  - Dependency audit: `cargo deny check` passed (advisories ok, bans ok, licenses ok, sources ok).
+  - Monorepo gatekeeper: `powershell scripts/check-all.ps1` completed with `ALL GATES PASSED (0 failures)`.
+- **Git Commit Reference:** `63af851`
 - **Status:** `ACCEPTED`
 
 ---
 
 ### Upcoming Subphase (Stage 7 — AI Context and Token Optimization)
 
-#### Phase 7.2 — Token intelligence
+#### Phase 7.3 — Context profiles
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `7.2.4` | Context-budget calculation | `7.2.3` (`ACCEPTED`) | `crates/context-optimizer/*` | `NOT_STARTED` |
+| `7.3.1` | General AI context profile | `7.2.4` (`ACCEPTED`) | `crates/context-optimizer/*` | `NOT_STARTED` |
 
 ---
 

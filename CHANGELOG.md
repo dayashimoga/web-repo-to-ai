@@ -6,6 +6,31 @@
 
 ## [Unreleased] — Stage 7: AI Context and Token Optimization
 
+### 2026-11-18 — Phase 7.2: Token intelligence (`7.2.4`) — PHASE 7.2 FULLY CERTIFIED
+
+#### Added
+- **`[7.2.4]` Context Budget Calculation, Knapsack Prioritization & Headroom Allocation in `crates/context-optimizer` (Phase 7.2 Certified):**
+  - Implemented multi-tier context headroom allocation and budget modeling in `crates/context-optimizer/src/budget.rs`:
+    - `ContextBudget`: models total context window capacity ceilings, multi-tier reserved allowances (system prompts, response generation headroom, user query prompts), and effective usable content token capacity.
+    - Proportional headroom derivation from `TargetModel` specifications and custom token allocations.
+    - `BudgetHeadroomSummary`: calculates content/reserved allocation ratios and formats GFM telemetry tables.
+  - Implemented section importance and density scoring framework in `crates/context-optimizer/src/priority.rs`:
+    - `SectionPriority`, `PriorityScoreFactors`, and `SectionScorer`: evaluates structural `SectionKind` weights (Manifest: 1.0, Frontmatter: 0.85, Prose: 0.75, CodeFile: 0.70), filename/path prominence (root README: +0.35, architecture docs: +0.30, entrypoints: +0.25, manifests: +0.20), information density modifiers, architectural code roles, and penalties for test files, generated code, boilerplate, and deep nesting.
+    - `PinStatus`: explicit inclusion overrides (`MustInclude`, `Normal`, `Deprioritized`, `MustExclude`).
+  - Implemented optimization plan and decision audit ledger in `crates/context-optimizer/src/plan.rs`:
+    - `BudgetPlan`: comprehensive token conservation accounting, utilization percentages, section counts, and GFM markdown summary tables.
+    - `SectionBudgetDecision` & `BudgetAction` (`Include`, `Truncate`, `Exclude`): per-section auditable record capturing utility per token and exact disposition.
+  - Implemented greedy knapsack budget optimization engine in `crates/context-optimizer/src/optimizer.rs`:
+    - `ContextBudgetOptimizer` & `BudgetOptimizationConfig`: prioritizes `MustInclude` sections, allocates remaining headroom by `utility_per_token` descending, enforces strict capacity ceilings, and updates document revision BLAKE3 hashes.
+    - `TruncationStrategy`: boundary-clean truncation (`HeadAndTail`, `HeadOnly`, `NoTruncation`) with explicit token reservation for omission markers and guaranteed post-condition capacity clamps.
+    - Zero silent drops (Rule 04 / Rule 09): every excluded section is recorded in `document.exclusions` with `ExclusionReason::SizeLimit` or `UserConfig` and detailed metrics.
+  - Implemented comprehensive reporting and telemetry in `crates/context-optimizer/src/report.rs`:
+    - `ContextBudgetReport`: complete markdown report card with headroom breakdown, token conservation ledger, and JSON serialization roundtrips.
+  - Public convenience APIs in `crates/context-optimizer/src/lib.rs`: `optimize_context_for_model` and `optimize_context_with_budget`.
+  - Implemented integration test suite `crates/context-optimizer/tests/context_budget_test.rs` (6 integration tests validating multi-model allocations, knapsack prioritization, boundary truncation, zero silent drop conservation, serialization, and fail-closed error handling).
+  - 100% passing quality gates: 20 crate tests passed, 662+ workspace tests passed, zero clippy warnings, zero fmt diffs, cargo deny passed, and 5/5 check-all gates passed.
+  - **Phase 7.2 ("Token intelligence") is formally completed and fully certified across all 4 subphases (`7.2.1` – `7.2.4`).**
+
 ### 2026-11-18 — Phase 7.2: Token intelligence (`7.2.3`)
 
 #### Added

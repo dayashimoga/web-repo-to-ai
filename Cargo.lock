@@ -2539,8 +2539,14 @@ dependencies = [
 name = "web-repo-to-ai-context-optimizer"
 version = "0.1.0"
 dependencies = [
+ "blake3",
+ "chrono",
+ "serde",
+ "serde_json",
  "thiserror 1.0.69",
+ "tracing",
  "web-repo-to-ai-cdm",
+ "web-repo-to-ai-code-intelligence",
  "web-repo-to-ai-core",
  "web-repo-to-ai-tokenizer",
 ]
