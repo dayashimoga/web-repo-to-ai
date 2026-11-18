@@ -13,6 +13,7 @@ use reqwest::{Client, StatusCode};
 use serde::Deserialize;
 use tracing::{debug, info, warn};
 
+use crate::classification::ClassifiedFile;
 use crate::commit::{
     CommitAuthor, CommitSignatureVerification, GitHubCommitMetadata, PinnedRevision,
 };
@@ -23,6 +24,9 @@ use crate::metadata::{
 use crate::models::{GitHubBranch, GitHubRateLimit, GitHubTag, RefDiscoveryReport};
 use crate::recovery::{
     scan_zip_archive, ArchiveFormat, SubtreeRecoveryConfig, SubtreeRecoveryReport, TreeStitcher,
+};
+use crate::source::{
+    decode_base64, ExtractedSourceFile, GitBlob, SourceExtractionConfig, SourceExtractionReport,
 };
 use crate::target::GitHubTarget;
 use crate::tree::{GitTreeResponse, TreeCompleteness};
@@ -1101,5 +1105,158 @@ impl GitHubApiClient {
             Some(pinned.commit_sha()),
         )
         .await
+    }
+
+    /// Fetches a Git blob by its SHA-1 object hash.
+    ///
+    /// Supports both raw payload streaming (`Accept: application/vnd.github.raw`)
+    /// and standard JSON base64-encoded responses.
+    ///
+    /// # Errors
+    /// Returns `GitHubExtractorError::ResourceNotFound` if the blob does not exist,
+    /// or `GitHubExtractorError::BlobError` if decoding fails.
+    pub async fn get_blob(
+        &self,
+        target: &GitHubTarget,
+        file_sha: &str,
+    ) -> Result<GitBlob, GitHubExtractorError> {
+        let base_url = self.effective_base_url(target);
+        let url = format!(
+            "{base_url}/repos/{}/{}/git/blobs/{file_sha}",
+            target.owner, target.repo
+        );
+
+        let mut headers = self.prepare_headers();
+        headers.insert(
+            ACCEPT,
+            HeaderValue::from_static(
+                "application/vnd.github.raw, application/vnd.github.v3.raw, application/vnd.github.v3+json;q=0.9",
+            ),
+        );
+
+        let req = self.client.get(&url).headers(headers).timeout(self.timeout);
+
+        let (res, _rate_limit) = self.execute_request(req, &url).await?;
+
+        let content_type = res
+            .headers()
+            .get(reqwest::header::CONTENT_TYPE)
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("")
+            .to_string();
+
+        let bytes = res.bytes().await.map_err(|e| {
+            let sanitized = redact_secrets(&e.to_string());
+            GitHubExtractorError::RequestFailed(sanitized)
+        })?;
+
+        // If JSON is returned or payload looks like JSON, check for base64 encoding
+        #[derive(Deserialize)]
+        struct RawBlobPayload {
+            sha: Option<String>,
+            encoding: Option<String>,
+            content: Option<String>,
+        }
+
+        if content_type.contains("json") || bytes.starts_with(b"{") {
+            if let Ok(payload) = serde_json::from_slice::<RawBlobPayload>(&bytes) {
+                if payload.encoding.as_deref() == Some("base64") {
+                    if let Some(encoded) = payload.content {
+                        let decoded = decode_base64(&encoded).map_err(|e| {
+                            GitHubExtractorError::BlobError {
+                                sha: file_sha.to_string(),
+                                message: format!("Base64 decoding failed: {e}"),
+                            }
+                        })?;
+                        let sha = payload.sha.unwrap_or_else(|| file_sha.to_string());
+                        return Ok(GitBlob::new(sha, decoded, "base64"));
+                    }
+                }
+            }
+        }
+
+        Ok(GitBlob::new(file_sha, bytes.to_vec(), "raw"))
+    }
+
+    /// Fetches and verifies a single classified file, producing an `ExtractedSourceFile`.
+    ///
+    /// # Errors
+    /// Returns `GitHubExtractorError::BlobError` if Git SHA verification fails or binary content is detected.
+    pub async fn fetch_source_file(
+        &self,
+        target: &GitHubTarget,
+        file: &ClassifiedFile,
+        config: &SourceExtractionConfig,
+    ) -> Result<ExtractedSourceFile, GitHubExtractorError> {
+        let blob = self.get_blob(target, &file.sha).await?;
+        ExtractedSourceFile::from_blob(&file.path, &blob, config)
+    }
+
+    /// Concurrently extracts and verifies multiple classified source code files with bounded concurrency.
+    ///
+    /// Uses a `tokio::sync::Semaphore` to strictly limit concurrent HTTP requests, recording
+    /// individual successes, failures, and unsupported files into a consolidated `SourceExtractionReport`.
+    pub async fn extract_source_files(
+        &self,
+        target: &GitHubTarget,
+        files: &[ClassifiedFile],
+        config: &SourceExtractionConfig,
+    ) -> SourceExtractionReport {
+        let start = std::time::Instant::now();
+        let mut report = SourceExtractionReport::new();
+
+        let mut eligible_files = Vec::new();
+        for file in files {
+            if !file.is_eligible {
+                if file.category.is_binary() {
+                    report.add_unsupported(file.clone());
+                }
+            } else {
+                eligible_files.push(file.clone());
+            }
+        }
+
+        let semaphore = std::sync::Arc::new(tokio::sync::Semaphore::new(config.concurrency));
+        let mut task_handles = Vec::with_capacity(eligible_files.len());
+
+        for file in eligible_files {
+            let sem = semaphore.clone();
+            let client = self.clone();
+            let target = target.clone();
+            let f = file.clone();
+            let cfg = config.clone();
+
+            let handle = tokio::spawn(async move {
+                let _permit = sem
+                    .acquire()
+                    .await
+                    .map_err(|e| GitHubExtractorError::RequestFailed(e.to_string()))?;
+                client.fetch_source_file(&target, &f, &cfg).await
+            });
+
+            task_handles.push((file, handle));
+        }
+
+        for (file, handle) in task_handles {
+            match handle.await {
+                Ok(Ok(extracted)) => {
+                    report.add_extracted(extracted);
+                }
+                Ok(Err(err)) => {
+                    let err_str = err.to_string();
+                    if err_str.contains("Binary or null bytes") {
+                        report.add_unsupported(file);
+                    } else {
+                        report.add_failed(file.path, file.sha, err_str);
+                    }
+                }
+                Err(join_err) => {
+                    report.add_failed(file.path, file.sha, format!("Task join error: {join_err}"));
+                }
+            }
+        }
+
+        report.duration = start.elapsed();
+        report
     }
 }

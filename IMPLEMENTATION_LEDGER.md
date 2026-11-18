@@ -4300,11 +4300,65 @@
 
 ---
 
+### Phase 5.3 — File extraction
+
+#### Subphase `5.3.1` — Source acquisition in crates/github-extractor
+- **Unique ID:** `5.3.1`
+- **Objective:** Implement resilient source code file acquisition from GitHub via the Git Blobs API (`/repos/{owner}/{repo}/git/blobs/{file_sha}`) and raw endpoint fallback, with raw/base64 decoding, Git object SHA-1 validation, BLAKE3 and SHA-256 content hashing, binary inspection, bounded concurrent batch extraction, and direct CDM `CdmSection` construction.
+- **Scope:** `Cargo.toml`, `crates/github-extractor/Cargo.toml`, `crates/github-extractor/src/source.rs`, `crates/github-extractor/src/client.rs`, `crates/github-extractor/src/error.rs`, `crates/github-extractor/src/lib.rs`, `crates/github-extractor/tests/source_acquisition_test.rs`.
+- **Prerequisites:** `5.2.4` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `Cargo.toml`
+  - `crates/github-extractor/Cargo.toml`
+  - `crates/github-extractor/src/error.rs`
+  - `crates/github-extractor/src/source.rs`
+  - `crates/github-extractor/src/client.rs`
+  - `crates/github-extractor/src/lib.rs`
+  - `crates/github-extractor/tests/source_acquisition_test.rs`
+- **Implementation Tasks:**
+  1. Add `sha1 = "0.10"` to workspace dependencies in root `Cargo.toml` and enable `blake3`, `sha1`, and `tokio` `sync` in `crates/github-extractor/Cargo.toml`.
+  2. Add `BlobError { sha: String, message: String }` error variant to `GitHubExtractorError` in `crates/github-extractor/src/error.rs`.
+  3. Implement `crates/github-extractor/src/source.rs`:
+     - RFC 4648 standard base64 decoder with whitespace/newline tolerance.
+     - Git blob SHA-1 calculation: `sha1("blob <size>\0<bytes>")`.
+     - BLAKE3 and SHA-256 cryptographic content digest calculations.
+     - Non-text binary detection inspecting initial byte window for null bytes.
+     - Domain models: `GitBlob`, `ExtractedSourceFile`, `SourceExtractionConfig`, `FailedSourceExtraction`, and `SourceExtractionReport`.
+     - Conversion from `ExtractedSourceFile` to CDM `CdmSection` (`SectionKind::CodeFile`, line range, byte range, language, BLAKE3 content hash, `SectionTokenMetrics::compute_baseline`).
+  4. Extend `GitHubApiClient` in `crates/github-extractor/src/client.rs`:
+     - `get_blob`: fetches raw or JSON base64 blob by SHA with Git object SHA-1 integrity verification.
+     - `fetch_source_file`: processes a single `ClassifiedFile` into `ExtractedSourceFile`, performing size gating, binary inspection, and line metric calculation.
+     - `extract_source_files`: orchestrates bounded concurrent batch retrieval using a `tokio::sync::Semaphore`, collecting successes, per-file failures, and unsupported binaries into a `SourceExtractionReport`.
+  5. Re-export source acquisition models and functions in `crates/github-extractor/src/lib.rs`.
+  6. Author comprehensive integration tests in `crates/github-extractor/tests/source_acquisition_test.rs` testing raw blob retrieval, base64 blob retrieval, Git SHA verification and mismatch detection, binary detection, concurrent batch extraction with semaphore bounds, and CDM section mapping.
+  7. Run full quality gate (`cargo test`, `cargo clippy`, `cargo fmt`, `cargo deny`, `scripts/check-all.ps1`).
+- **Acceptance Criteria:**
+  - Git blob fetching supports both `application/vnd.github.raw` and standard JSON base64 payloads without external dependencies.
+  - Downloaded blob content is verified against the expected Git object SHA-1, rejecting tampered or corrupt payloads.
+  - Concurrency is strictly bounded by semaphore without unbounded task spawning.
+  - Failures on individual files are recorded in `failed` list without aborting the batch, properly mapped to CDM `CompletenessReport` accounting.
+  - 100% test pass rate, 0 clippy warnings, clean formatting.
+- **Tests:** `cargo test -p web-repo-to-ai-github-extractor`, `cargo test --workspace`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, Rule 04, Rule 05: Cryptographic hash validation (SHA-1, BLAKE3, SHA-256); secret redaction on all blob URLs; binary detection prevents injecting non-text binary streams into text tokenizers; bounded memory usage prevents memory exhaustion.
+- **Performance Considerations:** Bounded concurrency via `tokio::sync::Semaphore` prevents hitting GitHub secondary rate limits and worker socket exhaustion.
+- **Documentation Requirements:** Module and function documentation in `crates/github-extractor`, tracking updates in `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-github-extractor`: 72/72 tests passed (12 unit tests, 7 source acquisition integration tests, 52 other integration tests, 1 doc test) in 0.19s.
+  - `cargo test --workspace`: 408/408 tests passed across all workspace crates in 24.26s.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors in 8.33s.
+  - `cargo fmt --all -- --check`: 100% compliant with standard formatting.
+  - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
+- **Git Commit Reference:** `9678470`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 5 — Public GitHub Repository Extraction)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `5.3.1` | Source acquisition | `5.2.4` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
+| `5.3.2` | Documentation extraction | `5.3.1` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
 
 ---
 

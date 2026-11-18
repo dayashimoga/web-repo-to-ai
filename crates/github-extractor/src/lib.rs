@@ -17,6 +17,7 @@ pub mod error;
 pub mod metadata;
 pub mod models;
 pub mod recovery;
+pub mod source;
 pub mod target;
 pub mod tree;
 
@@ -35,6 +36,12 @@ pub use models::{GitHubBranch, GitHubRateLimit, GitHubTag, RefDiscoveryReport};
 pub use recovery::{
     scan_zip_archive, stitch_child_path, ArchiveFormat, SubtreeRecoveryConfig,
     SubtreeRecoveryReport, TreeStitcher,
+};
+pub use source::{
+    compute_blake3_hash, compute_git_blob_sha, compute_sha256_hash, decode_base64,
+    is_binary_content, ExtractedSourceFile, FailedSourceExtraction, GitBlob,
+    SourceExtractionConfig, SourceExtractionReport, BINARY_SNIFF_WINDOW_BYTES,
+    DEFAULT_EXTRACTION_CONCURRENCY,
 };
 pub use target::{
     is_default_host, is_reserved_github_path, validate_and_sanitize_subpath, validate_owner,

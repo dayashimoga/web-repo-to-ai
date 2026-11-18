@@ -6,6 +6,30 @@
 
 ## [Unreleased] — Stage 5: Public GitHub Repository Extraction
 
+### 2026-11-18 — Phase 5.3: File Extraction (`5.3.1`)
+
+#### Added
+- **`[5.3.1]` Source Acquisition & Blob Verification in `crates/github-extractor`:**
+  - Implemented source extraction models, decoders, and hashing utilities in `crates/github-extractor/src/source.rs`:
+    - `decode_base64`: pure Rust RFC 4648 base64 decoder with tolerance for whitespace, newlines, and padding variants.
+    - `compute_git_blob_sha`: standard Git object SHA-1 hex digest calculation (`sha1("blob <size>\0<content>")`).
+    - `compute_blake3_hash` and `compute_sha256_hash`: cryptographic content digests for CDM section integrity and indexing.
+    - `is_binary_content`: null byte inspection across an 8,000-byte sniff window (`BINARY_SNIFF_WINDOW_BYTES`).
+    - `GitBlob`: raw blob representation with verification helpers (`verify_git_sha`, `is_binary`, `content_lossy`).
+    - `SourceExtractionConfig`: configurable batch parameters for concurrency (default 10 via `DEFAULT_EXTRACTION_CONCURRENCY`), maximum file size (default 1 MiB via `DEFAULT_MAX_FILE_SIZE_BYTES`), Git SHA verification toggle, and request timeout.
+    - `ExtractedSourceFile`: rich source representation converting directly into CDM [`CdmSection`] with `SectionKind::CodeFile`, line span (`LineRange`), byte range (`ByteRange`), BLAKE3 content hash, language, token metrics, and Git blob SHA attributes.
+    - `FailedSourceExtraction`: per-file failure record capturing relative path, SHA, and sanitized error string.
+    - `SourceExtractionReport`: batch acquisition outcome report capturing extracted files, failed files, unsupported files, total bytes, total lines, duration, and mapping to CDM `CompletenessReport` enforcing formula invariants.
+  - Added `BlobError` variant to `GitHubExtractorError` in `crates/github-extractor/src/error.rs`.
+  - Extended `GitHubApiClient` in `crates/github-extractor/src/client.rs`:
+    - `get_blob(&target, file_sha)`: fetches raw blob (`application/vnd.github.raw`) with fallback to JSON base64 payloads.
+    - `fetch_source_file(&target, file, config)`: acquires and verifies an individual classified file.
+    - `extract_source_files(&target, files, config)`: bounded concurrent batch extraction via `tokio::sync::Semaphore`.
+  - Re-exported source acquisition types in `crates/github-extractor/src/lib.rs`.
+  - Authored comprehensive integration tests in `crates/github-extractor/tests/source_acquisition_test.rs`:
+    - 7 test suites validating live Axum raw blob fetching, base64 blob fetching, Git SHA mismatch rejection, binary detection and unsupported categorization, bounded concurrent batch extraction with semaphore rate limiting, partial failure handling with CDM completeness accounting, and CDM section generation.
+  - Verified 408 passing workspace Rust tests (72 in `crates/github-extractor` + 1 doc-test), zero clippy warnings, zero fmt diffs, and 100% passing gates across all 5 checks in `scripts/check-all.ps1`.
+
 ### 2026-11-18 — Phase 5.2: File Discovery (`5.2.4` & Phase 5.2 Milestone Certification)
 
 #### Added

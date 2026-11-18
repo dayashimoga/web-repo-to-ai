@@ -3,16 +3,16 @@
 **Project:** `web-repo-to-ai` (Universal URL & GitHub Repository → AI-Ready Content Converter)  
 **Last Updated:** 2026-11-18  
 **Current Stage:** `STAGE 5 — PUBLIC GITHUB REPOSITORY EXTRACTION` (`IN_PROGRESS`)  
-**Current Phase:** `Phase 5.2 — File discovery` (`COMPLETED` — **PHASE 5.2 FORMALLY CERTIFIED**)  
-**Active Subphase:** `None (awaiting approval for 5.3.1)`  
-**Last Completed Subphase:** `5.2.4 — File classification in crates/github-extractor` (`ACCEPTED` — **PHASE 5.2 CERTIFIED**)  
-**Next Upcoming Subphase:** `5.3.1 — Source acquisition in crates/github-extractor`
+**Current Phase:** `Phase 5.3 — File extraction` (`IN_PROGRESS`)  
+**Active Subphase:** `None (awaiting approval for 5.3.2)`  
+**Last Completed Subphase:** `5.3.1 — Source acquisition in crates/github-extractor` (`ACCEPTED`)  
+**Next Upcoming Subphase:** `5.3.2 — Documentation extraction in crates/github-extractor`
 
 ---
 
 ## 1. Executive Summary
 
-Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 subphases), Stage 2 (`2.1.1` – `2.4.4`, 15 subphases), Stage 3 (`3.1.1` – `3.4.4`, 16 subphases), and Stage 4 (`4.1.1` – `4.4.4`, 16 subphases) are 100% complete, verified, certified, and accepted across 76 subphases. Stage 5 ("Public GitHub Repository Extraction") has certified Phase 5.1 ("GitHub metadata", `5.1.1` – `5.1.4`) and Phase 5.2 ("File discovery", `5.2.1` – `5.2.4`): Git Trees API integration (`5.2.1`), Tree truncation detection (`5.2.2`), Subtree recovery & archive fallback (`5.2.3`), and File classification & CDM completeness reporting (`5.2.4`) are all accepted and formally certified. Phase 5.3 ("File extraction", `5.3.1` – `5.3.4`) is queued next, beginning with Subphase `5.3.1` ("Source acquisition").
+Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 subphases), Stage 2 (`2.1.1` – `2.4.4`, 15 subphases), Stage 3 (`3.1.1` – `3.4.4`, 16 subphases), and Stage 4 (`4.1.1` – `4.4.4`, 16 subphases) are 100% complete, verified, certified, and accepted across 76 subphases. Stage 5 ("Public GitHub Repository Extraction") certified Phase 5.1 ("GitHub metadata", `5.1.1` – `5.1.4`) and Phase 5.2 ("File discovery", `5.2.1` – `5.2.4`). Phase 5.3 ("File extraction", `5.3.1` – `5.3.4`) is active: Subphase `5.3.1` ("Source acquisition") is accepted, implementing Git Blobs API querying, raw/base64 decoding, SHA-1 and BLAKE3 integrity verification, binary inspection, bounded concurrent batch extraction, and CDM section generation. Subphase `5.3.2` ("Documentation extraction") is queued next.
 
 ---
 
@@ -20,12 +20,12 @@ Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 su
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 84 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.2.4` |
+| `ACCEPTED` | 85 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.3.1` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 113 | `5.3.1` – `11.4.5` |
+| `NOT_STARTED` | 112 | `5.3.2` – `11.4.5` |
 | **Total** | **197** | `Stage 0` – `Stage 11` |
 
 ---

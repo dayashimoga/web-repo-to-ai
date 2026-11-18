@@ -161,6 +161,15 @@ pub enum GitHubExtractorError {
     #[error("GitHub archive processing error: {0}")]
     ArchiveError(String),
 
+    /// Git blob retrieval or integrity validation error.
+    #[error("GitHub blob error for '{sha}': {message}")]
+    BlobError {
+        /// Git blob object SHA.
+        sha: String,
+        /// Detail error message.
+        message: String,
+    },
+
     /// Internal core system error.
     #[error("Core system error: {0}")]
     Core(#[from] CoreError),

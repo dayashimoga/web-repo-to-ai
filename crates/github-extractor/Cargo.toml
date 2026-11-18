@@ -23,9 +23,11 @@ thiserror = { workspace = true }
 tracing = { workspace = true }
 reqwest = { workspace = true, features = ["json"] }
 chrono = { workspace = true, features = ["serde"] }
-tokio = { workspace = true, features = ["rt", "time"] }
+tokio = { workspace = true, features = ["rt", "time", "sync"] }
 bytes = { workspace = true }
 sha2 = { workspace = true }
+sha1 = { workspace = true }
+blake3 = { workspace = true }
 zip = { version = "9.6", default-features = false, features = ["deflate"] }
 
 [dev-dependencies]

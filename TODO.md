@@ -153,7 +153,7 @@
 - [x] **[5.2.4]** File classification in crates/github-extractor *(Completed 2026-11-18, FileCategory taxonomy, FileClassificationConfig with size threshold and prefix exclusions, FileClassifier, TreeClassificationReport, GitTreeResponse::classify, detect_language, CDM CompletenessReport mapping, 7 new integration tests, 395 workspace tests)*
 
 ### Phase 5.3 — File extraction
-- [ ] **[5.3.1]** Source acquisition in crates/github-extractor
+- [x] **[5.3.1]** Source acquisition in crates/github-extractor *(Completed 2026-11-18, Git Blobs API, raw and JSON base64 decoding, Git object SHA-1 verification, BLAKE3 and SHA-256 hashes, binary detection, bounded concurrent batch extraction with semaphore, CdmSection generation, 7 new integration tests, 408 workspace tests)*
 - [ ] **[5.3.2]** Documentation extraction in crates/github-extractor
 - [ ] **[5.3.3]** Dependency extraction in crates/github-extractor
 - [ ] **[5.3.4]** Configuration & test extraction in crates/github-extractor
