@@ -6,6 +6,26 @@
 
 ## [Unreleased] — Stage 6: Private GitHub Repositories
 
+### 2026-11-18 — Phase 6.4: Security verification (`6.4.1`)
+
+#### Added
+- **`[6.4.1]` Cross-User & Cross-Tenant Session Isolation in `crates/github-extractor` & `services/api`:**
+  - Implemented and verified strict multi-tenant session isolation across:
+    - `InMemoryInstallationTokenStore`: Installation tokens, account lookups, and session listings are strictly partitioned by composite key `(session_id, installation_id)`. Session B cannot view, enumerate, or query Session A's installations or accounts.
+    - `InstallationAuthorizer`: Session B evaluating authorization for Session A's repositories receives `NoInstallationForSession` or `AccountMismatch` and is never granted access to Session A's token or repository context.
+    - `InMemoryOAuthStateStore`: Cryptographic state nonces bound to Session A cannot be consumed or validated by Session B; attempted cross-session hijacks trigger `OAuth state session mismatch` and immediate nonce invalidation.
+    - Revocation boundaries: Session B cannot revoke Session A's installation tokens in token storage or via the REST API; requests return 404 and leave victim tokens active.
+    - Webhook uninstallation scoping: Global uninstallation webhooks (`revoke_all_for_installation`) revoke only the specified installation ID across all tenant sessions while leaving unrelated installations untouched.
+    - Dynamic repository grant synchronization: Webhook repository additions and removals affect only the targeted installation and do not leak repository names into unrelated installations.
+    - AES-256-GCM envelope encryption: Ciphertext encrypted with Authenticated Associated Data (AAD) bound to `tenant:{session_id}:installation:{installation_id}` cannot be decrypted under another tenant's session ID.
+    - `PrivateRepositoryExtractor`: Extractor instances configured with Session B cannot access or proactively renew tokens stored for Session A.
+  - Authored comprehensive integration test suite `crates/github-extractor/tests/cross_user_isolation_test.rs` (8 integration tests).
+  - Extended `services/api/src/lib.rs` with multi-tenant isolation tests:
+    - `test_api_list_installations_cross_tenant_isolation`: Verifies Tenant B receives `[]` when only Tenant A has installations, and concurrent tenants observe strictly their own installations.
+    - `test_api_session_header_validation_errors`: Validates that missing or malformed `X-Session-ID` headers return HTTP 400 Bad Request with RFC 7807 problem details.
+    - `test_api_concurrent_multi_tenant_revocation_isolation`: Verifies that Tenant A revoking their installation does not invalidate Tenant B's active installations.
+  - 100% passing quality gates: 8/8 new extractor tests passed, 58/58 api tests passed, 522+ workspace tests passed, zero clippy warnings, zero fmt diffs, cargo deny passed, and 5/5 check-all gates passed.
+
 ### 2026-11-18 — Phase 6.3: Private extraction (`6.3.4` — Phase 6.3 Certified)
 
 #### Added

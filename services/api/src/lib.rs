@@ -1539,4 +1539,190 @@ mod tests {
         let body2 = body_to_string(res2.into_body()).await;
         assert!(body2.contains("replay") || body2.contains("Duplicate"));
     }
+
+    #[tokio::test]
+    async fn test_api_list_installations_cross_tenant_isolation() {
+        let key = web_repo_to_ai_core::crypto::EncryptionKey::generate().unwrap();
+        let token_storage =
+            std::sync::Arc::new(web_repo_to_ai_storage::InMemoryTokenStorage::new(key));
+
+        let tenant_a = uuid::Uuid::new_v4();
+        let tenant_b = uuid::Uuid::new_v4();
+        let expires = chrono::Utc::now() + chrono::Duration::hours(1);
+
+        // Tenant A has 2 installations
+        token_storage
+            .save_installation_token(tenant_a, 1001, "tenant-a-org1", "ghs_SecretA1", expires)
+            .await
+            .unwrap();
+        token_storage
+            .save_installation_token(tenant_a, 1002, "tenant-a-org2", "ghs_SecretA2", expires)
+            .await
+            .unwrap();
+
+        let config = AppConfig::default();
+        let state = AppState::new(config).with_token_storage(token_storage.clone());
+        let app = build_app(state);
+
+        // Tenant B lists installations -> must be empty []
+        let req_b = Request::builder()
+            .uri("/api/v1/auth/github/installations")
+            .method("GET")
+            .header("X-Session-ID", tenant_b.to_string())
+            .body(Body::empty())
+            .unwrap();
+
+        let res_b = app.clone().oneshot(req_b).await.unwrap();
+        assert_eq!(res_b.status(), StatusCode::OK);
+        let body_b = body_to_string(res_b.into_body()).await;
+        let list_b: Vec<serde_json::Value> = serde_json::from_str(&body_b).unwrap();
+        assert!(
+            list_b.is_empty(),
+            "Tenant B must see 0 installations from Tenant A"
+        );
+        assert!(!body_b.contains("tenant-a-org"));
+        assert!(!body_b.contains("ghs_Secret"));
+
+        // Tenant B adds its own installation
+        token_storage
+            .save_installation_token(tenant_b, 2002, "tenant-b-corp", "ghs_SecretB1", expires)
+            .await
+            .unwrap();
+
+        // Tenant B lists installations -> sees only installation 2002
+        let req_b2 = Request::builder()
+            .uri("/api/v1/auth/github/installations")
+            .method("GET")
+            .header("X-Session-ID", tenant_b.to_string())
+            .body(Body::empty())
+            .unwrap();
+        let res_b2 = app.clone().oneshot(req_b2).await.unwrap();
+        assert_eq!(res_b2.status(), StatusCode::OK);
+        let body_b2 = body_to_string(res_b2.into_body()).await;
+        let list_b2: Vec<serde_json::Value> = serde_json::from_str(&body_b2).unwrap();
+        assert_eq!(list_b2.len(), 1);
+        assert_eq!(list_b2[0]["installation_id"], 2002);
+        assert_eq!(list_b2[0]["account_login"], "tenant-b-corp");
+
+        // Tenant A lists installations -> sees only 1001 and 1002
+        let req_a = Request::builder()
+            .uri("/api/v1/auth/github/installations")
+            .method("GET")
+            .header("X-Session-ID", tenant_a.to_string())
+            .body(Body::empty())
+            .unwrap();
+        let res_a = app.oneshot(req_a).await.unwrap();
+        assert_eq!(res_a.status(), StatusCode::OK);
+        let body_a = body_to_string(res_a.into_body()).await;
+        let list_a: Vec<serde_json::Value> = serde_json::from_str(&body_a).unwrap();
+        assert_eq!(list_a.len(), 2);
+        assert!(list_a.iter().all(|i| i["installation_id"] != 2002));
+        assert!(!body_a.contains("tenant-b-corp"));
+    }
+
+    #[tokio::test]
+    async fn test_api_session_header_validation_errors() {
+        let app = setup_test_app();
+
+        // 1. Missing header on GET installations -> 400
+        let req_missing = Request::builder()
+            .uri("/api/v1/auth/github/installations")
+            .method("GET")
+            .body(Body::empty())
+            .unwrap();
+        let res1 = app.clone().oneshot(req_missing).await.unwrap();
+        assert_eq!(res1.status(), StatusCode::BAD_REQUEST);
+        let body1 = body_to_string(res1.into_body()).await;
+        assert!(body1.contains("VALIDATION_ERROR"));
+        assert!(body1.contains("X-Session-ID"));
+
+        // 2. Malformed UUID string on GET installations -> 400
+        let req_malformed = Request::builder()
+            .uri("/api/v1/auth/github/installations")
+            .method("GET")
+            .header("X-Session-ID", "not-a-valid-uuid-format")
+            .body(Body::empty())
+            .unwrap();
+        let res2 = app.clone().oneshot(req_malformed).await.unwrap();
+        assert_eq!(res2.status(), StatusCode::BAD_REQUEST);
+        let body2 = body_to_string(res2.into_body()).await;
+        assert!(body2.contains("VALIDATION_ERROR"));
+        assert!(body2.contains("Invalid UUID formatted string"));
+
+        // 3. Malformed UUID string on DELETE installation -> 400
+        let req_del_malformed = Request::builder()
+            .uri("/api/v1/auth/github/installations/12345")
+            .method("DELETE")
+            .header("X-Session-ID", "invalid-guid")
+            .body(Body::empty())
+            .unwrap();
+        let res3 = app.oneshot(req_del_malformed).await.unwrap();
+        assert_eq!(res3.status(), StatusCode::BAD_REQUEST);
+        let body3 = body_to_string(res3.into_body()).await;
+        assert!(body3.contains("VALIDATION_ERROR"));
+    }
+
+    #[tokio::test]
+    async fn test_api_concurrent_multi_tenant_revocation_isolation() {
+        let key = web_repo_to_ai_core::crypto::EncryptionKey::generate().unwrap();
+        let token_storage =
+            std::sync::Arc::new(web_repo_to_ai_storage::InMemoryTokenStorage::new(key));
+
+        let tenant_a = uuid::Uuid::new_v4();
+        let tenant_b = uuid::Uuid::new_v4();
+        let install_a = 5001i64;
+        let install_b = 6002i64;
+        let expires = chrono::Utc::now() + chrono::Duration::hours(2);
+
+        token_storage
+            .save_installation_token(tenant_a, install_a, "alpha-org", "ghs_AlphaToken", expires)
+            .await
+            .unwrap();
+        token_storage
+            .save_installation_token(tenant_b, install_b, "beta-org", "ghs_BetaToken", expires)
+            .await
+            .unwrap();
+
+        let config = AppConfig::default();
+        let state = AppState::new(config).with_token_storage(token_storage.clone());
+        let app = build_app(state);
+
+        // Tenant A revokes its own installation 5001 -> 200 OK
+        let req_del = Request::builder()
+            .uri(format!("/api/v1/auth/github/installations/{install_a}"))
+            .method("DELETE")
+            .header("X-Session-ID", tenant_a.to_string())
+            .body(Body::empty())
+            .unwrap();
+        let res_del = app.clone().oneshot(req_del).await.unwrap();
+        assert_eq!(res_del.status(), StatusCode::OK);
+
+        // Verify Tenant A now has 0 active installations
+        let req_list_a = Request::builder()
+            .uri("/api/v1/auth/github/installations")
+            .method("GET")
+            .header("X-Session-ID", tenant_a.to_string())
+            .body(Body::empty())
+            .unwrap();
+        let res_list_a = app.clone().oneshot(req_list_a).await.unwrap();
+        assert_eq!(res_list_a.status(), StatusCode::OK);
+        let body_list_a = body_to_string(res_list_a.into_body()).await;
+        let list_a: Vec<serde_json::Value> = serde_json::from_str(&body_list_a).unwrap();
+        assert!(list_a.is_empty());
+
+        // Verify Tenant B's installation 6002 is completely unaffected and active
+        let req_list_b = Request::builder()
+            .uri("/api/v1/auth/github/installations")
+            .method("GET")
+            .header("X-Session-ID", tenant_b.to_string())
+            .body(Body::empty())
+            .unwrap();
+        let res_list_b = app.oneshot(req_list_b).await.unwrap();
+        assert_eq!(res_list_b.status(), StatusCode::OK);
+        let body_list_b = body_to_string(res_list_b.into_body()).await;
+        let list_b: Vec<serde_json::Value> = serde_json::from_str(&body_list_b).unwrap();
+        assert_eq!(list_b.len(), 1);
+        assert_eq!(list_b[0]["installation_id"], install_b);
+        assert_eq!(list_b[0]["account_login"], "beta-org");
+    }
 }

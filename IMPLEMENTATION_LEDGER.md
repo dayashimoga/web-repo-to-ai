@@ -5850,13 +5850,70 @@
 
 ---
 
+### Phase 6.4 — Security verification (`6.4.1` – `6.4.4`)
+
+#### Subphase `6.4.1` — Cross-user isolation in crates/github-extractor & services/api
+- **Unique ID:** `6.4.1`
+- **Objective:** Verify and enforce cross-user and cross-tenant session isolation across credential storage, installation authorizers, OAuth state nonces, dynamic repository grant synchronizations, AES-256-GCM envelope ciphertexts, and public Axum REST APIs (`GET /api/v1/auth/github/installations`, `DELETE /api/v1/auth/github/installations/:id`).
+- **Scope:** `crates/github-extractor/tests/cross_user_isolation_test.rs`, `services/api/src/lib.rs`, `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Prerequisites:** `6.3.4` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/github-extractor/tests/cross_user_isolation_test.rs`
+  - `services/api/src/lib.rs`
+  - `IMPLEMENTATION_LEDGER.md`
+  - `PROJECT_STATUS.md`
+  - `TODO.md`
+  - `CHANGELOG.md`
+  - `ROADMAP.md`
+  - `docs/ROADMAP.md`
+- **Implementation Tasks:**
+  1. Author comprehensive integration test suite `cross_user_isolation_test.rs` in `crates/github-extractor/tests/`:
+     - Test Case 1 (`test_token_store_session_isolation`): Verify that installation tokens saved for Session A cannot be read, enumerated, or discovered by Session B via `get_token`, `list_installations_for_session`, or `find_installation_for_account`.
+     - Test Case 2 (`test_installation_authorizer_session_isolation`): Verify that Session B querying `InstallationAuthorizer::authorize` for Session A's repository receives `NoInstallationForSession` or `AccountMismatch` and never receives Session A's credentials.
+     - Test Case 3 (`test_oauth_state_cross_session_hijack_prevention`): Verify that an attacker in Session B cannot consume or validate an OAuth state nonce bound to Session A (rejected with session mismatch and purged against replays).
+     - Test Case 4 (`test_revocation_session_isolation_in_token_store`): Verify that Session B calling `store.revoke_token` with Session A's installation ID returns `false`, leaving Session A's token intact.
+     - Test Case 5 (`test_webhook_global_revocation_isolation`): Verify that global uninstallation webhooks (`revoke_all_for_installation`) revoke only the specified installation ID across all tenant sessions while leaving other installations untouched.
+     - Test Case 6 (`test_webhook_repository_grant_sync_isolation`): Verify that dynamic repository grant updates only affect the specific installation and do not leak repository names into unrelated installations.
+     - Test Case 7 (`test_storage_aad_cryptographic_cross_tenant_isolation`): Cryptographic proof that AES-256-GCM ciphertext encrypted for Session A with AAD `tenant:{session_id}:installation:{installation_id}` fails decryption under Session B's session ID with integrity authentication errors.
+     - Test Case 8 (`test_private_extractor_session_isolation`): Verify that `PrivateRepositoryExtractor` bound to Session B cannot access or renew tokens stored for Session A.
+  2. Implement comprehensive cross-tenant API isolation and header validation tests in `services/api/src/lib.rs`:
+     - `test_api_list_installations_cross_tenant_isolation`: Tenant B calling `GET /api/v1/auth/github/installations` receives an empty list `[]` when Tenant A has active installations, and each tenant only observes their own registered installations.
+     - `test_api_session_header_validation_errors`: Missing or malformed UUID strings in `X-Session-ID` return HTTP 400 Bad Request with RFC 7807 validation problem details.
+     - `test_api_concurrent_multi_tenant_revocation_isolation`: Tenant A revoking their installation does not affect or invalidate Tenant B's active installation.
+  3. Run full verification gates (`cargo test`, `cargo fmt`, `cargo clippy`, `cargo deny check`, `scripts/check-all.ps1`).
+- **Acceptance Criteria:**
+  - Token store strictly partitions credentials by `(session_id, installation_id)`.
+  - Authorizer returns `NoInstallationForSession` or `AccountMismatch` for cross-user queries.
+  - OAuth state nonces reject cross-session validation attempts.
+  - Revocations cannot be triggered across session boundaries.
+  - AAD cryptographic binding guarantees ciphertext confidentiality across tenants.
+  - API enforces mandatory and valid `X-Session-ID` header.
+  - 100% of tests pass, clippy is warning-free, and monorepo gates pass with 0 failures.
+- **Risk Analysis:**
+  - Risk: Accidental cross-tenant data leakage via shared cache keys.
+  - Mitigation: Explicit composite primary keys `(session_id, installation_id)` and Authenticated Associated Data (AAD) binding in AES-256-GCM encryption.
+- **Rollback Plan:**
+  - Revert Subphase 6.4.1 changes via `git reset --hard HEAD~1` and restore Phase 6.3 baseline.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-github-extractor --test cross_user_isolation_test`: 8/8 passed in 0.00s.
+  - `cargo test -p web-repo-to-ai-api`: 58/58 passed in 0.55s.
+  - Full workspace tests: 522+ unit and integration tests passing with 0 failures.
+  - Workspace linter: `cargo clippy --workspace --all-targets -- -D warnings` passed with 0 warnings.
+  - Formatting: `cargo fmt --all -- --check` clean with 0 diffs.
+  - Dependency audit: `cargo deny check` passed (advisories ok, bans ok, licenses ok, sources ok).
+  - Monorepo gatekeeper: `powershell scripts/check-all.ps1` completed with `ALL GATES PASSED (0 failures)` (all 5 gates passed: Bootstrap & Governance, Workflow Validation, Rust Workspace, Frontend Web [213 vitest passed], Resource Budget & 30 GB Storage Ceiling [5.27 GB / 30 GB, 17.6%]).
+- **Git Commit Reference:** `d8c0a90`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 6 — Private GitHub Repositories)
 
 #### Phase 6.4 — Security verification
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `6.4.1` | Cross-user isolation | `6.3.4` (`ACCEPTED`) | `crates/github-extractor/*`, `services/api/*` | `NOT_STARTED` |
+| `6.4.2` | Unauthorized repository access tests | `6.4.1` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
 
 ---
 

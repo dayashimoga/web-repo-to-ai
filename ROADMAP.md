@@ -83,7 +83,7 @@
 - **Phase 6.1 — GitHub App:** `6.1.1` App configuration documentation (`ACCEPTED`) | `6.1.2` OAuth & installation flow (`ACCEPTED`) | `6.1.3` Minimum permissions (`ACCEPTED`) | `6.1.4` Callback security (`ACCEPTED` — **PHASE 6.1 CERTIFIED**)
 - **Phase 6.2 — Credential management:** `6.2.1` Secure token storage (`ACCEPTED`) | `6.2.2` Token refresh & expiration (`ACCEPTED`) | `6.2.3` Revocation (`ACCEPTED`) | `6.2.4` Secret redaction (`ACCEPTED` — **PHASE 6.2 CERTIFIED**)
 - **Phase 6.3 — Private extraction:** `6.3.1` Installation authorization (`ACCEPTED`) | `6.3.2` Selected repository access (`ACCEPTED`) | `6.3.3` Private tree & source extraction (`ACCEPTED`) | `6.3.4` Authorization failure recovery (`ACCEPTED` — **PHASE 6.3 CERTIFIED**)
-- **Phase 6.4 — Security verification:** `6.4.1` Cross-user isolation (`NEXT`) | `6.4.2` Unauthorized repository access tests | `6.4.3` Token leakage tests | `6.4.4` Permission audit
+- **Phase 6.4 — Security verification:** `6.4.1` Cross-user isolation (`ACCEPTED`) | `6.4.2` Unauthorized repository access tests (`NEXT`) | `6.4.3` Token leakage tests | `6.4.4` Permission audit
 
 ### STAGE 7 — AI CONTEXT AND TOKEN OPTIMIZATION
 - **Phase 7.1 — Content optimization:** `7.1.1` Structural normalization | `7.1.2` Exact duplicate removal | `7.1.3` Semantic-aware deduplication | `7.1.4` Content classification
