@@ -514,4 +514,14 @@ impl GitTreeResponse {
             TreeCompleteness::Complete
         }
     }
+
+    /// Classifies all blob entries in this tree according to the given configuration,
+    /// producing a `TreeClassificationReport`.
+    #[must_use]
+    pub fn classify(
+        &self,
+        config: &crate::classification::FileClassificationConfig,
+    ) -> crate::classification::TreeClassificationReport {
+        crate::classification::FileClassifier::classify_tree(self, config)
+    }
 }

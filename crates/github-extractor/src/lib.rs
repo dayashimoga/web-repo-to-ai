@@ -10,6 +10,7 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
+pub mod classification;
 pub mod client;
 pub mod commit;
 pub mod error;
@@ -19,6 +20,10 @@ pub mod recovery;
 pub mod target;
 pub mod tree;
 
+pub use classification::{
+    detect_language, ClassifiedFile, FileCategory, FileClassificationConfig, FileClassifier,
+    TreeClassificationReport, DEFAULT_MAX_FILE_SIZE_BYTES,
+};
 pub use client::{
     GitHubApiClient, DEFAULT_GITHUB_TIMEOUT, DEFAULT_MAX_PAGES, DEFAULT_PER_PAGE,
     DEFAULT_USER_AGENT, GITHUB_API_VERSION_HEADER,

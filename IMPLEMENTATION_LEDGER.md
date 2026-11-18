@@ -4242,11 +4242,69 @@
 
 ---
 
+#### Subphase `5.2.4` — File classification in crates/github-extractor
+- **Unique ID:** `5.2.4`
+- **Objective:** Implement comprehensive file classification across discovered Git tree entries into canonical categories (`source_code`, `documentation`, `configuration`, `dependency_manifest`, `test_fixture`, `generated_or_lockfile`, `binary`, `oversized`), with size-threshold gating, language detection, and direct CDM `CompletenessReport` mapping.
+- **Scope:** `crates/github-extractor/src/classification.rs`, `crates/github-extractor/src/tree.rs`, `crates/github-extractor/src/lib.rs`, `crates/github-extractor/tests/file_classification_test.rs`.
+- **Prerequisites:** `5.2.3` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/github-extractor/src/classification.rs`
+  - `crates/github-extractor/src/tree.rs`
+  - `crates/github-extractor/src/lib.rs`
+  - `crates/github-extractor/tests/file_classification_test.rs`
+- **Implementation Tasks:**
+  1. Define `FileCategory` enum (`SourceCode`, `Documentation`, `Configuration`, `DependencyManifest`, `TestFixture`, `GeneratedOrLockfile`, `Binary`, `Oversized`, `Other`) with query helpers in `crates/github-extractor/src/classification.rs`.
+  2. Implement `FileClassificationConfig` with customizable size ceiling (default 1 MB / 1_048_576 bytes), excluded path patterns, and explicit category overrides.
+  3. Implement `ClassifiedFile` and `FileClassifier::classify_entry` matching file name, extension, directory location, and byte size against canonical heuristics.
+  4. Implement `TreeClassificationReport` and `FileClassifier::classify_tree` providing aggregate category statistics, eligible vs excluded partitioning, and CDM `CompletenessReport` generation enforcing the completeness invariant.
+  5. Add `classify(&self, config)` convenience method on `GitTreeResponse` in `crates/github-extractor/src/tree.rs`.
+  6. Author comprehensive integration tests in `crates/github-extractor/tests/file_classification_test.rs` validating exact classification across all 8 canonical categories, size threshold gating, excluded directory filtering, and CDM completeness report consistency.
+  7. Run full verification suite (`cargo test`, `cargo clippy`, `cargo fmt`, `cargo deny`, `scripts/check-all.ps1`).
+- **Acceptance Criteria:**
+  - All files in a Git tree are categorized without panic or ambiguity into their appropriate category.
+  - Test fixtures, dependency manifests, and documentation are accurately distinguished from general source code.
+  - Large files (> 1 MB or configured threshold) are tagged as `Oversized` with eligibility set to false and reason recorded.
+  - `TreeClassificationReport::to_completeness_report()` satisfies `discovered_count == extracted + excluded + failed + unsupported`.
+  - 100% test pass rate, 0 clippy warnings, clean formatting.
+- **Tests:** `cargo test -p web-repo-to-ai-github-extractor`, `cargo test --workspace`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, Rule 04, Rule 05: Prevents ingestion of dangerous or unbounded binaries/oversized files into downstream LLM tokenizers; bounded memory evaluation; accurate exclusion auditing.
+- **Performance Considerations:** Single-pass tree classification with $O(1)$ hash set lookups and static pattern matching.
+- **Documentation Requirements:** Module and type documentation in `crates/github-extractor`, tracking updates in `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-github-extractor`: 66/66 tests passed (6 unit tests, 7 classification integration tests, 52 other integration tests, 1 doc test) in 0.05s.
+  - `cargo test --workspace`: 395/395 tests passed across all workspace crates in 15.85s.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors in 6.65s.
+  - `cargo fmt --all -- --check`: 100% compliant with standard formatting.
+  - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
+- **Git Commit Reference:** `4f3303c`
+- **Status:** `ACCEPTED`
+
+---
+
+### Phase 5.2 Milestone Certification (`5.2.1` – `5.2.4`)
+- **Phase 5.2 Goal:** Complete Git Trees API integration, tree truncation detection, subtree recovery via recursive BFS and shallow archive fallback, file classification taxonomy, and CDM completeness report mapping.
+- **Subphases Completed & Accepted:**
+  - `5.2.1`: Git Trees integration in `crates/github-extractor` (`ACCEPTED`, commit `f3173ee` / `4b46c6b`)
+  - `5.2.2`: Tree truncation detection in `crates/github-extractor` (`ACCEPTED`, commit `87ba8e1` / `e935430`)
+  - `5.2.3`: Subtree recovery in `crates/github-extractor` (`ACCEPTED`, commit `2495a78` / `057324e`)
+  - `5.2.4`: File classification in `crates/github-extractor` (`ACCEPTED`, commit `4f3303c`)
+- **Certification Date:** 2026-11-18
+- **Certification Summary:**
+  1. Full Git Trees API traversal with recursive parameterization (`?recursive=1`), typed POSIX file modes (`100644`, `100755`, `040000`, `120000`, `160000`), and path-prefix/extension query filters.
+  2. O(N) linear tree truncation detection auditing explicit GitHub truncation flags, entry count ceilings (100k limit), and unexpanded directory subtrees.
+  3. Resilient subtree recovery engine orchestrating BFS queue traversal of unexpanded directories, atomic in-place tree stitching with SHA deduplication, and shallow zipball/tarball archive fallback with permission extraction and parent segment normalization.
+  4. Comprehensive file classification taxonomy distinguishing source code, documentation, configuration, manifests, tests, lockfiles, binaries, and oversized files with configurable byte ceilings, path prefix exclusions, language detection for 28+ languages, and direct CDM `CompletenessReport` mapping satisfying `formula_valid()`.
+  5. 65 tests passing in `crates/github-extractor` (+ 1 doc test), 395 tests passing across the workspace with zero clippy warnings and all 5 monorepo gates passing.
+- **Phase Status:** `COMPLETED` / `ACCEPTED` (Certified 2026-11-18)
+
+---
+
 ### Upcoming Subphase (Stage 5 — Public GitHub Repository Extraction)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `5.2.4` | File classification | `5.2.3` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
+| `5.3.1` | Source acquisition | `5.2.4` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
 
 ---
 

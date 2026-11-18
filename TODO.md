@@ -150,7 +150,7 @@
 - [x] **[5.2.1]** Git Trees integration in crates/github-extractor *(Completed 2026-11-18, GitFileMode, GitTreeEntryType, GitTreeEntry, GitTreeResponse, recursive Git Trees API integration, path normalization, blobs/prefix/extension queries, fetch_pinned_tree, in-process Axum test server, 4 new integration tests, 375 workspace tests)*
 - [x] **[5.2.2]** Tree truncation detection in crates/github-extractor *(Completed 2026-11-18, TruncationReason, TreeCompleteness, RecoveryStrategy, TruncationReport, linear O(N) find_unexpanded_subtrees, analyze_completeness, 100k limits, in-process Axum test server, 5 new integration tests, 380 workspace tests)*
 - [x] **[5.2.3]** Subtree recovery in crates/github-extractor *(Completed 2026-11-18, SubtreeRecoveryConfig, SubtreeRecoveryReport, ArchiveFormat, TreeStitcher, scan_zip_archive, download_archive, recover_tree, recover_pinned_tree, 7 new integration tests, 388 workspace tests)*
-- [ ] **[5.2.4]** File classification in crates/github-extractor
+- [x] **[5.2.4]** File classification in crates/github-extractor *(Completed 2026-11-18, FileCategory taxonomy, FileClassificationConfig with size threshold and prefix exclusions, FileClassifier, TreeClassificationReport, GitTreeResponse::classify, detect_language, CDM CompletenessReport mapping, 7 new integration tests, 395 workspace tests)*
 
 ### Phase 5.3 — File extraction
 - [ ] **[5.3.1]** Source acquisition in crates/github-extractor

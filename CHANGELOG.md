@@ -6,6 +6,28 @@
 
 ## [Unreleased] — Stage 5: Public GitHub Repository Extraction
 
+### 2026-11-18 — Phase 5.2: File Discovery (`5.2.4` & Phase 5.2 Milestone Certification)
+
+#### Added
+- **`[5.2.4]` Repository File Classification & CDM Completeness Reporting in `crates/github-extractor`:**
+  - Implemented comprehensive file classification in `crates/github-extractor/src/classification.rs`:
+    - `FileCategory`: canonical taxonomy (`SourceCode`, `Documentation`, `Configuration`, `DependencyManifest`, `TestFixture`, `GeneratedOrLockfile`, `Binary`, `Oversized`, `Other`) with query helpers (`is_source_code`, `is_documentation`, `is_extractable`, etc.).
+    - `FileClassificationConfig`: configurable classification rules supporting size thresholds (default 1 MiB / 1,048,576 bytes via `DEFAULT_MAX_FILE_SIZE_BYTES`), excluded path prefixes (`node_modules/`, `target/`, `.git/`, `.venv/`, `vendor/`), lockfile exclusions, test exclusions, and explicit path overrides.
+    - `ClassifiedFile`: rich entry representation including normalized path, category, file mode, SHA, size, detected language, extraction eligibility, and explicit exclusion reason.
+    - `TreeClassificationReport`: aggregated tree classification metrics capturing total files, category counts, category sizes, eligible/excluded breakdowns, binary and oversized counters, and category filtering helpers.
+    - Direct CDM `CompletenessReport` mapping: `to_expected_completeness_report()` and `to_pre_extraction_completeness_report()` strictly satisfying the fundamental CDM invariant:
+      `discovered_count == extracted_count + excluded_count + failed_count + unsupported_count`.
+    - `detect_language`: robust language detection for 28+ languages including Rust, TypeScript, Python, Go, C/C++, Svelte, Vue, Dockerfiles, and Makefiles.
+  - Added `classify(&self, config)` convenience method to `GitTreeResponse` in `crates/github-extractor/src/tree.rs`.
+  - Re-exported classification models and functions in `crates/github-extractor/src/lib.rs`.
+  - Authored comprehensive integration tests in `crates/github-extractor/tests/file_classification_test.rs`:
+    - 7 test suites validating classification across all 8 canonical categories, multi-language detection, byte-size threshold gating and oversized tagging, excluded path prefix filtering, custom override precedence, CDM completeness report formula validity, and tree classification aggregation.
+  - Verified 395 passing workspace Rust tests (65 in `crates/github-extractor` + 1 doc-test), zero clippy warnings, zero fmt diffs, and 100% passing gates across all 5 checks in `scripts/check-all.ps1`.
+
+#### Milestone Certification: Phase 5.2 — File Discovery
+- **Subphases Completed:** `5.2.1` (Git Trees API integration), `5.2.2` (Tree truncation detection), `5.2.3` (Subtree recovery & shallow archive fallback), `5.2.4` (File classification & CDM completeness reporting).
+- **Outcome:** Phase 5.2 is 100% complete, verified, and formally certified. All file discovery capabilities for public GitHub repositories are robustly operational.
+
 ### 2026-11-18 — Phase 5.2: File Discovery (`5.2.3`)
 
 #### Added
