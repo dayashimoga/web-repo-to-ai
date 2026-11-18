@@ -2000,6 +2000,61 @@ impl GitHubApiClient {
                 ))
             })
     }
+
+    /// Explicitly revokes an installation access token (`DELETE /installation/token`).
+    ///
+    /// Per the GitHub REST API specification, invalidating an installation token returns
+    /// `204 No Content`. If the token is already expired, revoked, or invalid (HTTP 401 or 404),
+    /// this method treats the revocation as an idempotent success.
+    ///
+    /// # Errors
+    /// Returns [`GitHubExtractorError`] if the revocation request fails due to network or server errors.
+    pub async fn revoke_installation_access_token(
+        &self,
+        installation_token: &str,
+    ) -> Result<(), GitHubExtractorError> {
+        let base = self
+            .base_url_override
+            .as_deref()
+            .unwrap_or("https://api.github.com");
+        let url = format!("{base}/installation/token");
+
+        let mut headers = self.prepare_headers();
+        let auth_val = format!("Bearer {installation_token}");
+        if let Ok(hv) = HeaderValue::from_str(&auth_val) {
+            headers.insert(AUTHORIZATION, hv);
+        }
+
+        let req = self.client.delete(&url).headers(headers);
+        let resp = match req.send().await {
+            Ok(r) => r,
+            Err(e) => {
+                return Err(GitHubExtractorError::RequestFailed(format!(
+                    "Failed to send token revocation request to {url}: {e}"
+                )));
+            }
+        };
+
+        let status = resp.status();
+        if status == StatusCode::NO_CONTENT || status == StatusCode::OK {
+            debug!("Successfully revoked installation access token on GitHub");
+            Ok(())
+        } else if status == StatusCode::UNAUTHORIZED || status == StatusCode::NOT_FOUND {
+            // Already revoked or expired upstream: idempotent success
+            debug!(
+                "Token already revoked or invalid on GitHub (status {status}); treated as success"
+            );
+            Ok(())
+        } else {
+            let body_text = resp.text().await.unwrap_or_default();
+            let sanitized = redact_secrets(&body_text);
+            warn!("Unexpected response status during token revocation: {status} - {sanitized}");
+            Err(GitHubExtractorError::HttpError {
+                status: status.as_u16(),
+                message: format!("GitHub token revocation returned {status}: {sanitized}"),
+            })
+        }
+    }
 }
 
 enum EitherConfigOrTest {

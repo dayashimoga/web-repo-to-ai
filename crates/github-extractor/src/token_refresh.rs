@@ -237,6 +237,12 @@ pub trait InstallationTokenStore: Send + Sync {
         session_id: &Uuid,
         installation_id: i64,
     ) -> Result<bool, GitHubExtractorError>;
+
+    /// Explicitly revokes and deletes all cached token records for an installation across all sessions.
+    async fn revoke_all_for_installation(
+        &self,
+        installation_id: i64,
+    ) -> Result<usize, GitHubExtractorError>;
 }
 
 /// Thread-safe in-memory implementation of [`InstallationTokenStore`].
@@ -286,6 +292,16 @@ impl InstallationTokenStore for InMemoryInstallationTokenStore {
     ) -> Result<bool, GitHubExtractorError> {
         let mut lock = self.records.write().await;
         Ok(lock.remove(&(*session_id, installation_id)).is_some())
+    }
+
+    async fn revoke_all_for_installation(
+        &self,
+        installation_id: i64,
+    ) -> Result<usize, GitHubExtractorError> {
+        let mut lock = self.records.write().await;
+        let initial_len = lock.len();
+        lock.retain(|(_session_id, inst_id), _| *inst_id != installation_id);
+        Ok(initial_len - lock.len())
     }
 }
 

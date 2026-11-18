@@ -118,6 +118,18 @@ pub trait TokenStorageRepository: Send + Sync {
         owner_session_id: Uuid,
         github_installation_id: i64,
     ) -> Result<bool, CoreError>;
+
+    /// Revokes and zeros out encrypted tokens for all records matching a given GitHub installation ID across all tenant sessions.
+    ///
+    /// Primarily used for GitHub webhook `installation.deleted` and `installation.suspend` events.
+    /// Returns the count of installations revoked.
+    ///
+    /// # Errors
+    /// Returns [`CoreError`] on database error.
+    async fn revoke_all_by_installation_id(
+        &self,
+        github_installation_id: i64,
+    ) -> Result<u64, CoreError>;
 }
 
 /// Thread-safe in-memory implementation of [`TokenStorageRepository`].
@@ -327,6 +339,21 @@ impl TokenStorageRepository for InMemoryTokenStorage {
         let mut lock = self.records.write().await;
         let key = (owner_session_id, github_installation_id);
         Ok(lock.remove(&key).is_some())
+    }
+
+    async fn revoke_all_by_installation_id(
+        &self,
+        github_installation_id: i64,
+    ) -> Result<u64, CoreError> {
+        let mut lock = self.records.write().await;
+        let mut count = 0u64;
+        for ((_, inst_id), row) in lock.iter_mut() {
+            if *inst_id == github_installation_id && row.revoked_at.is_none() {
+                row.revoke();
+                count += 1;
+            }
+        }
+        Ok(count)
     }
 }
 
@@ -657,5 +684,34 @@ impl TokenStorageRepository for PostgresTokenStorageRepository {
         .map_err(|e| CoreError::Storage(format!("Failed to delete installation: {e}")))?;
 
         Ok(result.rows_affected() > 0)
+    }
+
+    async fn revoke_all_by_installation_id(
+        &self,
+        github_installation_id: i64,
+    ) -> Result<u64, CoreError> {
+        let result = sqlx::query(
+            r#"
+            UPDATE github_installations
+            SET
+                revoked_at = NOW(),
+                encrypted_token = NULL,
+                token_nonce = NULL,
+                token_expires_at = NULL,
+                updated_at = NOW()
+            WHERE github_installation_id = $1
+              AND revoked_at IS NULL
+            "#,
+        )
+        .bind(github_installation_id)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| {
+            CoreError::Storage(format!(
+                "Failed to revoke installations for {github_installation_id}: {e}"
+            ))
+        })?;
+
+        Ok(result.rows_affected())
     }
 }

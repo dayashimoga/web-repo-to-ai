@@ -1,10 +1,15 @@
 //! Data Transfer Objects (DTOs) and request/response models.
 
+pub mod github;
 pub mod jobs;
 pub mod params;
 pub mod query;
 pub mod sources;
 
+pub use github::{
+    InstallationPathParams, InstallationSummaryResponse, RevokeInstallationResponse,
+    WebhookReceiptResponse,
+};
 pub use jobs::{
     CreateJobRequest, JobPreviewResponse, JobResponse, JobStatus, PreviewFileItem, PreviewQuery,
     VALID_EXPORT_FORMATS, VALID_PREVIEW_FORMATS,

@@ -31,6 +31,7 @@ pub mod models;
 pub mod oauth;
 pub mod permissions;
 pub mod recovery;
+pub mod revocation;
 pub mod source;
 pub mod target;
 pub mod token_refresh;
@@ -113,6 +114,9 @@ pub use permissions::{
 pub use recovery::{
     scan_zip_archive, stitch_child_path, ArchiveFormat, SubtreeRecoveryConfig,
     SubtreeRecoveryReport, TreeStitcher,
+};
+pub use revocation::{
+    RevocationOutcome, RevocationSummary, TokenRevocationCoordinator, WebhookLifecycleAction,
 };
 pub use source::{
     compute_blake3_hash, compute_git_blob_sha, compute_sha256_hash, decode_base64,

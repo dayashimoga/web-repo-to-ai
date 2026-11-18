@@ -3,6 +3,7 @@
 //! Exposes the root service metadata, health/readiness endpoints, Prometheus metrics,
 //! and RFC 7807 fallback handlers.
 
+pub mod auth_github;
 pub mod health;
 pub mod jobs;
 pub mod metrics;
@@ -12,7 +13,7 @@ use crate::error::not_found_problem;
 use crate::state::AppState;
 use axum::extract::{Extension, OriginalUri, State};
 use axum::response::IntoResponse;
-use axum::routing::{get, post};
+use axum::routing::{delete, get, post};
 use axum::{Json, Router};
 use serde_json::json;
 use web_repo_to_ai_core::RequestId;
@@ -30,6 +31,8 @@ async fn root_handler(State(_state): State<AppState>) -> impl IntoResponse {
             "metrics": "/api/v1/metrics",
             "sources_detect": "/api/v1/sources/detect",
             "jobs": "/api/v1/jobs",
+            "auth_github_installations": "/api/v1/auth/github/installations",
+            "auth_github_webhook": "/api/v1/auth/github/webhook",
         }
     }))
 }
@@ -61,6 +64,18 @@ pub fn create_router(state: AppState) -> Router {
         .route(
             "/jobs/:job_id/artifacts/:format",
             get(jobs::get_artifact_handler),
+        )
+        .route(
+            "/auth/github/installations",
+            get(auth_github::list_installations_handler),
+        )
+        .route(
+            "/auth/github/installations/:installation_id",
+            delete(auth_github::revoke_installation_handler),
+        )
+        .route(
+            "/auth/github/webhook",
+            post(auth_github::github_webhook_handler),
         );
 
     Router::new()

@@ -387,3 +387,67 @@ async fn test_in_memory_token_storage_expiration_metadata() {
         .unwrap();
     assert!(revoked_exp.is_none());
 }
+
+#[tokio::test]
+async fn test_in_memory_token_storage_revoke_all_by_installation_id() {
+    let key = EncryptionKey::generate().unwrap();
+    let storage = InMemoryTokenStorage::new(key);
+
+    let session1 = Uuid::new_v4();
+    let session2 = Uuid::new_v4();
+    let session3 = Uuid::new_v4();
+
+    let target_install_id = 998811i64;
+    let other_install_id = 112233i64;
+
+    let expires = Utc::now() + Duration::hours(1);
+
+    // Save target installation across session 1 and session 2
+    storage
+        .save_installation_token(session1, target_install_id, "user-one", "token1", expires)
+        .await
+        .unwrap();
+    storage
+        .save_installation_token(session2, target_install_id, "user-two", "token2", expires)
+        .await
+        .unwrap();
+
+    // Save other installation in session 3
+    storage
+        .save_installation_token(session3, other_install_id, "user-three", "token3", expires)
+        .await
+        .unwrap();
+
+    // Revoke all for target_install_id
+    let count = storage
+        .revoke_all_by_installation_id(target_install_id)
+        .await
+        .unwrap();
+    assert_eq!(count, 2);
+
+    // Sessions 1 & 2 active tokens should now be None
+    assert!(storage
+        .get_active_token(session1, target_install_id)
+        .await
+        .unwrap()
+        .is_none());
+    assert!(storage
+        .get_active_token(session2, target_install_id)
+        .await
+        .unwrap()
+        .is_none());
+
+    // Session 3 must still be active
+    let active3 = storage
+        .get_active_token(session3, other_install_id)
+        .await
+        .unwrap();
+    assert_eq!(active3, Some("token3".to_string()));
+
+    // Idempotent secondary call should revoke 0 rows
+    let count_again = storage
+        .revoke_all_by_installation_id(target_install_id)
+        .await
+        .unwrap();
+    assert_eq!(count_again, 0);
+}

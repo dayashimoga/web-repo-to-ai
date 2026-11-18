@@ -33,7 +33,7 @@ mod tests {
     use http_body_util::BodyExt;
     use tower::ServiceExt;
     use web_repo_to_ai_core::AppConfig;
-    use web_repo_to_ai_storage::StorageBackend;
+    use web_repo_to_ai_storage::{StorageBackend, TokenStorageRepository};
 
     fn setup_test_app() -> axum::Router {
         let config = AppConfig::default();
@@ -1160,5 +1160,383 @@ mod tests {
             .as_str()
             .unwrap()
             .contains("println!"));
+    }
+
+    #[tokio::test]
+    async fn test_list_installations_missing_session_rejected() {
+        let app = setup_test_app();
+        let req = Request::builder()
+            .uri("/api/v1/auth/github/installations")
+            .method("GET")
+            .body(Body::empty())
+            .unwrap();
+
+        let res = app.oneshot(req).await.unwrap();
+        assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+        let body = body_to_string(res.into_body()).await;
+        assert!(body.contains("VALIDATION_ERROR"));
+        assert!(body.contains("X-Session-ID"));
+    }
+
+    #[tokio::test]
+    async fn test_list_installations_success() {
+        let key = web_repo_to_ai_core::crypto::EncryptionKey::generate().unwrap();
+        let token_storage =
+            std::sync::Arc::new(web_repo_to_ai_storage::InMemoryTokenStorage::new(key));
+
+        let session_id = uuid::Uuid::new_v4();
+        let install_id = 12345678i64;
+        let expires = chrono::Utc::now() + chrono::Duration::hours(2);
+
+        token_storage
+            .save_installation_token(session_id, install_id, "octo-org", "ghs_Secret123", expires)
+            .await
+            .unwrap();
+
+        let config = AppConfig::default();
+        let state = AppState::new(config).with_token_storage(token_storage);
+        let app = build_app(state);
+
+        let req = Request::builder()
+            .uri("/api/v1/auth/github/installations")
+            .method("GET")
+            .header("X-Session-ID", session_id.to_string())
+            .body(Body::empty())
+            .unwrap();
+
+        let res = app.oneshot(req).await.unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+        let body = body_to_string(res.into_body()).await;
+        let list: serde_json::Value = serde_json::from_str(&body).unwrap();
+        let arr = list.as_array().unwrap();
+        assert_eq!(arr.len(), 1);
+        assert_eq!(arr[0]["installation_id"], install_id);
+        assert_eq!(arr[0]["account_login"], "octo-org");
+        assert_eq!(arr[0]["is_revoked"], false);
+        // Zero secret leakage check
+        assert!(!body.contains("ghs_Secret123"));
+    }
+
+    #[tokio::test]
+    async fn test_revoke_installation_success() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        let upstream_called = std::sync::Arc::new(AtomicUsize::new(0));
+        let count_clone = upstream_called.clone();
+
+        // Mock GitHub DELETE /installation/token endpoint
+        let mock_gh = axum::Router::new().route(
+            "/installation/token",
+            axum::routing::delete(move || {
+                let count = count_clone.clone();
+                async move {
+                    count.fetch_add(1, Ordering::SeqCst);
+                    StatusCode::NO_CONTENT
+                }
+            }),
+        );
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        tokio::spawn(async move {
+            axum::serve(listener, mock_gh).await.unwrap();
+        });
+
+        let key = web_repo_to_ai_core::crypto::EncryptionKey::generate().unwrap();
+        let token_storage =
+            std::sync::Arc::new(web_repo_to_ai_storage::InMemoryTokenStorage::new(key));
+        let session_id = uuid::Uuid::new_v4();
+        let install_id = 998877i64;
+        let expires = chrono::Utc::now() + chrono::Duration::hours(1);
+
+        token_storage
+            .save_installation_token(
+                session_id,
+                install_id,
+                "revoke-target",
+                "ghs_ToRevoke",
+                expires,
+            )
+            .await
+            .unwrap();
+
+        let gh_client = std::sync::Arc::new(
+            web_repo_to_ai_github_extractor::client::GitHubApiClient::new()
+                .with_base_url_override(format!("http://{addr}")),
+        );
+
+        let config = AppConfig::default();
+        let state = AppState::new(config)
+            .with_token_storage(token_storage.clone())
+            .with_github_client(gh_client);
+        let app = build_app(state);
+
+        let req = Request::builder()
+            .uri(format!("/api/v1/auth/github/installations/{install_id}"))
+            .method("DELETE")
+            .header("X-Session-ID", session_id.to_string())
+            .body(Body::empty())
+            .unwrap();
+
+        let res = app.oneshot(req).await.unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+        let body = body_to_string(res.into_body()).await;
+        let parsed: serde_json::Value = serde_json::from_str(&body).unwrap();
+        assert_eq!(parsed["status"], "revoked");
+        assert_eq!(parsed["installation_id"], install_id);
+        assert_eq!(parsed["upstream_revoked"], true);
+        assert_eq!(upstream_called.load(Ordering::SeqCst), 1);
+
+        // Verify active token is now None
+        assert!(token_storage
+            .get_active_token(session_id, install_id)
+            .await
+            .unwrap()
+            .is_none());
+    }
+
+    #[tokio::test]
+    async fn test_revoke_installation_not_found() {
+        let app = setup_test_app();
+        let session_id = uuid::Uuid::new_v4();
+        let req = Request::builder()
+            .uri("/api/v1/auth/github/installations/99999999")
+            .method("DELETE")
+            .header("X-Session-ID", session_id.to_string())
+            .body(Body::empty())
+            .unwrap();
+
+        let res = app.oneshot(req).await.unwrap();
+        assert_eq!(res.status(), StatusCode::NOT_FOUND);
+        let body = body_to_string(res.into_body()).await;
+        assert!(body.contains("RESOURCE_NOT_FOUND"));
+    }
+
+    #[tokio::test]
+    async fn test_revoke_installation_cross_session_isolation() {
+        let key = web_repo_to_ai_core::crypto::EncryptionKey::generate().unwrap();
+        let token_storage =
+            std::sync::Arc::new(web_repo_to_ai_storage::InMemoryTokenStorage::new(key));
+
+        let victim_session = uuid::Uuid::new_v4();
+        let attacker_session = uuid::Uuid::new_v4();
+        let install_id = 554433i64;
+        let expires = chrono::Utc::now() + chrono::Duration::hours(1);
+
+        token_storage
+            .save_installation_token(
+                victim_session,
+                install_id,
+                "victim",
+                "ghs_VictimToken",
+                expires,
+            )
+            .await
+            .unwrap();
+
+        let config = AppConfig::default();
+        let state = AppState::new(config).with_token_storage(token_storage.clone());
+        let app = build_app(state);
+
+        // Attacker attempts to delete victim's installation
+        let req = Request::builder()
+            .uri(format!("/api/v1/auth/github/installations/{install_id}"))
+            .method("DELETE")
+            .header("X-Session-ID", attacker_session.to_string())
+            .body(Body::empty())
+            .unwrap();
+
+        let res = app.oneshot(req).await.unwrap();
+        assert_eq!(res.status(), StatusCode::NOT_FOUND);
+
+        // Victim token must remain active and unaffected
+        assert!(token_storage
+            .get_active_token(victim_session, install_id)
+            .await
+            .unwrap()
+            .is_some());
+    }
+
+    #[tokio::test]
+    async fn test_github_webhook_missing_signature_rejected() {
+        let config = AppConfig::default();
+        let state = AppState::new(config).with_webhook_secret("test_secret");
+        let app = build_app(state);
+
+        let req = Request::builder()
+            .uri("/api/v1/auth/github/webhook")
+            .method("POST")
+            .header("X-GitHub-Event", "ping")
+            .body(Body::from(r#"{"zen":"test"}"#))
+            .unwrap();
+
+        let res = app.oneshot(req).await.unwrap();
+        assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+        let body = body_to_string(res.into_body()).await;
+        assert!(body.contains("X-Hub-Signature-256"));
+    }
+
+    #[tokio::test]
+    async fn test_github_webhook_invalid_signature_rejected() {
+        let config = AppConfig::default();
+        let state = AppState::new(config).with_webhook_secret("super_secret_key");
+        let app = build_app(state);
+
+        let req = Request::builder()
+            .uri("/api/v1/auth/github/webhook")
+            .method("POST")
+            .header(
+                "X-Hub-Signature-256",
+                "sha256=0000000000000000000000000000000000000000000000000000000000000000",
+            )
+            .header("X-GitHub-Event", "ping")
+            .body(Body::from(r#"{"zen":"test"}"#))
+            .unwrap();
+
+        let res = app.oneshot(req).await.unwrap();
+        assert_eq!(res.status(), StatusCode::FORBIDDEN);
+        let body = body_to_string(res.into_body()).await;
+        assert!(
+            body.contains("SSRF_ADDRESS_BLOCKED")
+                || body.contains("Security")
+                || body.contains("Webhook verification failed")
+        );
+    }
+
+    #[tokio::test]
+    async fn test_github_webhook_installation_deleted_synchronization() {
+        let secret = "test_webhook_sync_secret";
+        let key = web_repo_to_ai_core::crypto::EncryptionKey::generate().unwrap();
+        let token_storage =
+            std::sync::Arc::new(web_repo_to_ai_storage::InMemoryTokenStorage::new(key));
+
+        let session1 = uuid::Uuid::new_v4();
+        let session2 = uuid::Uuid::new_v4();
+        let install_id = 887766i64;
+        let expires = chrono::Utc::now() + chrono::Duration::hours(1);
+
+        token_storage
+            .save_installation_token(session1, install_id, "deleted-account", "token_a", expires)
+            .await
+            .unwrap();
+        token_storage
+            .save_installation_token(session2, install_id, "deleted-account", "token_b", expires)
+            .await
+            .unwrap();
+
+        let config = AppConfig::default();
+        let state = AppState::new(config)
+            .with_token_storage(token_storage.clone())
+            .with_webhook_secret(secret);
+        let app = build_app(state);
+
+        let installation = web_repo_to_ai_github_extractor::installation::GitHubInstallation {
+            id: install_id as u64,
+            account: web_repo_to_ai_github_extractor::installation::GitHubAccountSummary {
+                id: 1122,
+                login: "deleted-account".to_string(),
+                account_type: "User".to_string(),
+                avatar_url: None,
+                html_url: None,
+            },
+            repository_selection:
+                web_repo_to_ai_github_extractor::installation::RepositorySelection::All,
+            access_tokens_url: "".to_string(),
+            repositories_url: "".to_string(),
+            html_url: "".to_string(),
+            app_id: 42,
+            app_slug: Some("web-repo-to-ai".to_string()),
+            target_id: 1122,
+            target_type: "User".to_string(),
+            permissions: Default::default(),
+            events: vec![],
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+            suspended_at: None,
+            suspended_by: None,
+        };
+        let payload = serde_json::json!({
+            "action": "deleted",
+            "installation": installation,
+        });
+        let body_bytes = serde_json::to_vec(&payload).unwrap();
+        let sig = web_repo_to_ai_github_extractor::callback::WebhookSignatureVerifier::compute_signature_header(
+            secret.as_bytes(),
+            &body_bytes,
+        );
+
+        let req = Request::builder()
+            .uri("/api/v1/auth/github/webhook")
+            .method("POST")
+            .header("X-Hub-Signature-256", sig)
+            .header("X-GitHub-Event", "installation")
+            .header("X-GitHub-Delivery", uuid::Uuid::new_v4().to_string())
+            .body(Body::from(body_bytes))
+            .unwrap();
+
+        let res = app.oneshot(req).await.unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+        let body = body_to_string(res.into_body()).await;
+        let parsed: serde_json::Value = serde_json::from_str(&body).unwrap();
+        assert_eq!(parsed["status"], "processed");
+        assert_eq!(parsed["installation_id"], install_id);
+        assert_eq!(parsed["revoked_count"], 2);
+
+        // Verify tokens are now wiped for both sessions
+        assert!(token_storage
+            .get_active_token(session1, install_id)
+            .await
+            .unwrap()
+            .is_none());
+        assert!(token_storage
+            .get_active_token(session2, install_id)
+            .await
+            .unwrap()
+            .is_none());
+    }
+
+    #[tokio::test]
+    async fn test_github_webhook_replay_rejected() {
+        let secret = "replay_defense_secret";
+        let config = AppConfig::default();
+        let state = AppState::new(config).with_webhook_secret(secret);
+        let app = build_app(state);
+
+        let payload = serde_json::json!({
+            "zen": "Replay test",
+            "hook_id": 9988
+        });
+        let body_bytes = serde_json::to_vec(&payload).unwrap();
+        let sig = web_repo_to_ai_github_extractor::callback::WebhookSignatureVerifier::compute_signature_header(
+            secret.as_bytes(),
+            &body_bytes,
+        );
+        let delivery_id = uuid::Uuid::new_v4().to_string();
+
+        // First delivery: OK
+        let req1 = Request::builder()
+            .uri("/api/v1/auth/github/webhook")
+            .method("POST")
+            .header("X-Hub-Signature-256", &sig)
+            .header("X-GitHub-Event", "ping")
+            .header("X-GitHub-Delivery", &delivery_id)
+            .body(Body::from(body_bytes.clone()))
+            .unwrap();
+
+        let res1 = app.clone().oneshot(req1).await.unwrap();
+        assert_eq!(res1.status(), StatusCode::OK);
+
+        // Second delivery (replay): Forbidden
+        let req2 = Request::builder()
+            .uri("/api/v1/auth/github/webhook")
+            .method("POST")
+            .header("X-Hub-Signature-256", &sig)
+            .header("X-GitHub-Event", "ping")
+            .header("X-GitHub-Delivery", &delivery_id)
+            .body(Body::from(body_bytes))
+            .unwrap();
+
+        let res2 = app.oneshot(req2).await.unwrap();
+        assert_eq!(res2.status(), StatusCode::FORBIDDEN);
+        let body2 = body_to_string(res2.into_body()).await;
+        assert!(body2.contains("replay") || body2.contains("Duplicate"));
     }
 }

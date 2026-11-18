@@ -6,6 +6,32 @@
 
 ## [Unreleased] — Stage 6: Private GitHub Repositories
 
+### 2026-11-18 — Phase 6.2: Credential management (`6.2.3`)
+
+#### Added
+- **`[6.2.3]` Upstream Revocation, Coordinated Zeroization & Webhook Synchronization in `crates/github-extractor`, `crates/storage`, and `services/api`:**
+  - Added upstream token revocation API to `GitHubApiClient` in `crates/github-extractor/src/client.rs`:
+    - `revoke_installation_access_token(&self, installation_token: &str) -> Result<(), GitHubExtractorError>` calling GitHub REST API `DELETE /installation/token` with idempotent handling of HTTP 204 No Content, HTTP 401 Unauthorized, and HTTP 404 Not Found.
+  - Implemented token revocation coordinator and webhook lifecycle handling in `crates/github-extractor/src/revocation.rs`:
+    - `RevocationOutcome`: Enum tracking `Success`, `UpstreamAlreadyRevoked`, `UpstreamFailed`, `StorageRevocationFailed`, and `PartialRevocation`.
+    - `RevocationSummary`: Serialized summary capturing `installation_id`, `tokens_revoked`, `storage_records_revoked`, `cache_entries_evicted`, `upstream_outcome`, and timestamp.
+    - `WebhookLifecycleAction`: Lifecycle discriminator (`RevokeAndPurge`, `Ignore`) for webhook event payloads (`installation.deleted` and `installation.suspend`).
+    - `TokenRevocationCoordinator`: Central engine orchestrating upstream GitHub token revocation, local ciphertext storage zeroization, and in-memory cache eviction across sessions.
+  - Extended repository and in-memory caches:
+    - Added `revoke_all_by_installation_id` to `TokenStorageRepository` trait, `InMemoryTokenStorage`, and `PostgresTokenStorageRepository` in `crates/storage/src/token_storage.rs`.
+    - Added `revoke_all_for_installation` to `InstallationTokenStore` and `InMemoryInstallationTokenStore` in `crates/github-extractor/src/token_refresh.rs`.
+  - Implemented REST API routes and handlers in `services/api`:
+    - Extended `AppState` with `token_storage: Arc<dyn TokenStorageRepository>`, `github_client: Arc<GitHubApiClient>`, and `webhook_tracker: Arc<Mutex<InMemoryWebhookDeliveryTracker>>`.
+    - Created DTO models in `services/api/src/dto/github.rs` (`InstallationPathParams`, `RevokeInstallationResponse`, `InstallationSummaryResponse` with zero secret leakage, `WebhookReceiptResponse`).
+    - Implemented `GET /api/v1/auth/github/installations`: Tenant session-scoped installation listing via `X-Session-ID` returning public metadata without exposing ciphertext, keys, or nonces.
+    - Implemented `DELETE /api/v1/auth/github/installations/:installation_id`: Tenant-scoped credential revocation enforcing session ownership, invoking upstream revocation, and purging storage records.
+    - Implemented `POST /api/v1/auth/github/webhook`: Secure webhook ingestion verifying constant-time HMAC-SHA256 signatures, defending against replay attacks, and automatically zeroing storage upon `installation.deleted` and `installation.suspend` events.
+  - Authored comprehensive test coverage:
+    - 7 new integration tests in `crates/github-extractor/tests/revocation_test.rs` testing upstream deletion, idempotent 401/404, server error handling, coordinator workflows, and webhook payload parsing.
+    - 1 new integration test in `crates/storage/tests/token_storage_test.rs` testing multi-session installation credential purging.
+    - 10 new API integration tests in `services/api/src/lib.rs` verifying listing, cross-session isolation, tenant-scoped revocation, 404 handling, webhook signature validation, webhook installation deleted purging, and replay rejection.
+  - Verified 55/55 API tests, 193/193 extractor tests, 66/66 storage tests, zero clippy warnings, zero fmt diffs, and 100% passing gates across all 5 checks in `scripts/check-all.ps1`.
+
 ### 2026-11-18 — Phase 6.2: Credential management (`6.2.2`)
 
 #### Added

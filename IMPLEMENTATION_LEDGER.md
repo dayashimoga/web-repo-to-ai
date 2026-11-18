@@ -5468,13 +5468,76 @@
 
 ---
 
+#### Subphase `6.2.3` — Revocation in crates/github-extractor & services/api
+- **Unique ID:** `6.2.3`
+- **Objective:** Implement upstream GitHub App installation access token revocation (`DELETE /installation/token`), coordinated local credential storage zeroization and in-memory cache eviction, webhook-driven installation deletion and suspension event handling, and REST API revocation endpoints in `services/api`.
+- **Scope:** `crates/github-extractor/src/client.rs`, `crates/github-extractor/src/revocation.rs`, `crates/github-extractor/src/lib.rs`, `services/api/src/state.rs`, `services/api/src/routes/auth_github.rs`, `services/api/src/routes/mod.rs`, `services/api/src/dto/github.rs`, `services/api/src/dto/mod.rs`, `crates/github-extractor/tests/revocation_test.rs`, and `services/api/tests/github_auth_test.rs`.
+- **Prerequisites:** `6.2.2` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/github-extractor/src/client.rs` (add `revoke_installation_access_token`)
+  - `crates/github-extractor/src/revocation.rs` (create revocation outcome, coordinator, and webhook synchronization models)
+  - `crates/github-extractor/src/lib.rs` (re-export `revocation` module)
+  - `crates/github-extractor/tests/revocation_test.rs` (author comprehensive client & coordinator test suite)
+  - `services/api/Cargo.toml` (add `web-repo-to-ai-github-extractor` dependency)
+  - `services/api/src/state.rs` (integrate token storage and webhook tracker into `AppState`)
+  - `services/api/src/dto/github.rs` (define DTOs for revocation, installation listing, and webhook receipt)
+  - `services/api/src/dto/mod.rs` (export GitHub DTOs)
+  - `services/api/src/routes/auth_github.rs` (implement `DELETE /api/v1/auth/github/installations/:id`, `GET /api/v1/auth/github/installations`, and `POST /api/v1/auth/github/webhook`)
+  - `services/api/src/routes/mod.rs` (mount `/auth/github` routes)
+  - `services/api/src/lib.rs` (author API integration tests for revocation and webhook handlers)
+- **Implementation Tasks:**
+  1. Add `revoke_installation_access_token` to `GitHubApiClient` calling GitHub REST API `DELETE /installation/token` with idempotent success handling (HTTP 204 No Content, HTTP 401/404).
+  2. Implement `TokenRevocationCoordinator` in `crates/github-extractor/src/revocation.rs` managing coordinated upstream API revocation, local storage zeroization, and in-memory token cache eviction.
+  3. Implement webhook lifecycle synchronization in `crates/github-extractor/src/revocation.rs` responding to `installation.deleted` and `installation.suspend`.
+  4. Author integration tests in `crates/github-extractor/tests/revocation_test.rs` testing upstream revocation, idempotent handling, coordinator workflows, and webhook event synchronization with live Axum mock GitHub API.
+  5. Add `web-repo-to-ai-github-extractor` dependency to `services/api/Cargo.toml`.
+  6. Extend `AppState` in `services/api/src/state.rs` with `token_storage: Arc<dyn TokenStorageRepository>` and `webhook_tracker: Arc<Mutex<InMemoryWebhookDeliveryTracker>>`.
+  7. Create DTO models in `services/api/src/dto/github.rs` for revocation responses, installation summaries (zero secret leakage), and webhook receipts.
+  8. Implement Axum route handlers in `services/api/src/routes/auth_github.rs` for installation deletion/revocation, listing active installations with tenant session scoping via `X-Session-ID`, and verified GitHub webhook delivery.
+  9. Mount `/auth/github` endpoints in `services/api/src/routes/mod.rs`.
+  10. Author integration tests in `services/api/src/lib.rs` verifying the API endpoints, tenant isolation, error handling, and HMAC signature validation.
+  11. Run full verification suites (`cargo test`, `cargo clippy`, `cargo fmt`, `cargo deny check`, `scripts/check-all.ps1`).
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-github-extractor --test revocation_test`
+  - `cargo test -p web-repo-to-ai-api`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - Upstream token revocation `DELETE /installation/token` returns success on HTTP 204, and idempotently handles HTTP 401/404.
+  - Revoking an installation through coordinator or API completely wipes token ciphertext, clears memory caches, and sets `is_revoked = true`.
+  - Webhook delivery of `installation.deleted` or `installation.suspend` with valid HMAC signature automatically revokes corresponding installation credentials.
+  - Installation listing API returns zero secrets (no plaintext token, no ciphertext, no nonces).
+  - Cross-tenant revocation is rejected (sessions cannot revoke other sessions' installations).
+  - All workspace tests pass, clippy is warning-free, and monorepo quality gates pass.
+- **Risk Analysis:**
+  - Risk: Active extraction jobs continuing to use credentials after user or admin revocation; webhook signature spoofing or replay attacks.
+  - Mitigation: Cache eviction immediately invalidates token in memory; constant-time HMAC-SHA256 signature verification and delivery GUID sliding-window deduplication defense.
+- **Rollback Plan:**
+  - Revert changes via Git reset to commit `92b6c65`.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-github-extractor --test revocation_test`: 7/7 tests passed in 0.05s.
+  - `cargo test -p web-repo-to-ai-storage --test token_storage_test`: 11/11 tests passed in 0.02s.
+  - `cargo test -p web-repo-to-ai-api`: 55/55 tests passed (54 lib unit/integration + 1 binary test) including 10 new GitHub auth/revocation/webhook tests.
+  - `cargo test -p web-repo-to-ai-github-extractor`: 193/193 tests passed (28 unit + 165 integration + 1 doc test).
+  - `cargo test -p web-repo-to-ai-storage`: 66/66 tests passed (55 unit + 11 integration).
+  - `cargo clippy --workspace --all-targets -- -D warnings`: passed with 0 warnings.
+  - `cargo fmt --all -- --check`: verified clean formatting with 0 diffs.
+  - `cargo deny check`: passed (advisories ok, bans ok, licenses ok, sources ok).
+  - `powershell scripts/check-all.ps1`: completed with `ALL GATES PASSED (0 failures)` (all 5 gates passed: Bootstrap & Governance, Workflow Validation, Rust Workspace, Frontend Web [213 vitest passed], Resource Budget & 30 GB Storage Ceiling [5.27 GB / 30 GB, 17.6%]).
+- **Git Commit Reference:** `5b81912`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 6 — Private GitHub Repositories)
 
 #### Phase 6.2 — Credential management
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `6.2.3` | Revocation | `6.2.2` (`ACCEPTED`) | `crates/github-extractor/*`, `services/api/*` | `NOT_STARTED` |
+| `6.2.4` | Secret redaction | `6.2.3` (`ACCEPTED`) | `crates/observability/*`, `crates/github-extractor/*` | `NOT_STARTED` |
 
 ---
 
