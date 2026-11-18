@@ -28,6 +28,8 @@ bytes = { workspace = true }
 sha2 = { workspace = true }
 sha1 = { workspace = true }
 blake3 = { workspace = true }
+uuid = { workspace = true, features = ["v4", "v7", "serde"] }
+ring = { version = "0.17", default-features = false }
 zip = { version = "9.6", default-features = false, features = ["deflate"] }
 
 [dev-dependencies]

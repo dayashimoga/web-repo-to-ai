@@ -14,6 +14,7 @@ use serde::Deserialize;
 use tracing::{debug, info, warn};
 
 use crate::accounting::{FileAccountingAuditor, FileAccountingBalanceSheet};
+use crate::app_manifest::GitHubAppPermissions;
 use crate::architecture::RepoArchitectureContext;
 use crate::classification::{ClassifiedFile, TreeClassificationReport};
 use crate::code_review::{CodeReviewPackage, CodeReviewPackageConfig};
@@ -26,11 +27,16 @@ use crate::documentation::{DocExtractionReport, ExtractedDocFile};
 use crate::error::{redact_secrets, GitHubExtractorError};
 use crate::exclusion::{ExclusionAuditReport, ExclusionReportGenerator};
 use crate::hash_validator::{ContentHashValidator, HashValidationConfig, HashValidationReport};
+use crate::installation::{
+    GitHubInstallation, GitHubInstallationToken, InstallationRepositoriesResponse,
+    UserInstallationsResponse,
+};
 use crate::manifest::RepoFileManifest;
 use crate::metadata::{
     GitHubLanguages, GitHubLicense, GitHubRepoContext, GitHubRepositoryMetadata,
 };
 use crate::models::{GitHubBranch, GitHubRateLimit, GitHubTag, RefDiscoveryReport};
+use crate::oauth::{GitHubOAuthErrorResponse, GitHubOAuthTokenResponse};
 use crate::recovery::{
     scan_zip_archive, ArchiveFormat, SubtreeRecoveryConfig, SubtreeRecoveryReport, TreeStitcher,
 };
@@ -1738,6 +1744,196 @@ impl GitHubApiClient {
                 pinned_sha,
             )
         }
+    }
+
+    /// Exchanges an OAuth temporary authorization code for user access tokens (`POST /login/oauth/access_token`).
+    pub async fn exchange_oauth_code(
+        &self,
+        client_id: &str,
+        client_secret: &str,
+        code: &str,
+        redirect_uri: Option<&str>,
+    ) -> Result<GitHubOAuthTokenResponse, GitHubExtractorError> {
+        let base = self
+            .base_url_override
+            .as_deref()
+            .unwrap_or("https://github.com");
+        let url = format!("{}/login/oauth/access_token", base.trim_end_matches('/'));
+
+        let mut payload = serde_json::json!({
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "code": code,
+        });
+
+        if let Some(uri) = redirect_uri {
+            payload["redirect_uri"] = serde_json::Value::String(uri.to_string());
+        }
+
+        let mut headers = self.prepare_headers();
+        headers.insert(ACCEPT, HeaderValue::from_static("application/json"));
+
+        let req = self.client.post(&url).headers(headers).json(&payload);
+
+        let (res, _) = self.execute_request(req, &url).await?;
+        let text = res
+            .text()
+            .await
+            .map_err(|e| GitHubExtractorError::RequestFailed(redact_secrets(&e.to_string())))?;
+
+        // Check if GitHub returned an OAuth error object
+        if let Ok(err_resp) = serde_json::from_str::<GitHubOAuthErrorResponse>(&text) {
+            if !err_resp.error.is_empty() {
+                return Err(GitHubExtractorError::BadCredentials {
+                    message: format!("{err_resp}"),
+                });
+            }
+        }
+
+        serde_json::from_str::<GitHubOAuthTokenResponse>(&text).map_err(|e| {
+            GitHubExtractorError::JsonDecodeError(format!(
+                "Failed to decode OAuth token response: {e}"
+            ))
+        })
+    }
+
+    /// Lists all GitHub App installations accessible to the authenticated user (`GET /user/installations`).
+    pub async fn list_user_installations(
+        &self,
+        user_access_token: &str,
+        page: Option<u32>,
+        per_page: Option<u32>,
+    ) -> Result<UserInstallationsResponse, GitHubExtractorError> {
+        let base = self
+            .base_url_override
+            .as_deref()
+            .unwrap_or("https://api.github.com");
+        let page_num = page.unwrap_or(1);
+        let per_page_num = per_page.unwrap_or(self.per_page as u32).min(100);
+        let url = format!("{base}/user/installations?page={page_num}&per_page={per_page_num}");
+
+        let mut headers = self.prepare_headers();
+        let auth_val = format!("Bearer {user_access_token}");
+        if let Ok(hv) = HeaderValue::from_str(&auth_val) {
+            headers.insert(AUTHORIZATION, hv);
+        }
+
+        let req = self.client.get(&url).headers(headers);
+        let (res, _) = self.execute_request(req, &url).await?;
+
+        res.json::<UserInstallationsResponse>().await.map_err(|e| {
+            GitHubExtractorError::JsonDecodeError(format!(
+                "Failed to decode user installations response: {e}"
+            ))
+        })
+    }
+
+    /// Retrieves details for a specific GitHub App installation using an App JWT (`GET /app/installations/{id}`).
+    pub async fn get_installation(
+        &self,
+        installation_id: u64,
+        app_jwt: &str,
+    ) -> Result<GitHubInstallation, GitHubExtractorError> {
+        let base = self
+            .base_url_override
+            .as_deref()
+            .unwrap_or("https://api.github.com");
+        let url = format!("{base}/app/installations/{installation_id}");
+
+        let mut headers = self.prepare_headers();
+        let auth_val = format!("Bearer {app_jwt}");
+        if let Ok(hv) = HeaderValue::from_str(&auth_val) {
+            headers.insert(AUTHORIZATION, hv);
+        }
+
+        let req = self.client.get(&url).headers(headers);
+        let (res, _) = self.execute_request(req, &url).await?;
+
+        res.json::<GitHubInstallation>().await.map_err(|e| {
+            GitHubExtractorError::JsonDecodeError(format!(
+                "Failed to decode installation response: {e}"
+            ))
+        })
+    }
+
+    /// Requests a short-lived installation access token for a GitHub App installation (`POST /app/installations/{id}/access_tokens`).
+    pub async fn create_installation_access_token(
+        &self,
+        installation_id: u64,
+        app_jwt: &str,
+        repositories: Option<&[String]>,
+        permissions: Option<&GitHubAppPermissions>,
+    ) -> Result<GitHubInstallationToken, GitHubExtractorError> {
+        let base = self
+            .base_url_override
+            .as_deref()
+            .unwrap_or("https://api.github.com");
+        let url = format!("{base}/app/installations/{installation_id}/access_tokens");
+
+        let mut headers = self.prepare_headers();
+        let auth_val = format!("Bearer {app_jwt}");
+        if let Ok(hv) = HeaderValue::from_str(&auth_val) {
+            headers.insert(AUTHORIZATION, hv);
+        }
+
+        let mut body = serde_json::json!({});
+        if let Some(repos) = repositories {
+            body["repositories"] = serde_json::json!(repos);
+        }
+        if let Some(perms) = permissions {
+            perms.validate()?;
+            body["permissions"] = serde_json::json!({
+                "contents": perms.contents.as_str(),
+                "metadata": perms.metadata.as_str(),
+            });
+        }
+
+        let mut req = self.client.post(&url).headers(headers);
+        if !body.as_object().unwrap().is_empty() {
+            req = req.json(&body);
+        }
+
+        let (res, _) = self.execute_request(req, &url).await?;
+
+        res.json::<GitHubInstallationToken>().await.map_err(|e| {
+            GitHubExtractorError::JsonDecodeError(format!(
+                "Failed to decode installation access token response: {e}"
+            ))
+        })
+    }
+
+    /// Lists all repositories accessible to an installation access token (`GET /installation/repositories`).
+    pub async fn list_installation_repositories(
+        &self,
+        installation_token: &str,
+        page: Option<u32>,
+        per_page: Option<u32>,
+    ) -> Result<InstallationRepositoriesResponse, GitHubExtractorError> {
+        let base = self
+            .base_url_override
+            .as_deref()
+            .unwrap_or("https://api.github.com");
+        let page_num = page.unwrap_or(1);
+        let per_page_num = per_page.unwrap_or(self.per_page as u32).min(100);
+        let url =
+            format!("{base}/installation/repositories?page={page_num}&per_page={per_page_num}");
+
+        let mut headers = self.prepare_headers();
+        let auth_val = format!("Bearer {installation_token}");
+        if let Ok(hv) = HeaderValue::from_str(&auth_val) {
+            headers.insert(AUTHORIZATION, hv);
+        }
+
+        let req = self.client.get(&url).headers(headers);
+        let (res, _) = self.execute_request(req, &url).await?;
+
+        res.json::<InstallationRepositoriesResponse>()
+            .await
+            .map_err(|e| {
+                GitHubExtractorError::JsonDecodeError(format!(
+                    "Failed to decode installation repositories response: {e}"
+                ))
+            })
     }
 }
 

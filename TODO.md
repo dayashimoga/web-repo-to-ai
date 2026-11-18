@@ -176,7 +176,7 @@
 
 ### Phase 6.1 — GitHub App
 - [x] **[6.1.1]** App configuration documentation & manifest in crates/github-extractor & docs/GITHUB_APP.md *(Completed 2026-11-18, GitHubAppManifest, GitHubAppManifestGenerator, GitHubAppPermissions with strict read-only Rule 05 enforcement, GitHubAppConfig with PEM validation and secret masking, docs/GITHUB_APP.md publication-grade architecture runbook, 10 integration tests, 138 crate tests, 511 workspace tests, 100% passing quality gates)*
-- [ ] **[6.1.2]** OAuth & installation flow in crates/github-extractor
+- [x] **[6.1.2]** OAuth & installation flow in crates/github-extractor *(Completed 2026-11-18, OAuthState with BLAKE3 nonces & constant_time_eq, InMemoryOAuthStateStore with single-use replay protection & TTL pruning, authorization & installation URL builders, GitHubOAuthTokenResponse/GitHubOAuthErrorResponse, RS256 JWT generator using ring with PKCS#1 and PKCS#8 keys, installation domain models with secret masking in Debug/Display, GitHubApiClient methods for code exchange, user installations, App JWT installation lookup, installation access token minting, and installation repositories query, 10 integration tests, 148 crate tests, 521 workspace tests, 100% passing quality gates)*
 - [ ] **[6.1.3]** Minimum permissions in crates/github-extractor
 - [ ] **[6.1.4]** Callback security in crates/github-extractor
 

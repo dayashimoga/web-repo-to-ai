@@ -16,8 +16,8 @@
 | **STAGE 2** | Backend & Processing Foundation | Operational Rust Axum API, PostgreSQL job leasing, and artifact storage | `2.1` – `2.4` | 15 (`2.1.1` – `2.4.4`) | `COMPLETED` / `ACCEPTED` |
 | **STAGE 3** | Universal Webpage Extraction | SSRF-guarded HTTP static & Playwright dynamic URL-to-clean-content extraction | `3.1` – `3.4` | 16 (`3.1.1` – `3.4.4`) | `COMPLETED` / `ACCEPTED` |
 | **STAGE 4** | Canonical Model & Export Engine | Versioned CDM (`v1.0`), Markdown/TXT/JSON/HTML/JSONL/ZIP exporters, and end-to-end web integration | `4.1` – `4.4` | 16 (`4.1.1` – `4.4.4`) | `COMPLETED` / `ACCEPTED` |
-| **STAGE 5** | Public GitHub Repository Extraction | Complete public GitHub repo conversion with 100% file completeness accounting | `5.1` – `5.5` | 20 (5 completed) | `IN_PROGRESS` |
-| **STAGE 6** | Private GitHub Repositories | Secure read-only GitHub App integration, encrypted tokens, and tenant isolation | `6.1` – `6.4` | 16 (`6.1.1` – `6.4.4`) | `NOT_STARTED` |
+| **STAGE 5** | Public GitHub Repository Extraction | Complete public GitHub repo conversion with 100% file completeness accounting | `5.1` – `5.5` | 20 (`5.1.1` – `5.5.4`) | `COMPLETED` / `ACCEPTED` |
+| **STAGE 6** | Private GitHub Repositories | Secure read-only GitHub App integration, encrypted tokens, and tenant isolation | `6.1` – `6.4` | 16 (`6.1.1` – `6.4.4`) | `IN_PROGRESS` |
 | **STAGE 7** | AI Context & Token Optimization | Structural normalization, deduplication, exact/estimated tokenizers, and context profiles | `7.1` – `7.4` | 16 (`7.1.1` – `7.4.4`) | `NOT_STARTED` |
 | **STAGE 8** | Large Repositories, Batch & Crawling | Multi-URL batching, bounded crawling, content-addressed caching, and streaming scale | `8.1` – `8.4` | 16 (`8.1.1` – `8.4.4`) | `NOT_STARTED` |
 | **STAGE 9** | Developer & AI Agent Integrations | Authenticated REST API, Rust CLI, MCP server, and browser extension foundation | `9.1` – `9.4` | 16 (`9.1.1` – `9.4.4`) | `NOT_STARTED` |
@@ -80,7 +80,7 @@
 - **Phase 5.5 — Integrity:** `5.5.1` Expected-vs-actual file accounting (`ACCEPTED`) | `5.5.2` Content hash validation (`ACCEPTED`) | `5.5.3` Missing & excluded file reports (`ACCEPTED`) | `5.5.4` Large repository regression tests (`ACCEPTED` — **PHASE 5.5 & STAGE 5 CERTIFIED**)
 
 ### STAGE 6 — PRIVATE GITHUB REPOSITORIES
-- **Phase 6.1 — GitHub App:** `6.1.1` App configuration documentation (`ACCEPTED`) | `6.1.2` OAuth & installation flow (`NEXT`) | `6.1.3` Minimum permissions | `6.1.4` Callback security
+- **Phase 6.1 — GitHub App:** `6.1.1` App configuration documentation (`ACCEPTED`) | `6.1.2` OAuth & installation flow (`ACCEPTED`) | `6.1.3` Minimum permissions (`NEXT`) | `6.1.4` Callback security
 - **Phase 6.2 — Credential management:** `6.2.1` Secure token storage | `6.2.2` Token refresh & expiration | `6.2.3` Revocation | `6.2.4` Secret redaction
 - **Phase 6.3 — Private extraction:** `6.3.1` Installation authorization | `6.3.2` Selected repository access | `6.3.3` Private tree & source extraction | `6.3.4` Authorization failure recovery
 - **Phase 6.4 — Security verification:** `6.4.1` Cross-user isolation | `6.4.2` Unauthorized repository access tests | `6.4.3` Token leakage tests | `6.4.4` Permission audit

@@ -6,6 +6,30 @@
 
 ## [Unreleased] — Stage 6: Private GitHub Repositories
 
+### 2026-11-18 — Phase 6.1: GitHub App (`6.1.2`)
+
+#### Added
+- **`[6.1.2]` OAuth & Installation Flow in `crates/github-extractor`:**
+  - Implemented cryptographic OAuth state management and CSRF defense in `crates/github-extractor/src/oauth.rs`:
+    - `OAuthState`: 256-bit BLAKE3-hashed high-entropy nonce, timestamps, user ID, session ID, tenant ID, and redirect URI binding with constant-time equality check (`constant_time_eq`) preventing timing side-channel attacks.
+    - `OAuthStateStore` trait and `InMemoryOAuthStateStore`: single-use token consumption preventing replay attacks, coupled with thread-safe timestamp-based expired state pruning.
+    - URL builders: `build_oauth_authorize_url` and `build_app_installation_url` with strict query parameter encoding.
+    - Server-side OAuth code exchange models: `GitHubOAuthTokenResponse` and `GitHubOAuthErrorResponse` with custom `Debug` and `Display` masking sensitive token values with `***[REDACTED_SECRET]***`.
+    - Pure Rust RFC 7515 URL-safe base64 encoding (`base64url_encode`).
+    - RFC 7519 RS256 JWT generator (`generate_app_jwt`, `generate_app_jwt_at_time`) utilizing `ring::signature::RsaKeyPair` with PKCS#1 v1.5 SHA-256; features automatic PKCS#1 DER wrapping into standard RFC 5208 ASN.1 `PrivateKeyInfo` (`pkcs1_to_pkcs8_der`) supporting both `BEGIN RSA PRIVATE KEY` and `BEGIN PRIVATE KEY` PEM formats without Marvin timing side-channel vulnerabilities (`RUSTSEC-2023-0071`).
+  - Implemented GitHub App installation domain models in `crates/github-extractor/src/installation.rs`:
+    - `RepositorySelection` (`All`, `Selected`), `GitHubAccountSummary`, `GitHubInstallation`, `InstalledRepositorySummary`, `UserInstallationsResponse`, and `InstallationRepositoriesResponse`.
+    - `GitHubInstallationToken`: short-lived installation access token model with custom `Debug`/`Display` secret redaction, `is_expired()`, and `is_expiring_soon(buffer)`.
+  - Extended `GitHubApiClient` in `crates/github-extractor/src/client.rs`:
+    - `exchange_oauth_code`: exchanges temporary authorization codes for user access tokens (`POST /login/oauth/access_token`).
+    - `list_user_installations`: retrieves GitHub App installations accessible to the authenticated user (`GET /user/installations`).
+    - `get_installation`: retrieves installation details via App JWT (`GET /app/installations/{id}`).
+    - `create_installation_access_token`: mints short-lived scoped installation access tokens (`POST /app/installations/{id}/access_tokens`).
+    - `list_installation_repositories`: enumerates repositories accessible to an installation token (`GET /installation/repositories`).
+  - Authored 10 integration test suites in `crates/github-extractor/tests/oauth_installation_test.rs`:
+    - Validating nonce generation and constant-time matching, store single-use replay defense, session binding, TTL expiration, URL builders, secret masking in `Debug` and `Display`, RS256 JWT generation with PKCS#1 and PKCS#8 private keys, and live in-process Axum mock HTTP server integration for code exchange and token minting.
+  - Verified 521 passing workspace Rust tests (148 in `crates/github-extractor`), 213 frontend tests, zero clippy warnings, zero fmt diffs, and 100% passing gates across all 5 checks in `scripts/check-all.ps1`.
+
 ### 2026-11-18 — Phase 6.1: GitHub App (`6.1.1`)
 
 #### Added

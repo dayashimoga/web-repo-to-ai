@@ -23,9 +23,11 @@ pub mod documentation;
 pub mod error;
 pub mod exclusion;
 pub mod hash_validator;
+pub mod installation;
 pub mod manifest;
 pub mod metadata;
 pub mod models;
+pub mod oauth;
 pub mod recovery;
 pub mod source;
 pub mod target;
@@ -80,9 +82,20 @@ pub use hash_validator::{
     ContentHashValidator, HashAlgorithm, HashCheckMetric, HashValidationConfig,
     HashValidationFailure, HashValidationReport,
 };
+pub use installation::{
+    GitHubAccountSummary, GitHubInstallation, GitHubInstallationToken,
+    InstallationRepositoriesResponse, InstalledRepositorySummary, RepositorySelection,
+    UserInstallationsResponse,
+};
 pub use manifest::{FileExtractionStatus, ManifestFileEntry, RepoFileManifest};
 pub use metadata::{GitHubLanguages, GitHubLicense, GitHubRepoContext, GitHubRepositoryMetadata};
 pub use models::{GitHubBranch, GitHubRateLimit, GitHubTag, RefDiscoveryReport};
+pub use oauth::{
+    base64url_encode, build_app_installation_url, build_oauth_authorize_url, generate_app_jwt,
+    generate_app_jwt_at_time, parse_rsa_pem_to_pkcs8_der, pkcs1_to_pkcs8_der,
+    GitHubOAuthErrorResponse, GitHubOAuthTokenResponse, InMemoryOAuthStateStore, OAuthState,
+    OAuthStateStore,
+};
 pub use recovery::{
     scan_zip_archive, stitch_child_path, ArchiveFormat, SubtreeRecoveryConfig,
     SubtreeRecoveryReport, TreeStitcher,

@@ -5145,13 +5145,77 @@
 
 ---
 
+#### Subphase `6.1.2` — OAuth & installation flow in crates/github-extractor
+- **Unique ID:** `6.1.2`
+- **Objective:** Implement cryptographic OAuth state management (CSRF mitigation), user authorization and app installation URL builders, server-side OAuth code exchange (`POST /login/oauth/access_token`), RS256 JWT generation with RSA PKCS#1/PKCS#8 private keys, installation token exchange (`POST /app/installations/{id}/access_tokens`), and user/installation query APIs (`GET /user/installations`, `GET /installation/repositories`) in `crates/github-extractor`. Enforce Rule 05 token masking in all `Debug` and `Display` implementations.
+- **Scope:** `crates/github-extractor/src/oauth.rs`, `crates/github-extractor/src/installation.rs`, `crates/github-extractor/src/client.rs`, `crates/github-extractor/src/lib.rs`, `crates/github-extractor/Cargo.toml`, `crates/github-extractor/tests/oauth_installation_test.rs`.
+- **Prerequisites:** `6.1.1` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/github-extractor/src/oauth.rs`
+  - `crates/github-extractor/src/installation.rs`
+  - `crates/github-extractor/src/client.rs`
+  - `crates/github-extractor/src/lib.rs`
+  - `crates/github-extractor/Cargo.toml`
+  - `crates/github-extractor/tests/oauth_installation_test.rs`
+- **Implementation Tasks:**
+  1. Implement cryptographic OAuth state engine in `crates/github-extractor/src/oauth.rs`:
+     - `OAuthState`: 256-bit BLAKE3-hashed high-entropy nonce, timestamps, session ID, tenant ID, and redirect URI binding with constant-time equality check (`constant_time_eq`).
+     - `OAuthStateStore` trait and `InMemoryOAuthStateStore` with automated TTL eviction and single-use replay protection.
+     - URL builders: `build_oauth_authorize_url` and `build_app_installation_url`.
+     - Code exchange models: `GitHubOAuthTokenResponse` and `GitHubOAuthErrorResponse` with masked `Debug` and `Display`.
+     - RS256 JWT generation: `base64url_encode`, `pkcs1_to_pkcs8_der`, `parse_rsa_pem_to_pkcs8_der`, and `generate_app_jwt_at_time` using `ring::signature::RsaKeyPair` with PKCS#1 v1.5 SHA-256.
+  2. Implement installation domain models in `crates/github-extractor/src/installation.rs`:
+     - `RepositorySelection`: `All` or `Selected`.
+     - `GitHubAccountSummary`: account profiles (user or organization).
+     - `GitHubInstallation`: registered App installation representation with permissions, events, and suspension status.
+     - `InstalledRepositorySummary`: repository model for installation access.
+     - `GitHubInstallationToken`: short-lived access token with masked `Debug`/`Display`, `is_expired()`, and `is_expiring_soon()`.
+     - `UserInstallationsResponse` and `InstallationRepositoriesResponse`.
+  3. Extend `GitHubApiClient` in `crates/github-extractor/src/client.rs`:
+     - `exchange_oauth_code`: exchanges temporary authorization code for user access tokens.
+     - `list_user_installations`: retrieves installations accessible to the user (`GET /user/installations`).
+     - `get_installation`: retrieves installation details via App JWT (`GET /app/installations/{id}`).
+     - `create_installation_access_token`: mints short-lived installation access tokens (`POST /app/installations/{id}/access_tokens`).
+     - `list_installation_repositories`: enumerates repositories accessible to an installation token (`GET /installation/repositories`).
+  4. Author comprehensive test suite in `crates/github-extractor/tests/oauth_installation_test.rs`:
+     - 10 test suites covering nonce generation, constant-time matching, store replay defense, session binding, TTL expiration, URL builders, secret masking, RS256 JWT signing from PKCS#1/PKCS#8 keys, and live in-process Axum mock HTTP server integration.
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-github-extractor --test oauth_installation_test`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - OAuth state nonces are cryptographically random, constant-time compared, and single-use.
+  - Authorization and installation URLs are correctly formatted and encoded.
+  - RS256 JWTs are valid 3-part tokens signed by RSA private keys (PKCS#1 and PKCS#8).
+  - All token models strictly mask sensitive strings (`[REDACTED_TOKEN]`) in `Debug` and `Display`.
+  - Mock HTTP integration tests prove end-to-end functionality of all OAuth and installation endpoints.
+  - 100% of workspace tests pass, clippy is warning-free, and monorepo gates pass with 0 failures.
+- **Risk Analysis:**
+  - Risk: Token leakage in logs or error traces.
+  - Mitigation: Implemented custom `Debug` and `Display` on all token models; `redact_secrets` invoked on all HTTP error messages and URLs.
+- **Rollback Plan:**
+  - Revert via `git reset --hard HEAD~1` and restore Subphase 6.1.1 baseline.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-github-extractor --test oauth_installation_test` passed 10 test suites.
+  - Full crate test suite: 148 tests passing across unit and integration targets with 0 failures (28 unit tests, 119 integration tests, 1 doc-test).
+  - Full workspace clippy check: `cargo clippy --workspace --all-targets -- -D warnings` passed with 0 warnings.
+  - Code formatting: `cargo fmt --all -- --check` clean with 0 diffs.
+  - Dependency audit: `cargo deny check` passed (advisories ok, bans ok, licenses ok, sources ok).
+  - Monorepo gatekeeper: `powershell scripts/check-all.ps1` completed with `ALL GATES PASSED (0 failures)` including 521 workspace Rust tests, 213 frontend vitest tests, and 17.6% Podman storage footprint.
+- **Git Commit Reference:** `f38b4c1`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 6 — Private GitHub Repositories)
 
 #### Phase 6.1 — GitHub App
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `6.1.2` | OAuth & installation flow | `6.1.1` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
+| `6.1.3` | Minimum permissions | `6.1.2` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
 
 ---
 

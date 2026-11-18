@@ -68,7 +68,7 @@
 - **Deliverable:** Secure private repository conversion via read-only GitHub App authorization.
 - **Stage Acceptance Gate:** Authorized private repositories can be extracted without exposing credentials, leaking tokens, or permitting repository modifications.
 - **Phases:**
-  - `6.1` GitHub App (`6.1.1` [ACCEPTED], `6.1.2` [NEXT], `6.1.3` – `6.1.4`)
+  - `6.1` GitHub App (`6.1.1` [ACCEPTED], `6.1.2` [ACCEPTED], `6.1.3` [NEXT], `6.1.4`)
   - `6.2` Credential management (`6.2.1` – `6.2.4`)
   - `6.3` Private extraction (`6.3.1` – `6.3.4`)
   - `6.4` Security verification (`6.4.1` – `6.4.4`)
