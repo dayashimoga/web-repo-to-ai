@@ -6,6 +6,21 @@
 
 ## [Unreleased] — Stage 6: Private GitHub Repositories
 
+### 2026-11-18 — Phase 6.4: Security verification (`6.4.2`)
+
+#### Added
+- **`[6.4.2]` Unauthorized Repository Access Test Suite in `crates/github-extractor`:**
+  - Implemented comprehensive integration test suite `crates/github-extractor/tests/unauthorized_access_test.rs` (11 integration tests) verifying that unauthorized repository access attempts across all failure modes are strictly blocked under Rule 05:
+    - Missing installation: `InstallationAuthorizer::authorize` without an installation in session yields `AuthorizationOutcome::NoInstallationForSession` and generates a `PromptAppInstallation` recovery plan with a 1-click install link.
+    - Account ownership mismatch: Calling session with installations for other accounts attempting to access an uninstalled account yields `AuthorizationOutcome::AccountMismatch` and produces a targeted install link with zero credential leakage.
+    - Selected repository access grant enforcement: In `RepositorySelection::Selected` mode, repositories omitted from the authorized cache trigger live upstream verification; if GitHub returns 404 or 403, access is denied with `AuthorizationOutcome::RepositoryNotGranted` and generates a `PromptRepositorySelectionUpdate` plan with direct settings URL.
+    - Suspended installations: Installations with `is_suspended: true` are blocked immediately with `AuthorizationOutcome::InstallationSuspended` and produce a `PromptUnsuspendInstallation` action.
+    - Revoked installations: Installations with `is_revoked: true` are blocked immediately with `AuthorizationOutcome::InstallationRevoked` and instruct reinstallation.
+    - Rule 05 permission policy compliance: Tokens lacking mandatory `contents: read` or granted forbidden write/push scopes (`contents: write`) are strictly rejected with `AuthorizationOutcome::InsufficientPermissions` and generate an administrative remediation plan.
+    - Upstream extraction error classification: When `PrivateRepositoryExtractor::extract` encounters HTTP 403 or 404 during commit resolution, it halts immediately with sanitized errors and maps to actionable recovery plans (`RepositoryNotGranted` or `InsufficientPermissions`).
+    - Zero content and secret leakage: Verified that zero file contents, blobs, trees, or commits are extracted, and bearer tokens (`ghs_*`) are strictly masked across all error messages, plans, and summary cards.
+  - 100% passing quality gates: 11/11 new tests passed, 259 total extractor tests passed, 533+ workspace tests passed, zero clippy warnings, zero fmt diffs, cargo deny passed, and 5/5 check-all gates passed.
+
 ### 2026-11-18 — Phase 6.4: Security verification (`6.4.1`)
 
 #### Added

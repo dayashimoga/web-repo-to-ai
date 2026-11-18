@@ -5902,7 +5902,57 @@
   - Formatting: `cargo fmt --all -- --check` clean with 0 diffs.
   - Dependency audit: `cargo deny check` passed (advisories ok, bans ok, licenses ok, sources ok).
   - Monorepo gatekeeper: `powershell scripts/check-all.ps1` completed with `ALL GATES PASSED (0 failures)` (all 5 gates passed: Bootstrap & Governance, Workflow Validation, Rust Workspace, Frontend Web [213 vitest passed], Resource Budget & 30 GB Storage Ceiling [5.27 GB / 30 GB, 17.6%]).
-- **Git Commit Reference:** `d8c0a90`
+- **Git Commit Reference:** `02da02c`
+- **Status:** `ACCEPTED`
+
+---
+
+#### Subphase `6.4.2` — Unauthorized repository access tests in crates/github-extractor
+- **Unique ID:** `6.4.2`
+- **Objective:** Verify and enforce comprehensive defense against unauthorized repository access across missing installations, account ownership mismatches, ungranted selected repositories (both local cache and upstream live verification), suspended installations, revoked installations, permission policy violations (missing `contents: read` or forbidden write scopes), and upstream HTTP 403/404 responses under Rule 05.
+- **Scope:** `crates/github-extractor/tests/unauthorized_access_test.rs`, `crates/github-extractor/src/authorization.rs`, `crates/github-extractor/src/private_extractor.rs`, `crates/github-extractor/src/authorization_recovery.rs`, `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Prerequisites:** `6.4.1` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/github-extractor/tests/unauthorized_access_test.rs`
+  - `IMPLEMENTATION_LEDGER.md`
+  - `PROJECT_STATUS.md`
+  - `TODO.md`
+  - `CHANGELOG.md`
+  - `ROADMAP.md`
+  - `docs/ROADMAP.md`
+- **Implementation Tasks:**
+  1. Author comprehensive integration test suite `unauthorized_access_test.rs` in `crates/github-extractor/tests/`:
+     - Test Case 1 (`test_unauthorized_no_installation_for_session`): Calling `InstallationAuthorizer::authorize` without an installation in session yields `NoInstallationForSession` and maps to `PromptAppInstallation` recovery action with 1-click install link.
+     - Test Case 2 (`test_unauthorized_account_mismatch`): Attempting to access an uninstalled account's repository yields `AccountMismatch` and produces a `PromptAppInstallation` plan targeting that specific account with zero credential leakage.
+     - Test Case 3 (`test_unauthorized_selected_repository_not_granted_local_check`): In Selected repository mode, querying an ungranted repository with live check returning 404 yields `RepositoryNotGranted` and produces a `PromptRepositorySelectionUpdate` action with direct settings link.
+     - Test Case 4 (`test_unauthorized_selected_repository_forbidden_upstream`): Live check returning 403 Forbidden is evaluated as not granted, yielding `RepositoryNotGranted`.
+     - Test Case 5 (`test_unauthorized_suspended_installation`): Installations with `is_suspended: true` are blocked immediately with `InstallationSuspended` and produce a `PromptUnsuspendInstallation` action.
+     - Test Case 6 (`test_unauthorized_revoked_installation`): Installations with `is_revoked: true` are blocked immediately with `InstallationRevoked` and instruct reinstallation.
+     - Test Case 7 (`test_unauthorized_policy_violating_permissions_missing_contents_read`): Tokens lacking mandatory `contents: read` scope are rejected with `InsufficientPermissions` and produce a `ContactAdministrator` remediation plan.
+     - Test Case 8 (`test_unauthorized_policy_violating_permissions_forbidden_write_scope`): Tokens granted write/admin permissions (`contents: write`) are strictly rejected with `InsufficientPermissions` under Rule 05 read-only guarantee.
+     - Test Case 9 (`test_unauthorized_private_extractor_commit_403_resource_not_accessible`): Upstream HTTP 403 during extraction commit resolution halts extraction immediately with sanitized error and produces an actionable diagnostic recovery plan.
+     - Test Case 10 (`test_unauthorized_private_extractor_commit_404_not_found`): Upstream HTTP 404 on private repositories is diagnosed as `RepositoryNotGranted` with `PromptRepositorySelectionUpdate`.
+     - Test Case 11 (`test_unauthorized_zero_secret_leakage_in_diagnoses_and_cards`): Confirms that sensitive tokens (`ghs_*`) are strictly masked across all failure modes, error messages, and summary cards.
+  2. Run full verification gates (`cargo test`, `cargo fmt`, `cargo clippy`, `cargo deny check`, `scripts/check-all.ps1`).
+- **Acceptance Criteria:**
+  - Unauthorized repository requests are strictly blocked across all failure modalities.
+  - Zero private repository content, trees, blobs, or commits are exposed.
+  - `AuthorizationRecoveryCoordinator` produces actionable remediation plans with accurate settings URLs.
+  - Zero secret tokens or credential patterns are leaked in logs, error envelopes, or summary cards.
+  - 100% of tests pass, clippy is warning-free, and monorepo gates pass with 0 failures.
+- **Risk Analysis:**
+  - Risk: Ambiguous error envelopes causing user confusion or silent extraction failures.
+  - Mitigation: Distinct failure categories (`NoInstallationForSession`, `AccountMismatch`, `RepositoryNotGranted`, `InstallationSuspended`, `InstallationRevoked`, `InsufficientPermissions`) and explicit step-by-step remediation cards.
+- **Rollback Plan:**
+  - Revert Subphase 6.4.2 additions via `git reset --hard HEAD~1` and restore Subphase 6.4.1 baseline.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-github-extractor --test unauthorized_access_test`: 11/11 passed in 0.01s.
+  - `cargo test -p web-repo-to-ai-github-extractor`: all 30 unit tests and 32 integration test targets passed with 0 failures.
+  - Workspace linter: `cargo clippy --workspace --all-targets -- -D warnings` passed with 0 warnings.
+  - Formatting: `cargo fmt --all -- --check` clean with 0 diffs.
+  - Dependency audit: `cargo deny check` passed (advisories ok, bans ok, licenses ok, sources ok).
+  - Monorepo gatekeeper: `powershell scripts/check-all.ps1` completed with `ALL GATES PASSED (0 failures)` (all 5 gates passed: Bootstrap & Governance, Workflow Validation, Rust Workspace [533+ tests passed], Frontend Web [213 vitest passed], Resource Budget & 30 GB Storage Ceiling [5.27 GB / 30 GB, 17.6%]).
+- **Git Commit Reference:** `5129f7e`
 - **Status:** `ACCEPTED`
 
 ---
@@ -5913,7 +5963,7 @@
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `6.4.2` | Unauthorized repository access tests | `6.4.1` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
+| `6.4.3` | Token leakage tests | `6.4.2` (`ACCEPTED`) | `crates/github-extractor/*`, `crates/observability/*` | `NOT_STARTED` |
 
 ---
 
