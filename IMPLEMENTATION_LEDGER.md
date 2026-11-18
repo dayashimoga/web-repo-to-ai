@@ -4011,11 +4011,59 @@
 
 ---
 
+#### Subphase `5.1.3` — Commit selection in crates/github-extractor
+- **Unique ID:** `5.1.3`
+- **Objective:** Implement immutable commit resolution and pinning (`/repos/{owner}/{repo}/commits/{ref}`, `/repos/{owner}/{repo}/commits`), extracting commit metadata (author, committer, timestamps, message, parent SHAs, root tree SHA), normalizing short commit SHAs, and producing a validated `PinnedRevision` guaranteeing zero ref-drift during downstream tree and file extraction.
+- **Scope:** `crates/github-extractor/src/commit.rs`, `crates/github-extractor/src/client.rs`, `crates/github-extractor/src/models.rs`, `crates/github-extractor/src/lib.rs`, `crates/github-extractor/tests/commit_selection_test.rs`.
+- **Prerequisites:** `5.1.2` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/github-extractor/src/commit.rs`
+  - `crates/github-extractor/src/client.rs`
+  - `crates/github-extractor/src/models.rs`
+  - `crates/github-extractor/src/lib.rs`
+  - `crates/github-extractor/tests/commit_selection_test.rs`
+- **Implementation Tasks:**
+  1. Define commit models in `crates/github-extractor/src/commit.rs`: `GitHubCommitMetadata`, `CommitAuthor`, `CommitSignatureVerification`, `PinnedRevision`.
+  2. Implement `resolve_commit(&self, target: &GitHubTarget, ref_spec: Option<&str>)` in `GitHubApiClient`:
+     - Resolves specified ref or default branch to full 40-character commit SHA.
+     - Fetches commit details from `GET /repos/{owner}/{repo}/commits/{ref}`.
+     - Extracts the Git root tree SHA (`commit.tree.sha`) required for recursive Git Trees API traversal.
+     - Extracts author/committer identities, ISO 8601 timestamps, commit message, and parent commit SHAs.
+  3. Implement `PinnedRevision` methods:
+     - `to_revision_info(&self) -> RevisionInfo` mapping into CDM schema (`crates/cdm`).
+     - `to_source_identity(&self, raw_input: &str) -> SourceIdentity`.
+     - `is_head(&self) -> bool`.
+     - `short_sha(&self) -> &str` (7-character short SHA prefix).
+  4. Expand `GitHubApiClient` with `pin_revision(&self, target: &GitHubTarget)` which resolves branches/tags, disambiguates target, and pins the immutable commit SHA.
+  5. Implement comprehensive integration tests in `crates/github-extractor/tests/commit_selection_test.rs` using in-process Axum test server verifying branch-to-commit resolution, short-to-full SHA expansion, root tree SHA extraction, commit metadata parsing, 404 commit handling, and CDM `RevisionInfo` mapping.
+  6. Run full verification gates via `scripts/check-all.ps1`.
+- **Acceptance Criteria:**
+  - Any valid branch name, release tag, short commit SHA, full 40-hex SHA, or omitted ref resolves to a verified 40-character commit SHA and root tree SHA.
+  - `PinnedRevision` maps accurately to CDM `RevisionInfo` with exact commit SHA.
+  - Ref-drift is eliminated: all downstream operations are bound to the immutable commit SHA.
+  - 100% of tests pass, zero clippy warnings, zero fmt diffs, cargo-deny clean.
+- **Tests:** `cargo test -p web-repo-to-ai-github-extractor`, `cargo test --workspace`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, 04, 05: Immutable revision pinning prevents TOCTOU drift attacks between file discovery and source extraction; token redaction on commit API calls.
+- **Performance Considerations:** Single-roundtrip commit resolution with header rate-limit tracking; cached root tree SHA avoids extra Git Trees root calls.
+- **Documentation Requirements:** Module documentation in `crates/github-extractor`, tracking updates in `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-github-extractor`: 33/33 tests passed (1 lib unit test, 21 integration tests in `target_decomposition_test.rs`, 7 integration tests in `ref_discovery_test.rs`, 4 integration tests in `commit_selection_test.rs`).
+  - `cargo test --workspace`: 367/367 tests passed across all 17 crates and services.
+  - `cargo clippy -p web-repo-to-ai-github-extractor --all-targets -- -D warnings`: 0 warnings, 0 errors.
+  - `cargo fmt --all -- --check`: 100% clean formatting.
+  - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
+  - `npm test` (`apps/web`): 213/213 tests passed across 17 suites; `svelte-check` reports 0 errors and 0 warnings.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (224/224 bootstrap checks, 7/7 workflows, Rust checks, Frontend checks, Podman storage 5.27 GB / 30 GB, 17.6%).
+- **Git Commit Reference:** `de994ea` / `2269163`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 5 — Public GitHub Repository Extraction)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `5.1.3` | Commit selection | `5.1.2` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
+| `5.1.4` | Repository metadata extraction | `5.1.3` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
 
 ---
 

@@ -11,6 +11,9 @@ use reqwest::{Client, StatusCode};
 use serde::Deserialize;
 use tracing::debug;
 
+use crate::commit::{
+    CommitAuthor, CommitSignatureVerification, GitHubCommitMetadata, PinnedRevision,
+};
 use crate::error::{redact_secrets, GitHubExtractorError};
 use crate::models::{GitHubBranch, GitHubRateLimit, GitHubTag, RefDiscoveryReport};
 use crate::target::GitHubTarget;
@@ -45,6 +48,52 @@ struct RawTagItem {
     commit: RawCommitRef,
     zipball_url: Option<String>,
     tarball_url: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct RawAuthorPayload {
+    name: String,
+    email: String,
+    date: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Deserialize)]
+struct RawTreeRef {
+    sha: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct RawVerificationPayload {
+    #[serde(default)]
+    verified: bool,
+    reason: String,
+    signature: Option<String>,
+    payload: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct RawCommitPayload {
+    author: Option<RawAuthorPayload>,
+    committer: Option<RawAuthorPayload>,
+    message: String,
+    tree: RawTreeRef,
+    #[serde(default)]
+    comment_count: u32,
+    verification: Option<RawVerificationPayload>,
+}
+
+#[derive(Debug, Deserialize)]
+struct RawParentRef {
+    sha: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct RawCommitDetail {
+    sha: String,
+    node_id: Option<String>,
+    commit: RawCommitPayload,
+    #[serde(default)]
+    parents: Vec<RawParentRef>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -421,5 +470,114 @@ impl GitHubApiClient {
         } else {
             target.clone()
         }
+    }
+
+    /// Retrieves detailed commit metadata for a specific commit reference (SHA, branch, or tag).
+    ///
+    /// # Errors
+    /// Returns `GitHubExtractorError::ResourceNotFound` if the commit does not exist.
+    pub async fn get_commit(
+        &self,
+        target: &GitHubTarget,
+        commit_ref: &str,
+    ) -> Result<(GitHubCommitMetadata, Option<GitHubRateLimit>), GitHubExtractorError> {
+        let base_url = self.effective_base_url(target);
+        let url = format!(
+            "{base_url}/repos/{}/{}/commits/{commit_ref}",
+            target.owner, target.repo
+        );
+
+        let req = self
+            .client
+            .get(&url)
+            .headers(self.prepare_headers())
+            .timeout(self.timeout);
+
+        let (res, rate_limit) = self.execute_request(req, &url).await?;
+
+        let body_text = res.text().await.map_err(|e| {
+            let sanitized = redact_secrets(&e.to_string());
+            GitHubExtractorError::RequestFailed(sanitized)
+        })?;
+
+        let raw: RawCommitDetail = serde_json::from_str(&body_text).map_err(|e| {
+            let sanitized = redact_secrets(&e.to_string());
+            GitHubExtractorError::JsonDecodeError(sanitized)
+        })?;
+
+        let author = raw
+            .commit
+            .author
+            .map(|a| CommitAuthor::new(a.name, a.email, a.date));
+        let committer = raw
+            .commit
+            .committer
+            .map(|c| CommitAuthor::new(c.name, c.email, c.date));
+        let verification = raw
+            .commit
+            .verification
+            .map(|v| CommitSignatureVerification {
+                verified: v.verified,
+                reason: v.reason,
+                signature: v.signature,
+                payload: v.payload,
+            });
+
+        let parents = raw.parents.into_iter().map(|p| p.sha).collect();
+
+        let metadata = GitHubCommitMetadata {
+            sha: raw.sha,
+            node_id: raw.node_id,
+            message: raw.commit.message,
+            author,
+            committer,
+            tree_sha: raw.commit.tree.sha,
+            parents,
+            comment_count: raw.commit.comment_count,
+            verification,
+        };
+
+        Ok((metadata, rate_limit))
+    }
+
+    /// Resolves any commit reference (or default branch HEAD) into a pinned 40-character commit SHA
+    /// and comprehensive commit metadata.
+    ///
+    /// # Errors
+    /// Returns `GitHubExtractorError` if the reference cannot be resolved or repository is missing.
+    pub async fn resolve_commit_sha(
+        &self,
+        target: &GitHubTarget,
+        ref_spec: Option<&str>,
+    ) -> Result<(String, GitHubCommitMetadata, Option<GitHubRateLimit>), GitHubExtractorError> {
+        let query_ref = ref_spec.or_else(|| target.ref_spec()).unwrap_or("HEAD");
+
+        let (metadata, rate_limit) = self.get_commit(target, query_ref).await?;
+        let full_sha = metadata.sha.clone();
+        Ok((full_sha, metadata, rate_limit))
+    }
+
+    /// Resolves and pins a repository target to an immutable revision container (`PinnedRevision`),
+    /// guaranteeing that subsequent file discovery and extraction are bound to an immutable commit SHA.
+    ///
+    /// # Errors
+    /// Returns `GitHubExtractorError` if ref resolution or commit query fails.
+    pub async fn pin_revision(
+        &self,
+        target: &GitHubTarget,
+    ) -> Result<PinnedRevision, GitHubExtractorError> {
+        let effective_ref = target.ref_spec().map(ToString::to_string);
+        let (full_sha, metadata, _rl) = self
+            .resolve_commit_sha(target, effective_ref.as_deref())
+            .await?;
+        let root_tree_sha = metadata.tree_sha.clone();
+
+        Ok(PinnedRevision::new(
+            target.clone(),
+            full_sha,
+            root_tree_sha,
+            metadata,
+            effective_ref,
+        ))
     }
 }

@@ -11,6 +11,7 @@
 #![warn(missing_docs)]
 
 pub mod client;
+pub mod commit;
 pub mod error;
 pub mod models;
 pub mod target;
@@ -19,6 +20,7 @@ pub use client::{
     GitHubApiClient, DEFAULT_GITHUB_TIMEOUT, DEFAULT_MAX_PAGES, DEFAULT_PER_PAGE,
     DEFAULT_USER_AGENT, GITHUB_API_VERSION_HEADER,
 };
+pub use commit::{CommitAuthor, CommitSignatureVerification, GitHubCommitMetadata, PinnedRevision};
 pub use error::{redact_secrets, GitHubExtractorError};
 pub use models::{GitHubBranch, GitHubRateLimit, GitHubTag, RefDiscoveryReport};
 pub use target::{

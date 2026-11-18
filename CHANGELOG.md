@@ -6,6 +6,24 @@
 
 ## [Unreleased] — Stage 5: Public GitHub Repository Extraction
 
+### 2026-11-18 — Phase 5.1: GitHub Metadata (`5.1.3`)
+
+#### Added
+- **`[5.1.3]` Commit Selection, Root Tree SHA Resolution & Immutable Revision Pinning in `crates/github-extractor`:**
+  - Implemented commit metadata and revision models in `crates/github-extractor/src/commit.rs`:
+    - `CommitAuthor`: captures contributor name, email address, and UTC timestamp.
+    - `CommitSignatureVerification`: captures cryptographic GPG/SSH commit signature status (`verified`, `reason`, `signature`, `payload`).
+    - `GitHubCommitMetadata`: extracts full 40-character commit SHA, optional GraphQL node ID, commit message with first-line subject `summary()`, author and committer records with `commit_date()` fallback, root Git `tree_sha`, parent commit SHAs, comment count, and cryptographic signature verification.
+    - `PinnedRevision`: immutable revision container binding a `GitHubTarget` to a verified 40-character commit SHA, root Git tree SHA, commit metadata, and effective ref (`commit_sha()`, `short_sha()`, `root_tree_sha()`, `matches_sha()`), providing zero ref-drift during downstream tree and file extraction.
+    - Seamless CDM mappings: `to_revision_info()` generating `RevisionInfo` with `git_commit`, `git_branch`, `git_tag`, and RFC 2822 `http_last_modified`, and `to_source_identity()` injecting the pinned git reference.
+  - Extended REST client `GitHubApiClient` in `crates/github-extractor/src/client.rs`:
+    - `get_commit(&target, commit_ref)` querying `/repos/{owner}/{repo}/commits/{ref}` with rate limit tracking and secret redaction.
+    - `resolve_commit_sha(&target, ref_spec)` resolving branch names, tags, or `HEAD` into full 40-character commit SHAs.
+    - `pin_revision(&target)` orchestrating target analysis, ref resolution, and immutable revision pinning.
+  - Authored comprehensive integration tests in `crates/github-extractor/tests/commit_selection_test.rs`:
+    - 4 test suites validating commit metadata helpers, serialization/deserialization, CDM `RevisionInfo` and `SourceIdentity` mappings across Repo/Tree/Tag targets, and live in-process Axum HTTP server tests on ephemeral port validating explicit SHA queries, branch resolution, `HEAD` fallback, root tree SHA extraction, 404 `ResourceNotFound` handling, and token redaction under failure conditions.
+  - Verified 367 passing workspace Rust tests (33 in `crates/github-extractor`), zero clippy warnings, zero fmt diffs, and 100% passing gates across all 5 checks in `scripts/check-all.ps1`.
+
 ### 2026-11-18 — Phase 5.1: GitHub Metadata (`5.1.2`)
 
 #### Added
