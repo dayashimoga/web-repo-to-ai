@@ -2678,7 +2678,12 @@ dependencies = [
 name = "web-repo-to-ai-tokenizer"
 version = "0.1.0"
 dependencies = [
+ "chrono",
+ "regex",
+ "serde",
+ "serde_json",
  "thiserror 1.0.69",
+ "web-repo-to-ai-cdm",
  "web-repo-to-ai-core",
 ]
 

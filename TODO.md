@@ -209,7 +209,7 @@
 - [x] **[7.1.4]** Content classification in crates/normalizer & crates/code-intelligence *(Completed 2026-11-18, Language enum multi-language syntax detection across 26 languages, SymbolDeclaration & SymbolExtractor regex AST symbol discovery, CodeMetrics & CodeMetricsCalculator complexity & minification analysis, CodeNature & CodeNatureClassifier architectural role classification, ContentCategory taxonomy, InformationDensity tiers, NoiseIndicator taxonomy, SectionClassifier kind-specific analysis, DocumentContentClassifier section attribute enrichment preserving cryptographic hashes, ContentClassificationReport telemetry & JSON roundtrip, 14 code-intelligence tests, 41 normalizer tests, 608+ workspace tests, 100% passing quality gates — PHASE 7.1 CERTIFIED)*
 
 ### Phase 7.2 — Token intelligence
-- [ ] **[7.2.1]** Tokenizer adapter architecture in crates/tokenizer
+- [x] **[7.2.1]** Tokenizer adapter architecture in crates/tokenizer *(Completed 2026-11-18, TokenizerAdapter trait, ModelFamily & TargetModel with context window ceilings, TokenPrecision [Exact, CalibratedEstimate with uncertainty bounds], CalibratedHeuristicAdapter with content-awareness, RegexBpeTokenizer regex pre-tokenizer, OpenAi/Claude/Gemini/Llama adapters, TokenizerRegistry thread-safe lookup, UTF-8 clean truncation, CDM document enrichment & DocumentTokenSummary, 19 crate tests, 627+ workspace tests, 100% passing quality gates)*
 - [ ] **[7.2.2]** Model-specific counting in crates/tokenizer
 - [ ] **[7.2.3]** Cost estimation in crates/tokenizer
 - [ ] **[7.2.4]** Context-budget calculation in crates/context-optimizer

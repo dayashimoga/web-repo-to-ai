@@ -6388,13 +6388,74 @@
 
 ---
 
+#### Subphase `7.2.1` — Tokenizer adapter architecture in crates/tokenizer
+- **Unique ID:** `7.2.1`
+- **Objective:** Establish the modular tokenizer adapter architecture in `crates/tokenizer` capable of both exact BPE tokenization and calibrated heuristic estimation, with explicit precision classification, confidence intervals, context window limits, target model mappings, thread-safe registry lookup, and document-level section token enrichment.
+- **Scope:** `crates/tokenizer/*` (`error.rs`, `model.rs`, `precision.rs`, `adapter.rs`, `adapters/*`, `registry.rs`, `document.rs`, `lib.rs`, `tests/*`).
+- **Prerequisites:** `7.1.4` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/tokenizer/Cargo.toml`
+  - `crates/tokenizer/src/error.rs`
+  - `crates/tokenizer/src/model.rs`
+  - `crates/tokenizer/src/precision.rs`
+  - `crates/tokenizer/src/adapter.rs`
+  - `crates/tokenizer/src/adapters/mod.rs`
+  - `crates/tokenizer/src/adapters/heuristic.rs`
+  - `crates/tokenizer/src/adapters/bpe.rs`
+  - `crates/tokenizer/src/adapters/models.rs`
+  - `crates/tokenizer/src/registry.rs`
+  - `crates/tokenizer/src/document.rs`
+  - `crates/tokenizer/src/lib.rs`
+  - `crates/tokenizer/tests/tokenizer_adapter_test.rs`
+- **Implementation Tasks:**
+  1. Add necessary workspace dependencies (`cdm`, `serde` with `derive` and `std`, `serde_json`, `regex`, `chrono`) to `crates/tokenizer/Cargo.toml`.
+  2. Implement strongly typed `TokenizerError` enum handling invalid token budgets, regex compilation errors, unknown adapters, context window overflow, and encoding issues (`crates/tokenizer/src/error.rs`).
+  3. Implement `ModelFamily` (OpenAI, Anthropic, Google, Meta, Mistral, Generic) and `TargetModel` enum with context window limits and recommended budget ceilings (`crates/tokenizer/src/model.rs`).
+  4. Implement `TokenPrecision` distinguishing `Exact`, `CalibratedEstimate { uncertainty_pct }`, and `HeuristicEstimate` with uncertainty calculations and confidence range evaluation; implement `TokenCountResult` and `TruncationResult` (`crates/tokenizer/src/precision.rs`).
+  5. Implement `TokenizerAdapter` core trait (`name`, `model_family`, `target_model`, `context_window_limit`, `is_exact`, `count_tokens`, `truncate_tokens`) in `crates/tokenizer/src/adapter.rs`.
+  6. Implement `CalibratedHeuristicAdapter` with content-aware chars/token heuristics (JSON/dense code: 2.9, general code: 3.3, prose: 4.2) and explicit 7.5% uncertainty margin (`crates/tokenizer/src/adapters/heuristic.rs`).
+  7. Implement `RegexBpeTokenizer` with Rust-compatible regex pre-tokenization boundary matching and token weight estimation (`crates/tokenizer/src/adapters/bpe.rs`).
+  8. Implement model-specific BPE adapters: `OpenAiAdapter` (o200k/cl100k), `ClaudeAdapter` (claude_bpe), `GeminiAdapter` (gemini_sp), `LlamaAdapter` (llama3_bpe) in `crates/tokenizer/src/adapters/models.rs`.
+  9. Implement `TokenizerRegistry` for thread-safe model and string name lookups with fallback to calibrated heuristic (`crates/tokenizer/src/registry.rs`).
+  10. Implement CDM section and whole-document token enrichment (`count_section_tokens`, `enrich_document_token_metrics`), computing `DocumentTokenSummary` with budget utilization and GFM markdown reporting (`crates/tokenizer/src/document.rs`).
+  11. Implement integration test suite `crates/tokenizer/tests/tokenizer_adapter_test.rs` validating exact BPE tokenization, calibrated estimation, adapter registry lookup, clean truncation, document enrichment, and JSON roundtrip.
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-tokenizer`
+  - `cargo test --workspace`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - `TokenizerAdapter` trait cleanly abstracting model family, context limit, exactness, and token counting/truncation.
+  - Transparent precision tiering (`Exact` vs `CalibratedEstimate` with `uncertainty_pct`). Heuristic estimates never reported dishonestly as exact.
+  - Safe truncation along valid UTF-8 character boundaries without splitting multi-byte sequences or panic.
+  - CDM document enrichment correctly populates `CdmSection.token_metrics` and computes `DocumentTokenSummary`.
+  - All 19 crate tests pass, all workspace tests pass, zero clippy warnings, zero fmt diffs, cargo deny passed, all check-all gates pass.
+- **Risk Analysis:**
+  - Risk: Misrepresenting approximate character-ratio estimates as exact counts to downstream LLM prompt builders.
+  - Mitigation: `TokenPrecision` enum explicitly segregates exact counts from calibrated estimates with bounded uncertainty ranges (`[count * (1 - u), count * (1 + u)]`).
+- **Rollback Plan:**
+  - Revert Subphase 7.2.1 additions via `git reset --hard HEAD~1` and restore Subphase 7.1.4 baseline.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-tokenizer`: 19 tests passing (11 unit tests, 8 integration tests).
+  - Full workspace tests: 627+ tests passing across all crates and services with 0 failures.
+  - Workspace linter: `cargo clippy --workspace --all-targets -- -D warnings` clean with 0 warnings.
+  - Formatting: `cargo fmt --all -- --check` clean with 0 diffs.
+  - Dependency audit: `cargo deny check` passed (advisories ok, bans ok, licenses ok, sources ok).
+  - Monorepo gatekeeper: `powershell scripts/check-all.ps1` completed with `ALL GATES PASSED (0 failures)`.
+- **Git Commit Reference:** `175ad11`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 7 — AI Context and Token Optimization)
 
 #### Phase 7.2 — Token intelligence
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `7.2.1` | Tokenizer adapter architecture | `7.1.4` (`ACCEPTED`) | `crates/tokenizer/*` | `NOT_STARTED` |
+| `7.2.2` | Model-specific counting | `7.2.1` (`ACCEPTED`) | `crates/tokenizer/*` | `NOT_STARTED` |
 
 ---
 

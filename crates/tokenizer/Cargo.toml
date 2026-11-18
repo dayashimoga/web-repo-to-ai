@@ -13,4 +13,9 @@ workspace = true
 
 [dependencies]
 web-repo-to-ai-core = { workspace = true }
+web-repo-to-ai-cdm = { workspace = true }
 thiserror = { workspace = true }
+serde = { workspace = true, features = ["derive", "std"] }
+serde_json = { workspace = true }
+regex = { workspace = true }
+chrono = { workspace = true, features = ["serde"] }

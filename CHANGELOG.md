@@ -6,6 +6,24 @@
 
 ## [Unreleased] — Stage 7: AI Context and Token Optimization
 
+### 2026-11-18 — Phase 7.2: Token intelligence (`7.2.1`)
+
+#### Added
+- **`[7.2.1]` Tokenizer Adapter Architecture in `crates/tokenizer`:**
+  - Implemented modular, provider-independent tokenizer adapter architecture in `crates/tokenizer`:
+    - `TokenizerError`: domain error handling invalid budgets, regex compilation failures, unknown adapters, context overflow, and UTF-8 boundary issues.
+    - `ModelFamily` & `TargetModel`: structured taxonomy covering OpenAI (`Gpt4o`, `Gpt4Turbo`, `Gpt4`, `Gpt35Turbo`), Anthropic (`Claude35Sonnet`, `Claude3Opus`, `Claude3Haiku`), Google (`Gemini15Pro`, `Gemini15Flash`), Meta (`Llama3`, `Llama370B`, `Llama2`), Mistral (`MistralLarge`, `MistralSmall`, `Mixtral8x7B`), and generic models. Each model defines its maximum context window and conservative recommended budget ceilings.
+    - `TokenPrecision`: explicit precision classification enforcing Rule 09 (`Exact`, `CalibratedEstimate { uncertainty_pct }`, `HeuristicEstimate`). Calibration estimates compute bounded uncertainty ranges (`[count * (1 - u), count * (1 + u)]`).
+    - `TokenizerAdapter` core trait: defines abstract contract for model family, target model, context limits, exactness flag, token counting, and UTF-8 safe truncation.
+    - `CalibratedHeuristicAdapter`: content-aware heuristic token estimator with empirical character/token ratios (JSON/dense code: 2.9, source code: 3.3, prose: 4.2) and explicit 7.5% uncertainty range.
+    - `RegexBpeTokenizer`: deterministic regex pre-tokenizer segmentation using Rust-compatible PCRE equivalent pattern `r"(?i:'s|'t|'re|'ve|'m|'ll|'d)|[^\r\n\p{L}\p{N}]?\p{L}+|\p{N}{1,3}| ?[^\s\p{L}\p{N}]+[\r\n]*|\s*[\r\n]+|\s+"` and integer token weights.
+    - Model-specific BPE adapters: `OpenAiAdapter` (o200k/cl100k), `ClaudeAdapter` (claude_bpe), `GeminiAdapter` (gemini_sp), `LlamaAdapter` (llama3_bpe).
+    - `TokenizerRegistry`: thread-safe registry for model and string identifier resolution with fallback to calibrated heuristics.
+    - CDM document token enrichment (`count_section_tokens`, `enrich_document_token_metrics`): computes and enriches `CdmSection.token_metrics` across documents, yielding `DocumentTokenSummary` with context budget utilization percentages and GFM markdown telemetry tables.
+    - Public convenience functions: `count_tokens_for_model` and `truncate_tokens_for_model`.
+  - Implemented comprehensive integration test suite `crates/tokenizer/tests/tokenizer_adapter_test.rs` (8 integration tests, 11 unit tests, 19 total crate tests).
+  - 100% passing quality gates: 19 crate tests passed, 627+ workspace tests passed, zero clippy warnings, zero fmt diffs, cargo deny passed, and 5/5 check-all gates passed.
+
 ### 2026-11-18 — Phase 7.1: Content optimization (`7.1.4`) — PHASE 7.1 CERTIFIED
 
 #### Added
