@@ -6,6 +6,37 @@
 
 ## [Unreleased] — Stage 7: AI Context and Token Optimization
 
+### 2026-11-18 — Phase 7.1: Content optimization (`7.1.3`)
+
+#### Added
+- **`[7.1.3]` Semantic-Aware Near-Duplicate Deduplication Engine in `crates/deduplication`:**
+  - Implemented token shingling and n-gram decomposition in `crates/deduplication/src/shingle.rs`:
+    - `Shingler::word_shingles`: sliding window word n-grams with punctuation normalization and case folding.
+    - `Shingler::char_kgrams`: character-level k-grams for dense/short string decomposition.
+    - `fnv1a_hash64`: deterministic 64-bit FNV-1a non-cryptographic hash for rapid token shingle fingerprinting.
+  - Implemented MinHash locality-sensitive signature estimation in `crates/deduplication/src/minhash.rs`:
+    - `MinHashSignature`: computes $N$-dimensional permutation signatures using deterministic SplitMix64 pseudo-random generator.
+    - Jaccard similarity estimation via normalized signature component agreement.
+  - Implemented SimHash 64-bit cosine similarity fingerprinting in `crates/deduplication/src/simhash.rs`:
+    - `SimHash64`: 64-bit fingerprinting with weighted sign bit vector accumulation.
+    - Hamming distance and cosine similarity projection via bit difference calculation.
+  - Implemented strongly-typed semantic deduplication configuration models in `crates/deduplication/src/semantic_config.rs`:
+    - `SemanticAlgorithm`: `MinHash { shingle_size, num_hashes }`, `SimHash { max_hamming_distance }`.
+    - `SemanticDeduplicationStrategy`: `ReplaceWithAnnotatedPointer`, `Remove`, `MarkOnly`.
+    - `SemanticCanonicalPolicy`: `InformationRichness`, `StructuralHierarchy`, `FirstSeen`, `ShortestPath`.
+    - `SemanticDeduplicationConfig`: master configuration with `balanced()`, `aggressive()`, `conservative()`, and `simhash_based()` domain presets.
+  - Implemented near-duplicate cluster domain models in `crates/deduplication/src/semantic_cluster.rs`:
+    - `NearDuplicateCluster` and `NearDuplicateMember` recording canonical details, members, similarity scores, byte counts, and token savings.
+  - Implemented semantic deduplication telemetry reporting in `crates/deduplication/src/semantic_report.rs`:
+    - `SemanticDeduplicationReport`: tracking before/after byte and token metrics, rounded reduction percentages, Markdown summary table generation, and JSON roundtrip serialization.
+  - Implemented semantic deduplicator engine in `crates/deduplication/src/semantic.rs`:
+    - `SemanticDeduplicator::find_near_duplicate_clusters`: eligible candidate filtering, signature generation, pairwise graph adjacency, connected component traversal (BFS), and canonical candidate election.
+    - `SemanticDeduplicator::deduplicate_document`: executes consolidation strategy (`ReplaceWithAnnotatedPointer`, `Remove`, `MarkOnly`), updates section hashes, emits `ExclusionRecord` items with `ExclusionReason::Duplicate`, links directed `DuplicateOf` relationships, and updates document-level BLAKE3 revision hashes.
+    - Top-level crate exports and convenience function `deduplicate_semantic` in `crates/deduplication/src/lib.rs`.
+  - Implemented comprehensive integration test suite `crates/deduplication/tests/semantic_deduplication_test.rs` (9 integration tests, 11 unit tests, 34 total crate tests):
+    - Validates MinHash clustering, SimHash distance clustering, pointer comment substitution, aggressive removal with exclusion logging, mark-only annotations, structural hierarchy canonical election, minimum word threshold filtering, idempotency, and Markdown/JSON report serialization.
+  - 100% passing quality gates: 34 deduplication tests passed, 586+ workspace tests passed, zero clippy warnings, zero fmt diffs, cargo deny passed, and 5/5 check-all gates passed.
+
 ### 2026-11-18 — Phase 7.1: Content optimization (`7.1.2`)
 
 #### Added

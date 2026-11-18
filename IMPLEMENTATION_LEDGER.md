@@ -6240,16 +6240,90 @@
 
 ---
 
+#### Subphase `7.1.3` — Semantic-aware deduplication in crates/deduplication
+- **Unique ID:** `7.1.3`
+- **Objective:** Implement semantic-aware near-duplicate detection and consolidation in `crates/deduplication` using MinHash signatures with word shingling and SimHash 64-bit cosine distance estimation. Support connected component clustering, canonical section election policies (`InformationRichness`, `StructuralHierarchy`, `FirstSeen`, `ShortestPath`), configurable consolidation strategies (`ReplaceWithAnnotatedPointer`, `Remove`, `MarkOnly`), auditable `ExclusionRecord` logging (`ExclusionReason::Duplicate`), directed relationship creation (`RelationshipKind::DuplicateOf`), and comprehensive telemetry reporting (`SemanticDeduplicationReport`).
+- **Scope:** `crates/deduplication/src/*`, `crates/deduplication/tests/semantic_deduplication_test.rs`.
+- **Prerequisites:** `7.1.2` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/deduplication/src/shingle.rs`
+  - `crates/deduplication/src/minhash.rs`
+  - `crates/deduplication/src/simhash.rs`
+  - `crates/deduplication/src/semantic_config.rs`
+  - `crates/deduplication/src/semantic_cluster.rs`
+  - `crates/deduplication/src/semantic_report.rs`
+  - `crates/deduplication/src/semantic.rs`
+  - `crates/deduplication/src/lib.rs`
+  - `crates/deduplication/tests/semantic_deduplication_test.rs`
+- **Implementation Tasks:**
+  1. Shingling & N-gram decomposition (`crates/deduplication/src/shingle.rs`):
+     - `Shingler::word_shingles` extracting sliding window tuples with case-folding and punctuation normalization.
+     - `Shingler::char_kgrams` decomposing strings into overlapping character sequences.
+     - Fast 64-bit FNV-1a hashing (`fnv1a_hash64`) for deterministic token fingerprinting.
+  2. MinHash signature estimator (`crates/deduplication/src/minhash.rs`):
+     - `MinHashSignature` computing $N$ random hash permutations using deterministic SplitMix64 pseudo-random generator.
+     - Jaccard similarity estimation via normalized signature component agreement.
+  3. SimHash 64-bit cosine similarity estimator (`crates/deduplication/src/simhash.rs`):
+     - `SimHash64` bitwise accumulation over word tokens with 64-bit integer packing.
+     - Hamming distance calculation via `count_ones` bit differences and cosine similarity projection.
+  4. Strongly-typed semantic configuration (`crates/deduplication/src/semantic_config.rs`):
+     - `SemanticAlgorithm`: `MinHash { shingle_size, num_hashes }`, `SimHash { max_hamming_distance }`.
+     - `SemanticDeduplicationStrategy`: `ReplaceWithAnnotatedPointer`, `Remove`, `MarkOnly`.
+     - `SemanticCanonicalPolicy`: `InformationRichness`, `StructuralHierarchy`, `FirstSeen`, `ShortestPath`.
+     - `SemanticDeduplicationConfig`: presets `balanced()` (MinHash 0.75 threshold), `aggressive()` (0.70 threshold, remove), `conservative()` (0.85 threshold, pointers), `simhash_based(max_dist)`.
+  5. Near-duplicate cluster model (`crates/deduplication/src/semantic_cluster.rs`):
+     - `NearDuplicateCluster` and `NearDuplicateMember` recording canonical details, members, similarity metrics, byte counts, and token savings.
+  6. Semantic deduplication telemetry report (`crates/deduplication/src/semantic_report.rs`):
+     - `SemanticDeduplicationReport` tracking before/after byte and token metrics, reduction percentages rounded to 4 decimals, Markdown summary table generation, and JSON roundtrip serialization.
+  7. Semantic deduplicator engine (`crates/deduplication/src/semantic.rs`):
+     - `SemanticDeduplicator::find_near_duplicate_clusters`: eligible candidate filtering, signature generation, pairwise graph adjacency, connected component traversal (BFS), and canonical candidate election.
+     - `SemanticDeduplicator::deduplicate_document`: executes consolidation strategy (`ReplaceWithAnnotatedPointer`, `Remove`, `MarkOnly`), updates section hashes, emits `ExclusionRecord` items with `ExclusionReason::Duplicate`, links directed `DuplicateOf` relationships, and updates document-level BLAKE3 revision hashes.
+     - Convenience helper `deduplicate_semantic`.
+  8. Unit & Integration test suite:
+     - 11 unit tests in `shingle.rs`, `minhash.rs`, `simhash.rs`, `semantic.rs`.
+     - 9 integration tests in `tests/semantic_deduplication_test.rs` validating MinHash clustering, SimHash clustering, pointer replacement, aggressive removal with exclusions, mark-only annotations, structural hierarchy canonical election, minimum word threshold filtering, idempotency, and Markdown/JSON report serialization.
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-deduplication`
+  - `cargo test --workspace`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - Near-duplicate sections identified accurately via MinHash and SimHash without semantic distortion.
+  - Canonical sections elected according to configured policy.
+  - Pointers include canonical section reference and similarity percentage.
+  - Directed `DuplicateOf` relationships recorded in CDM document model.
+  - Provenance and exclusions tracked with `ExclusionReason::Duplicate`.
+  - Provably idempotent near-duplicate deduplication.
+  - All 34 deduplication tests pass, all workspace tests pass, zero clippy warnings, zero fmt diffs, cargo deny passed, all check-all gates pass.
+- **Risk Analysis:**
+  - Risk: Overly aggressive near-duplicate clustering collapsing distinct code blocks that share common boilerplate.
+  - Mitigation: `min_words_threshold` ceiling (default 8 words), word-level 2-gram shingling, strict similarity threshold (0.75+), and lossless preservation mode for safety-critical documentation.
+- **Rollback Plan:**
+  - Revert Subphase 7.1.3 additions via `git reset --hard HEAD~1` and restore Subphase 7.1.2 baseline.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-deduplication`: 34 tests passing (15 unit tests, 10 exact tests, 9 semantic tests).
+  - Full workspace tests: 586+ tests passing across all crates and services with 0 failures.
+  - Workspace linter: `cargo clippy --workspace --all-targets -- -D warnings` clean with 0 warnings.
+  - Formatting: `cargo fmt --all -- --check` clean with 0 diffs.
+  - Dependency audit: `cargo deny check` passed (advisories ok, bans ok, licenses ok, sources ok).
+  - Monorepo gatekeeper: `powershell scripts/check-all.ps1` completed with `ALL GATES PASSED (0 failures)`.
+- **Git Commit Reference:** `0329b0c`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 7 — AI Context and Token Optimization)
 
 #### Phase 7.1 — Content optimization
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `7.1.3` | Semantic-aware deduplication | `7.1.2` (`ACCEPTED`) | `crates/deduplication/*`, `crates/cdm/*` | `NOT_STARTED` |
+| `7.1.4` | Content classification | `7.1.3` (`ACCEPTED`) | `crates/normalizer/*`, `crates/code-intelligence/*` | `NOT_STARTED` |
 
 ---
 
 ## STAGES 7 – 11 QUEUED LEDGER SUMMARY
 
-All subsequent subphases for **Stage 7** (`7.1.3`–`7.4.4`), **Stage 8** (`8.1.1`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.
+All subsequent subphases for **Stage 7** (`7.1.4`–`7.4.4`), **Stage 8** (`8.1.1`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.
