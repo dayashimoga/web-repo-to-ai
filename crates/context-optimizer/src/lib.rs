@@ -25,14 +25,54 @@ pub use optimizer::{BudgetOptimizationConfig, ContextBudgetOptimizer, Truncation
 pub use plan::{BudgetAction, BudgetPlan, SectionBudgetDecision};
 pub use priority::{PinStatus, PriorityScoreFactors, SectionPriority, SectionScorer};
 pub use profiles::{
-    CodeReviewConfig, CodeReviewProfile, ContextProfile, GeneralAiConfig, GeneralAiProfile,
-    ProfileKind, ProfileMetrics, ProfileOptimizationResult, SecurityCategory, SecurityReviewConfig,
-    SecurityReviewProfile,
+    CodeReviewConfig, CodeReviewProfile, ContextProfile, DebuggingCategory, DebuggingConfig,
+    DebuggingProfile, GeneralAiConfig, GeneralAiProfile, ProfileKind, ProfileMetrics,
+    ProfileOptimizationResult, SecurityCategory, SecurityReviewConfig, SecurityReviewProfile,
 };
 pub use report::ContextBudgetReport;
 
 use web_repo_to_ai_cdm::CdmDocument;
 use web_repo_to_ai_tokenizer::TargetModel;
+
+/// Convenience function: Optimizes a [`CdmDocument`] using the Debugging & Documentation profile for a target model.
+pub fn apply_debugging_profile_for_model(
+    document: &CdmDocument,
+    model: TargetModel,
+) -> Result<ProfileOptimizationResult, ContextOptimizerError> {
+    let budget = ContextBudget::from_model(model);
+    let profile = DebuggingProfile::default();
+    profile.optimize(document, &budget)
+}
+
+/// Convenience function: Optimizes a [`CdmDocument`] using the Debugging & Documentation profile against a custom budget.
+pub fn apply_debugging_profile(
+    document: &CdmDocument,
+    budget: &ContextBudget,
+) -> Result<ProfileOptimizationResult, ContextOptimizerError> {
+    let profile = DebuggingProfile::default();
+    profile.optimize(document, budget)
+}
+
+/// Convenience function: Optimizes a [`CdmDocument`] targeting a specific error pattern for a target model.
+pub fn apply_debugging_profile_with_target_for_model(
+    document: &CdmDocument,
+    target_error_pattern: impl Into<String>,
+    model: TargetModel,
+) -> Result<ProfileOptimizationResult, ContextOptimizerError> {
+    let budget = ContextBudget::from_model(model);
+    let profile = DebuggingProfile::from_error_pattern(target_error_pattern);
+    profile.optimize(document, &budget)
+}
+
+/// Convenience function: Optimizes a [`CdmDocument`] targeting a specific error pattern against a custom budget.
+pub fn apply_debugging_profile_with_target(
+    document: &CdmDocument,
+    target_error_pattern: impl Into<String>,
+    budget: &ContextBudget,
+) -> Result<ProfileOptimizationResult, ContextOptimizerError> {
+    let profile = DebuggingProfile::from_error_pattern(target_error_pattern);
+    profile.optimize(document, budget)
+}
 
 /// Convenience function: Optimizes a [`CdmDocument`] using the Security Review profile for a target model.
 pub fn apply_security_review_profile_for_model(

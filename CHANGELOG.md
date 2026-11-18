@@ -6,6 +6,25 @@
 
 ## [Unreleased] — Stage 7: AI Context and Token Optimization
 
+### 2026-11-18 — Phase 7.3: Context profiles (`7.3.4`) — PHASE 7.3 FULLY CERTIFIED
+
+#### Added
+- **`[7.3.4]` Debugging and Documentation Context Profile & Error Trace Prioritization in `crates/context-optimizer` (Phase 7.3 Certified):**
+  - Implemented specialized Debugging and Documentation configuration and engine in `crates/context-optimizer/src/profiles/debugging.rs`:
+    - `DebuggingCategory` taxonomy: classifies content sections into `ErrorDefinitionsAndPropagation`, `ObservabilityAndLogging`, `ApiContractsAndInterfaces`, `TroubleshootingDocsAndRunbooks`, `NegativeAndEdgeCaseTests`, `ManifestsAndEnvironment`, `InternalImplementation`, and `CosmeticOrUnrelatedAsset`.
+    - `DebuggingConfig`: controls inclusion policies for error definitions (`include_error_definitions: true`), observability/tracing (`include_observability: true`), API contracts and schemas (`include_api_contracts: true`), troubleshooting runbooks (`include_troubleshooting_docs: true`), negative tests (`include_negative_tests: true`), manifests, internal implementation, and cosmetic asset suppression (`include_cosmetic_assets: false` by default).
+    - Targeted error pattern matching: `with_target_error_patterns` and `from_error_pattern` pin sections matching specific incident error codes or exception names.
+    - `DebuggingProfile`: implements `ContextProfile`:
+      - Unconditionally pins error definitions (`enum Error`, `thiserror`), observability/tracing instrumentation, and API contracts with `PinStatus::MustInclude`.
+      - Prioritizes troubleshooting runbooks and negative/error-handling tests with `PinStatus::Normal`.
+      - Suppresses cosmetic presentation components (UI components, CSS, design tokens) and non-technical changelogs with `PinStatus::MustExclude` by default.
+      - Enforces `ContextBudgetOptimizer` greedy knapsack allocation and boundary truncation under constrained token ceilings.
+      - Computes `ProfileMetrics` category distribution.
+  - Public convenience APIs in `crates/context-optimizer/src/lib.rs`: `apply_debugging_profile`, `apply_debugging_profile_for_model`, `apply_debugging_profile_with_target`, and `apply_debugging_profile_with_target_for_model`.
+  - Authored integration test suite `crates/context-optimizer/tests/debugging_profile_test.rs` (6 integration tests validating error/observability/API contract pinning, targeted error pattern matching, negative test elevation, model-targeted optimization, tight budget boundary truncation, and report serialization).
+  - 100% passing quality gates: 46 crate tests passed, 687+ workspace tests passed, zero clippy warnings, zero fmt diffs, cargo deny passed, and 5/5 check-all gates passed.
+  - **Formally certified completion of Phase 7.3: Context profiles** (`7.3.1`, `7.3.2`, `7.3.3`, `7.3.4` all `ACCEPTED`).
+
 ### 2026-11-18 — Phase 7.3: Context profiles (`7.3.3`)
 
 #### Added

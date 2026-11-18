@@ -8,10 +8,12 @@
 //! - `DebuggingProfile` ([`ProfileKind::DebuggingAndDocumentation`]): Error propagation, logs, and API docs (Phase 7.3.4).
 
 pub mod code_review;
+pub mod debugging;
 pub mod general_ai;
 pub mod security_review;
 
 pub use code_review::{CodeReviewConfig, CodeReviewProfile};
+pub use debugging::{DebuggingCategory, DebuggingConfig, DebuggingProfile};
 pub use general_ai::{GeneralAiConfig, GeneralAiProfile};
 pub use security_review::{SecurityCategory, SecurityReviewConfig, SecurityReviewProfile};
 

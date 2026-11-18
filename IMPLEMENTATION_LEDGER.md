@@ -6784,13 +6784,69 @@
 
 ---
 
+#### Subphase `7.3.4` — Debugging and documentation context profile in crates/context-optimizer
+- **Unique ID:** `7.3.4`
+- **Objective:** Implement the specialized Debugging and Documentation context profile (`DebuggingProfile`, `DebuggingConfig`, `DebuggingCategory`) in `crates/context-optimizer` that prioritizes error definitions and propagation hierarchies, observability and tracing instrumentation, API contracts and schema definitions, troubleshooting runbooks and developer specs, and negative/edge-case test cases while suppressing cosmetic presentation assets (UI styling, CSS, layouts) and non-technical changelogs to maximize diagnostic clarity and root-cause analysis context headroom. Formally certify Phase 7.3.
+- **Scope:** `crates/context-optimizer/src/profiles/debugging.rs`, `crates/context-optimizer/src/profiles/mod.rs`, `crates/context-optimizer/src/lib.rs`, `crates/context-optimizer/tests/debugging_profile_test.rs`.
+- **Prerequisites:** `7.3.3` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/context-optimizer/src/profiles/debugging.rs`
+  - `crates/context-optimizer/src/profiles/mod.rs`
+  - `crates/context-optimizer/src/lib.rs`
+  - `crates/context-optimizer/tests/debugging_profile_test.rs`
+- **Implementation Tasks:**
+  1. Implement `DebuggingCategory` taxonomy (`ErrorDefinitionsAndPropagation`, `ObservabilityAndLogging`, `ApiContractsAndInterfaces`, `TroubleshootingDocsAndRunbooks`, `NegativeAndEdgeCaseTests`, `ManifestsAndEnvironment`, `InternalImplementation`, `CosmeticOrUnrelatedAsset`) in `crates/context-optimizer/src/profiles/debugging.rs`.
+  2. Implement `DebuggingConfig` with controls for `include_error_definitions` (default `true`), `include_observability` (default `true`), `include_api_contracts` (default `true`), `include_troubleshooting_docs` (default `true`), `include_negative_tests` (default `true`), `include_manifests` (default `true`), `include_internal_implementation` (default `true`), `include_cosmetic_assets` (default `false`), `target_error_patterns`, and `pinned_paths`.
+  3. Implement `DebuggingProfile` implementing `ContextProfile`:
+     - Classifies sections into `DebuggingCategory` using path, filename, attribute, and keyword heuristics.
+     - Unconditionally pins error definitions (`enum Error`, `thiserror`), observability/tracing instrumentation, and API contracts with `PinStatus::MustInclude`.
+     - Supports targeted error pattern matching (`from_error_pattern`) to elevate sections matching specific incident error codes or exception names.
+     - Prioritizes troubleshooting runbooks and negative/error-handling unit/integration tests with `PinStatus::Normal`.
+     - Suppresses cosmetic presentation components (UI components, CSS, design tokens) and non-technical changelogs with `PinStatus::MustExclude` by default.
+     - Enforces `ContextBudgetOptimizer` greedy knapsack allocation and boundary truncation.
+     - Computes `ProfileMetrics` category distribution.
+  4. Expose `DebuggingCategory`, `DebuggingConfig`, and `DebuggingProfile` in `crates/context-optimizer/src/profiles/mod.rs`.
+  5. Expose public convenience APIs `apply_debugging_profile`, `apply_debugging_profile_for_model`, `apply_debugging_profile_with_target`, and `apply_debugging_profile_with_target_for_model` in `crates/context-optimizer/src/lib.rs`.
+  6. Implement comprehensive integration test suite `crates/context-optimizer/tests/debugging_profile_test.rs` (6 integration tests validating error/observability/API contract pinning, targeted error pattern matching, negative test elevation, model-targeted optimization, tight budget boundary truncation, and report serialization).
+  7. Formally certify Phase 7.3 ("Context profiles") with all 4 specialized profiles (`GeneralAi`, `CodeReview`, `SecurityReview`, `DebuggingAndDocumentation`) fully implemented and passing all quality gates.
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-context-optimizer`
+  - `cargo test --workspace`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - Error definitions, observability/tracing instrumentation, and API contracts are pinned with `PinStatus::MustInclude`.
+  - Targeted error pattern queries elevate matching error and rate-limiting modules with `PinStatus::MustInclude`.
+  - Negative and failure-mode unit/integration tests are elevated over benign cosmetic tests.
+  - Cosmetic presentation components and non-technical documentation are suppressed by default (`include_cosmetic_assets: false`).
+  - Strict compliance with model token budgets (`TargetModel::Gpt4o`, `Claude35Sonnet`, `Gemini15Pro`, `Llama3`) with clean boundary truncation.
+  - All 46 crate tests pass, all 687+ workspace tests pass, zero clippy warnings, zero fmt diffs, cargo deny passed, all check-all gates pass (5/5).
+- **Risk Analysis:**
+  - Risk: Standard return types (`Result<T, E>`) could cause generic functions to be misclassified as error definitions.
+  - Mitigation: Refined error classification heuristics to focus on dedicated error files, `thiserror`/`anyhow` declarations, `enum Error`, and `impl std::error::Error`.
+- **Rollback Plan:**
+  - Revert Subphase 7.3.4 additions via `git reset --hard HEAD~1` and restore Subphase 7.3.3 baseline.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-context-optimizer`: 46 tests passing (18 unit tests, 28 integration tests across 5 test suites).
+  - Full workspace tests: 687+ tests passing across all crates and services with 0 failures.
+  - Workspace linter: `cargo clippy --workspace --all-targets -- -D warnings` clean with 0 warnings.
+  - Formatting: `cargo fmt --all -- --check` clean with 0 diffs.
+  - Dependency audit: `cargo deny check` passed (advisories ok, bans ok, licenses ok, sources ok).
+  - Monorepo gatekeeper: `powershell scripts/check-all.ps1` completed with `ALL GATES PASSED (0 failures)`.
+- **Git Commit Reference:** `8ae81a4`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 7 — AI Context and Token Optimization)
 
-#### Phase 7.3 — Context profiles
+#### Phase 7.4 — Quality validation
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `7.3.4` | Debugging and documentation context profile | `7.3.3` (`ACCEPTED`) | `crates/context-optimizer/*` | `NOT_STARTED` |
+| `7.4.1` | Preservation metrics | `7.3.4` (`ACCEPTED`) | `crates/context-optimizer/*` | `NOT_STARTED` |
 
 ---
 
