@@ -138,7 +138,7 @@
 
 ---
 
-## Stage 5: Public GitHub Repository Extraction (`IN_PROGRESS`)
+## Stage 5: Public GitHub Repository Extraction (`COMPLETED` / `ACCEPTED` — **STAGE 5 CERTIFIED**)
 
 ### Phase 5.1 — GitHub metadata (`COMPLETED` / `ACCEPTED` — **PHASE 5.1 CERTIFIED**)
 - [x] **[5.1.1]** Repository identification and URL decomposition in crates/github-extractor *(Completed 2026-11-17, GitHubTarget, GitHubTargetType, GitHubUrlParser, strict owner/repo validation, path traversal defense, SSH/git/shorthand/tree/blob/commit/tag/PR/issue parsing, CDM SourceIdentity mapping, 22 passing tests, 356 workspace tests)*
@@ -164,11 +164,11 @@
 - [x] **[5.4.3]** Architecture context in crates/github-extractor *(Completed 2026-11-18, RepoArchitectureContext, WorkspaceType monorepo/single-package/library detection, EntryPointInfo discovery, ComponentInfo cataloging, key technologies & frameworks inference, architecture documentation indexing, GFM Markdown overview generation, CDM prose section mapping, 10 new integration tests, 126 crate tests, 100% passing quality gates)*
 - [x] **[5.4.4]** Code-review package in crates/github-extractor *(Completed 2026-11-18, CodeReviewPackage, CodeReviewPackageConfig, ReviewFocus, ReviewPriorityTier, PrioritizedReviewFile, ReviewChecklistItem, focus-specific heuristic prioritization, checklist synthesis, self-contained GFM Markdown review package, JSON serialization, end-to-end CDM document construction passing CdmValidator strict validation, 8 new integration tests, 134 crate tests, 470 workspace tests, 100% passing quality gates — PHASE 5.4 CERTIFIED)*
 
-### Phase 5.5 — Integrity
+### Phase 5.5 — Integrity (`COMPLETED` / `ACCEPTED` — **PHASE 5.5 & STAGE 5 CERTIFIED**)
 - [x] **[5.5.1]** Expected-vs-actual file accounting in crates/github-extractor *(Completed 2026-11-18, FileAccountingBalanceSheet, FileAccountingAuditor, AccountingDiscrepancy, AccountingDiscrepancyKind, DiscrepancySeverity, conservation law verification, bidirectional set reconciliation, GFM markdown balance sheet, JSON serialization, CDM section mapping, 9 new integration tests, 143 crate tests, 479 workspace tests, 100% passing quality gates)*
 - [x] **[5.5.2]** Content hash validation in crates/github-extractor *(Completed 2026-11-18, ContentHashValidator, HashValidationConfig, HashValidationReport, HashValidationFailure, HashAlgorithm, multi-algorithm integrity auditing [Git Object SHA-1, BLAKE3, SHA-256], report/manifest/CDM section verification, GFM markdown reporting, JSON serialization, CDM section mapping, 11 new integration tests, 154 crate tests, 490 workspace tests, 100% passing quality gates)*
 - [x] **[5.5.3]** Missing & excluded file reports in crates/github-extractor *(Completed 2026-11-18, ExclusionAuditReport, ExclusionReportGenerator, ExclusionCategory [OversizedFile, GeneratedOrLockfile, VendorOrThirdParty, BinaryOrAsset, SubmoduleOrSymlink, PolicyPattern, SensitiveSecurityPattern, Other], ExtractionFailureCategory [NetworkTimeout, RateLimitExceeded, BlobTooLarge, CorruptedContent, SubtreeTraversalFailed, IoOrStorage, Unknown], ExcludedFileRecord, FailedFileRecord, MissingFileRecord, CDM ExclusionRecord bidirectional mapping, GFM markdown reporting, JSON serialization, CDM section mapping, 11 new integration tests, 165 crate tests, 501 workspace tests, 100% passing quality gates)*
-- [ ] **[5.5.4]** Large repository regression tests in crates/github-extractor
+- [x] **[5.5.4]** Large repository regression tests in crates/github-extractor *(Completed 2026-11-18, large_repository_regression_test.rs, 8 regression suites: synthetic 2,500-blob deep tree truncation and subtree stitching, polyglot monorepo classification across Rust/TS/Python/Go/Docs/CI/Vendored/Binaries/Secrets, mathematical conservation identity proof, multi-algorithm hash validation & tamper detection, exclusion and diagnostics audit, code-review package budget enforcement, end-to-end CDM document construction passing CdmValidator strict validation, and live mock HTTP integration, 127 crate tests, 501 workspace tests, 100% passing quality gates — PHASE 5.5 & STAGE 5 CERTIFIED)*
 
 ---
 

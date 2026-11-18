@@ -54,7 +54,7 @@
   - `4.3` Export (`4.3.1` [ACCEPTED], `4.3.2` [ACCEPTED], `4.3.3` [ACCEPTED], `4.3.4` [ACCEPTED — PHASE 4.3 CERTIFIED])
   - `4.4` Website integration (`4.4.1` [ACCEPTED], `4.4.2` [ACCEPTED], `4.4.3` [ACCEPTED], `4.4.4` [ACCEPTED — PHASE 4.4 & STAGE 4 CERTIFIED])
 
-### STAGE 5 — PUBLIC GITHUB REPOSITORY EXTRACTION
+### STAGE 5 — PUBLIC GITHUB REPOSITORY EXTRACTION (`COMPLETED` / `ACCEPTED` — **STAGE 5 CERTIFIED**)
 - **Deliverable:** Complete public GitHub repository conversion across branches, tags, commits, and path filters.
 - **Stage Acceptance Gate:** Real public repositories produce verifiable, complete packages where $\text{Discovered} = \text{Extracted} + \text{Excluded} + \text{Failed} + \text{Unsupported}$.
 - **Phases:**
@@ -62,13 +62,13 @@
   - `5.2` File discovery (`5.2.1` [ACCEPTED], `5.2.2` [ACCEPTED], `5.2.3` [ACCEPTED], `5.2.4` [ACCEPTED — PHASE 5.2 CERTIFIED])
   - `5.3` File extraction (`5.3.1` [ACCEPTED], `5.3.2` [ACCEPTED], `5.3.3` [ACCEPTED], `5.3.4` [ACCEPTED — PHASE 5.3 CERTIFIED])
   - `5.4` Repository packaging (`5.4.1` [ACCEPTED], `5.4.2` [ACCEPTED], `5.4.3` [ACCEPTED], `5.4.4` [ACCEPTED — PHASE 5.4 CERTIFIED])
-  - `5.5` Integrity (`5.5.1` [ACCEPTED], `5.5.2` [ACCEPTED], `5.5.3` [ACCEPTED], `5.5.4` [NEXT])
+  - `5.5` Integrity (`5.5.1` [ACCEPTED], `5.5.2` [ACCEPTED], `5.5.3` [ACCEPTED], `5.5.4` [ACCEPTED — PHASE 5.5 & STAGE 5 CERTIFIED])
 
 ### STAGE 6 — PRIVATE GITHUB REPOSITORIES
 - **Deliverable:** Secure private repository conversion via read-only GitHub App authorization.
 - **Stage Acceptance Gate:** Authorized private repositories can be extracted without exposing credentials, leaking tokens, or permitting repository modifications.
 - **Phases:**
-  - `6.1` GitHub App (`6.1.1` – `6.1.4`)
+  - `6.1` GitHub App (`6.1.1` [NEXT], `6.1.2` – `6.1.4`)
   - `6.2` Credential management (`6.2.1` – `6.2.4`)
   - `6.3` Private extraction (`6.3.1` – `6.3.4`)
   - `6.4` Security verification (`6.4.1` – `6.4.4`)

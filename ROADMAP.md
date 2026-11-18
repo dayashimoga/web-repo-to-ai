@@ -72,15 +72,15 @@
 - **Phase 4.3 — Export:** `4.3.1` ZIP package generation (`ACCEPTED`) | `4.3.2` Manifest & checksums (`ACCEPTED`) | `4.3.3` Streaming downloads (`ACCEPTED`) | `4.3.4` Export integrity tests (`ACCEPTED` — **PHASE 4.3 CERTIFIED**)
 - **Phase 4.4 — Website integration:** `4.4.1` Connect actual conversion API (`ACCEPTED`) | `4.4.2` Real progress (SSE) (`ACCEPTED`) | `4.4.3` Preview & copy (`ACCEPTED`) | `4.4.4` Downloads (`ACCEPTED` — **PHASE 4.4 & STAGE 4 CERTIFIED**)
 
-### STAGE 5 — PUBLIC GITHUB REPOSITORY EXTRACTION
+### STAGE 5 — PUBLIC GITHUB REPOSITORY EXTRACTION (`COMPLETED` / `ACCEPTED` — **STAGE 5 CERTIFIED**)
 - **Phase 5.1 — GitHub metadata:** `5.1.1` Repository identification (`ACCEPTED`) | `5.1.2` Branch & tag discovery (`ACCEPTED`) | `5.1.3` Commit selection (`ACCEPTED`) | `5.1.4` Repository metadata extraction (`ACCEPTED` — **PHASE 5.1 CERTIFIED**)
 - **Phase 5.2 — File discovery:** `5.2.1` Git Trees integration (`ACCEPTED`) | `5.2.2` Tree truncation detection (`ACCEPTED`) | `5.2.3` Subtree recovery (`ACCEPTED`) | `5.2.4` File classification (`ACCEPTED` — **PHASE 5.2 CERTIFIED**)
 - **Phase 5.3 — File extraction:** `5.3.1` Source acquisition (`ACCEPTED`) | `5.3.2` Documentation extraction (`ACCEPTED`) | `5.3.3` Dependency extraction (`ACCEPTED`) | `5.3.4` Configuration & test extraction (`ACCEPTED` — **PHASE 5.3 CERTIFIED**)
 - **Phase 5.4 — Repository packaging:** `5.4.1` Repository tree generation (`ACCEPTED`) | `5.4.2` File manifest (`ACCEPTED`) | `5.4.3` Architecture context (`ACCEPTED`) | `5.4.4` Code-review package (`ACCEPTED` — **PHASE 5.4 CERTIFIED**)
-- **Phase 5.5 — Integrity:** `5.5.1` Expected-vs-actual file accounting (`ACCEPTED`) | `5.5.2` Content hash validation (`ACCEPTED`) | `5.5.3` Missing & excluded file reports (`ACCEPTED`) | `5.5.4` Large repository regression tests (`NEXT`)
+- **Phase 5.5 — Integrity:** `5.5.1` Expected-vs-actual file accounting (`ACCEPTED`) | `5.5.2` Content hash validation (`ACCEPTED`) | `5.5.3` Missing & excluded file reports (`ACCEPTED`) | `5.5.4` Large repository regression tests (`ACCEPTED` — **PHASE 5.5 & STAGE 5 CERTIFIED**)
 
 ### STAGE 6 — PRIVATE GITHUB REPOSITORIES
-- **Phase 6.1 — GitHub App:** `6.1.1` App configuration documentation | `6.1.2` OAuth & installation flow | `6.1.3` Minimum permissions | `6.1.4` Callback security
+- **Phase 6.1 — GitHub App:** `6.1.1` App configuration documentation (`NEXT`) | `6.1.2` OAuth & installation flow | `6.1.3` Minimum permissions | `6.1.4` Callback security
 - **Phase 6.2 — Credential management:** `6.2.1` Secure token storage | `6.2.2` Token refresh & expiration | `6.2.3` Revocation | `6.2.4` Secret redaction
 - **Phase 6.3 — Private extraction:** `6.3.1` Installation authorization | `6.3.2` Selected repository access | `6.3.3` Private tree & source extraction | `6.3.4` Authorization failure recovery
 - **Phase 6.4 — Security verification:** `6.4.1` Cross-user isolation | `6.4.2` Unauthorized repository access tests | `6.4.3` Token leakage tests | `6.4.4` Permission audit

@@ -6,6 +6,27 @@
 
 ## [Unreleased] — Stage 5: Public GitHub Repository Extraction
 
+### 2026-11-18 — Phase 5.5: Integrity (`5.5.4` & Stage 5 Formal Certification)
+
+#### Added
+- **`[5.5.4]` Large Repository Regression Tests in `crates/github-extractor` & Stage 5 Formal Certification:**
+  - Authored a comprehensive large-repository regression test suite, stress verification framework, and golden validation harness in `crates/github-extractor/tests/large_repository_regression_test.rs`:
+    - `test_large_scale_tree_truncation_and_subtree_stitching`: synthetic repository tree with 2,500 blobs spanning 10-level deep directory hierarchies; simulates Git Trees API truncation (`truncated: true`), executes subtree analysis and stitching via `TreeStitcher::stitch_subtree`, asserting 100% path preservation with zero dropped entries and zero duplicates.
+    - `test_polyglot_monorepo_classification_and_manifest_synthesis`: enterprise polyglot repository covering Rust backend, TypeScript/SvelteKit frontend, Python ML microservice, Go tooling, architecture documentation, CI/CD workflows, vendored artifacts, binary assets, and security-sensitive files; verifies file classification, language detection, and multi-report aggregation into `RepoFileManifest`.
+    - `test_large_repository_mathematical_conservation_identity`: mathematical proof of exact arithmetic completeness conservation $\text{discovered} = \text{extracted} + \text{excluded} + \text{failed} + \text{unsupported} + \text{missing\_unaccounted}$; verifies `balance_sheet.is_balanced()`, `is_fully_accounted()`, `is_perfectly_consistent()`, and bidirectional mapping to a valid CDM `CompletenessReport`.
+    - `test_large_repository_multi_algorithm_hash_validation_and_corruption_detection`: verifies 100% cryptographic checksum validity across Git Object SHA-1, BLAKE3, and SHA-256 digests; validates pinpoint tamper detection on simulated file corruption.
+    - `test_large_repository_exclusion_and_diagnostics_audit`: verifies granular categorization across vendor, lockfile, binary, and security exclusion categories; validates CDM `ExclusionRecord` mapping, and confirms Markdown & JSON formatting.
+    - `test_large_repository_code_review_package_budget_and_prioritization`: validates review focus heuristic scoring, checklist synthesis, and strict file count budget ceilings.
+    - `test_large_repository_end_to_end_cdm_assembly_strict_validation`: constructs a unified `CdmDocument` representing the full monorepo with tree, architecture context, review package, balance sheet, checksum report, and exclusion audit sections, passing `CdmValidator::with_config(ValidationConfig::strict())` with zero validation issues.
+    - `test_large_repository_live_mock_http_integration`: validates ref discovery, commit revision pinning, and tree fetching through `GitHubApiClient` against an in-process Axum mock HTTP server.
+  - Formally certified **Stage 5 — Public GitHub Repository Extraction** across all 5 phases:
+    - Phase 5.1 (Metadata): `5.1.1` – `5.1.4`
+    - Phase 5.2 (Discovery): `5.2.1` – `5.2.4`
+    - Phase 5.3 (Extraction): `5.3.1` – `5.3.4`
+    - Phase 5.4 (Packaging): `5.4.1` – `5.4.4`
+    - Phase 5.5 (Integrity): `5.5.1` – `5.5.4`
+  - Verified 501 passing workspace Rust tests (127 in `crates/github-extractor`), 213 frontend tests, zero clippy warnings, zero fmt diffs, and 100% passing gates across all 5 checks in `scripts/check-all.ps1`.
+
 ### 2026-11-18 — Phase 5.5: Integrity (`5.5.3`)
 
 #### Added
