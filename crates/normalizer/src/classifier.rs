@@ -1,0 +1,732 @@
+//! # Section & Document Content Classification
+//!
+//! Classifies CDM sections and documents into architectural domains, information density
+//! tiers, and quantitative signal scores to guide AI context budgeting and profile prioritization.
+
+use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
+use web_repo_to_ai_cdm::{CdmDocument, CdmSection, SectionKind};
+use web_repo_to_ai_code_intelligence::{analyze_code, CodeNature, Language};
+
+use crate::classification_report::ContentClassificationReport;
+
+/// High-level content classification category for a section.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ContentCategory {
+    /// Production source code, algorithmic core, and internal business logic.
+    SourceCode,
+    /// Human-readable documentation, guides, READMEs, and tutorials.
+    Documentation,
+    /// Formal specifications, schema contracts, OpenAPI/AsyncAPI, or Protobuf.
+    Specification,
+    /// Build settings, deployment files, CI pipelines, and environment configs.
+    Configuration,
+    /// Package manager manifests declaring dependencies and project metadata.
+    DependencyManifest,
+    /// Automated test suites, integration tests, mock fixtures, and benchmarks.
+    TestAndVerification,
+    /// Machine-generated artifacts, minified bundles, lockfiles, or boilerplate notices.
+    GeneratedOrBoilerplate,
+    /// Site chrome, table of contents, breadcrumbs, footers, or navigational links.
+    NavigationOrMetadata,
+    /// Tabular listings, comparative matrices, or parameter tables.
+    TabularOrData,
+}
+
+impl ContentCategory {
+    /// Returns the canonical snake_case string representation.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::SourceCode => "source_code",
+            Self::Documentation => "documentation",
+            Self::Specification => "specification",
+            Self::Configuration => "configuration",
+            Self::DependencyManifest => "dependency_manifest",
+            Self::TestAndVerification => "test_and_verification",
+            Self::GeneratedOrBoilerplate => "generated_or_boilerplate",
+            Self::NavigationOrMetadata => "navigation_or_metadata",
+            Self::TabularOrData => "tabular_or_data",
+        }
+    }
+
+    /// Returns whether this category represents production source code.
+    #[must_use]
+    pub const fn is_source_code(self) -> bool {
+        matches!(self, Self::SourceCode)
+    }
+
+    /// Returns whether this category represents documentation or specifications.
+    #[must_use]
+    pub const fn is_documentation_or_spec(self) -> bool {
+        matches!(self, Self::Documentation | Self::Specification)
+    }
+
+    /// Returns whether this category represents tests or verification fixtures.
+    #[must_use]
+    pub const fn is_test(self) -> bool {
+        matches!(self, Self::TestAndVerification)
+    }
+
+    /// Returns whether this category is machine-generated or boilerplate.
+    #[must_use]
+    pub const fn is_generated_or_boilerplate(self) -> bool {
+        matches!(self, Self::GeneratedOrBoilerplate)
+    }
+}
+
+/// Information density tier of a content section.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum InformationDensity {
+    /// High information density: rich declarations, algorithms, formal specs.
+    High,
+    /// Medium information density: standard prose, typical configurations.
+    Medium,
+    /// Low information density: repetitive tables, boilerplate getters/setters.
+    Low,
+    /// Trivial information density: license notices only, empty stubs, navigation links.
+    Trivial,
+}
+
+impl InformationDensity {
+    /// Returns the canonical snake_case string representation.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::High => "high",
+            Self::Medium => "medium",
+            Self::Low => "low",
+            Self::Trivial => "trivial",
+        }
+    }
+
+    /// Base signal score contribution for this density tier.
+    #[must_use]
+    pub const fn base_score(self) -> f64 {
+        match self {
+            Self::High => 0.90,
+            Self::Medium => 0.70,
+            Self::Low => 0.40,
+            Self::Trivial => 0.15,
+        }
+    }
+}
+
+/// Detectable noise or low-signal markers within a section.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NoiseIndicator {
+    /// Contains only legal/copyright disclaimer boilerplate.
+    CopyrightHeaderOnly,
+    /// Contains minified JavaScript/CSS or ultra-long lines without whitespace.
+    MinifiedContent,
+    /// Contains machine-generated stubs or compiler outputs.
+    AutoGeneratedStub,
+    /// Repetitive mock data or test fixture arrays.
+    RepetitiveTestFixture,
+    /// Empty body or trivial placeholder (< 3 words).
+    EmptyOrTrivialSection,
+    /// Consists purely of navigational breadcrumbs or anchor links.
+    NavigationChromeOnly,
+}
+
+impl NoiseIndicator {
+    /// Returns the canonical snake_case identifier.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::CopyrightHeaderOnly => "copyright_header_only",
+            Self::MinifiedContent => "minified_content",
+            Self::AutoGeneratedStub => "auto_generated_stub",
+            Self::RepetitiveTestFixture => "repetitive_test_fixture",
+            Self::EmptyOrTrivialSection => "empty_or_trivial_section",
+            Self::NavigationChromeOnly => "navigation_chrome_only",
+        }
+    }
+
+    /// Signal score penalty associated with this indicator.
+    #[must_use]
+    pub const fn penalty(self) -> f64 {
+        match self {
+            Self::CopyrightHeaderOnly => 0.50,
+            Self::MinifiedContent => 0.60,
+            Self::AutoGeneratedStub => 0.45,
+            Self::RepetitiveTestFixture => 0.25,
+            Self::EmptyOrTrivialSection => 0.70,
+            Self::NavigationChromeOnly => 0.55,
+        }
+    }
+}
+
+/// Detailed classification result for an individual section.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SectionClassification {
+    /// Primary content domain category.
+    pub category: ContentCategory,
+    /// Evaluated information density tier.
+    pub density: InformationDensity,
+    /// Normalized signal-to-noise score in $[0.0, 1.0]$.
+    pub signal_score: f64,
+    /// Detected low-signal or noise indicators.
+    pub noise_indicators: Vec<NoiseIndicator>,
+    /// Architectural code nature (if section is code).
+    pub code_nature: Option<CodeNature>,
+    /// Refined language identifier.
+    pub language: Option<String>,
+    /// Compact summary of declared symbols (e.g. `fn:3,struct:1`).
+    pub symbols_summary: Option<String>,
+    /// True if section represents automated tests or fixtures.
+    pub is_test: bool,
+    /// True if section is machine-generated or auto-generated.
+    pub is_generated: bool,
+    /// True if section represents boilerplate or disclaimer notices.
+    pub is_boilerplate: bool,
+}
+
+/// Configuration governing section and document content classification.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ClassificationConfig {
+    /// Minimum line count required for code to be considered substantial (default: 3).
+    pub min_substantial_lines: usize,
+    /// Threshold below which a section is flagged as low-signal (default: 0.35).
+    pub low_signal_threshold: f64,
+    /// When true, marks license and disclaimer sections as trivial boilerplate (default: true).
+    pub flag_disclaimers: bool,
+}
+
+impl Default for ClassificationConfig {
+    fn default() -> Self {
+        Self {
+            min_substantial_lines: 3,
+            low_signal_threshold: 0.35,
+            flag_disclaimers: true,
+        }
+    }
+}
+
+/// Classifier engine analyzing individual sections.
+pub struct SectionClassifier<'a> {
+    config: &'a ClassificationConfig,
+}
+
+impl<'a> SectionClassifier<'a> {
+    /// Creates a new section classifier with the given configuration.
+    #[must_use]
+    pub const fn new(config: &'a ClassificationConfig) -> Self {
+        Self { config }
+    }
+
+    /// Classifies an individual [`CdmSection`].
+    #[must_use]
+    pub fn classify(&self, section: &CdmSection) -> SectionClassification {
+        let body = &section.body;
+        let trimmed_body = body.trim();
+        let path = section.original_path.as_deref();
+
+        // 1. Check for empty or trivial section
+        if trimmed_body.is_empty() || trimmed_body.split_whitespace().count() < 3 {
+            return SectionClassification {
+                category: ContentCategory::NavigationOrMetadata,
+                density: InformationDensity::Trivial,
+                signal_score: 0.10,
+                noise_indicators: vec![NoiseIndicator::EmptyOrTrivialSection],
+                code_nature: None,
+                language: section.language.clone(),
+                symbols_summary: None,
+                is_test: false,
+                is_generated: false,
+                is_boilerplate: true,
+            };
+        }
+
+        // 2. Check for synthetic / disclaimer boilerplate
+        if self.config.flag_disclaimers && is_disclaimer_or_license(trimmed_body) {
+            return SectionClassification {
+                category: ContentCategory::GeneratedOrBoilerplate,
+                density: InformationDensity::Trivial,
+                signal_score: 0.15,
+                noise_indicators: vec![NoiseIndicator::CopyrightHeaderOnly],
+                code_nature: None,
+                language: section.language.clone(),
+                symbols_summary: None,
+                is_test: false,
+                is_generated: true,
+                is_boilerplate: true,
+            };
+        }
+
+        // 3. Kind-specific classification
+        match section.kind {
+            SectionKind::CodeFile | SectionKind::CodeSnippet => self.classify_code(section),
+            SectionKind::Manifest => self.classify_manifest(section),
+            SectionKind::Table => self.classify_table(section),
+            SectionKind::Navigation => self.classify_navigation(section),
+            SectionKind::Frontmatter => self.classify_frontmatter(section),
+            SectionKind::Admonition => self.classify_admonition(section),
+            SectionKind::Prose => self.classify_prose(section, path, trimmed_body),
+        }
+    }
+
+    fn classify_code(&self, section: &CdmSection) -> SectionClassification {
+        let path = section.original_path.as_deref();
+        let lang_hint = section.language.as_deref();
+        let analysis = analyze_code(path, lang_hint, &section.body);
+
+        let mut noise_indicators = Vec::new();
+        if analysis.is_minified {
+            noise_indicators.push(NoiseIndicator::MinifiedContent);
+        }
+        if analysis.is_generated {
+            noise_indicators.push(NoiseIndicator::AutoGeneratedStub);
+        }
+        if analysis.is_test && analysis.metrics.symbol_count == 0 {
+            noise_indicators.push(NoiseIndicator::RepetitiveTestFixture);
+        }
+
+        let category = match analysis.nature {
+            CodeNature::CoreImplementation => ContentCategory::SourceCode,
+            CodeNature::InterfaceOrTypeDefinition => {
+                if analysis.language == Language::Protobuf || analysis.language == Language::GraphQL
+                {
+                    ContentCategory::Specification
+                } else {
+                    ContentCategory::SourceCode
+                }
+            }
+            CodeNature::TestOrFixture => ContentCategory::TestAndVerification,
+            CodeNature::Benchmark => ContentCategory::TestAndVerification,
+            CodeNature::GeneratedOrBoilerplate => ContentCategory::GeneratedOrBoilerplate,
+            CodeNature::BuildOrScript => ContentCategory::Configuration,
+            CodeNature::DataOrSchema => ContentCategory::Specification,
+        };
+
+        // Determine information density
+        let density = if analysis.is_minified || analysis.is_generated {
+            InformationDensity::Low
+        } else if analysis.metrics.symbol_count >= 2
+            || (analysis.metrics.code_lines >= 15 && analysis.metrics.comment_ratio >= 0.10)
+        {
+            InformationDensity::High
+        } else if analysis.metrics.code_lines >= self.config.min_substantial_lines {
+            InformationDensity::Medium
+        } else {
+            InformationDensity::Low
+        };
+
+        // Compute signal score
+        let mut score = density.base_score();
+        for indicator in &noise_indicators {
+            score -= indicator.penalty();
+        }
+        if analysis.metrics.has_doc_comments {
+            score += 0.05;
+        }
+        if analysis.metrics.export_count > 0 {
+            score += 0.05;
+        }
+
+        let clamped_score = (score.clamp(0.05, 1.0) * 10000.0).round() / 10000.0;
+
+        SectionClassification {
+            category,
+            density,
+            signal_score: clamped_score,
+            noise_indicators,
+            code_nature: Some(analysis.nature),
+            language: Some(analysis.language.as_str().to_string()),
+            symbols_summary: Some(analysis.symbols_summary),
+            is_test: analysis.is_test,
+            is_generated: analysis.is_generated,
+            is_boilerplate: analysis.is_generated || analysis.is_minified,
+        }
+    }
+
+    fn classify_manifest(&self, section: &CdmSection) -> SectionClassification {
+        let is_lockfile = section
+            .original_path
+            .as_deref()
+            .map(|p| p.contains(".lock") || p.ends_with("-lock.json"))
+            .unwrap_or(false);
+
+        let (category, density, score, is_generated) = if is_lockfile {
+            (
+                ContentCategory::GeneratedOrBoilerplate,
+                InformationDensity::Low,
+                0.30,
+                true,
+            )
+        } else {
+            (
+                ContentCategory::DependencyManifest,
+                InformationDensity::High,
+                0.85,
+                false,
+            )
+        };
+
+        SectionClassification {
+            category,
+            density,
+            signal_score: score,
+            noise_indicators: if is_lockfile {
+                vec![NoiseIndicator::AutoGeneratedStub]
+            } else {
+                Vec::new()
+            },
+            code_nature: None,
+            language: section.language.clone(),
+            symbols_summary: None,
+            is_test: false,
+            is_generated,
+            is_boilerplate: is_lockfile,
+        }
+    }
+
+    fn classify_table(&self, section: &CdmSection) -> SectionClassification {
+        SectionClassification {
+            category: ContentCategory::TabularOrData,
+            density: InformationDensity::Medium,
+            signal_score: 0.75,
+            noise_indicators: Vec::new(),
+            code_nature: None,
+            language: section.language.clone(),
+            symbols_summary: None,
+            is_test: false,
+            is_generated: false,
+            is_boilerplate: false,
+        }
+    }
+
+    fn classify_navigation(&self, section: &CdmSection) -> SectionClassification {
+        SectionClassification {
+            category: ContentCategory::NavigationOrMetadata,
+            density: InformationDensity::Trivial,
+            signal_score: 0.20,
+            noise_indicators: vec![NoiseIndicator::NavigationChromeOnly],
+            code_nature: None,
+            language: section.language.clone(),
+            symbols_summary: None,
+            is_test: false,
+            is_generated: false,
+            is_boilerplate: true,
+        }
+    }
+
+    fn classify_frontmatter(&self, section: &CdmSection) -> SectionClassification {
+        SectionClassification {
+            category: ContentCategory::Configuration,
+            density: InformationDensity::Medium,
+            signal_score: 0.70,
+            noise_indicators: Vec::new(),
+            code_nature: None,
+            language: section.language.clone(),
+            symbols_summary: None,
+            is_test: false,
+            is_generated: false,
+            is_boilerplate: false,
+        }
+    }
+
+    fn classify_admonition(&self, section: &CdmSection) -> SectionClassification {
+        SectionClassification {
+            category: ContentCategory::Documentation,
+            density: InformationDensity::Medium,
+            signal_score: 0.80,
+            noise_indicators: Vec::new(),
+            code_nature: None,
+            language: section.language.clone(),
+            symbols_summary: None,
+            is_test: false,
+            is_generated: false,
+            is_boilerplate: false,
+        }
+    }
+
+    fn classify_prose(
+        &self,
+        section: &CdmSection,
+        path: Option<&str>,
+        trimmed_body: &str,
+    ) -> SectionClassification {
+        let lower_path = path.map(|p| p.to_ascii_lowercase());
+        let lower_body = trimmed_body.to_ascii_lowercase();
+
+        // Check if path indicates formal specification
+        let is_spec = lower_path
+            .as_ref()
+            .map(|p| p.contains("spec") || p.contains("rfc") || p.contains("schema"))
+            .unwrap_or(false)
+            || lower_body.contains("openapi:")
+            || lower_body.contains("json schema")
+            || lower_body.contains("conformance requirement");
+
+        let category = if is_spec {
+            ContentCategory::Specification
+        } else {
+            ContentCategory::Documentation
+        };
+
+        let word_count = trimmed_body.split_whitespace().count();
+        let density = if word_count >= 80 || is_spec {
+            InformationDensity::High
+        } else if word_count >= 20 {
+            InformationDensity::Medium
+        } else {
+            InformationDensity::Low
+        };
+
+        let score = if is_spec { 0.90 } else { density.base_score() };
+
+        SectionClassification {
+            category,
+            density,
+            signal_score: score,
+            noise_indicators: Vec::new(),
+            code_nature: None,
+            language: section.language.clone(),
+            symbols_summary: None,
+            is_test: false,
+            is_generated: false,
+            is_boilerplate: false,
+        }
+    }
+}
+
+/// Whole-document content classification orchestrator.
+#[derive(Default)]
+pub struct DocumentContentClassifier {
+    config: ClassificationConfig,
+}
+
+impl DocumentContentClassifier {
+    /// Creates a new document content classifier with the specified configuration.
+    #[must_use]
+    pub const fn new(config: ClassificationConfig) -> Self {
+        Self { config }
+    }
+
+    /// Classifies and enriches all sections in a [`CdmDocument`], returning the enriched document
+    /// and a comprehensive [`ContentClassificationReport`].
+    #[must_use]
+    pub fn classify_document(
+        &self,
+        doc: &CdmDocument,
+    ) -> (CdmDocument, ContentClassificationReport) {
+        let classifier = SectionClassifier::new(&self.config);
+
+        let total_sections = doc.sections.len();
+        let total_bytes: usize = doc.sections.iter().map(|s| s.body.len()).sum();
+        let total_tokens: usize = doc
+            .sections
+            .iter()
+            .map(|s| {
+                s.token_metrics
+                    .as_ref()
+                    .map(|m| m.estimated_tokens)
+                    .unwrap_or_else(|| s.body.chars().count().div_ceil(4))
+            })
+            .sum();
+
+        let mut enriched_sections = Vec::with_capacity(total_sections);
+        let mut category_counts: BTreeMap<ContentCategory, usize> = BTreeMap::new();
+        let mut category_tokens: BTreeMap<ContentCategory, usize> = BTreeMap::new();
+        let mut density_counts: BTreeMap<InformationDensity, usize> = BTreeMap::new();
+        let mut signal_score_sum = 0.0;
+        let mut low_signal_section_ids = Vec::new();
+        let mut test_section_count = 0;
+        let mut generated_section_count = 0;
+
+        for section in &doc.sections {
+            let class = classifier.classify(section);
+
+            let tokens = section
+                .token_metrics
+                .as_ref()
+                .map(|m| m.estimated_tokens)
+                .unwrap_or_else(|| section.body.chars().count().div_ceil(4));
+
+            *category_counts.entry(class.category).or_default() += 1;
+            *category_tokens.entry(class.category).or_default() += tokens;
+            *density_counts.entry(class.density).or_default() += 1;
+            signal_score_sum += class.signal_score;
+
+            if class.signal_score < self.config.low_signal_threshold {
+                low_signal_section_ids.push(section.section_id.clone());
+            }
+            if class.is_test {
+                test_section_count += 1;
+            }
+            if class.is_generated {
+                generated_section_count += 1;
+            }
+
+            // Enrich section attributes without altering content_hash or body
+            let mut enriched_sec = section.clone();
+            enriched_sec.attributes.insert(
+                "content_category".to_string(),
+                class.category.as_str().to_string(),
+            );
+            enriched_sec.attributes.insert(
+                "information_density".to_string(),
+                class.density.as_str().to_string(),
+            );
+            enriched_sec.attributes.insert(
+                "signal_score".to_string(),
+                format!("{:.4}", class.signal_score),
+            );
+            enriched_sec
+                .attributes
+                .insert("is_test".to_string(), class.is_test.to_string());
+            enriched_sec
+                .attributes
+                .insert("is_generated".to_string(), class.is_generated.to_string());
+            enriched_sec.attributes.insert(
+                "is_boilerplate".to_string(),
+                class.is_boilerplate.to_string(),
+            );
+
+            if let Some(nature) = class.code_nature {
+                enriched_sec
+                    .attributes
+                    .insert("code_nature".to_string(), nature.as_str().to_string());
+            }
+            if let Some(summary) = class.symbols_summary {
+                enriched_sec
+                    .attributes
+                    .insert("symbols_summary".to_string(), summary);
+            }
+            if !class.noise_indicators.is_empty() {
+                let indicators = class
+                    .noise_indicators
+                    .iter()
+                    .map(|i| i.as_str())
+                    .collect::<Vec<_>>()
+                    .join(",");
+                enriched_sec
+                    .attributes
+                    .insert("noise_indicators".to_string(), indicators);
+            }
+
+            enriched_sections.push(enriched_sec);
+        }
+
+        let average_signal_score = if total_sections > 0 {
+            ((signal_score_sum / total_sections as f64) * 10000.0).round() / 10000.0
+        } else {
+            0.0
+        };
+
+        let report = ContentClassificationReport::new(
+            doc.document_id,
+            total_sections,
+            total_tokens,
+            total_bytes,
+            category_counts,
+            category_tokens,
+            density_counts,
+            average_signal_score,
+            test_section_count,
+            generated_section_count,
+            low_signal_section_ids,
+        );
+
+        let mut enriched_doc = doc.clone();
+        enriched_doc.sections = enriched_sections;
+
+        (enriched_doc, report)
+    }
+}
+
+/// Convenience function: Classifies and enriches all sections in a [`CdmDocument`].
+#[must_use]
+pub fn classify_document(
+    doc: &CdmDocument,
+    config: &ClassificationConfig,
+) -> (CdmDocument, ContentClassificationReport) {
+    let classifier = DocumentContentClassifier::new(config.clone());
+    classifier.classify_document(doc)
+}
+
+fn is_disclaimer_or_license(body: &str) -> bool {
+    let upper = body.to_ascii_uppercase();
+    upper.contains("SYNTHETIC DISCLAIMER")
+        || upper.contains("DISTRIBUTION NOTICE")
+        || (upper.contains("ALL RIGHTS RESERVED") && upper.lines().count() <= 6)
+        || (upper.contains("SPDX-LICENSE-IDENTIFIER") && upper.lines().count() <= 3)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use web_repo_to_ai_cdm::LineRange;
+
+    fn make_test_section(id: &str, kind: SectionKind, path: &str, body: &str) -> CdmSection {
+        CdmSection {
+            section_id: id.to_string(),
+            parent_id: None,
+            title: Some(id.to_string()),
+            kind,
+            original_path: Some(path.to_string()),
+            source_url: format!("https://example.com/{path}"),
+            line_range: Some(LineRange::new(1, 10)),
+            byte_range: None,
+            language: Some("rust".to_string()),
+            content_hash: CdmSection::compute_hash(body),
+            body: body.to_string(),
+            token_metrics: None,
+            attributes: BTreeMap::new(),
+        }
+    }
+
+    #[test]
+    fn test_section_classification_source_code() {
+        let code = "\
+/// Adds two numbers with checked arithmetic.
+pub fn add(a: i32, b: i32) -> Option<i32> {
+    a.checked_add(b)
+}
+
+/// Subtracts two numbers with checked arithmetic.
+pub fn sub(a: i32, b: i32) -> Option<i32> {
+    a.checked_sub(b)
+}
+";
+        let sec = make_test_section("s1", SectionKind::CodeFile, "src/lib.rs", code);
+        let config = ClassificationConfig::default();
+        let classifier = SectionClassifier::new(&config);
+
+        let res = classifier.classify(&sec);
+        assert_eq!(res.category, ContentCategory::SourceCode);
+        assert!(!res.is_test);
+        assert!(!res.is_generated);
+        assert!(res.signal_score >= 0.70);
+    }
+
+    #[test]
+    fn test_section_classification_test_code() {
+        let code = "#[test]\nfn test_add() { assert_eq!(2 + 2, 4); }";
+        let sec = make_test_section("s2", SectionKind::CodeFile, "tests/unit_test.rs", code);
+        let config = ClassificationConfig::default();
+        let classifier = SectionClassifier::new(&config);
+
+        let res = classifier.classify(&sec);
+        assert_eq!(res.category, ContentCategory::TestAndVerification);
+        assert!(res.is_test);
+    }
+
+    #[test]
+    fn test_section_classification_disclaimer() {
+        let text =
+            "// Synthetic Disclaimer Notice for Module Distribution\n// All rights reserved.";
+        let sec = make_test_section("s3", SectionKind::Prose, "LICENSE.md", text);
+        let config = ClassificationConfig::default();
+        let classifier = SectionClassifier::new(&config);
+
+        let res = classifier.classify(&sec);
+        assert_eq!(res.category, ContentCategory::GeneratedOrBoilerplate);
+        assert_eq!(res.density, InformationDensity::Trivial);
+        assert!(res.is_boilerplate);
+    }
+}

@@ -9,6 +9,8 @@
 
 #![warn(missing_docs)]
 
+pub mod classification_report;
+pub mod classifier;
 pub mod config;
 pub mod document;
 pub mod encoding;
@@ -18,6 +20,11 @@ pub mod report;
 pub mod section;
 pub mod whitespace;
 
+pub use classification_report::ContentClassificationReport;
+pub use classifier::{
+    classify_document, ClassificationConfig, ContentCategory, DocumentContentClassifier,
+    InformationDensity, NoiseIndicator, SectionClassification, SectionClassifier,
+};
 pub use config::{EncodingConfig, MarkdownConfig, NormalizationConfig, WhitespaceConfig};
 pub use document::DocumentNormalizer;
 pub use encoding::EncodingSanitizer;

@@ -2526,6 +2526,10 @@ dependencies = [
 name = "web-repo-to-ai-code-intelligence"
 version = "0.1.0"
 dependencies = [
+ "chrono",
+ "regex",
+ "serde",
+ "serde_json",
  "thiserror 1.0.69",
  "web-repo-to-ai-cdm",
  "web-repo-to-ai-core",
@@ -2632,6 +2636,7 @@ dependencies = [
  "serde_json",
  "thiserror 1.0.69",
  "web-repo-to-ai-cdm",
+ "web-repo-to-ai-code-intelligence",
  "web-repo-to-ai-core",
 ]
 
