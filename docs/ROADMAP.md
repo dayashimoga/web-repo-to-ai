@@ -61,8 +61,8 @@
   - `5.1` GitHub metadata (`5.1.1` [ACCEPTED], `5.1.2` [ACCEPTED], `5.1.3` [ACCEPTED], `5.1.4` [ACCEPTED — PHASE 5.1 CERTIFIED])
   - `5.2` File discovery (`5.2.1` [ACCEPTED], `5.2.2` [ACCEPTED], `5.2.3` [ACCEPTED], `5.2.4` [ACCEPTED — PHASE 5.2 CERTIFIED])
   - `5.3` File extraction (`5.3.1` [ACCEPTED], `5.3.2` [ACCEPTED], `5.3.3` [ACCEPTED], `5.3.4` [ACCEPTED — PHASE 5.3 CERTIFIED])
-  - `5.4` Repository packaging (`5.4.1` [ACCEPTED], `5.4.2` [ACCEPTED], `5.4.3` [ACCEPTED], `5.4.4` [NEXT])
-  - `5.5` Integrity (`5.5.1` – `5.5.4`)
+  - `5.4` Repository packaging (`5.4.1` [ACCEPTED], `5.4.2` [ACCEPTED], `5.4.3` [ACCEPTED], `5.4.4` [ACCEPTED — PHASE 5.4 CERTIFIED])
+  - `5.5` Integrity (`5.5.1` [NEXT], `5.5.2` – `5.5.4`)
 
 ### STAGE 6 — PRIVATE GITHUB REPOSITORIES
 - **Deliverable:** Secure private repository conversion via read-only GitHub App authorization.

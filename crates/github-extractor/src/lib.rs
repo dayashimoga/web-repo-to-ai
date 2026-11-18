@@ -13,6 +13,7 @@
 pub mod architecture;
 pub mod classification;
 pub mod client;
+pub mod code_review;
 pub mod commit;
 pub mod config_test;
 pub mod dependency;
@@ -38,6 +39,10 @@ pub use classification::{
 pub use client::{
     GitHubApiClient, DEFAULT_GITHUB_TIMEOUT, DEFAULT_MAX_PAGES, DEFAULT_PER_PAGE,
     DEFAULT_USER_AGENT, GITHUB_API_VERSION_HEADER,
+};
+pub use code_review::{
+    CodeReviewPackage, CodeReviewPackageConfig, PrioritizedReviewFile, ReviewChecklistItem,
+    ReviewFocus, ReviewPriorityTier,
 };
 pub use commit::{CommitAuthor, CommitSignatureVerification, GitHubCommitMetadata, PinnedRevision};
 pub use config_test::{

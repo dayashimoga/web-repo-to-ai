@@ -4684,18 +4684,96 @@
   - `cargo fmt --all -- --check`: 100% compliant with standard formatting.
   - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
   - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures across bootstrap, workflows, Rust quality checks, frontend web quality checks, and 5.27 GB / 30 GB storage ceiling).
-- **Git Commit Reference:** `40806aa`
+- **Git Commit Reference:** `3196a25`
 - **Status:** `ACCEPTED`
+
+---
+
+#### Subphase `5.4.4` — Code-review package in crates/github-extractor
+- **Unique ID:** `5.4.4`
+- **Objective:** Implement automated targeted AI code-review package generation, review prioritization tiering, review checklist synthesis, and end-to-end Canonical Context Document Model ([`CdmDocument`]) packaging in `crates/github-extractor`. Provide structured domain models (`CodeReviewPackage`, `CodeReviewPackageConfig`, `ReviewFocus`, `ReviewPriorityTier`, `PrioritizedReviewFile`), combining directory trees, manifests, architecture contexts, prioritized code files, and review prompt guidelines into a cohesive, token-conscious review artifact ready for LLM consumption. Complete and formally certify Phase 5.4.
+- **Scope:** `crates/github-extractor/src/code_review.rs`, `crates/github-extractor/src/client.rs`, `crates/github-extractor/src/lib.rs`, `crates/github-extractor/tests/code_review_package_test.rs`.
+- **Prerequisites:** `5.4.3` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/github-extractor/src/code_review.rs`
+  - `crates/github-extractor/src/client.rs`
+  - `crates/github-extractor/src/lib.rs`
+  - `crates/github-extractor/tests/code_review_package_test.rs`
+- **Implementation Tasks:**
+  1. Implement `crates/github-extractor/src/code_review.rs`:
+     - `ReviewFocus` enum (`FullRepository`, `SecurityAudit`, `ArchitectureReview`, `DiffChangeset`, `QualityAudit`) with prompt focus guidelines.
+     - `ReviewPriorityTier` enum (`Critical`, `High`, `Medium`, `Low`, `Excluded`) with heuristic prioritization scoring based on security criticality (auth, crypto, security, network, credentials, tokens), architecture entry points (main, lib, api, routes), business logic, configurations, and tests.
+     - `PrioritizedReviewFile` model capturing relative repository path, priority tier, category, language, byte size, line count, prioritization rationale, and content snippet or full text.
+     - `CodeReviewPackageConfig` options configuring review focus, file budget ceilings, token budgets, inclusion toggles for tree, manifest, architecture overview, and review checklist.
+     - `CodeReviewPackage` consolidated review package model containing review metadata, review focus, summary metrics, prioritized files, total review files, total review lines, and review checklist items.
+     - Assembly constructor `assemble`:
+       - Consolidates repository tree (`RepoTree`), file manifest (`RepoFileManifest`), architecture context (`RepoArchitectureContext`), and extracted source/config/test files.
+       - Ranks and filters files according to `ReviewFocus` and `CodeReviewPackageConfig` budgets.
+       - Generates targeted LLM review checklist tailored to the selected focus (e.g. OWASP/SSRF defenses, memory safety, invariant validation, API breaking changes).
+     - Formatters & CDM packaging:
+       - `to_markdown(&self) -> String`: generates a self-contained, clean GitHub-Flavored Markdown code-review dossier.
+       - `to_json(&self) -> Result<String, serde_json::Error>` and `to_json_compact(&self)`: serializes review package.
+       - `to_cdm_document(&self, doc_id, source_url) -> CdmDocument`: constructs a complete, valid `CdmDocument` containing ordered sections:
+         1. Review Overview frontmatter / summary (`SectionKind::Frontmatter`)
+         2. Repository directory tree (`SectionKind::Manifest`)
+         3. File manifest & completeness accounting (`SectionKind::Manifest`)
+         4. Architecture context & system overview (`SectionKind::Prose`)
+         5. Prioritized code files (`SectionKind::CodeFile`)
+         6. Review checklist & guidance (`SectionKind::Admonition` / `Prose`)
+  2. Extend `GitHubApiClient` in `crates/github-extractor/src/client.rs`:
+     - `generate_code_review_package`: client method assembling review package from extracted repository components.
+  3. Re-export `code_review` models and helpers in `crates/github-extractor/src/lib.rs`.
+  4. Author comprehensive integration tests in `crates/github-extractor/tests/code_review_package_test.rs` covering review focus filtering, priority tiering, checklist generation, GFM Markdown formatting, JSON serialization, end-to-end CDM document construction and validation, and live API client integration.
+  5. Formally certify completion of **Phase 5.4: Repository packaging** across all 4 subphases (`5.4.1` through `5.4.4` all `ACCEPTED`).
+  6. Run full quality gate (`cargo test`, `cargo clippy`, `cargo fmt`, `cargo deny`, `scripts/check-all.ps1`).
+- **Acceptance Criteria:**
+  - Code-review package accurately prioritizes files based on review focus (security, architecture, quality, full).
+  - Review checklist produces actionable, targeted guidance for LLM reviewers.
+  - Generates valid, self-contained GFM Markdown review packages.
+  - Produces valid, fully compliant `CdmDocument` adhering to all CDM schema constraints and invariants.
+  - 100% test pass rate, 0 clippy warnings, clean formatting.
+- **Tests:** `cargo test -p web-repo-to-ai-github-extractor`, `cargo test --workspace`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, Rule 04, Rule 05: Safe string generation; zero shell execution; path sanitization; secret redaction in review packages.
+- **Performance Considerations:** Deterministic priority scoring; bounded memory and token budgets; $O(N \log N)$ ranking.
+- **Documentation Requirements:** Module and type documentation in `crates/github-extractor`, tracking updates in `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-github-extractor --test code_review_package_test`: 8/8 tests passed in 0.01s covering review focus defaults, priority tiers, security audit filtering, file budgeting, GFM formatting, JSON serialization, and strict CDM document validation.
+  - `cargo test -p web-repo-to-ai-github-extractor`: 134/134 crate tests (+ 1 doctest) passed across 15 test suites with 0 failures.
+  - `cargo test --workspace`: 470/470 tests passed across all workspace crates and binaries with 0 failures.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings across all workspace targets.
+  - `cargo fmt --all -- --check`: 100% clean formatting.
+  - `cargo deny check`: Advisories ok, bans ok, licenses ok, sources ok.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (Gate 1: Bootstrap & Governance Integrity, Gate 2: Devops workflows, Gate 3: Rust Workspace Checks, Gate 4: Frontend Web Quality Checks [213 vitest tests passed, svelte-check 0 errors 0 warnings, prettier clean], Gate 5: Resource Budget & 30 GB Storage Ceiling [5.27 GB / 30 GB, 17.6%]).
+- **Git Commit Reference:** `5ad4842`
+- **Status:** `ACCEPTED`
+
+---
+
+### Phase 5.4 Milestone Certification (`5.4.1` – `5.4.4`)
+- **Phase 5.4 Goal:** Complete repository packaging capabilities including directory tree generation, comprehensive file manifest and completeness accounting, architectural context synthesis, and automated AI code-review package generation with prioritization tiering and CDM document serialization.
+- **Subphases Completed & Accepted:**
+  - `5.4.1`: Repository tree generation in `crates/github-extractor` (`ACCEPTED`, commit `0b2da03`)
+  - `5.4.2`: File manifest in `crates/github-extractor` (`ACCEPTED`, commit `51415e6`)
+  - `5.4.3`: Architecture context in `crates/github-extractor` (`ACCEPTED`, commit `3196a25`)
+  - `5.4.4`: Code-review package in `crates/github-extractor` (`ACCEPTED`, commit `5ad4842`)
+- **Certification Date:** 2026-11-18
+- **Certification Summary:**
+  1. Hierarchical directory tree generator (`RepoTree`, `RepoTreeNode`) supporting Unicode box-drawing, ASCII indents, size & file category badges, depth bounds, entry limits, and CDM [`SectionKind::Manifest`] section synthesis.
+  2. Multi-report consolidated file manifest (`RepoFileManifest`, `ManifestFileEntry`, `FileExtractionStatus`) with mathematical completeness conservation verification ($\text{discovered} = \text{extracted} + \text{excluded} + \text{failed} + \text{unsupported}$), GFM Markdown summary table, JSON schema, and CDM [`SectionKind::Manifest`] section generation.
+  3. Repository architectural context detector (`RepoArchitectureContext`, `WorkspaceType`, `EntryPointInfo`, `ComponentInfo`) inferring monorepo/single-package topologies, technology stacks, entry points, component boundaries, and architecture docs into CDM [`SectionKind::Prose`].
+  4. Automated AI code-review package builder (`CodeReviewPackage`, `ReviewFocus`, `ReviewPriorityTier`, `PrioritizedReviewFile`) scoring files across 5 priority tiers, synthesizing actionable focus-specific review checklists, generating unified GFM Markdown review dossiers, and creating strictly valid end-to-end `CdmDocument` structures passing `CdmValidator::strict()`.
+  5. 134 tests passing in `crates/github-extractor` (+ 1 doctest), 470 tests passing across all workspace crates with zero clippy warnings and all 5 monorepo quality gates passing.
+- **Phase Status:** `COMPLETED` / `ACCEPTED` (Certified 2026-11-18)
 
 ---
 
 ### Upcoming Subphase (Stage 5 — Public GitHub Repository Extraction)
 
-#### Phase 5.4 — Repository packaging
+#### Phase 5.5 — Integrity
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `5.4.4` | Code-review package | `5.4.3` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
+| `5.5.1` | Expected-vs-actual file accounting | `5.4.4` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
 
 ---
 

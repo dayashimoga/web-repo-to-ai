@@ -6,6 +6,27 @@
 
 ## [Unreleased] — Stage 5: Public GitHub Repository Extraction
 
+### 2026-11-18 — Phase 5.4: Repository Packaging (`5.4.4` & Phase 5.4 Certification)
+
+#### Added
+- **`[5.4.4]` Code-Review Package in `crates/github-extractor` & Phase 5.4 Formal Certification:**
+  - Implemented automated AI code-review package assembly, review prioritization tiering, review checklist synthesis, and end-to-end CDM document construction in `crates/github-extractor/src/code_review.rs`:
+    - `ReviewFocus`: strongly-typed review focus enum (`FullRepository`, `SecurityAudit`, `ArchitectureReview`, `QualityAudit`, `DiffChangeset`) with system prompt focus guidelines and targeted heuristic weighting.
+    - `ReviewPriorityTier`: 5-tier review importance rating (`Critical`, `High`, `Medium`, `Low`, `Excluded`) with heuristic prioritization scoring based on security criticality (auth, crypto, security, network, credentials, tokens, SSRF, permissions), architecture entry points (main, lib, api, routes), business logic, configurations, and tests.
+    - `PrioritizedReviewFile`: domain model capturing relative repository path, priority tier, category, language, byte size, line count, git blob SHA, prioritization rationale, and content snippet or full text.
+    - `CodeReviewPackageConfig`: configuration switches for review focus, max files budget, max review tokens, directory tree inclusion, manifest inclusion, architecture overview inclusion, and review checklist inclusion.
+    - `CodeReviewPackage`: consolidated AI review package containing review metadata, review focus, summary metrics, prioritized files, total review files, total review lines, and review checklist items.
+    - Assembly constructor `assemble`: ranks and filters files according to `ReviewFocus` and `CodeReviewPackageConfig` budgets, synthesizes targeted review checklists tailored to the selected focus (e.g., OWASP/SSRF defenses, memory bounds, error propagation, API contracts, test coverage).
+    - Formatters & serializers: `to_markdown()` producing clean, structured GFM code-review dossiers with summary profiles and markdown tables; `to_json()` and `to_json_compact()` for structured JSON export.
+    - End-to-end CDM document packaging: `to_cdm_document()` synthesizing a complete, schema-compliant `CdmDocument` comprising Review Overview (`SectionKind::Frontmatter`), Directory Tree (`SectionKind::Manifest`), File Manifest (`SectionKind::Manifest`), Architecture Overview (`SectionKind::Prose`), Prioritized Code Files (`SectionKind::CodeFile`), and Review Checklist (`SectionKind::Admonition`), strictly validated against `CdmValidator::with_config(ValidationConfig::strict())`.
+  - Extended `GitHubApiClient` in `crates/github-extractor/src/client.rs`:
+    - `generate_code_review_package`: client method assembling review package from extracted repository components.
+  - Re-exported code review models and helpers in `crates/github-extractor/src/lib.rs`.
+  - Authored comprehensive integration tests in `crates/github-extractor/tests/code_review_package_test.rs`:
+    - 8 test suites validating review focus defaults, priority tiers, security audit filtering, file budgeting, GFM formatting, JSON serialization, end-to-end strict CDM document validation, and live API client integration.
+  - Formally certified **Phase 5.4: Repository packaging** across all 4 subphases (`5.4.1`, `5.4.2`, `5.4.3`, `5.4.4` all `ACCEPTED`).
+  - Verified 470 passing workspace Rust tests (134 in `crates/github-extractor` + 1 doc-test), 213 frontend tests, zero clippy warnings, zero fmt diffs, and 100% passing gates across all 5 checks in `scripts/check-all.ps1`.
+
 ### 2026-11-18 — Phase 5.4: Repository Packaging (`5.4.3`)
 
 #### Added

@@ -15,6 +15,7 @@ use tracing::{debug, info, warn};
 
 use crate::architecture::RepoArchitectureContext;
 use crate::classification::{ClassifiedFile, TreeClassificationReport};
+use crate::code_review::{CodeReviewPackage, CodeReviewPackageConfig};
 use crate::commit::{
     CommitAuthor, CommitSignatureVerification, GitHubCommitMetadata, PinnedRevision,
 };
@@ -1589,6 +1590,40 @@ impl GitHubApiClient {
             dependencies,
             configs_tests,
             metadata,
+        )
+    }
+
+    /// Assembles an automated AI code-review package with prioritization, checklist, and CDM representation.
+    #[must_use]
+    #[allow(clippy::too_many_arguments)]
+    pub fn generate_code_review_package(
+        &self,
+        config: &CodeReviewPackageConfig,
+        classification: &TreeClassificationReport,
+        tree: Option<&RepoTree>,
+        manifest: Option<&RepoFileManifest>,
+        architecture: Option<&RepoArchitectureContext>,
+        sources: Option<&SourceExtractionReport>,
+        docs: Option<&DocExtractionReport>,
+        dependencies: Option<&DependencyExtractionReport>,
+        configs_tests: Option<&ConfigTestExtractionReport>,
+        metadata: Option<&GitHubRepositoryMetadata>,
+        target_ref: Option<String>,
+        pinned_sha: Option<String>,
+    ) -> CodeReviewPackage {
+        CodeReviewPackage::assemble(
+            config,
+            classification,
+            tree,
+            manifest,
+            architecture,
+            sources,
+            docs,
+            dependencies,
+            configs_tests,
+            metadata,
+            target_ref,
+            pinned_sha,
         )
     }
 }

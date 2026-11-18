@@ -158,11 +158,11 @@
 - [x] **[5.3.3]** Dependency extraction in crates/github-extractor *(Completed 2026-11-18, PackageEcosystem & ManifestRole detection, deterministic parsers for Cargo.toml, package.json, requirements.txt, go.mod, pyproject.toml, bounded concurrent batch extraction, CDM manifest sections, 6 new integration tests, 89 crate tests, 100% passing quality gates)*
 - [x] **[5.3.4]** Configuration & test extraction in crates/github-extractor *(Completed 2026-11-18, ConfigCategory & TestCategory classification, CI/CD workflow, build config, linter/formatter, unit/integration test, fixture acquisition, bounded concurrent batch extraction, CDM code sections, 6 new integration tests, 98 crate tests, 100% passing quality gates — PHASE 5.3 CERTIFIED)*
 
-### Phase 5.4 — Repository packaging
+### Phase 5.4 — Repository packaging (COMPLETED / ACCEPTED — PHASE 5.4 CERTIFIED)
 - [x] **[5.4.1]** Repository tree generation in crates/github-extractor *(Completed 2026-11-18, RepoTree & RepoTreeNode hierarchical model, Unicode/ASCII formatting, category & size annotations, depth/entry limiting, CDM manifest section mapping, 7 new integration tests, 109 crate tests, 100% passing quality gates)*
 - [x] **[5.4.2]** File manifest in crates/github-extractor *(Completed 2026-11-18, FileExtractionStatus, ManifestFileEntry, RepoFileManifest index, multi-report aggregation across sources/docs/dependencies/configs/tests, fundamental completeness conservation verification, GFM Markdown summary table, JSON serialization, CDM manifest section mapping, 7 new integration tests, 116 crate tests, 100% passing quality gates)*
 - [x] **[5.4.3]** Architecture context in crates/github-extractor *(Completed 2026-11-18, RepoArchitectureContext, WorkspaceType monorepo/single-package/library detection, EntryPointInfo discovery, ComponentInfo cataloging, key technologies & frameworks inference, architecture documentation indexing, GFM Markdown overview generation, CDM prose section mapping, 10 new integration tests, 126 crate tests, 100% passing quality gates)*
-- [ ] **[5.4.4]** Code-review package in crates/github-extractor
+- [x] **[5.4.4]** Code-review package in crates/github-extractor *(Completed 2026-11-18, CodeReviewPackage, CodeReviewPackageConfig, ReviewFocus, ReviewPriorityTier, PrioritizedReviewFile, ReviewChecklistItem, focus-specific heuristic prioritization, checklist synthesis, self-contained GFM Markdown review package, JSON serialization, end-to-end CDM document construction passing CdmValidator strict validation, 8 new integration tests, 134 crate tests, 470 workspace tests, 100% passing quality gates — PHASE 5.4 CERTIFIED)*
 
 ### Phase 5.5 — Integrity
 - [ ] **[5.5.1]** Expected-vs-actual file accounting in crates/github-extractor
