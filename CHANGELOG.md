@@ -6,6 +6,24 @@
 
 ## [Unreleased] — Stage 5: Public GitHub Repository Extraction
 
+### 2026-11-18 — Phase 5.3: File Extraction (`5.3.2`)
+
+#### Added
+- **`[5.3.2]` Documentation Extraction & Title/Frontmatter Parsing in `crates/github-extractor`:**
+  - Implemented specialized documentation models and utilities in `crates/github-extractor/src/documentation.rs`:
+    - `DocType`: canonical functional taxonomy covering `Readme`, `Architecture`, `Changelog`, `Contributing`, `License`, `Security`, `CodeOfConduct`, `Guide`, `Roadmap`, and `General`.
+    - `DocFormat`: format detection across `Markdown` (`.md`, `.markdown`), `Asciidoc` (`.adoc`, `.asciidoc`), `RestructuredText` (`.rst`), and `PlainText`.
+    - `extract_title_and_frontmatter`: extracts document titles from Markdown headings (`# Heading`) or YAML frontmatter (`title: "..."`), with clean fallback to normalized path basenames.
+    - `ExtractedDocFile`: verified documentation model converting directly into CDM [`CdmSection`] with `SectionKind::Prose`, line range, byte range, language, BLAKE3 content hash, `SectionTokenMetrics`, and metadata attributes (`doc_type`, `has_frontmatter`, `git_blob_sha`, `sha256`).
+    - `DocExtractionReport`: aggregated outcome report capturing extracted docs, failures, unsupported binaries, dedicated root `readme()` and `license()` lookup accessors, and CDM `CompletenessReport` mapping.
+  - Extended `GitHubApiClient` in `crates/github-extractor/src/client.rs`:
+    - `fetch_doc_file(&target, file, config)`: acquires and verifies an individual documentation file.
+    - `extract_doc_files(&target, files, config)`: bounded concurrent batch extraction via `tokio::sync::Semaphore`.
+  - Re-exported documentation types in `crates/github-extractor/src/lib.rs`.
+  - Authored comprehensive integration tests in `crates/github-extractor/tests/documentation_extraction_test.rs`:
+    - 6 test suites validating live Axum README extraction and heading title parsing, plain-text LICENSE extraction, YAML frontmatter detection, bounded concurrent batch extraction with primary README and LICENSE accessors, partial failure handling with CDM completeness accounting, and CDM section generation.
+  - Verified 418 passing workspace Rust tests (83 in `crates/github-extractor` + 1 doc-test), zero clippy warnings, zero fmt diffs, and 100% passing gates across all 5 checks in `scripts/check-all.ps1`.
+
 ### 2026-11-18 — Phase 5.3: File Extraction (`5.3.1`)
 
 #### Added

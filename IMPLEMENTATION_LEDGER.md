@@ -4354,11 +4354,57 @@
 
 ---
 
+#### Subphase `5.3.2` — Documentation extraction in crates/github-extractor
+- **Unique ID:** `5.3.2`
+- **Objective:** Implement comprehensive documentation file extraction from GitHub (`FileCategory::Documentation`), classifying documents into a rich `DocType` taxonomy (`Readme`, `Architecture`, `Changelog`, `Contributing`, `License`, `Security`, `CodeOfConduct`, `Guide`, `Roadmap`, `General`), detecting formats (`Markdown`, `Asciidoc`, `RestructuredText`, `PlainText`), extracting document titles and YAML frontmatter, capturing root README/LICENSE index pointers, orchestrating bounded concurrent batch extraction, and generating CDM [`CdmSection`] prose representations.
+- **Scope:** `crates/github-extractor/src/documentation.rs`, `crates/github-extractor/src/client.rs`, `crates/github-extractor/src/lib.rs`, `crates/github-extractor/tests/documentation_extraction_test.rs`.
+- **Prerequisites:** `5.3.1` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/github-extractor/src/documentation.rs`
+  - `crates/github-extractor/src/client.rs`
+  - `crates/github-extractor/src/lib.rs`
+  - `crates/github-extractor/tests/documentation_extraction_test.rs`
+- **Implementation Tasks:**
+  1. Implement `crates/github-extractor/src/documentation.rs`:
+     - `DocType` enum (`Readme`, `Architecture`, `Changelog`, `Contributing`, `License`, `Security`, `CodeOfConduct`, `Guide`, `Roadmap`, `General`) with classifier heuristic function `detect_doc_type(path, file_name)`.
+     - `DocFormat` enum (`Markdown`, `Asciidoc`, `RestructuredText`, `PlainText`) with format detector `detect_doc_format(file_name, extension)`.
+     - Title and frontmatter extractors: `extract_title_and_frontmatter(content, path)`.
+     - `ExtractedDocFile`: model capturing relative path, Git blob SHA, doc type, format, title, frontmatter presence, body, line count, byte size, BLAKE3 and SHA-256 digests, and conversion to CDM `CdmSection` (`SectionKind::Prose`).
+     - `DocExtractionReport`: aggregated documentation report capturing extracted docs, failures, unsupported binaries, dedicated root `readme` and `license` accessors, and CDM `CompletenessReport` mapping.
+  2. Extend `GitHubApiClient` in `crates/github-extractor/src/client.rs`:
+     - `fetch_doc_file`: acquires blob, verifies Git SHA, extracts doc metadata, and constructs `ExtractedDocFile`.
+     - `extract_doc_files`: concurrent bounded batch extraction of documentation files via semaphore.
+  3. Re-export documentation models and functions in `crates/github-extractor/src/lib.rs`.
+  4. Author comprehensive integration tests in `crates/github-extractor/tests/documentation_extraction_test.rs` validating README extraction and title detection, LICENSE extraction, multi-doc classification across all `DocType` variants, YAML frontmatter detection, format detection, bounded concurrent batch extraction, and CDM section mapping.
+  5. Run full quality gate (`cargo test`, `cargo clippy`, `cargo fmt`, `cargo deny`, `scripts/check-all.ps1`).
+- **Acceptance Criteria:**
+  - All documentation files (`FileCategory::Documentation`) are extracted and accurately classified into appropriate `DocType` and `DocFormat`.
+  - Root README and repository LICENSE are cleanly indexed as convenient accessors.
+  - Document titles are parsed from markdown headers or frontmatter with fallback to path/filename.
+  - Bounded concurrency with semaphore prevents hitting GitHub rate limits or socket exhaustion.
+  - Extracted documents map cleanly to CDM `CdmSection` (`SectionKind::Prose`) satisfying the completeness report invariant.
+  - 100% test pass rate, 0 clippy warnings, clean formatting.
+- **Tests:** `cargo test -p web-repo-to-ai-github-extractor`, `cargo test --workspace`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, Rule 04, Rule 05: Cryptographic hash validation (SHA-1, BLAKE3, SHA-256); secret redaction; prompt-injection defenses (untrusted documentation text is safely encapsulated in CDM prose sections without host execution).
+- **Performance Considerations:** Bounded concurrency via `tokio::sync::Semaphore`; zero-copy string slicing during title and frontmatter detection.
+- **Documentation Requirements:** Module and type documentation in `crates/github-extractor`, tracking updates in `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-github-extractor`: 83/83 tests passed (15 unit tests, 6 documentation integration tests, 61 other integration tests, 1 doc test) in 0.16s.
+  - `cargo test --workspace`: 418/418 tests passed across all workspace crates in 20.42s.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors in 3.67s.
+  - `cargo fmt --all -- --check`: 100% compliant with standard formatting.
+  - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
+- **Git Commit Reference:** `6bca508`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 5 — Public GitHub Repository Extraction)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `5.3.2` | Documentation extraction | `5.3.1` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
+| `5.3.3` | Dependency extraction | `5.3.2` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
 
 ---
 

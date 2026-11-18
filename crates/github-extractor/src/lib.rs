@@ -13,6 +13,7 @@
 pub mod classification;
 pub mod client;
 pub mod commit;
+pub mod documentation;
 pub mod error;
 pub mod metadata;
 pub mod models;
@@ -30,6 +31,10 @@ pub use client::{
     DEFAULT_USER_AGENT, GITHUB_API_VERSION_HEADER,
 };
 pub use commit::{CommitAuthor, CommitSignatureVerification, GitHubCommitMetadata, PinnedRevision};
+pub use documentation::{
+    detect_doc_format, detect_doc_type, extract_title_and_frontmatter, DocExtractionReport,
+    DocFormat, DocType, ExtractedDocFile,
+};
 pub use error::{redact_secrets, GitHubExtractorError};
 pub use metadata::{GitHubLanguages, GitHubLicense, GitHubRepoContext, GitHubRepositoryMetadata};
 pub use models::{GitHubBranch, GitHubRateLimit, GitHubTag, RefDiscoveryReport};

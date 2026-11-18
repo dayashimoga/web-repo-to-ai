@@ -17,6 +17,7 @@ use crate::classification::ClassifiedFile;
 use crate::commit::{
     CommitAuthor, CommitSignatureVerification, GitHubCommitMetadata, PinnedRevision,
 };
+use crate::documentation::{DocExtractionReport, ExtractedDocFile};
 use crate::error::{redact_secrets, GitHubExtractorError};
 use crate::metadata::{
     GitHubLanguages, GitHubLicense, GitHubRepoContext, GitHubRepositoryMetadata,
@@ -1232,6 +1233,88 @@ impl GitHubApiClient {
                     .await
                     .map_err(|e| GitHubExtractorError::RequestFailed(e.to_string()))?;
                 client.fetch_source_file(&target, &f, &cfg).await
+            });
+
+            task_handles.push((file, handle));
+        }
+
+        for (file, handle) in task_handles {
+            match handle.await {
+                Ok(Ok(extracted)) => {
+                    report.add_extracted(extracted);
+                }
+                Ok(Err(err)) => {
+                    let err_str = err.to_string();
+                    if err_str.contains("Binary or null bytes") {
+                        report.add_unsupported(file);
+                    } else {
+                        report.add_failed(file.path, file.sha, err_str);
+                    }
+                }
+                Err(join_err) => {
+                    report.add_failed(file.path, file.sha, format!("Task join error: {join_err}"));
+                }
+            }
+        }
+
+        report.duration = start.elapsed();
+        report
+    }
+
+    /// Fetches and verifies a single classified documentation file, producing an `ExtractedDocFile`.
+    ///
+    /// # Errors
+    /// Returns `GitHubExtractorError::BlobError` if Git SHA verification fails or binary content is detected.
+    pub async fn fetch_doc_file(
+        &self,
+        target: &GitHubTarget,
+        file: &ClassifiedFile,
+        config: &SourceExtractionConfig,
+    ) -> Result<ExtractedDocFile, GitHubExtractorError> {
+        let blob = self.get_blob(target, &file.sha).await?;
+        ExtractedDocFile::from_blob(&file.path, &blob, config)
+    }
+
+    /// Concurrently extracts and parses repository documentation files with bounded concurrency.
+    ///
+    /// Identifies document titles, frontmatter, and formats, collecting extracted docs, failures,
+    /// and primary README/LICENSE pointers into a consolidated `DocExtractionReport`.
+    pub async fn extract_doc_files(
+        &self,
+        target: &GitHubTarget,
+        files: &[ClassifiedFile],
+        config: &SourceExtractionConfig,
+    ) -> DocExtractionReport {
+        let start = std::time::Instant::now();
+        let mut report = DocExtractionReport::new();
+
+        let mut eligible_files = Vec::new();
+        for file in files {
+            if !file.is_eligible {
+                if file.category.is_binary() {
+                    report.add_unsupported(file.clone());
+                }
+            } else {
+                eligible_files.push(file.clone());
+            }
+        }
+
+        let semaphore = std::sync::Arc::new(tokio::sync::Semaphore::new(config.concurrency));
+        let mut task_handles = Vec::with_capacity(eligible_files.len());
+
+        for file in eligible_files {
+            let sem = semaphore.clone();
+            let client = self.clone();
+            let target = target.clone();
+            let f = file.clone();
+            let cfg = config.clone();
+
+            let handle = tokio::spawn(async move {
+                let _permit = sem
+                    .acquire()
+                    .await
+                    .map_err(|e| GitHubExtractorError::RequestFailed(e.to_string()))?;
+                client.fetch_doc_file(&target, &f, &cfg).await
             });
 
             task_handles.push((file, handle));
