@@ -4,6 +4,36 @@
 
 ---
 
+## [Unreleased] — Stage 7: AI Context and Token Optimization
+
+### 2026-11-18 — Phase 7.1: Content optimization (`7.1.1`)
+
+#### Added
+- **`[7.1.1]` Structural Normalization Engine in `crates/normalizer` & `crates/cdm`:**
+  - Implemented strongly-typed normalization configuration models in `crates/normalizer/src/config.rs`:
+    - `EncodingConfig`: BOM stripping, null byte removal, unprintable control character filtering, zero-width space stripping, typographic punctuation toggle.
+    - `WhitespaceConfig`: CRLF/CR -> LF canonicalization, trailing whitespace trimming, blank line trimming and collapsing ceilings (`max_consecutive_blank_lines_prose: 1`, `max_consecutive_blank_lines_code: 2`), inline space collapsing toggle.
+    - `MarkdownConfig`: code fence normalization, heading level spacing, list marker standardization (`*` -> `-`), GFM table rectangularization and cell padding.
+    - `NormalizationConfig`: master configuration with `lossless()`, `compact()`, and `code_focused()` domain presets.
+  - Implemented character encoding repair in `crates/normalizer/src/encoding.rs`:
+    - `EncodingSanitizer`: single-pass character stream filtering stripping `\u{FEFF}`, `\0`, unprintable ASCII control characters (`\x01`..=`\x1F` excluding `\t`, `\n`, `\r`), zero-width codepoints (`\u{200B}`, `\u{200C}`, `\u{200D}`), and smart punctuation normalization (`“`, `”`, `‘`, `’`, `—`, `…` -> ASCII).
+  - Implemented whitespace and line-ending normalizer in `crates/normalizer/src/whitespace.rs`:
+    - `WhitespaceNormalizer`: canonicalizes CRLF/CR to Unix LF (`\n`), trims per-line trailing whitespace, trims leading/trailing section blank lines, and collapses consecutive blank lines according to code/prose limits while strictly preserving code indentation and code spans.
+  - Implemented Markdown structural syntax and table rectangularization in `crates/normalizer/src/markdown.rs`:
+    - `MarkdownNormalizer`: normalizes code block fences with lowercase language specifiers, standardizes heading spacing (`#Title` -> `# Title`, `###   Title` -> `### Title`), converts bullet list markers (`*` -> `-`), and rectangularizes GFM tables with matching cell counts and delimiter rows (`:---`).
+  - Implemented section-aware and whole-document normalizers in `crates/normalizer/src/section.rs` and `crates/normalizer/src/document.rs`:
+    - `SectionNormalizer`: kind-specific strategy mapping (`SectionKind::CodeFile` and `CodeSnippet` strictly preserve quotes, symbols, and indentation; `Prose`, `Table`, `Admonition` receive Markdown normalization), updates section BLAKE3 hash, updates `SectionTokenMetrics`.
+    - `DocumentNormalizer`: orchestrates section normalization across `CdmDocument`, recomputes document-level BLAKE3 revision hash, and aggregates granular section audits into `NormalizationReport`.
+  - Implemented telemetry reporting in `crates/normalizer/src/report.rs`:
+    - `NormalizationReport`: records before/after bytes, characters, lines, and estimated tokens, net reductions, percentage compression, per-section audit logs, GFM Markdown summary table rendering, and JSON roundtrip serialization.
+  - Implemented error handling and top-level crate exports in `crates/normalizer/src/error.rs` and `crates/normalizer/src/lib.rs`:
+    - `NormalizerError`, convenience functions `normalize_document` and `normalize_text`.
+  - Implemented comprehensive integration test suite `crates/normalizer/tests/structural_normalization_test.rs` (13 integration tests, 16 unit tests, 29 total passing tests):
+    - Validates CRLF/CR line ending conversion, BOM/null/control/zero-width stripping, typographic punctuation under lossless vs compact presets, strict semantic code indentation and symbol preservation, code fence language normalization, heading level spacing, list marker standardization, GFM table rectangularization, full document end-to-end normalization, document and raw text idempotency (`normalize(normalize(x)) == normalize(x)`), and report serialization.
+  - 100% passing quality gates: 29 normalizer tests passed, 563+ workspace tests passed, zero clippy warnings, zero fmt diffs, cargo deny passed, and 5/5 check-all gates passed.
+
+---
+
 ## [Unreleased] — Stage 6: Private GitHub Repositories
 
 ### 2026-11-18 — Phase 6.4: Security verification (`6.4.4` — Phase 6.4 & Stage 6 Certified)

@@ -200,8 +200,35 @@
 
 ---
 
+## Stage 7: AI Context and Token Optimization (`IN_PROGRESS`)
+
+### Phase 7.1 — Content optimization (`IN_PROGRESS`)
+- [x] **[7.1.1]** Structural normalization in crates/normalizer & crates/cdm *(Completed 2026-11-18, EncodingConfig/WhitespaceConfig/MarkdownConfig/NormalizationConfig with lossless/compact/code_focused presets, EncodingSanitizer BOM/null/control/zero-width/smart-quote sanitization, WhitespaceNormalizer CRLF/CR -> LF and blank line ceilings, MarkdownNormalizer fence/heading/list/table rectangularization, SectionNormalizer kind-specific code preservation, DocumentNormalizer whole-document orchestration, NormalizationReport metrics & markdown/json serialization, 29 normalizer tests, 100% passing quality gates)*
+- [ ] **[7.1.2]** Exact duplicate removal in crates/deduplication
+- [ ] **[7.1.3]** Semantic-aware deduplication in crates/deduplication
+- [ ] **[7.1.4]** Content classification in crates/normalizer & crates/code-intelligence
+
+### Phase 7.2 — Token intelligence
+- [ ] **[7.2.1]** Tokenizer adapter architecture in crates/tokenizer
+- [ ] **[7.2.2]** Model-specific counting in crates/tokenizer
+- [ ] **[7.2.3]** Cost estimation in crates/tokenizer
+- [ ] **[7.2.4]** Context-budget calculation in crates/context-optimizer
+
+### Phase 7.3 — Context profiles
+- [ ] **[7.3.1]** General AI context profile in crates/context-optimizer
+- [ ] **[7.3.2]** Code review context profile in crates/context-optimizer
+- [ ] **[7.3.3]** Security review context profile in crates/context-optimizer
+- [ ] **[7.3.4]** Debugging and documentation context profile in crates/context-optimizer
+
+### Phase 7.4 — Quality validation
+- [ ] **[7.4.1]** Preservation metrics in crates/context-optimizer
+- [ ] **[7.4.2]** Compression reporting in crates/context-optimizer
+- [ ] **[7.4.3]** Exclusion explanations in crates/context-optimizer
+- [ ] **[7.4.4]** Golden comparison tests across context profiles in crates/context-optimizer
+
+---
+
 ## Subsequent Stages (Queued)
-- [ ] **[Stage 7]** AI Context and Token Optimization (`7.1.1` – `7.4.4`)
 - [ ] **[Stage 8]** Large Repositories, Batch and Crawling (`8.1.1` – `8.4.4`)
 - [ ] **[Stage 9]** Developer and AI Agent Integrations (`9.1.1` – `9.4.4`)
 - [ ] **[Stage 10]** Advanced Documents and Content (`10.1.1` – `10.5.4`)

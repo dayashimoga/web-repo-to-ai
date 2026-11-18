@@ -18,7 +18,7 @@
 | **STAGE 4** | Canonical Model & Export Engine | Versioned CDM (`v1.0`), Markdown/TXT/JSON/HTML/JSONL/ZIP exporters, and end-to-end web integration | `4.1` – `4.4` | 16 (`4.1.1` – `4.4.4`) | `COMPLETED` / `ACCEPTED` |
 | **STAGE 5** | Public GitHub Repository Extraction | Complete public GitHub repo conversion with 100% file completeness accounting | `5.1` – `5.5` | 20 (`5.1.1` – `5.5.4`) | `COMPLETED` / `ACCEPTED` |
 | **STAGE 6** | Private GitHub Repositories | Secure read-only GitHub App integration, encrypted tokens, and tenant isolation | `6.1` – `6.4` | 16 (`6.1.1` – `6.4.4`) | `COMPLETED` / `ACCEPTED` |
-| **STAGE 7** | AI Context & Token Optimization | Structural normalization, deduplication, exact/estimated tokenizers, and context profiles | `7.1` – `7.4` | 16 (`7.1.1` – `7.4.4`) | `NOT_STARTED` |
+| **STAGE 7** | AI Context & Token Optimization | Structural normalization, deduplication, exact/estimated tokenizers, and context profiles | `7.1` – `7.4` | 16 (`7.1.1` – `7.4.4`) | `IN_PROGRESS` |
 | **STAGE 8** | Large Repositories, Batch & Crawling | Multi-URL batching, bounded crawling, content-addressed caching, and streaming scale | `8.1` – `8.4` | 16 (`8.1.1` – `8.4.4`) | `NOT_STARTED` |
 | **STAGE 9** | Developer & AI Agent Integrations | Authenticated REST API, Rust CLI, MCP server, and browser extension foundation | `9.1` – `9.4` | 16 (`9.1.1` – `9.4.4`) | `NOT_STARTED` |
 | **STAGE 10** | Advanced Documents & Content | Modular PDF extraction, Tesseract OCR, structured docs, RAG chunks, and optional AI adapters | `10.1` – `10.5` | 20 (`10.1.1` – `10.5.4`) | `NOT_STARTED` |
@@ -86,7 +86,7 @@
 - **Phase 6.4 — Security verification:** `6.4.1` Cross-user isolation (`ACCEPTED`) | `6.4.2` Unauthorized repository access tests (`ACCEPTED`) | `6.4.3` Token leakage tests (`ACCEPTED`) | `6.4.4` Permission audit (`ACCEPTED` — **PHASE 6.4 & STAGE 6 CERTIFIED**)
 
 ### STAGE 7 — AI CONTEXT AND TOKEN OPTIMIZATION
-- **Phase 7.1 — Content optimization:** `7.1.1` Structural normalization (`NEXT`) | `7.1.2` Exact duplicate removal | `7.1.3` Semantic-aware deduplication | `7.1.4` Content classification
+- **Phase 7.1 — Content optimization:** `7.1.1` Structural normalization (`ACCEPTED`) | `7.1.2` Exact duplicate removal (`NEXT`) | `7.1.3` Semantic-aware deduplication | `7.1.4` Content classification
 - **Phase 7.2 — Token intelligence:** `7.2.1` Tokenizer adapter architecture | `7.2.2` Model-specific counting | `7.2.3` Cost estimation | `7.2.4` Context-budget calculation
 - **Phase 7.3 — Context profiles:** `7.3.1` General AI | `7.3.2` Code review | `7.3.3` Security review | `7.3.4` Debugging & documentation
 - **Phase 7.4 — Quality validation:** `7.4.1` Preservation metrics | `7.4.2` Compression reporting | `7.4.3` Exclusion explanations | `7.4.4` Golden comparison tests

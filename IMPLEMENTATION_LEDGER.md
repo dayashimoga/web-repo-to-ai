@@ -6101,16 +6101,87 @@
 
 ---
 
+## STAGE 7 — AI CONTEXT AND TOKEN OPTIMIZATION
+
+### Phase 7.1 — Content optimization
+
+#### Subphase `7.1.1` — Structural normalization in crates/normalizer & crates/cdm
+- **Unique ID:** `7.1.1`
+- **Objective:** Implement deterministic document and section structural normalization in `crates/normalizer` and `crates/cdm`: UTF-8 character encoding sanitization (BOM stripping, null byte elimination, unprintable ASCII control character removal, zero-width space stripping, typographic punctuation conversion), whitespace standardization (Unix LF line-ending conversion, trailing whitespace removal, leading/trailing blank line trimming, code vs prose blank line collapsing), Markdown syntax standardization (code fence cleanup, heading level spacing, list marker standardization, GFM rectangular table normalization), kind-specific normalization preserving 100% code syntax and indentation fidelity, document-level orchestration, cryptographic BLAKE3 content hash recalculation, and quantitative `NormalizationReport` generation.
+- **Scope:** `crates/normalizer/src/*`, `crates/normalizer/Cargo.toml`, `crates/normalizer/tests/structural_normalization_test.rs`.
+- **Prerequisites:** Stage 6 Certified (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/normalizer/Cargo.toml`
+  - `crates/normalizer/src/config.rs`
+  - `crates/normalizer/src/document.rs`
+  - `crates/normalizer/src/encoding.rs`
+  - `crates/normalizer/src/error.rs`
+  - `crates/normalizer/src/lib.rs`
+  - `crates/normalizer/src/markdown.rs`
+  - `crates/normalizer/src/report.rs`
+  - `crates/normalizer/src/section.rs`
+  - `crates/normalizer/src/whitespace.rs`
+  - `crates/normalizer/tests/structural_normalization_test.rs`
+- **Implementation Tasks:**
+  1. Define strongly-typed configuration models and preset builders in `crates/normalizer/src/config.rs`:
+     - `EncodingConfig`: BOM stripping, null byte removal, control character filtering, zero-width space stripping, typographic punctuation toggle.
+     - `WhitespaceConfig`: CRLF/CR -> LF canonicalization, trailing whitespace trimming, blank line trimming and collapsing ceilings (`max_consecutive_blank_lines_prose: 1`, `max_consecutive_blank_lines_code: 2`), inline space collapsing toggle.
+     - `MarkdownConfig`: code fence normalization, heading level spacing, list marker standardization (`*` -> `-`), GFM table rectangularization and cell padding.
+     - `NormalizationConfig`: master configuration with `lossless()`, `compact()`, and `code_focused()` domain presets.
+  2. Implement character encoding repair and Unicode sanitization in `crates/normalizer/src/encoding.rs`:
+     - `EncodingSanitizer`: single-pass character stream filtering stripping `\u{FEFF}`, `\0`, unprintable ASCII control characters (`\x01`..=`\x1F` excluding `\t`, `\n`, `\r`), zero-width codepoints (`\u{200B}`, `\u{200C}`, `\u{200D}`), and smart punctuation normalization (`“`, `”`, `‘`, `’`, `—`, `…` -> ASCII).
+  3. Implement whitespace and line-ending normalizer in `crates/normalizer/src/whitespace.rs`:
+     - `WhitespaceNormalizer`: canonicalizes CRLF/CR to Unix LF (`\n`), trims per-line trailing whitespace, trims leading/trailing section blank lines, and collapses consecutive blank lines according to code/prose limits while strictly preserving code indentation and code spans.
+  4. Implement Markdown structural syntax and table rectangularization in `crates/normalizer/src/markdown.rs`:
+     - `MarkdownNormalizer`: normalizes code block fences with lowercase language specifiers, standardizes heading spacing (`#Title` -> `# Title`, `###   Title` -> `### Title`), converts bullet list markers (`*` -> `-`), and rectangularizes GFM tables with matching cell counts and delimiter rows (`:---`).
+  5. Implement section-aware and whole-document normalizers in `crates/normalizer/src/section.rs` and `crates/normalizer/src/document.rs`:
+     - `SectionNormalizer`: kind-specific strategy mapping (`SectionKind::CodeFile` and `CodeSnippet` strictly preserve quotes, symbols, and indentation; `Prose`, `Table`, `Admonition` receive Markdown normalization), updates section BLAKE3 hash, updates `SectionTokenMetrics`.
+     - `DocumentNormalizer`: orchestrates section normalization across `CdmDocument`, recomputes document-level BLAKE3 revision hash, and aggregates granular section audits into `NormalizationReport`.
+  6. Implement telemetry reporting in `crates/normalizer/src/report.rs`:
+     - `NormalizationReport`: records before/after bytes, characters, lines, and estimated tokens, net reductions, percentage compression, per-section audit logs, GFM Markdown summary table rendering, and JSON roundtrip serialization.
+  7. Author unit and integration tests:
+     - 16 unit tests in `crates/normalizer/src/*` and 13 integration tests in `crates/normalizer/tests/structural_normalization_test.rs` covering all encoding, whitespace, markdown, code preservation, table rectangularization, full document, report serialization, and idempotency invariants (`normalize(normalize(doc)) == normalize(doc)`).
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-normalizer`
+  - `cargo test --workspace`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - CRLF and CR line endings converted to standard Unix LF without exception.
+  - BOM, null bytes, zero-width characters, and unprintable control characters stripped.
+  - Source code indentation, symbols, and typographic punctuation 100% preserved.
+  - Markdown headings, code fences, and tables rectangularized cleanly.
+  - Normalization is provably idempotent (`normalize(normalize(doc)) == normalize(doc)`).
+  - All 29 normalizer tests pass, all workspace tests pass, zero clippy warnings, zero fmt diffs, cargo deny passed, all check-all gates pass.
+- **Risk Analysis:**
+  - Risk: Semantic corruption of source code or code snippets during normalization.
+  - Mitigation: `SectionNormalizer` bypasses typographic punctuation and inline space collapsing for `SectionKind::CodeFile` and `CodeSnippet`; integration tests assert byte-for-byte fidelity of code indentation and quotes.
+- **Rollback Plan:**
+  - Revert Subphase 7.1.1 additions via `git reset --hard HEAD~1` and restore Stage 6 baseline.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-normalizer`: 29 tests passing (16 unit tests, 13 integration tests in `structural_normalization_test.rs`).
+  - Full workspace tests: 563+ tests passing across all crates and services with 0 failures.
+  - Workspace linter: `cargo clippy --workspace --all-targets -- -D warnings` clean with 0 warnings.
+  - Formatting: `cargo fmt --all -- --check` clean with 0 diffs.
+  - Dependency audit: `cargo deny check` passed (advisories ok, bans ok, licenses ok, sources ok).
+  - Monorepo gatekeeper: `powershell scripts/check-all.ps1` completed with `ALL GATES PASSED (0 failures)`.
+- **Git Commit Reference:** `f5f12b1`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 7 — AI Context and Token Optimization)
 
 #### Phase 7.1 — Content optimization
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `7.1.1` | Structural normalization | Stage 6 Certified (`ACCEPTED`) | `crates/normalizer/*`, `crates/cdm/*` | `NOT_STARTED` |
+| `7.1.2` | Exact duplicate removal | `7.1.1` (`ACCEPTED`) | `crates/deduplication/*`, `crates/cdm/*` | `NOT_STARTED` |
 
 ---
 
-## STAGES 6 – 11 QUEUED LEDGER SUMMARY
+## STAGES 7 – 11 QUEUED LEDGER SUMMARY
 
-All subsequent subphases for **Stage 5** (`5.1.1`–`5.5.4`), **Stage 6** (`6.1.1`–`6.4.4`), **Stage 7** (`7.1.1`–`7.4.4`), **Stage 8** (`8.1.1`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.
+All subsequent subphases for **Stage 7** (`7.1.2`–`7.4.4`), **Stage 8** (`8.1.1`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.
