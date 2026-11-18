@@ -5344,13 +5344,83 @@
 
 ---
 
+### Subphase 6.2.1 — Secure token storage in crates/storage & crates/core
+- **Phase / Stage:** `Phase 6.2 — Credential management` / `Stage 6 — Private GitHub Repositories`
+- **Date:** 2026-11-18
+- **Lead / Specialist Agents:** `Rust Backend & Performance Engineer`, `Security Reviewer & Application Security Engineer`
+- **Affected Components:**
+  - `crates/core/src/crypto.rs` (new authenticated AEAD encryption module)
+  - `crates/core/src/lib.rs` (re-exports for cryptographic primitives)
+  - `crates/core/src/error.rs` (extended with `CoreError::Crypto`)
+  - `crates/core/Cargo.toml` (ring dependency)
+  - `crates/storage/src/token_storage.rs` (new token storage repository trait and implementations)
+  - `crates/storage/src/lib.rs` (re-exports for token storage)
+  - `crates/storage/tests/token_storage_test.rs` (comprehensive integration test suite)
+- **Invariant & Rule Alignment:**
+  - Rule 05 (Security Engineering & Secrets Protection): Authenticated encryption at rest (AES-256-GCM), tenant-isolated AAD binding, secret masking in `Debug`/`Display`, memory zeroization on drop.
+  - Rule 00 (Global Engineering Contract): Strict one-subphase execution, zero placeholders, complete verification evidence.
+  - Rule 01 (Architecture Boundaries): Core foundation primitives in `crates/core`; persistence and repository abstractions in `crates/storage`.
+  - Rule 02 (Rust Async Execution & Memory Bounds): Pure Tokio async trait execution, non-blocking lock primitives, zero memory leaks.
+  - Rule 06 (Testing & Quality Assurance): 14 new automated tests covering cryptographic roundtrips, tampering detection, tenant isolation, expiration, and revocation.
+  - Rule 09 (Zero Mock Policy): Production PostgreSQL implementation and real in-memory repository implementation without mock objects or hardcoded tokens.
+- **Scope & Requirements:**
+  1. Implement 256-bit symmetric encryption key management with memory zeroization on drop and `Debug`/`Display` secret redaction.
+  2. Implement AES-256-GCM authenticated encryption and decryption with associated authenticated data (AAD) via `ring::aead`.
+  3. Cryptographically bind ciphertext to `tenant:{owner_session_id}:installation:{github_installation_id}` so credentials cannot be decrypted under another tenant's or installation's context.
+  4. Implement `TokenStorageRepository` trait defining complete credential lifecycle (`save_installation_token`, `get_active_token`, `get_installation`, `list_active_installations`, `revoke_installation`, `delete_installation`).
+  5. Provide `InMemoryTokenStorage` for thread-safe testing and local execution, and `PostgresTokenStorageRepository` for PostgreSQL persistence with UPSERT support.
+- **Implementation Details:**
+  - In `crates/core/src/crypto.rs`:
+    - `EncryptionKey`: 256-bit symmetric key; implements safe memory zeroization on `Drop` via `self.key.fill(0)`; masks key material in `Debug` and `Display` (`***[REDACTED_ENCRYPTION_KEY]***`); supports construction from byte arrays, slices, 64-character hex strings, HKDF-SHA256 passphrase derivation, and OS cryptographically secure random generation (`ring::rand::SystemRandom`).
+    - `EncryptedPayload`: Models ciphertext with 16-byte auth tag and 12-byte initialization vector/nonce; masks ciphertext bytes in `Debug` and `Display`.
+    - `Aes256GcmEngine`: AES-256-GCM authenticated encryption engine; generates unique 96-bit random nonces for each seal operation; authenticates associated data; verifies authentication tag on decryption.
+    - `build_token_aad`: Canonical AAD formatter binding `owner_session_id` and `github_installation_id`.
+    - `encrypt_token` and `decrypt_token`: High-level envelope encryption helpers.
+  - In `crates/storage/src/token_storage.rs`:
+    - `TokenStorageRepository`: Async trait defining asynchronous lifecycle operations for installation tokens.
+    - `InMemoryTokenStorage`: Thread-safe in-memory repository utilizing `Arc<RwLock<HashMap<(Uuid, i64), GitHubInstallationRow>>>` and `EncryptionKey`; validates row invariants; automatically decrypts active tokens; filters expired or revoked records; zeros out token bytes upon revocation.
+    - `PostgresTokenStorageRepository`: Production relational persistence using `sqlx::PgPool` and PostgreSQL UPSERT (`ON CONFLICT (owner_session_id, github_installation_id) DO UPDATE`).
+  - Authored 6 unit tests in `crates/core/src/crypto.rs` and 8 integration tests in `crates/storage/tests/token_storage_test.rs`.
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-core`
+  - `cargo test -p web-repo-to-ai-storage`
+  - `cargo test -p web-repo-to-ai-storage --test token_storage_test`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - Token encryption and decryption succeeds roundtrip with exact byte preservation.
+  - Modifying ciphertext, nonce, or AAD causes immediate decryption failure.
+  - Decrypting credentials under a different session or installation ID fails integrity check.
+  - Revocation immediately wipes ciphertext and nonce in storage.
+  - Expired tokens are not returned by `get_active_token` or `list_active_installations`.
+  - All workspace tests pass, clippy is warning-free, and monorepo quality gates pass.
+- **Risk Analysis:**
+  - Risk: Exposure of plaintext installation tokens in application logs or persistence layers; cross-tenant token leakage.
+  - Mitigation: Secret redaction in `Debug`/`Display`; memory zeroization on drop; AEAD authenticated associated data cryptographically locking tokens to tenant and installation identifiers.
+- **Rollback Plan:**
+  - Revert changes via Git reset to commit `4f8a68e`.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-core`: 26/26 tests passed in 0.00s (6 new crypto unit tests).
+  - `cargo test -p web-repo-to-ai-storage`: 63/63 tests passed in 0.03s (55 unit tests + 8 new integration tests in `token_storage_test`).
+  - `cargo clippy --workspace --all-targets -- -D warnings`: passed with 0 warnings.
+  - `cargo fmt --all -- --check`: verified clean formatting with 0 diffs.
+  - `cargo deny check`: passed (advisories ok, bans ok, licenses ok, sources ok).
+  - Purged 28.9 GiB in accumulated build artifacts, restoring 30.30 GB of free drive space.
+  - `powershell scripts/check-all.ps1`: completed with `ALL GATES PASSED (0 failures)` (563 workspace Rust tests, 213 frontend vitest tests, 5.27 GB / 30 GB storage ceiling).
+- **Git Commit Reference:** `798ee84`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 6 — Private GitHub Repositories)
 
 #### Phase 6.2 — Credential management
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `6.2.1` | Secure token storage | `6.1.4` (`ACCEPTED`) | `crates/storage/*`, `crates/core/*` | `NOT_STARTED` |
+| `6.2.2` | Token refresh & expiration | `6.2.1` (`ACCEPTED`) | `crates/github-extractor/*`, `crates/storage/*` | `NOT_STARTED` |
 
 ---
 

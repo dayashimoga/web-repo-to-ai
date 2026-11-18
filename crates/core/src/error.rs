@@ -112,6 +112,10 @@ pub enum CoreError {
     #[error("Security violation: {0}")]
     Security(String),
 
+    /// Cryptographic encryption, decryption, or key derivation failure.
+    #[error("Cryptographic operation error: {0}")]
+    Crypto(String),
+
     /// Target URL resolved to a restricted IP address.
     #[error("SSRF blocked: URL '{url}' resolved to restricted address '{address}'")]
     SsrfBlocked {
@@ -214,9 +218,11 @@ impl CoreError {
             Self::UnauthorizedGithub(_) => ErrorCode::UnauthorizedGithubRepo,
             Self::Storage(_) => ErrorCode::StorageError,
             Self::JobEngine(_) => ErrorCode::JobEngineError,
-            Self::Extraction(_) | Self::Internal(_) | Self::Serialization(_) | Self::Io(_) => {
-                ErrorCode::InternalServerError
-            }
+            Self::Crypto(_)
+            | Self::Extraction(_)
+            | Self::Internal(_)
+            | Self::Serialization(_)
+            | Self::Io(_) => ErrorCode::InternalServerError,
         }
     }
 

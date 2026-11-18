@@ -2544,6 +2544,7 @@ name = "web-repo-to-ai-core"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "ring",
  "serde",
  "serde_json",
  "thiserror 1.0.69",

@@ -6,6 +6,25 @@
 
 ## [Unreleased] — Stage 6: Private GitHub Repositories
 
+### 2026-11-18 — Phase 6.2: Credential management (`6.2.1`)
+
+#### Added
+- **`[6.2.1]` Secure Token Storage & Authenticated Envelope Encryption in `crates/storage` & `crates/core`:**
+  - Implemented cryptographic primitives and authenticated encryption in `crates/core/src/crypto.rs`:
+    - `EncryptionKey`: 256-bit symmetric encryption key for AES-256-GCM with memory zeroization on drop, strict secret masking in `Debug` and `Display` (`***[REDACTED_ENCRYPTION_KEY]***`), hex decoding, HKDF-SHA256 passphrase derivation, and OS random generation via `ring::rand::SystemRandom`.
+    - `EncryptedPayload`: Ciphertext and 96-bit (12-byte) initialization vector/nonce with secret masking in `Debug` and `Display`.
+    - `Aes256GcmEngine`: AES-256-GCM AEAD encryption and decryption with associated authenticated data (AAD) via `ring::aead`.
+    - `build_token_aad`, `encrypt_token`, and `decrypt_token`: Tenant-isolated credential envelope binding ciphertext to `tenant:{owner_session_id}:installation:{github_installation_id}`.
+  - Implemented secure token storage abstractions and repositories in `crates/storage/src/token_storage.rs`:
+    - `TokenStorageRepository`: Async trait defining `save_installation_token`, `get_active_token`, `get_installation`, `list_active_installations`, `revoke_installation`, and `delete_installation`.
+    - `InMemoryTokenStorage`: Thread-safe, mock-free in-memory repository implementing `TokenStorageRepository` with automatic encryption, decryption, expiration filtering, and revocation zeroization.
+    - `PostgresTokenStorageRepository`: Production PostgreSQL-backed implementation utilizing `sqlx::PgPool` and UPSERT statements into `github_installations`.
+  - Re-exported crypto engine in `crates/core/src/lib.rs` and token storage repository in `crates/storage/src/lib.rs`.
+  - Authored 6 unit tests in `crates/core/src/crypto.rs` and 8 integration tests in `crates/storage/tests/token_storage_test.rs`:
+    - Validating AES-256-GCM roundtrip, tamper detection across ciphertext, nonce, and AAD, cross-tenant isolation, cross-installation isolation, expiration filtering, revocation zeroization, deletion, and input validation.
+  - Resolved disk space bottleneck by purging 28.9 GiB in intermediate build artifacts from target directory, restoring 30.30 GB of free drive space.
+  - Verified 563 passing workspace Rust tests (26 in core, 63 in storage), 213 passing frontend tests, zero clippy warnings, clean formatting, and 100% passing quality gates in `scripts/check-all.ps1`.
+
 ### 2026-11-18 — Phase 6.1: GitHub App (`6.1.4` & Phase 6.1 Formal Certification)
 
 #### Added

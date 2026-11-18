@@ -181,7 +181,7 @@
 - [x] **[6.1.4]** Callback security in crates/github-extractor *(Completed 2026-11-18, OAuthCallbackParams & OAuthCallbackValidator with timing-safe state consumption, OpenRedirectGuard for relative and whitelisted origin validation, InstallationCallbackValidator with SetupAction enum, WebhookSignatureVerifier with constant-time HMAC-SHA256 verification, InMemoryWebhookDeliveryTracker sliding-window replay defense, WebhookEventParser for Ping/Installation/InstallationRepositories lifecycle events, live Axum webhook mock server integration, 14 integration tests, 176 crate tests, 549 workspace tests, 100% passing quality gates — PHASE 6.1 CERTIFIED)*
 
 ### Phase 6.2 — Credential management
-- [ ] **[6.2.1]** Secure token storage in crates/storage & crates/core
+- [x] **[6.2.1]** Secure token storage in crates/storage & crates/core *(Completed 2026-11-18, EncryptionKey with volatile zeroization & secret masking, EncryptedPayload, Aes256GcmEngine with ring AEAD, build_token_aad/encrypt_token/decrypt_token tenant isolation binding to owner_session_id & github_installation_id, TokenStorageRepository trait, InMemoryTokenStorage, PostgresTokenStorageRepository with UPSERT, 6 new core unit tests, 8 new storage integration tests, 563 workspace tests, 100% passing quality gates)*
 - [ ] **[6.2.2]** Token refresh & expiration in crates/github-extractor
 - [ ] **[6.2.3]** Revocation in crates/github-extractor & services/api
 - [ ] **[6.2.4]** Secret redaction in crates/observability & crates/github-extractor

@@ -23,6 +23,7 @@ pub mod repository;
 pub mod retention;
 pub mod schema;
 pub mod state_machine;
+pub mod token_storage;
 pub mod validation;
 
 pub use backend::*;
@@ -35,6 +36,7 @@ pub use repository::*;
 pub use retention::*;
 pub use schema::*;
 pub use state_machine::*;
+pub use token_storage::*;
 pub use validation::*;
 
 /// Returns the unique crate identifier name.

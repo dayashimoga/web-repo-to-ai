@@ -10,6 +10,7 @@
 #![warn(missing_docs)]
 
 pub mod config;
+pub mod crypto;
 pub mod error;
 pub mod id;
 pub mod traits;
@@ -18,6 +19,9 @@ pub mod traits;
 pub use config::{
     AppConfig, DatabaseConfig, Environment, ExtractionConfig, OptimizationConfig, SecurityConfig,
     ServerConfig, StorageBackend, StorageConfig,
+};
+pub use crypto::{
+    build_token_aad, decrypt_token, encrypt_token, Aes256GcmEngine, EncryptedPayload, EncryptionKey,
 };
 pub use error::{ApiError, ApiErrorEnvelope, CoreError, ErrorCode, Result};
 pub use id::{ArtifactId, DocumentId, JobId, RequestId, TenantId};
