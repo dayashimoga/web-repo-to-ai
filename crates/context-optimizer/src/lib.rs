@@ -12,6 +12,7 @@
 #![warn(missing_docs)]
 
 pub mod budget;
+pub mod compression;
 pub mod error;
 pub mod optimizer;
 pub mod plan;
@@ -21,6 +22,11 @@ pub mod profiles;
 pub mod report;
 
 pub use budget::{BudgetHeadroomSummary, ContextBudget};
+pub use compression::{
+    CompressionEvaluator, CompressionPipelineTracker, CompressionReport, CostSavingsMetrics,
+    DocumentVolume, MultiModelCostSavings, OptimizationStage, OverallCompressionMetrics,
+    StageCompressionMetrics,
+};
 pub use error::ContextOptimizerError;
 pub use optimizer::{BudgetOptimizationConfig, ContextBudgetOptimizer, TruncationStrategy};
 pub use plan::{BudgetAction, BudgetPlan, SectionBudgetDecision};
@@ -39,6 +45,33 @@ pub use report::ContextBudgetReport;
 
 use web_repo_to_ai_cdm::CdmDocument;
 use web_repo_to_ai_tokenizer::TargetModel;
+
+/// Convenience function: Evaluates compression and token reduction between original and optimized documents.
+pub fn evaluate_compression(
+    original: &CdmDocument,
+    optimized: &CdmDocument,
+) -> Result<CompressionReport, ContextOptimizerError> {
+    CompressionEvaluator::evaluate(original, optimized)
+}
+
+/// Convenience function: Evaluates compression and token reduction for a specific [`TargetModel`].
+pub fn evaluate_compression_for_model(
+    original: &CdmDocument,
+    optimized: &CdmDocument,
+    model: TargetModel,
+) -> Result<CompressionReport, ContextOptimizerError> {
+    CompressionEvaluator::evaluate_for_model(original, optimized, model)
+}
+
+/// Convenience function: Evaluates compression and token reduction with profile context and optional target model.
+pub fn evaluate_compression_with_profile(
+    original: &CdmDocument,
+    optimized: &CdmDocument,
+    profile_name: Option<impl Into<String>>,
+    target_model: Option<TargetModel>,
+) -> Result<CompressionReport, ContextOptimizerError> {
+    CompressionEvaluator::evaluate_with_profile(original, optimized, profile_name, target_model)
+}
 
 /// Convenience function: Evaluates content preservation and symbol fidelity between original and optimized documents.
 pub fn evaluate_preservation(

@@ -6891,13 +6891,64 @@
 
 ---
 
+#### Subphase `7.4.2` — Compression reporting in crates/context-optimizer
+- **Unique ID:** `7.4.2`
+- **Objective:** Implement comprehensive compression reporting, stage-by-stage progression tracking, and multi-model financial API cost reduction evaluation (`CompressionReport`, `CompressionEvaluator`, `CompressionPipelineTracker`, `OverallCompressionMetrics`, `StageCompressionMetrics`, `DocumentVolume`, `CostSavingsMetrics`, `MultiModelCostSavings`, `OptimizationStage`) in `crates/context-optimizer` detailing cumulative and per-stage token, UTF-8 byte, character, and section savings across normalization, deduplication, profile filtering, and budget knapsack truncation with formatted GFM tables and JSON serialization.
+- **Scope:** `crates/context-optimizer/src/compression.rs`, `crates/context-optimizer/src/lib.rs`, `crates/context-optimizer/tests/compression_reporting_test.rs`.
+- **Prerequisites:** `7.4.1` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/context-optimizer/src/compression.rs`
+  - `crates/context-optimizer/src/lib.rs`
+  - `crates/context-optimizer/tests/compression_reporting_test.rs`
+- **Implementation Tasks:**
+  1. Implement domain structures in `crates/context-optimizer/src/compression.rs`:
+     - `OptimizationStage` taxonomy (`Normalization`, `ExactDeduplication`, `SemanticDeduplication`, `ProfileFiltering`, `BudgetKnapsack`, `Custom`).
+     - `StageCompressionMetrics`: stage-by-stage token and byte reduction percentages, compression ratios, and section reduction deltas with GFM markdown row formatting.
+     - `OverallCompressionMetrics`: cumulative end-to-end token, byte, character, and section metrics with compression ratios and formatted GFM markdown summary table.
+     - `DocumentVolume`: document dimension measurement (tokens, bytes, chars, sections) with tokenizer adapter and calibrated heuristic fallback.
+     - `CostSavingsMetrics` & `MultiModelCostSavings`: evaluates API financial savings per 1k invocations across GPT-4o, GPT-4o-mini, Claude 3.5 Sonnet, Claude 3 Opus, Claude 3 Haiku, Gemini 1.5 Pro, Gemini 1.5 Flash, and Llama 3 (self-hosted $0.00).
+     - `CompressionReport`: comprehensive report card with GFM markdown summary rendering and JSON roundtrip serialization.
+     - `CompressionPipelineTracker`: progression recorder tracking document volume across sequential pipeline stage transitions.
+     - `CompressionEvaluator`: comparative evaluator between baseline and optimized `CdmDocument`s with profile context.
+  2. Re-export compression types and expose public convenience APIs (`evaluate_compression`, `evaluate_compression_for_model`, `evaluate_compression_with_profile`) in `crates/context-optimizer/src/lib.rs`.
+  3. Implement integration test suite `crates/context-optimizer/tests/compression_reporting_test.rs` (7 integration tests: unmodified document fidelity, budget optimization compression, multi-stage pipeline tracking, multi-model financial cost savings, markdown/JSON serialization, fail-closed empty doc rejection, convenience APIs).
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-context-optimizer`
+  - `cargo test --workspace`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - End-to-end token, byte, character, and section reduction metrics and compression ratios are calculated deterministically.
+  - Sequential pipeline stage transitions are tracked and formatted cleanly.
+  - Financial cost reduction metrics accurately model commercial and self-hosted model schedules.
+  - Fail-closed behavior on empty documents with `ContextOptimizerError::DocumentEmpty`.
+  - All 61 crate tests pass, all 694+ workspace tests pass, zero clippy warnings, zero fmt diffs, cargo deny passed, all check-all gates pass (5/5).
+- **Risk Analysis:**
+  - Risk: Zero-token optimized documents or pure boilerplate exclusions could cause division-by-zero panics in compression ratio calculations.
+  - Mitigation: Guarded ratio calculations against zero divisors, returning `f64::INFINITY` (rendered as `∞`) or `1.0` when original tokens/bytes are zero.
+- **Rollback Plan:**
+  - Revert Subphase 7.4.2 additions via `git reset --hard HEAD~1` and restore Subphase 7.4.1 baseline.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-context-optimizer`: 61 tests passing (24 unit tests, 37 integration tests across 7 test suites).
+  - Full workspace tests: 694+ tests passing across all crates and services with 0 failures.
+  - Workspace linter: `cargo clippy --workspace --all-targets -- -D warnings` clean with 0 warnings.
+  - Formatting: `cargo fmt --all -- --check` clean with 0 diffs.
+  - Dependency audit: `cargo deny check` passed (advisories ok, bans ok, licenses ok, sources ok).
+  - Monorepo gatekeeper: `powershell scripts/check-all.ps1` completed with `ALL GATES PASSED (0 failures)`.
+- **Git Commit Reference:** `78dcc74`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 7 — AI Context and Token Optimization)
 
 #### Phase 7.4 — Quality validation
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `7.4.2` | Compression reporting | `7.4.1` (`ACCEPTED`) | `crates/context-optimizer/*` | `NOT_STARTED` |
+| `7.4.3` | Exclusion explanations | `7.4.2` (`ACCEPTED`) | `crates/context-optimizer/*` | `NOT_STARTED` |
 
 ---
 

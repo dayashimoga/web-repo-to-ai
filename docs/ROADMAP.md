@@ -80,7 +80,7 @@
   - `7.1` Content optimization (`7.1.1` [ACCEPTED], `7.1.2` [ACCEPTED], `7.1.3` [ACCEPTED], `7.1.4` [ACCEPTED] — **PHASE 7.1 CERTIFIED**)
   - `7.2` Token intelligence (`7.2.1` [ACCEPTED], `7.2.2` [ACCEPTED], `7.2.3` [ACCEPTED], `7.2.4` [ACCEPTED] — **PHASE 7.2 CERTIFIED**)
   - `7.3` Context profiles (`7.3.1` [ACCEPTED], `7.3.2` [ACCEPTED], `7.3.3` [ACCEPTED], `7.3.4` [ACCEPTED] — **PHASE 7.3 CERTIFIED**)
-  - `7.4` Quality validation (`7.4.1` [ACCEPTED], `7.4.2` [NEXT] – `7.4.4`)
+  - `7.4` Quality validation (`7.4.1` [ACCEPTED], `7.4.2` [ACCEPTED], `7.4.3` [NEXT] – `7.4.4`)
 
 ### STAGE 8 — LARGE REPOSITORIES, BATCH AND CRAWLING
 - **Deliverable:** Bounded parallel batch URL processing, website crawling, and content-addressed incremental caching.

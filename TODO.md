@@ -222,7 +222,7 @@
 
 ### Phase 7.4 — Quality validation
 - [x] **[7.4.1]** Preservation metrics in crates/context-optimizer *(Completed 2026-11-18, PreservationEvaluator, PreservationReport, PreservationConfig, SectionPreservationMetrics with KindPreservation category tracking, CriticalPreservationMetrics zero silent drop audit, SymbolPreservationMetrics AST symbol & public API retention tracking via code-intelligence, TokenPreservationMetrics volume & reduction analysis, StructuralIntegrityMetrics syntax & clean boundary verification, evaluate_preservation convenience APIs, 7 new integration tests in preservation_metrics_test, 54 context-optimizer tests, 694+ workspace tests, 100% passing quality gates)*
-- [ ] **[7.4.2]** Compression reporting in crates/context-optimizer
+- [x] **[7.4.2]** Compression reporting in crates/context-optimizer *(Completed 2026-11-18, CompressionReport, CompressionEvaluator, CompressionPipelineTracker, OverallCompressionMetrics, StageCompressionMetrics, DocumentVolume, CostSavingsMetrics, MultiModelCostSavings, OptimizationStage, evaluate_compression, evaluate_compression_for_model, evaluate_compression_with_profile convenience APIs, 7 new integration tests in compression_reporting_test, 61 context-optimizer tests, 694+ workspace tests, 100% passing quality gates)*
 - [ ] **[7.4.3]** Exclusion explanations in crates/context-optimizer
 - [ ] **[7.4.4]** Golden comparison tests across context profiles in crates/context-optimizer
 

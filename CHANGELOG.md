@@ -6,6 +6,23 @@
 
 ## [Unreleased] — Stage 7: AI Context and Token Optimization
 
+### 2026-11-18 — Phase 7.4: Quality validation (`7.4.2`)
+
+#### Added
+- **`[7.4.2]` Compression Reporting, Pipeline Progression Tracking & Financial Cost Savings in `crates/context-optimizer`:**
+  - Implemented comprehensive compression reporting and telemetry engine in `crates/context-optimizer/src/compression.rs`:
+    - `OptimizationStage` taxonomy: models transformation pipeline stages (`Normalization`, `ExactDeduplication`, `SemanticDeduplication`, `ProfileFiltering`, `BudgetKnapsack`, `Custom`).
+    - `StageCompressionMetrics`: calculates input/output progression, token and byte savings, reduction percentages, and compression ratios per stage with GFM table row formatting.
+    - `OverallCompressionMetrics`: measures cumulative end-to-end token, byte, character, and section reduction metrics and compression ratios with formatted GFM summary table.
+    - `DocumentVolume`: measures multi-dimensional document volume (tokens, UTF-8 bytes, chars, sections) with tokenizer model adapter or heuristic fallback.
+    - `CostSavingsMetrics` & `MultiModelCostSavings`: evaluates financial API cost reductions per 1k invocations across commercial LLM pricing schedules (GPT-4o, GPT-4o-mini, Claude 3.5 Sonnet, Claude 3 Opus, Claude 3 Haiku, Gemini 1.5 Pro, Gemini 1.5 Flash) and self-hosted models (Llama 3 $0.00).
+    - `CompressionReport`: comprehensive report card with GFM markdown rendering and JSON serialization.
+    - `CompressionPipelineTracker`: progression recorder tracking volume transitions across sequential stages.
+    - `CompressionEvaluator`: comparative evaluator between baseline and optimized `CdmDocument`s with profile context.
+  - Re-exported compression models and public convenience APIs in `crates/context-optimizer/src/lib.rs`: `evaluate_compression`, `evaluate_compression_for_model`, and `evaluate_compression_with_profile`.
+  - Authored integration test suite `crates/context-optimizer/tests/compression_reporting_test.rs` (7 integration tests validating unmodified document fidelity, budget knapsack compression, multi-stage pipeline progression, multi-model cost savings, markdown/JSON serialization, fail-closed empty doc rejection, and convenience APIs).
+  - 100% passing quality gates: 61 crate tests passed, 694+ workspace tests passed, zero clippy warnings, zero fmt diffs, cargo deny passed, and 5/5 check-all gates passed.
+
 ### 2026-11-18 — Phase 7.4: Quality validation (`7.4.1`)
 
 #### Added
