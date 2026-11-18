@@ -6,6 +6,29 @@
 
 ## [Unreleased] — Stage 5: Public GitHub Repository Extraction
 
+### 2026-11-18 — Phase 5.5: Integrity (`5.5.1`)
+
+#### Added
+- **`[5.5.1]` Expected-vs-Actual File Accounting in `crates/github-extractor`:**
+  - Implemented mathematical completeness verification, discrepancy taxonomy, bidirectional set reconciliation, and quantitative balance sheet validation in `crates/github-extractor/src/accounting.rs`:
+    - `AccountingDiscrepancyKind`: strongly-typed root cause classification (`MissingUnaccounted`, `UnexpectedExtra`, `ByteSizeMismatch`, `GitShaMismatch`, `CategoryMismatch`, `StatusConflict`).
+    - `DiscrepancySeverity`: 3-tier severity rating (`Critical`, `Warning`, `Info`) prioritizing completeness and content integrity violations.
+    - `AccountingDiscrepancy`: structured discrepancy record capturing normalized path, discrepancy kind, expected details from Git tree discovery, actual details from extraction artifacts, and impact severity.
+    - `FileAccountingBalanceSheet`: comprehensive balance sheet model capturing discovered tree blobs, eligible blobs, expected excluded blobs, actual extracted files, actual excluded files, actual failed files, actual unsupported files, missing unaccounted files, unexpected extra files, byte size mismatches, and Git SHA mismatches.
+    - Mathematical invariant verification:
+      - `is_balanced()`: verifies the arithmetic conservation law $\text{discovered} = \text{extracted} + \text{excluded} + \text{failed} + \text{unsupported} + \text{missing\_unaccounted}$.
+      - `is_fully_accounted()`: verifies that zero eligible files are dropped without record ($\text{missing\_unaccounted} == 0$) and zero phantom extra files are introduced ($\text{unexpected\_extra} == 0$).
+      - `is_perfectly_consistent()`: verifies that all conservation laws hold, all files are accounted for, zero byte size mismatches exist, and zero Git SHA mismatches exist.
+      - `to_completeness_report()`: direct translation into CDM [`CompletenessReport`].
+    - `FileAccountingAuditor`: bidirectional set reconciliation engine supporting audit against `RepoFileManifest`, direct extraction reports (`SourceExtractionReport`, `DocExtractionReport`, `DependencyExtractionReport`, `ConfigTestExtractionReport`), or CDM sections (`audit_sections`).
+    - Formatters & serializers: `to_markdown()` producing structured GFM balance sheets and discrepancy logs; `to_json()` / `to_json_compact()` for structured JSON export; `to_cdm_section()` generating a schema-valid `CdmSection` with `SectionKind::Manifest`, `manifest_role: "file_accounting_audit"`, and BLAKE3 hash.
+  - Extended `GitHubApiClient` in `crates/github-extractor/src/client.rs`:
+    - `audit_file_accounting`: client method reconciling repository tree entries against manifests or extraction reports.
+  - Re-exported accounting models and functions in `crates/github-extractor/src/lib.rs`.
+  - Authored comprehensive integration tests in `crates/github-extractor/tests/file_accounting_test.rs`:
+    - 9 test suites validating balanced extractions, missing file detection, unexpected extra detection, byte size mismatches, Git SHA mismatches, multi-report integration, CDM section generation, CDM section auditing, and live API client integration.
+  - Verified 479 passing workspace Rust tests (143 in `crates/github-extractor` + 1 doc-test), 213 frontend tests, zero clippy warnings, zero fmt diffs, and 100% passing gates across all 5 checks in `scripts/check-all.ps1`.
+
 ### 2026-11-18 — Phase 5.4: Repository Packaging (`5.4.4` & Phase 5.4 Certification)
 
 #### Added

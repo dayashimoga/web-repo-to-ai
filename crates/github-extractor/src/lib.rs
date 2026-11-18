@@ -10,6 +10,7 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
+pub mod accounting;
 pub mod architecture;
 pub mod classification;
 pub mod client;
@@ -28,6 +29,10 @@ pub mod target;
 pub mod tree;
 pub mod tree_generator;
 
+pub use accounting::{
+    AccountingDiscrepancy, AccountingDiscrepancyKind, DiscrepancySeverity, FileAccountingAuditor,
+    FileAccountingBalanceSheet,
+};
 pub use architecture::{
     ComponentInfo, ComponentRole, EntryPointInfo, EntryPointRole, RepoArchitectureContext,
     WorkspaceType,

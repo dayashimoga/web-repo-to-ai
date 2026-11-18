@@ -13,6 +13,7 @@ use reqwest::{Client, StatusCode};
 use serde::Deserialize;
 use tracing::{debug, info, warn};
 
+use crate::accounting::{FileAccountingAuditor, FileAccountingBalanceSheet};
 use crate::architecture::RepoArchitectureContext;
 use crate::classification::{ClassifiedFile, TreeClassificationReport};
 use crate::code_review::{CodeReviewPackage, CodeReviewPackageConfig};
@@ -1625,6 +1626,46 @@ impl GitHubApiClient {
             target_ref,
             pinned_sha,
         )
+    }
+
+    /// Audits expected-vs-actual file accounting comparing discovered Git tree blobs against extraction manifests or reports.
+    #[must_use]
+    #[allow(clippy::too_many_arguments)]
+    pub fn audit_file_accounting(
+        &self,
+        expected_tree: &GitTreeResponse,
+        classification: Option<&TreeClassificationReport>,
+        manifest: Option<&RepoFileManifest>,
+        sources: Option<&SourceExtractionReport>,
+        docs: Option<&DocExtractionReport>,
+        dependencies: Option<&DependencyExtractionReport>,
+        configs_tests: Option<&ConfigTestExtractionReport>,
+        target_repo: impl Into<String>,
+        target_ref: Option<String>,
+        pinned_sha: Option<String>,
+    ) -> FileAccountingBalanceSheet {
+        if let Some(m) = manifest {
+            FileAccountingAuditor::audit_manifest(
+                expected_tree,
+                classification,
+                m,
+                target_repo,
+                target_ref,
+                pinned_sha,
+            )
+        } else {
+            FileAccountingAuditor::audit_reports(
+                expected_tree,
+                classification,
+                sources,
+                docs,
+                dependencies,
+                configs_tests,
+                target_repo,
+                target_ref,
+                pinned_sha,
+            )
+        }
     }
 }
 

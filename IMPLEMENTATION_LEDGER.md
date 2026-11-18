@@ -4767,13 +4767,84 @@
 
 ---
 
+### Phase 5.5 — Integrity
+
+#### Subphase `5.5.1` — Expected-vs-actual file accounting in crates/github-extractor
+- **Unique ID:** `5.5.1`
+- **Objective:** Implement expected-vs-actual file accounting, mathematical completeness verification, discrepancy taxonomy, set reconciliation, and balance sheet validation between discovered Git tree entries and extracted/classified artifacts in `crates/github-extractor`. Enforce the fundamental repository completeness conservation law ($\text{discovered} = \text{extracted} + \text{excluded} + \text{failed} + \text{unsupported} + \text{missing\_unaccounted}$) and detect any unaccounted missing files, unexpected extra files, byte size mismatches, or Git object SHA-1 mismatches before marking extraction complete.
+- **Scope:** `crates/github-extractor/src/accounting.rs`, `crates/github-extractor/src/client.rs`, `crates/github-extractor/src/lib.rs`, `crates/github-extractor/tests/file_accounting_test.rs`.
+- **Prerequisites:** `5.4.4` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/github-extractor/src/accounting.rs`
+  - `crates/github-extractor/src/client.rs`
+  - `crates/github-extractor/src/lib.rs`
+  - `crates/github-extractor/tests/file_accounting_test.rs`
+- **Implementation Tasks:**
+  1. Implement `crates/github-extractor/src/accounting.rs`:
+     - Discrepancy models:
+       - `AccountingDiscrepancyKind` (`MissingUnaccounted`, `UnexpectedExtra`, `ByteSizeMismatch`, `GitShaMismatch`, `CategoryMismatch`, `StatusConflict`).
+       - `DiscrepancySeverity` (`Critical`, `Warning`, `Info`).
+       - `AccountingDiscrepancy` capturing relative path, discrepancy kind, expected detail, actual detail, and severity.
+     - Quantitative balance sheet model `FileAccountingBalanceSheet`:
+       - Discovered blobs count ($E$).
+       - Eligible blobs count.
+       - Expected excluded blobs count.
+       - Actual extracted count.
+       - Actual excluded count.
+       - Actual failed count.
+       - Actual unsupported count.
+       - Missing unaccounted count.
+       - Unexpected extra count.
+       - Byte size mismatches count.
+       - Git SHA mismatches count.
+       - Detailed discrepancy vector.
+     - Invariant verification:
+       - `is_balanced(&self) -> bool`: enforces conservation law $\text{discovered} == \text{extracted} + \text{excluded} + \text{failed} + \text{unsupported} + \text{missing\_unaccounted}$.
+       - `is_fully_accounted(&self) -> bool`: enforces $\text{missing\_unaccounted} == 0 \land \text{unexpected\_extra} == 0$.
+       - `is_perfectly_consistent(&self) -> bool`: enforces balance, full accounting, zero size mismatches, and zero Git SHA mismatches.
+       - `to_completeness_report(&self) -> CompletenessReport`: translates balance sheet metrics into CDM [`CompletenessReport`].
+     - Auditor engine `FileAccountingAuditor`:
+       - Reconciles expected tree entries from `GitTreeResponse` / `TreeClassificationReport` against actual processed artifacts in `RepoFileManifest` or multi-report collections (`SourceExtractionReport`, `DocExtractionReport`, `DependencyExtractionReport`, `ConfigTestExtractionReport`).
+       - Path-by-path comparison identifying discrepancies with exact expected vs actual values.
+     - Formatters & serializers:
+       - `to_markdown(&self) -> String`: generates a clean GFM audit report with balance sheet table, invariant status badges, and discrepancy logs.
+       - `to_json(&self) -> Result<String, serde_json::Error>` and `to_json_compact(&self)`: structured JSON serialization.
+       - `to_cdm_section(&self, doc_canonical_url) -> CdmSection`: Canonical Context Document Model representation with `SectionKind::Manifest`, `manifest_role: "file_accounting_audit"`, and BLAKE3 content hash.
+  2. Extend `GitHubApiClient` in `crates/github-extractor/src/client.rs`:
+     - `audit_file_accounting`: method executing the accounting auditor across repository artifacts.
+  3. Re-export accounting models and functions in `crates/github-extractor/src/lib.rs`.
+  4. Author comprehensive integration tests in `crates/github-extractor/tests/file_accounting_test.rs` covering balanced extractions, missing file detection, extra file detection, size mismatches, Git SHA mismatches, multi-report aggregation, CDM section generation, and live API client integration.
+  5. Run full quality gate (`cargo test`, `cargo clippy`, `cargo fmt`, `cargo deny`, `scripts/check-all.ps1`).
+- **Acceptance Criteria:**
+  - Accurately balances discovered files against extracted, excluded, failed, and unsupported files.
+  - Detects missing unaccounted files, unexpected extra files, size mismatches, and Git SHA mismatches.
+  - Correctly evaluates `is_balanced()`, `is_fully_accounted()`, and `is_perfectly_consistent()`.
+  - Produces valid GFM Markdown, JSON, and schema-valid CDM sections.
+  - 100% test pass rate, 0 clippy warnings, clean formatting.
+- **Tests:** `cargo test -p web-repo-to-ai-github-extractor --test file_accounting_test`, `cargo test --workspace`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, Rule 04, Rule 05: Safe string generation; zero shell execution; path sanitization; secret redaction in audit reports.
+- **Performance Considerations:** $O(N)$ hash-map-based set reconciliation, bounded memory allocation for discrepancy tracking.
+- **Documentation Requirements:** Module and type documentation in `crates/github-extractor`, tracking updates in `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-github-extractor --test file_accounting_test`: 9/9 tests passed in 0.01s covering balanced accounting, missing file detection, unexpected extra file detection, byte size mismatches, Git SHA-1 mismatches, multi-report integration, CDM section generation, and live API client integration.
+  - `cargo test -p web-repo-to-ai-github-extractor`: 143/143 crate tests (+ 1 doctest) passed across 16 test suites with 0 failures.
+  - `cargo test --workspace`: 479/479 tests passed across all workspace crates and binaries with 0 failures.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings across all workspace targets.
+  - `cargo fmt --all -- --check`: 100% clean formatting.
+  - `cargo deny check`: Advisories ok, bans ok, licenses ok, sources ok.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (Gate 1: Bootstrap & Governance Integrity, Gate 2: Devops workflows, Gate 3: Rust Workspace Checks, Gate 4: Frontend Web Quality Checks [213 vitest tests passed, svelte-check 0 errors 0 warnings, prettier clean], Gate 5: Resource Budget & 30 GB Storage Ceiling [5.27 GB / 30 GB, 17.6%]).
+- **Git Commit Reference:** `4a1be3d`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 5 — Public GitHub Repository Extraction)
 
 #### Phase 5.5 — Integrity
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `5.5.1` | Expected-vs-actual file accounting | `5.4.4` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
+| `5.5.2` | Content hash validation | `5.5.1` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
 
 ---
 
