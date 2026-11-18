@@ -6,6 +6,27 @@
 
 ## [Unreleased] — Stage 5: Public GitHub Repository Extraction
 
+### 2026-11-18 — Phase 5.3: File Extraction (`5.3.3`)
+
+#### Added
+- **`[5.3.3]` Dependency Extraction & Manifest Parsing in `crates/github-extractor`:**
+  - Implemented specialized dependency models, ecosystem detectors, and deterministic parsers in `crates/github-extractor/src/dependency.rs`:
+    - `PackageEcosystem`: multi-ecosystem identification across `Cargo`, `Npm`, `Pip`, `GoMod`, `MavenGradle`, `Bundler`, `Composer`, `Pub`, `Mix`, and `Other`.
+    - `ManifestRole`: functional classification distinguishing `Manifest` (declarative package and dependency specification) from `Lockfile` (pinned transitive lock files and hashes).
+    - `DependencyType`: functional dependency classifications covering `Direct`, `Dev`, `Build`, `Peer`, and `Optional`.
+    - `DeclaredDependency`: structured dependency declaration capturing package name, optional version constraint requirement, functional type, optional flag, and enabled feature sets.
+    - `ParsedManifest`: parsed package metadata capturing package name, version, description, license, and queried dependencies (`direct_dependencies`, `dev_dependencies`, `dependency_count`, `find_dependency`).
+    - Deterministic lightweight manifest parsers for `Cargo.toml`, `package.json`, `requirements.txt`, `go.mod`, and `pyproject.toml` without external parser dependencies or panics.
+    - `ExtractedDependencyFile`: extracted dependency model with Git object SHA-1 verification, ecosystem and role categorization, parsed manifest integration, BLAKE3 and SHA-256 hashes, and conversion into CDM [`CdmSection`] with `SectionKind::Manifest` and metadata attributes.
+    - `DependencyExtractionReport`: aggregated extraction outcome capturing extracted files, failures, unsupported binaries, ecosystem filtering, direct dependency rollup, and CDM `CompletenessReport` mapping preserving the invariant `discovered == extracted + excluded + failed + unsupported`.
+  - Extended `GitHubApiClient` in `crates/github-extractor/src/client.rs`:
+    - `fetch_dependency_file(&target, file, config)`: acquires and parses an individual manifest or lockfile.
+    - `extract_dependency_files(&target, files, config)`: bounded concurrent batch extraction via `tokio::sync::Semaphore`.
+  - Re-exported dependency models, parsers, and helper functions in `crates/github-extractor/src/lib.rs`.
+  - Authored comprehensive integration tests in `crates/github-extractor/tests/dependency_extraction_test.rs`:
+    - 6 test suites validating live Axum `Cargo.toml` extraction and parsing, `package.json` dependency classification, `requirements.txt` parsing with version operators, `go.mod` module and direct/dev dependency resolution, `Cargo.lock` lockfile acquisition, and bounded concurrent batch extraction with completeness accounting and CDM section mapping.
+  - Verified 424 passing workspace Rust tests (89 in `crates/github-extractor` + 1 doc-test), 213 frontend tests, zero clippy warnings, zero fmt diffs, and 100% passing gates across all 5 checks in `scripts/check-all.ps1`.
+
 ### 2026-11-18 — Phase 5.3: File Extraction (`5.3.2`)
 
 #### Added

@@ -155,7 +155,7 @@
 ### Phase 5.3 — File extraction
 - [x] **[5.3.1]** Source acquisition in crates/github-extractor *(Completed 2026-11-18, Git Blobs API, raw and JSON base64 decoding, Git object SHA-1 verification, BLAKE3 and SHA-256 hashes, binary detection, bounded concurrent batch extraction with semaphore, CdmSection generation, 7 new integration tests, 408 workspace tests)*
 - [x] **[5.3.2]** Documentation extraction in crates/github-extractor *(Completed 2026-11-18, DocType taxonomy, DocFormat detection, Markdown heading & YAML frontmatter parsing, README & LICENSE indexing, bounded concurrent batch extraction, CDM prose sections, 6 new integration tests, 418 workspace tests)*
-- [ ] **[5.3.3]** Dependency extraction in crates/github-extractor
+- [x] **[5.3.3]** Dependency extraction in crates/github-extractor *(Completed 2026-11-18, PackageEcosystem & ManifestRole detection, deterministic parsers for Cargo.toml, package.json, requirements.txt, go.mod, pyproject.toml, bounded concurrent batch extraction, CDM manifest sections, 6 new integration tests, 89 crate tests, 100% passing quality gates)*
 - [ ] **[5.3.4]** Configuration & test extraction in crates/github-extractor
 
 ### Phase 5.4 — Repository packaging

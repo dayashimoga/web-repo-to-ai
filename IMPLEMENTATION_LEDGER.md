@@ -4400,11 +4400,59 @@
 
 ---
 
+#### Subphase `5.3.3` — Dependency extraction in crates/github-extractor
+- **Unique ID:** `5.3.3`
+- **Objective:** Implement comprehensive package manifest and dependency extraction from GitHub (`FileCategory::DependencyManifest` and eligible `FileCategory::GeneratedOrLockfile`), identifying package ecosystems (`Cargo`, `Npm`, `Pip`, `GoMod`, `MavenGradle`, `Bundler`, `Composer`, `Pub`, `Mix`), distinguishing manifest roles (`Manifest` vs `Lockfile`), executing deterministic lightweight manifest parsing (`Cargo.toml`, `package.json`, `requirements.txt`, `go.mod`, `pyproject.toml`) to extract package identity and declared dependencies (`Direct`, `Dev`, `Build`, `Peer`, `Optional`), orchestrating bounded concurrent batch extraction, and generating Canonical Context Document Model ([`CdmSection`]) manifest sections.
+- **Scope:** `crates/github-extractor/src/dependency.rs`, `crates/github-extractor/src/client.rs`, `crates/github-extractor/src/lib.rs`, `crates/github-extractor/tests/dependency_extraction_test.rs`.
+- **Prerequisites:** `5.3.2` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/github-extractor/src/dependency.rs`
+  - `crates/github-extractor/src/client.rs`
+  - `crates/github-extractor/src/lib.rs`
+  - `crates/github-extractor/tests/dependency_extraction_test.rs`
+- **Implementation Tasks:**
+  1. Implement `crates/github-extractor/src/dependency.rs`:
+     - `PackageEcosystem` enum (`Cargo`, `Npm`, `Pip`, `GoMod`, `MavenGradle`, `Bundler`, `Composer`, `Pub`, `Mix`, `Other`) and detector `detect_ecosystem(file_name)`.
+     - `ManifestRole` enum (`Manifest`, `Lockfile`) and role classifier `detect_manifest_role(file_name)`.
+     - `DependencyType` enum (`Direct`, `Dev`, `Build`, `Peer`, `Optional`).
+     - `DeclaredDependency` model capturing name, version requirement, type, optional flag, and enabled features.
+     - `ParsedManifest` model capturing package name, package version, description, license, and list of dependencies with query helper accessors.
+     - Deterministic manifest parsers for `Cargo.toml`, `package.json`, `requirements.txt`, `go.mod`, and `pyproject.toml`.
+     - `ExtractedDependencyFile` model with path, Git blob SHA, ecosystem, role, text content, parsed manifest, line count, byte size, cryptographic BLAKE3 and SHA-256 digests, and conversion to CDM `CdmSection` (`SectionKind::Manifest`).
+     - `DependencyExtractionReport` capturing extracted manifests/lockfiles, failures, unsupported entries, ecosystem filtering, direct dependency aggregation, and CDM `CompletenessReport` mapping.
+  2. Extend `GitHubApiClient` in `crates/github-extractor/src/client.rs`:
+     - `fetch_dependency_file`: acquires blob, verifies Git SHA, parses manifest if applicable, and constructs `ExtractedDependencyFile`.
+     - `extract_dependency_files`: concurrent bounded batch extraction of dependency manifests and lockfiles via semaphore.
+  3. Re-export dependency models and functions in `crates/github-extractor/src/lib.rs`.
+  4. Author comprehensive integration tests in `crates/github-extractor/tests/dependency_extraction_test.rs` covering `Cargo.toml` parsing, `package.json` parsing, `requirements.txt` parsing, `go.mod` parsing, lockfile acquisition, bounded concurrency batch retrieval, and CDM `SectionKind::Manifest` mapping.
+  5. Run full quality gate (`cargo test`, `cargo clippy`, `cargo fmt`, `cargo deny`, `scripts/check-all.ps1`).
+- **Acceptance Criteria:**
+  - All package manifests and eligible lockfiles are extracted, validated against Git SHA-1, and classified into accurate `PackageEcosystem` and `ManifestRole`.
+  - Manifest parsers correctly parse `Cargo.toml`, `package.json`, `requirements.txt`, `go.mod`, and `pyproject.toml` into structured `ParsedManifest` without runtime panics.
+  - Bounded concurrency with semaphore prevents hitting GitHub rate limits or socket exhaustion.
+  - Extracted dependency files map cleanly to CDM `CdmSection` (`SectionKind::Manifest`) with ecosystem and dependency metadata.
+  - 100% test pass rate, 0 clippy warnings, clean formatting.
+- **Tests:** `cargo test -p web-repo-to-ai-github-extractor`, `cargo test --workspace`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, Rule 04, Rule 05: Cryptographic hash validation (SHA-1, BLAKE3, SHA-256); secret redaction; prompt-injection defenses (untrusted manifest files are safely encapsulated in CDM manifest sections without host execution).
+- **Performance Considerations:** Bounded concurrency via `tokio::sync::Semaphore`; zero-copy string slicing during dependency parsing.
+- **Documentation Requirements:** Module and type documentation in `crates/github-extractor`, tracking updates in `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-github-extractor`: 89/89 tests passed (21 unit tests, 6 dependency integration tests, 61 other integration tests, 1 doc test) in 0.17s.
+  - `cargo test --workspace`: 424/424 tests passed across all workspace crates.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors.
+  - `cargo fmt --all -- --check`: 100% compliant with standard formatting.
+  - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
+- **Git Commit Reference:** `74e6952`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 5 — Public GitHub Repository Extraction)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `5.3.3` | Dependency extraction | `5.3.2` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
+| `5.3.4` | Configuration & test extraction | `5.3.3` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
 
 ---
 

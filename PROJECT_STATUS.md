@@ -4,15 +4,15 @@
 **Last Updated:** 2026-11-18  
 **Current Stage:** `STAGE 5 — PUBLIC GITHUB REPOSITORY EXTRACTION` (`IN_PROGRESS`)  
 **Current Phase:** `Phase 5.3 — File extraction` (`IN_PROGRESS`)  
-**Active Subphase:** `None (awaiting approval for 5.3.3)`  
-**Last Completed Subphase:** `5.3.2 — Documentation extraction in crates/github-extractor` (`ACCEPTED`)  
-**Next Upcoming Subphase:** `5.3.3 — Dependency extraction in crates/github-extractor`
+**Active Subphase:** `None (awaiting approval for 5.3.4)`  
+**Last Completed Subphase:** `5.3.3 — Dependency extraction in crates/github-extractor` (`ACCEPTED`)  
+**Next Upcoming Subphase:** `5.3.4 — Configuration & test extraction in crates/github-extractor`
 
 ---
 
 ## 1. Executive Summary
 
-Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 subphases), Stage 2 (`2.1.1` – `2.4.4`, 15 subphases), Stage 3 (`3.1.1` – `3.4.4`, 16 subphases), and Stage 4 (`4.1.1` – `4.4.4`, 16 subphases) are 100% complete, verified, certified, and accepted across 76 subphases. Stage 5 ("Public GitHub Repository Extraction") certified Phase 5.1 ("GitHub metadata", `5.1.1` – `5.1.4`) and Phase 5.2 ("File discovery", `5.2.1` – `5.2.4`). Phase 5.3 ("File extraction", `5.3.1` – `5.3.4`) is active: Subphase `5.3.1` ("Source acquisition") and Subphase `5.3.2` ("Documentation extraction") are accepted, implementing source and documentation file extraction, title/frontmatter detection, README/LICENSE indexing, bounded concurrent batch extraction, and CDM section generation. Subphase `5.3.3` ("Dependency extraction") is queued next.
+Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 subphases), Stage 2 (`2.1.1` – `2.4.4`, 15 subphases), Stage 3 (`3.1.1` – `3.4.4`, 16 subphases), and Stage 4 (`4.1.1` – `4.4.4`, 16 subphases) are 100% complete, verified, certified, and accepted across 76 subphases. Stage 5 ("Public GitHub Repository Extraction") certified Phase 5.1 ("GitHub metadata", `5.1.1` – `5.1.4`) and Phase 5.2 ("File discovery", `5.2.1` – `5.2.4`). Phase 5.3 ("File extraction", `5.3.1` – `5.3.4`) is active: Subphase `5.3.1` ("Source acquisition"), Subphase `5.3.2` ("Documentation extraction"), and Subphase `5.3.3` ("Dependency extraction") are accepted. Subphase `5.3.3` implemented multi-ecosystem manifest and lockfile acquisition, deterministic parsing for `Cargo.toml`, `package.json`, `requirements.txt`, `go.mod`, and `pyproject.toml`, bounded concurrent batch extraction, and CDM `SectionKind::Manifest` representations. Subphase `5.3.4` ("Configuration & test extraction") is queued next.
 
 ---
 
@@ -20,12 +20,12 @@ Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 su
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 86 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.3.2` |
+| `ACCEPTED` | 87 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.3.3` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 111 | `5.3.3` – `11.4.5` |
+| `NOT_STARTED` | 110 | `5.3.4` – `11.4.5` |
 | **Total** | **197** | `Stage 0` – `Stage 11` |
 
 ---

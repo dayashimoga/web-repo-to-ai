@@ -13,6 +13,7 @@
 pub mod classification;
 pub mod client;
 pub mod commit;
+pub mod dependency;
 pub mod documentation;
 pub mod error;
 pub mod metadata;
@@ -31,6 +32,12 @@ pub use client::{
     DEFAULT_USER_AGENT, GITHUB_API_VERSION_HEADER,
 };
 pub use commit::{CommitAuthor, CommitSignatureVerification, GitHubCommitMetadata, PinnedRevision};
+pub use dependency::{
+    detect_ecosystem, detect_manifest_role, parse_cargo_toml, parse_go_mod, parse_manifest,
+    parse_package_json, parse_pyproject_toml, parse_requirements_txt, DeclaredDependency,
+    DependencyExtractionReport, DependencyType, ExtractedDependencyFile, ManifestRole,
+    PackageEcosystem, ParsedManifest,
+};
 pub use documentation::{
     detect_doc_format, detect_doc_type, extract_title_and_frontmatter, DocExtractionReport,
     DocFormat, DocType, ExtractedDocFile,

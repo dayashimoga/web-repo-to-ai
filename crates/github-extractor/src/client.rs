@@ -17,6 +17,7 @@ use crate::classification::ClassifiedFile;
 use crate::commit::{
     CommitAuthor, CommitSignatureVerification, GitHubCommitMetadata, PinnedRevision,
 };
+use crate::dependency::{DependencyExtractionReport, ExtractedDependencyFile};
 use crate::documentation::{DocExtractionReport, ExtractedDocFile};
 use crate::error::{redact_secrets, GitHubExtractorError};
 use crate::metadata::{
@@ -1315,6 +1316,88 @@ impl GitHubApiClient {
                     .await
                     .map_err(|e| GitHubExtractorError::RequestFailed(e.to_string()))?;
                 client.fetch_doc_file(&target, &f, &cfg).await
+            });
+
+            task_handles.push((file, handle));
+        }
+
+        for (file, handle) in task_handles {
+            match handle.await {
+                Ok(Ok(extracted)) => {
+                    report.add_extracted(extracted);
+                }
+                Ok(Err(err)) => {
+                    let err_str = err.to_string();
+                    if err_str.contains("Binary or null bytes") {
+                        report.add_unsupported(file);
+                    } else {
+                        report.add_failed(file.path, file.sha, err_str);
+                    }
+                }
+                Err(join_err) => {
+                    report.add_failed(file.path, file.sha, format!("Task join error: {join_err}"));
+                }
+            }
+        }
+
+        report.duration = start.elapsed();
+        report
+    }
+
+    /// Fetches and parses a single classified dependency manifest or lockfile, producing an `ExtractedDependencyFile`.
+    ///
+    /// # Errors
+    /// Returns `GitHubExtractorError::BlobError` if Git SHA verification fails or binary content is detected.
+    pub async fn fetch_dependency_file(
+        &self,
+        target: &GitHubTarget,
+        file: &ClassifiedFile,
+        config: &SourceExtractionConfig,
+    ) -> Result<ExtractedDependencyFile, GitHubExtractorError> {
+        let blob = self.get_blob(target, &file.sha).await?;
+        ExtractedDependencyFile::from_blob(&file.path, &blob, config)
+    }
+
+    /// Concurrently extracts and parses repository dependency manifests and lockfiles with bounded concurrency.
+    ///
+    /// Identifies ecosystems, parses declared dependencies, and collects extracted manifests, lockfiles,
+    /// and failures into a consolidated `DependencyExtractionReport`.
+    pub async fn extract_dependency_files(
+        &self,
+        target: &GitHubTarget,
+        files: &[ClassifiedFile],
+        config: &SourceExtractionConfig,
+    ) -> DependencyExtractionReport {
+        let start = std::time::Instant::now();
+        let mut report = DependencyExtractionReport::new();
+
+        let mut eligible_files = Vec::new();
+        for file in files {
+            if !file.is_eligible {
+                if file.category.is_binary() {
+                    report.add_unsupported(file.clone());
+                }
+            } else {
+                eligible_files.push(file.clone());
+            }
+        }
+
+        let semaphore = std::sync::Arc::new(tokio::sync::Semaphore::new(config.concurrency));
+        let mut task_handles = Vec::with_capacity(eligible_files.len());
+
+        for file in eligible_files {
+            let sem = semaphore.clone();
+            let client = self.clone();
+            let target = target.clone();
+            let f = file.clone();
+            let cfg = config.clone();
+
+            let handle = tokio::spawn(async move {
+                let _permit = sem
+                    .acquire()
+                    .await
+                    .map_err(|e| GitHubExtractorError::RequestFailed(e.to_string()))?;
+                client.fetch_dependency_file(&target, &f, &cfg).await
             });
 
             task_handles.push((file, handle));
