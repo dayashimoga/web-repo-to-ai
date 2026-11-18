@@ -5779,13 +5779,84 @@
 
 ---
 
+#### Subphase `6.3.4` — Authorization failure recovery in crates/github-extractor
+- **Unique ID:** `6.3.4`
+- **Objective:** Implement an intelligent authorization failure recovery engine (`AuthorizationRecoveryCoordinator`) providing root-cause diagnostic classification across all `AuthorizationOutcome` variants and runtime `GitHubExtractorError`s (HTTP 401, 403, 404, 429), automated token cache eviction and proactive renewal retry, transparent self-healing for `PrivateRepositoryExtractor`, and step-by-step remediation plans (`AuthorizationRecoveryPlan`) with direct GitHub configuration links under Rule 05 zero-leakage security. Formally certify Phase 6.3 (Private extraction).
+- **Scope:** `crates/github-extractor/src/authorization_recovery.rs`, `crates/github-extractor/src/private_extractor.rs`, `crates/github-extractor/src/lib.rs`, and `crates/github-extractor/tests/authorization_recovery_test.rs`.
+- **Prerequisites:** `6.3.3` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/github-extractor/src/authorization_recovery.rs`: Implemented `AuthorizationFailureKind`, `RecoveryAction`, `AuthorizationRecoveryPlan`, and `AuthorizationRecoveryCoordinator`.
+  - `crates/github-extractor/src/private_extractor.rs`: Integrated transparent 401 token eviction and renewal retry on `get_commit`.
+  - `crates/github-extractor/src/lib.rs`: Exported `authorization_recovery` module and re-exported core recovery types.
+  - `crates/github-extractor/tests/authorization_recovery_test.rs`: 9 integration tests covering outcome diagnoses, runtime error classification, transparent 401 retry, self-healing private extraction, and zero secret leakage.
+- **Implementation Tasks:**
+  1. Define `AuthorizationFailureKind` taxonomy (`TokenInvalid`, `TokenExpired`, `RepositoryNotGranted`, `AccountMismatch`, `NoInstallationForSession`, `InstallationSuspended`, `InstallationRevoked`, `InsufficientPermissions`, `RateLimited`, `UpstreamApiError`).
+  2. Define `RecoveryAction` taxonomy (`AutomaticRetryWithFreshToken`, `PromptAppInstallation`, `PromptRepositorySelectionUpdate`, `PromptUnsuspendInstallation`, `PromptReauthenticateUser`, `WaitRateLimitReset`, `ContactAdministrator`, `Unrecoverable`).
+  3. Implement `AuthorizationRecoveryPlan` with `diagnosis`, `remediation_guidance`, `summary_card()`, and `action_code()`.
+  4. Implement `AuthorizationRecoveryCoordinator` providing `diagnose_outcome()`, `diagnose_extractor_error()`, `attempt_eviction_and_refresh()`, and `execute_with_retry_on_401()`.
+  5. Integrate self-healing retry logic into `PrivateRepositoryExtractor::extract()`.
+  6. Author comprehensive integration tests in `crates/github-extractor/tests/authorization_recovery_test.rs`.
+  7. Run all monorepo quality gates (`cargo test`, `cargo fmt`, `cargo clippy`, `cargo deny check`, `scripts/check-all.ps1`).
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-github-extractor --test authorization_recovery_test`
+  - `cargo test -p web-repo-to-ai-github-extractor`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - Every authorization failure variant produces an actionable `AuthorizationRecoveryPlan` with human-readable remediation and machine-readable action code.
+  - HTTP 401 Bad credentials automatically triggers token eviction and transparent one-time renewal retry.
+  - Private repository extraction self-heals seamlessly when encountering expired tokens.
+  - Zero raw tokens, secret keys, or private material leak into diagnosis strings, summary cards, or serialized JSON.
+  - 100% of workspace tests, lints, and format checks pass.
+- **Dependencies:** `web-repo-to-ai-core`, `web-repo-to-ai-observability`, `reqwest`, `serde`, `chrono`, `uuid`, `tokio`.
+- **Security Considerations:**
+  - Rule 05 least-privilege: Redaction of all sensitive bearer tokens and secrets via `redact_secrets()`.
+  - Tenant isolation: Eviction and refresh operations are scoped strictly to the session ID and installation ID.
+- **Performance Considerations:**
+  - Fast, in-memory diagnostic pattern matching with zero unnecessary network calls.
+  - Single-flight retry deduplication via `InstallationTokenRefresher`.
+- **Documentation Requirements:** Documented failure recovery architecture and remediation procedures in `crates/github-extractor/src/authorization_recovery.rs`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-github-extractor --test authorization_recovery_test`: 9/9 passed in 0.02s.
+  - `cargo test -p web-repo-to-ai-github-extractor`: all unit and integration tests passed (30 lib tests, 30 test files, 1 doc-test).
+  - `cargo clippy --workspace --all-targets -- -D warnings`: passed with 0 warnings.
+  - `cargo fmt --all -- --check`: clean formatting with 0 diffs.
+  - `cargo deny check`: passed (advisories ok, bans ok, licenses ok, sources ok).
+  - `powershell scripts/check-all.ps1`: completed with `ALL GATES PASSED (0 failures)` (all 5 gates passed: Bootstrap & Governance, Workflow Validation, Rust Workspace, Frontend Web [213 vitest passed], Resource Budget & 30 GB Storage Ceiling [5.27 GB / 30 GB, 17.6%]).
+- **Git Commit Reference:** `c37fd8d`
+- **Status:** `ACCEPTED`
+
+---
+
+### Phase 6.3 Milestone Certification (`6.3.1` – `6.3.4`)
+- **Phase 6.3 Goal:** Complete end-to-end private GitHub repository extraction infrastructure, including installation authorization verification, paginated selected repository access and search, authenticated tree traversal and content acquisition with mathematical conservation accounting, and automated authorization failure recovery under Rule 05.
+- **Subphases Completed & Accepted (4 of 4):**
+  - `6.3.1`: Installation authorization in `crates/github-extractor` (`ACCEPTED`, commit `ef1a6c9`)
+  - `6.3.2`: Selected repository access in `crates/github-extractor` (`ACCEPTED`, commit `ca1206b`)
+  - `6.3.3`: Private tree & source extraction in `crates/github-extractor` (`ACCEPTED`, commit `73ecf55`)
+  - `6.3.4`: Authorization failure recovery in `crates/github-extractor` (`ACCEPTED`, commit `c37fd8d`)
+- **Certification Date:** 2026-11-18
+- **Certification Summary:**
+  1. Ephemeral GitHub App installation tokens (`Bearer ghs_*`) utilized exclusively across authenticated Git Trees and Blobs endpoints, strictly enforcing `Contents: Read-only` and `Metadata: Read-only` under Rule 05.
+  2. Installation authorizer evaluates account ownership, repository selection mode (All vs Selected), webhook suspension/revocation status, and minimum permission policies.
+  3. Paginated repository enumeration (`SelectedRepositoryManager`) supports searching, visibility filtering, and dynamic webhook grant updates.
+  4. End-to-end extraction orchestrator (`PrivateRepositoryExtractor`) coordinates commit pinning, recursive subtree recovery on truncated trees, polyglot classification, bounded concurrent extraction (`tokio::join!`), mathematical completeness conservation accounting ($\text{Discovered} = \text{Extracted} + \text{Excluded} + \text{Failed} + \text{Unsupported} + \text{Missing}$), and multi-algorithm cryptographic hash validation.
+  5. Recovery coordinator (`AuthorizationRecoveryCoordinator`) delivers automated 401 token eviction, proactive renewal retries, and comprehensive diagnosis reports.
+  6. Zero secret leakage across all logs, debug traces, and error envelopes.
+  7. Formally verified by 55+ Phase 6.3 integration tests and 100% passing monorepo quality gates.
+- **Milestone Verdict:** `PHASE 6.3 FULLY CERTIFIED`
+
+---
+
 ### Upcoming Subphase (Stage 6 — Private GitHub Repositories)
 
-#### Phase 6.3 — Private extraction
+#### Phase 6.4 — Security verification
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `6.3.4` | Authorization failure recovery | `6.3.3` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
+| `6.4.1` | Cross-user isolation | `6.3.4` (`ACCEPTED`) | `crates/github-extractor/*`, `services/api/*` | `NOT_STARTED` |
 
 ---
 

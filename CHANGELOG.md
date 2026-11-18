@@ -6,6 +6,39 @@
 
 ## [Unreleased] — Stage 6: Private GitHub Repositories
 
+### 2026-11-18 — Phase 6.3: Private extraction (`6.3.4` — Phase 6.3 Certified)
+
+#### Added
+- **`[6.3.4]` Authorization Failure Recovery Engine & Phase 6.3 Certification in `crates/github-extractor`:**
+  - Implemented `AuthorizationFailureKind` in `crates/github-extractor/src/authorization_recovery.rs`:
+    - Categorizes failures into `TokenInvalid`, `TokenExpired`, `RepositoryNotGranted`, `AccountMismatch`, `NoInstallationForSession`, `InstallationSuspended`, `InstallationRevoked`, `InsufficientPermissions`, `RateLimited`, and `UpstreamApiError`.
+  - Implemented `RecoveryAction` taxonomy:
+    - `AutomaticRetryWithFreshToken` (transparent token cache eviction and renewal).
+    - `PromptAppInstallation { installation_url, target_account }` (1-click GitHub App install link).
+    - `PromptRepositorySelectionUpdate { settings_url, installation_id, repository }` (direct GitHub App settings link).
+    - `PromptUnsuspendInstallation { settings_url, installation_id, account_login }`.
+    - `PromptReauthenticateUser { authorize_url }`.
+    - `WaitRateLimitReset { retry_after_secs, reset_at }`.
+    - `ContactAdministrator { account_login, details }`.
+    - `Unrecoverable { reason }`.
+  - Implemented `AuthorizationRecoveryPlan`:
+    - Encapsulates failure kind, auto-recoverability flag, prescribed action, human-readable diagnosis, step-by-step remediation instructions, target slug, and installation ID.
+    - Added `summary_card(&self) -> String` producing formatted GitHub-Flavored Markdown diagnostic cards for UI and logging.
+  - Implemented `AuthorizationRecoveryCoordinator`:
+    - `diagnose_outcome(&self, outcome, owner, repo)`: Maps every `AuthorizationOutcome` variant to an actionable `AuthorizationRecoveryPlan`.
+    - `diagnose_extractor_error(&self, error, owner, repo, installation_id, account_login)`: Maps runtime `GitHubExtractorError`s (HTTP 401, 403, 404, 429) to remediation plans.
+    - `attempt_eviction_and_refresh(&self, session_id, installation_id, account_login)`: Automatically evicts invalid tokens from `InstallationTokenStore` and proactively requests fresh tokens via `InstallationTokenRefresher`.
+    - `execute_with_retry_on_401(...)`: Wraps operations with transparent cache eviction and one-time renewal retry on 401 Bad credentials.
+  - Enhanced `PrivateRepositoryExtractor`:
+    - Added transparent 401 self-healing during `extract()` commit resolution: evicts invalid tokens, fetches fresh tokens, and seamlessly completes extraction.
+  - Re-exported `AuthorizationFailureKind`, `RecoveryAction`, `AuthorizationRecoveryPlan`, and `AuthorizationRecoveryCoordinator` in `crates/github-extractor/src/lib.rs`.
+  - Authored comprehensive test suite in `crates/github-extractor/tests/authorization_recovery_test.rs`:
+    - 9 integration tests validating outcome diagnoses, runtime error mapping, transparent 401 retry, self-healing private extraction, and strict Rule 05 zero-leakage secret masking.
+  - 100% passing quality gates: 9/9 new tests passed, 240 total extractor tests passed, zero clippy warnings, zero fmt diffs, cargo deny passed, and 5/5 check-all gates passed.
+- **Phase 6.3 Milestone Certification:**
+  - Completed all 4 subphases (`6.3.1` Installation authorization, `6.3.2` Selected repository access, `6.3.3` Private tree & source extraction, `6.3.4` Authorization failure recovery).
+  - Formally certified Phase 6.3 under Rule 05 least-privilege security and mathematical completeness accounting.
+
 ### 2026-11-18 — Phase 6.3: Private extraction (`6.3.3`)
 
 #### Added

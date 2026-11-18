@@ -14,6 +14,7 @@ pub mod accounting;
 pub mod app_manifest;
 pub mod architecture;
 pub mod authorization;
+pub mod authorization_recovery;
 pub mod callback;
 pub mod classification;
 pub mod client;
@@ -55,6 +56,10 @@ pub use architecture::{
 };
 pub use authorization::{
     AuthorizationOutcome, AuthorizedInstallationContext, InstallationAuthorizer,
+};
+pub use authorization_recovery::{
+    AuthorizationFailureKind, AuthorizationRecoveryCoordinator, AuthorizationRecoveryPlan,
+    RecoveryAction,
 };
 pub use callback::{
     GitHubWebhookEvent, InMemoryWebhookDeliveryTracker, InstallationAction,

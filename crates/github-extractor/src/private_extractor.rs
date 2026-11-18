@@ -21,7 +21,7 @@
 use std::fmt;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 use uuid::Uuid;
 
 use crate::accounting::{FileAccountingAuditor, FileAccountingBalanceSheet};
@@ -339,15 +339,44 @@ impl PrivateRepositoryExtractor {
             }
         }
 
-        let auth_client = self.client.as_ref().clone().with_auth_token(&active_token);
+        let mut auth_client = self.client.as_ref().clone().with_auth_token(&active_token);
 
         // 3. Ref discovery and commit resolution
         let git_ref = effective_config.target_ref.as_deref().unwrap_or("HEAD");
         debug!("Resolving commit for ref '{git_ref}'");
-        let (commit, _) = auth_client
-            .get_commit(&target, git_ref)
-            .await
-            .map_err(|e| e.sanitized())?;
+        let (commit, _) = match auth_client.get_commit(&target, git_ref).await {
+            Ok(res) => res,
+            Err(e)
+                if matches!(
+                    e,
+                    GitHubExtractorError::BadCredentials { .. }
+                        | GitHubExtractorError::HttpError { status: 401, .. }
+                ) =>
+            {
+                if let (Some(refresher), Some(store), Some(session_id)) =
+                    (&self.token_refresher, &self.token_store, &self.session_id)
+                {
+                    warn!("Received 401 Unauthorized during commit resolution; evicting stale token and renewing");
+                    let _ = store.revoke_token(session_id, ctx.installation_id).await;
+                    if let Ok(new_token) = refresher
+                        .get_or_refresh_token(session_id, ctx.installation_id, &ctx.account_login)
+                        .await
+                    {
+                        active_token = new_token;
+                        auth_client = self.client.as_ref().clone().with_auth_token(&active_token);
+                        auth_client
+                            .get_commit(&target, git_ref)
+                            .await
+                            .map_err(|e| e.sanitized())?
+                    } else {
+                        return Err(e.sanitized());
+                    }
+                } else {
+                    return Err(e.sanitized());
+                }
+            }
+            Err(e) => return Err(e.sanitized()),
+        };
 
         // 4. Optional repository metadata
         let metadata = if effective_config.fetch_metadata {
