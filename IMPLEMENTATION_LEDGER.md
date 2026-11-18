@@ -6625,7 +6625,56 @@
   - Formatting: `cargo fmt --all -- --check` clean with 0 diffs.
   - Dependency audit: `cargo deny check` passed (advisories ok, bans ok, licenses ok, sources ok).
   - Monorepo gatekeeper: `powershell scripts/check-all.ps1` completed with `ALL GATES PASSED (0 failures)`.
-- **Git Commit Reference:** `63af851`
+- **Git Commit Reference:** `81c7784`
+- **Status:** `ACCEPTED`
+
+---
+
+#### Subphase `7.3.1` — General AI context profile in crates/context-optimizer
+- **Unique ID:** `7.3.1`
+- **Objective:** Implement the foundational `ContextProfile` trait, profile taxonomy (`ProfileKind`), and the specialized `GeneralAiProfile` in `crates/context-optimizer`, prioritizing architectural documentation, project manifests, and core implementation code while suppressing low-signal test suites and generated boilerplate.
+- **Scope:** `crates/context-optimizer/*` (`profiles/mod.rs`, `profiles/general_ai.rs`, `lib.rs`, `tests/*`).
+- **Prerequisites:** `7.2.4` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/context-optimizer/src/profiles/mod.rs`
+  - `crates/context-optimizer/src/profiles/general_ai.rs`
+  - `crates/context-optimizer/src/lib.rs`
+  - `crates/context-optimizer/tests/general_ai_profile_test.rs`
+- **Implementation Tasks:**
+  1. Implement `ContextProfile` trait defining `profile_kind`, `create_scorer`, `prepare_sections`, and `optimize` in `crates/context-optimizer/src/profiles/mod.rs`.
+  2. Implement `ProfileKind` taxonomy (`GeneralAi`, `CodeReview`, `SecurityReview`, `DebuggingAndDocumentation`) with serialization in `crates/context-optimizer/src/profiles/mod.rs`.
+  3. Implement `ProfileMetrics` calculating token distribution across documentation, core implementation code, manifests/architecture, and tests with percentage shares and GFM summary tables in `crates/context-optimizer/src/profiles/mod.rs`.
+  4. Implement `ProfileOptimizationResult` bundling optimized `CdmDocument`, `BudgetPlan`, and `ProfileMetrics` with markdown reporting and JSON serialization in `crates/context-optimizer/src/profiles/mod.rs`.
+  5. Implement `GeneralAiConfig` controlling inclusion of documentation, manifests, core code, tests (default false), benchmarks (default false), and truncation parameters in `crates/context-optimizer/src/profiles/general_ai.rs`.
+  6. Implement `GeneralAiProfile` implementing `ContextProfile`: enriches sections with `context_profile: general_ai`, pins root README and manifests, deprioritizes/suppresses tests and benchmarks, applies `ContextBudgetOptimizer`, and computes content metrics in `crates/context-optimizer/src/profiles/general_ai.rs`.
+  7. Expose public convenience APIs `apply_general_ai_profile` and `apply_general_ai_profile_for_model` in `crates/context-optimizer/src/lib.rs`.
+  8. Implement integration test suite `crates/context-optimizer/tests/general_ai_profile_test.rs` (5 integration tests validating balanced content distribution, model-targeted optimization, test inclusion toggle, tight budget boundary truncation, and telemetry serialization).
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-context-optimizer`
+  - `cargo test --workspace`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - General AI profile produces a balanced representation: documentation, manifests, and core implementation code are prioritized over test fixtures and generated boilerplate.
+  - Profile metrics accurately track token allocations across documentation, core code, manifests, and tests.
+  - Seamlessly targets specific model context windows (`TargetModel::Gpt4o`, `Claude35Sonnet`, `Gemini15Pro`, `Llama3`) with strict budget compliance.
+  - Full JSON roundtrip serialization and GFM markdown summary reporting verified.
+  - All 26 crate tests pass, all 668+ workspace tests pass, zero clippy warnings, zero fmt diffs, cargo deny passed, all check-all gates pass.
+- **Risk Analysis:**
+  - Risk: Excluding tests could omit critical user-requested test code when specifically desired.
+  - Mitigation: `GeneralAiConfig` provides explicit `with_include_tests(true)` toggle allowing callers to include test suites when requested.
+- **Rollback Plan:**
+  - Revert Subphase 7.3.1 additions via `git reset --hard HEAD~1` and restore Subphase 7.2.4 baseline.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-context-optimizer`: 26 tests passing (15 unit tests, 11 integration tests across 2 test suites).
+  - Full workspace tests: 668+ tests passing across all crates and services with 0 failures.
+  - Workspace linter: `cargo clippy --workspace --all-targets -- -D warnings` clean with 0 warnings.
+  - Formatting: `cargo fmt --all -- --check` clean with 0 diffs.
+  - Dependency audit: `cargo deny check` passed (advisories ok, bans ok, licenses ok, sources ok).
+  - Monorepo gatekeeper: `powershell scripts/check-all.ps1` completed with `ALL GATES PASSED (0 failures)`.
+- **Git Commit Reference:** `9fa6966`
 - **Status:** `ACCEPTED`
 
 ---
@@ -6636,7 +6685,7 @@
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `7.3.1` | General AI context profile | `7.2.4` (`ACCEPTED`) | `crates/context-optimizer/*` | `NOT_STARTED` |
+| `7.3.2` | Code review context profile | `7.3.1` (`ACCEPTED`) | `crates/context-optimizer/*` | `NOT_STARTED` |
 
 ---
 

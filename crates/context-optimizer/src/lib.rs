@@ -16,6 +16,7 @@ pub mod error;
 pub mod optimizer;
 pub mod plan;
 pub mod priority;
+pub mod profiles;
 pub mod report;
 
 pub use budget::{BudgetHeadroomSummary, ContextBudget};
@@ -23,10 +24,33 @@ pub use error::ContextOptimizerError;
 pub use optimizer::{BudgetOptimizationConfig, ContextBudgetOptimizer, TruncationStrategy};
 pub use plan::{BudgetAction, BudgetPlan, SectionBudgetDecision};
 pub use priority::{PinStatus, PriorityScoreFactors, SectionPriority, SectionScorer};
+pub use profiles::{
+    ContextProfile, GeneralAiConfig, GeneralAiProfile, ProfileKind, ProfileMetrics,
+    ProfileOptimizationResult,
+};
 pub use report::ContextBudgetReport;
 
 use web_repo_to_ai_cdm::CdmDocument;
 use web_repo_to_ai_tokenizer::TargetModel;
+
+/// Convenience function: Optimizes a [`CdmDocument`] using the General AI profile for a target model.
+pub fn apply_general_ai_profile_for_model(
+    document: &CdmDocument,
+    model: TargetModel,
+) -> Result<ProfileOptimizationResult, ContextOptimizerError> {
+    let budget = ContextBudget::from_model(model);
+    let profile = GeneralAiProfile::default();
+    profile.optimize(document, &budget)
+}
+
+/// Convenience function: Optimizes a [`CdmDocument`] using the General AI profile against a custom budget.
+pub fn apply_general_ai_profile(
+    document: &CdmDocument,
+    budget: &ContextBudget,
+) -> Result<ProfileOptimizationResult, ContextOptimizerError> {
+    let profile = GeneralAiProfile::default();
+    profile.optimize(document, budget)
+}
 
 /// Convenience function: Optimizes a [`CdmDocument`] to fit the context window of a target model.
 pub fn optimize_context_for_model(

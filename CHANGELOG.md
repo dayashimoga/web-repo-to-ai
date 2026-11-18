@@ -6,6 +6,22 @@
 
 ## [Unreleased] — Stage 7: AI Context and Token Optimization
 
+### 2026-11-18 — Phase 7.3: Context profiles (`7.3.1`)
+
+#### Added
+- **`[7.3.1]` General AI Context Profile, Profile Architecture & Category Distribution in `crates/context-optimizer`:**
+  - Implemented the foundational context profile abstraction in `crates/context-optimizer/src/profiles/mod.rs`:
+    - `ContextProfile` trait: unified contract establishing `profile_kind`, `create_scorer`, `prepare_sections`, and `optimize` across all specialized context profile engines.
+    - `ProfileKind` taxonomy: structured classification distinguishing `GeneralAi`, `CodeReview`, `SecurityReview`, and `DebuggingAndDocumentation`.
+    - `ProfileMetrics`: tracks quantitative token consumption across functional categories (Documentation & Prose, Core Implementation Code, Manifests & Architecture, Tests & Fixtures, Other Content), calculates ratio shares, and formats GFM telemetry tables.
+    - `ProfileOptimizationResult`: encapsulates the optimized `CdmDocument`, complete `BudgetPlan`, and `ProfileMetrics` with markdown reporting and JSON serialization roundtrips.
+  - Implemented the General AI context profile in `crates/context-optimizer/src/profiles/general_ai.rs`:
+    - `GeneralAiConfig`: controls inclusion policies for documentation, manifests, core code, tests (`include_tests: false` by default for high-signal architectural clarity), benchmarks (`include_benchmarks: false`), and truncation thresholds.
+    - `GeneralAiProfile`: tags sections with `context_profile: general_ai`, pins prominent architectural files (root README, architecture specs, manifest files), suppresses/deprioritizes test files and benchmarks, applies `ContextBudgetOptimizer` greedy knapsack allocation, and computes category distribution metrics.
+  - Public convenience APIs in `crates/context-optimizer/src/lib.rs`: `apply_general_ai_profile` and `apply_general_ai_profile_for_model`.
+  - Implemented comprehensive integration test suite `crates/context-optimizer/tests/general_ai_profile_test.rs` (5 integration tests validating balanced content distribution, model-targeted optimization, test inclusion toggle, tight budget boundary truncation, and telemetry serialization).
+  - 100% passing quality gates: 26 crate tests passed, 668+ workspace tests passed, zero clippy warnings, zero fmt diffs, cargo deny passed, and 5/5 check-all gates passed.
+
 ### 2026-11-18 — Phase 7.2: Token intelligence (`7.2.4`) — PHASE 7.2 FULLY CERTIFIED
 
 #### Added
