@@ -14,6 +14,7 @@
 pub mod budget;
 pub mod compression;
 pub mod error;
+pub mod exclusions;
 pub mod optimizer;
 pub mod plan;
 pub mod preservation;
@@ -28,6 +29,10 @@ pub use compression::{
     StageCompressionMetrics,
 };
 pub use error::ContextOptimizerError;
+pub use exclusions::{
+    ExclusionCategorySummary, ExclusionExplainer, ExclusionExplanation, ExclusionImpact,
+    ExclusionReport, ExclusionSource, RemediationAdvice,
+};
 pub use optimizer::{BudgetOptimizationConfig, ContextBudgetOptimizer, TruncationStrategy};
 pub use plan::{BudgetAction, BudgetPlan, SectionBudgetDecision};
 pub use preservation::{
@@ -45,6 +50,39 @@ pub use report::ContextBudgetReport;
 
 use web_repo_to_ai_cdm::CdmDocument;
 use web_repo_to_ai_tokenizer::TargetModel;
+
+/// Convenience function: Generates structured diagnostic exclusion explanations comparing original and optimized documents.
+pub fn explain_exclusions(
+    original: &CdmDocument,
+    optimized: &CdmDocument,
+) -> Result<ExclusionReport, ContextOptimizerError> {
+    ExclusionExplainer::explain_documents(original, optimized, None::<String>, None)
+}
+
+/// Convenience function: Generates structured diagnostic exclusion explanations with profile context and optional target model.
+pub fn explain_exclusions_with_profile(
+    original: &CdmDocument,
+    optimized: &CdmDocument,
+    profile_name: Option<impl Into<String>>,
+    target_model: Option<TargetModel>,
+) -> Result<ExclusionReport, ContextOptimizerError> {
+    ExclusionExplainer::explain_documents(original, optimized, profile_name, target_model)
+}
+
+/// Convenience function: Generates structured diagnostic exclusion explanations directly from a document's exclusion records.
+pub fn explain_exclusions_from_document(
+    document: &CdmDocument,
+) -> Result<ExclusionReport, ContextOptimizerError> {
+    ExclusionExplainer::explain_document(document)
+}
+
+/// Convenience function: Generates structured diagnostic exclusion explanations from a [`BudgetPlan`].
+pub fn explain_exclusions_from_plan(
+    plan: &BudgetPlan,
+    profile_name: Option<impl Into<String>>,
+) -> ExclusionReport {
+    ExclusionExplainer::explain_plan(plan, profile_name)
+}
 
 /// Convenience function: Evaluates compression and token reduction between original and optimized documents.
 pub fn evaluate_compression(

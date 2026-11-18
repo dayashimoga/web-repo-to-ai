@@ -6942,13 +6942,63 @@
 
 ---
 
+#### Subphase `7.4.3` — Exclusion explanations in crates/context-optimizer
+- **Unique ID:** `7.4.3`
+- **Objective:** Implement structured, human-readable, and machine-actionable exclusion explanations (`ExclusionReport`, `ExclusionExplainer`, `ExclusionExplanation`, `ExclusionImpact`, `ExclusionCategorySummary`, `ExclusionSource`, `RemediationAdvice`) in `crates/context-optimizer` providing diagnostic rationales for every omitted section (originating subsystem, rule/constraint, impact severity, token/byte weight, priority score, and actionable remediation steps such as token budget expansion, profile flag toggling, or path pinning) with formatted GFM tables and JSON serialization.
+- **Scope:** `crates/context-optimizer/src/exclusions.rs`, `crates/context-optimizer/src/lib.rs`, `crates/context-optimizer/tests/exclusion_explanations_test.rs`.
+- **Prerequisites:** `7.4.2` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/context-optimizer/src/exclusions.rs`
+  - `crates/context-optimizer/src/lib.rs`
+  - `crates/context-optimizer/tests/exclusion_explanations_test.rs`
+- **Implementation Tasks:**
+  1. Implement domain structures in `crates/context-optimizer/src/exclusions.rs`:
+     - `ExclusionImpact` severity taxonomy (`Low`, `Medium`, `High`, `Critical`) with markdown badges.
+     - `ExclusionSource` subsystem identifier (`BudgetHeadroom`, `ProfileRule`, `Deduplication`, `IgnorePattern`, `SecurityPolicy`, `UserConfiguration`, `Other`).
+     - `RemediationAdvice`: actionable steps with recommended parameters (`--token-budget`, `include_cosmetic_assets`, `include_tests`, `include_unmodified_docs`, `pinned_paths`, `.aiignore`, `mark_only`) and additional token estimates.
+     - `ExclusionExplanation`: itemized diagnostic record with GFM markdown row formatting.
+     - `ExclusionCategorySummary`: aggregated metrics by reason/category with GFM row formatting.
+     - `ExclusionReport`: comprehensive diagnostic report card with GFM markdown summary rendering and JSON roundtrip serialization.
+     - `ExclusionExplainer`: diagnostic engine deriving explanations from `BudgetPlan`, original vs optimized document diffs, or `CdmDocument::exclusions` records.
+  2. Re-export exclusion types and expose public convenience APIs (`explain_exclusions`, `explain_exclusions_with_profile`, `explain_exclusions_from_document`, `explain_exclusions_from_plan`) in `crates/context-optimizer/src/lib.rs`.
+  3. Implement integration test suite `crates/context-optimizer/tests/exclusion_explanations_test.rs` (7 integration tests: budget knapsack exclusions, profile rule suppression, critical/high-impact detection, document exclusion records, markdown/JSON serialization, zero exclusions fidelity, fail-closed empty doc rejection).
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-context-optimizer`
+  - `cargo test --workspace`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - Diagnostic rationales and remediation advice are derived deterministically for every omitted section.
+  - Impact severity accurately classifies critical manifests/auth modules, high-impact core APIs, medium-impact tests, and low-impact cosmetic assets.
+  - Zero exclusions produce clean "zero omissions" report cards.
+  - Fail-closed behavior on empty documents with `ContextOptimizerError::DocumentEmpty`.
+  - All 68 crate tests pass, all 694+ workspace tests pass, zero clippy warnings, zero fmt diffs, cargo deny passed, all check-all gates pass (5/5).
+- **Risk Analysis:**
+  - Risk: Complex profile configurations might obscure the exact reason why a file was suppressed.
+  - Mitigation: Detailed reason parsing inspects decision actions, exclusion record details, and section attributes, matching specific remediation advice to cosmetic assets, test suites, or documentation.
+- **Rollback Plan:**
+  - Revert Subphase 7.4.3 additions via `git reset --hard HEAD~1` and restore Subphase 7.4.2 baseline.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-context-optimizer`: 68 tests passing (29 unit tests, 39 integration tests across 8 test suites).
+  - Full workspace tests: 694+ tests passing across all crates and services with 0 failures.
+  - Workspace linter: `cargo clippy --workspace --all-targets -- -D warnings` clean with 0 warnings.
+  - Formatting: `cargo fmt --all -- --check` clean with 0 diffs.
+  - Dependency audit: `cargo deny check` passed (advisories ok, bans ok, licenses ok, sources ok).
+  - Monorepo gatekeeper: `powershell scripts/check-all.ps1` completed with `ALL GATES PASSED (0 failures)`.
+- **Git Commit Reference:** `e5cb2a8`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 7 — AI Context and Token Optimization)
 
 #### Phase 7.4 — Quality validation
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `7.4.3` | Exclusion explanations | `7.4.2` (`ACCEPTED`) | `crates/context-optimizer/*` | `NOT_STARTED` |
+| `7.4.4` | Golden comparison tests across context profiles | `7.4.3` (`ACCEPTED`) | `crates/context-optimizer/*` | `NOT_STARTED` |
 
 ---
 

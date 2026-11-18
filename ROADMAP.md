@@ -89,7 +89,7 @@
 - **Phase 7.1 — Content optimization:** `7.1.1` Structural normalization (`ACCEPTED`) | `7.1.2` Exact duplicate removal (`ACCEPTED`) | `7.1.3` Semantic-aware deduplication (`ACCEPTED`) | `7.1.4` Content classification (`ACCEPTED` — **PHASE 7.1 CERTIFIED**)
 - **Phase 7.2 — Token intelligence:** `7.2.1` Tokenizer adapter architecture (`ACCEPTED`) | `7.2.2` Model-specific counting (`ACCEPTED`) | `7.2.3` Cost estimation (`ACCEPTED`) | `7.2.4` Context-budget calculation (`ACCEPTED` — **PHASE 7.2 CERTIFIED**)
 - **Phase 7.3 — Context profiles:** `7.3.1` General AI (`ACCEPTED`) | `7.3.2` Code review (`ACCEPTED`) | `7.3.3` Security review (`ACCEPTED`) | `7.3.4` Debugging & documentation (`ACCEPTED` — **PHASE 7.3 CERTIFIED**)
-- **Phase 7.4 — Quality validation:** `7.4.1` Preservation metrics (`ACCEPTED`) | `7.4.2` Compression reporting (`ACCEPTED`) | `7.4.3` Exclusion explanations (`NEXT`) | `7.4.4` Golden comparison tests
+- **Phase 7.4 — Quality validation:** `7.4.1` Preservation metrics (`ACCEPTED`) | `7.4.2` Compression reporting (`ACCEPTED`) | `7.4.3` Exclusion explanations (`ACCEPTED`) | `7.4.4` Golden comparison tests (`NEXT`)
 
 ### STAGE 8 — LARGE REPOSITORIES, BATCH AND CRAWLING
 - **Phase 8.1 — Batch URLs:** `8.1.1` Multi-URL submission | `8.1.2` Bounded parallel execution | `8.1.3` Individual result tracking | `8.1.4` Batch export

@@ -6,6 +6,22 @@
 
 ## [Unreleased] — Stage 7: AI Context and Token Optimization
 
+### 2026-11-18 — Phase 7.4: Quality validation (`7.4.3`)
+
+#### Added
+- **`[7.4.3]` Exclusion Explanations, Diagnostic Rationales & Actionable Remediation in `crates/context-optimizer`:**
+  - Implemented structured exclusion explanation and diagnostic reporting engine in `crates/context-optimizer/src/exclusions.rs`:
+    - `ExclusionImpact` severity taxonomy: classifies omission impact into `Low`, `Medium`, `High`, and `Critical` with visual GFM badges and prioritization heuristic (manifests and auth/crypto modules are `Critical`, core domain APIs are `High`, test suites are `Medium`, cosmetic assets and non-technical changelogs are `Low`).
+    - `ExclusionSource` subsystem identifier: identifies the component or rule that produced the exclusion (`BudgetHeadroom`, `ProfileRule`, `Deduplication`, `IgnorePattern`, `SecurityPolicy`, `UserConfiguration`, `Other`).
+    - `RemediationAdvice`: provides concrete, actionable remediation steps for developers and agents (`--token-budget`, `include_cosmetic_assets`, `include_tests`, `include_unmodified_docs`, `pinned_paths`, `.aiignore`, `mark_only`) with estimated token requirements.
+    - `ExclusionExplanation`: detailed per-omission diagnostic record with target path, kind, reason, source, rationale, impact severity, token/byte count, priority score, and formatted GFM markdown table row rendering.
+    - `ExclusionCategorySummary`: aggregated metrics by reason/category with count, token share percentages, and primary remediation recommendations.
+    - `ExclusionReport`: comprehensive diagnostic report card with GFM markdown summary rendering, category breakdown tables, itemized explanations, and JSON roundtrip serialization.
+    - `ExclusionExplainer`: comparative diagnostic engine deriving explanations from `BudgetPlan`, original vs optimized document diffs, or `CdmDocument::exclusions` records.
+  - Re-exported exclusion models and exposed public convenience APIs in `crates/context-optimizer/src/lib.rs`: `explain_exclusions`, `explain_exclusions_with_profile`, `explain_exclusions_from_document`, and `explain_exclusions_from_plan`.
+  - Authored integration test suite `crates/context-optimizer/tests/exclusion_explanations_test.rs` (7 integration tests validating budget knapsack exclusions, profile rule suppression, critical/high-impact detection, document exclusion records, markdown/JSON serialization, zero exclusions fidelity, and fail-closed empty doc rejection).
+  - 100% passing quality gates: 68 crate tests passed, 694+ workspace tests passed, zero clippy warnings, zero fmt diffs, cargo deny passed, and 5/5 check-all gates passed.
+
 ### 2026-11-18 — Phase 7.4: Quality validation (`7.4.2`)
 
 #### Added
