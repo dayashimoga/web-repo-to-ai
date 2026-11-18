@@ -13,6 +13,7 @@
 pub mod accounting;
 pub mod app_manifest;
 pub mod architecture;
+pub mod authorization;
 pub mod callback;
 pub mod classification;
 pub mod client;
@@ -49,6 +50,9 @@ pub use app_manifest::{
 pub use architecture::{
     ComponentInfo, ComponentRole, EntryPointInfo, EntryPointRole, RepoArchitectureContext,
     WorkspaceType,
+};
+pub use authorization::{
+    AuthorizationOutcome, AuthorizedInstallationContext, InstallationAuthorizer,
 };
 pub use callback::{
     GitHubWebhookEvent, InMemoryWebhookDeliveryTracker, InstallationAction,
@@ -96,7 +100,7 @@ pub use hash_validator::{
 pub use installation::{
     GitHubAccountSummary, GitHubInstallation, GitHubInstallationToken,
     InstallationRepositoriesResponse, InstallationTokenRequest, InstalledRepositorySummary,
-    RepositorySelection, UserInstallationsResponse,
+    RepositoryAccessDetails, RepositoryPermissions, RepositorySelection, UserInstallationsResponse,
 };
 pub use manifest::{FileExtractionStatus, ManifestFileEntry, RepoFileManifest};
 pub use metadata::{GitHubLanguages, GitHubLicense, GitHubRepoContext, GitHubRepositoryMetadata};

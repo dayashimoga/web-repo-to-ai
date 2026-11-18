@@ -82,7 +82,7 @@
 ### STAGE 6 — PRIVATE GITHUB REPOSITORIES
 - **Phase 6.1 — GitHub App:** `6.1.1` App configuration documentation (`ACCEPTED`) | `6.1.2` OAuth & installation flow (`ACCEPTED`) | `6.1.3` Minimum permissions (`ACCEPTED`) | `6.1.4` Callback security (`ACCEPTED` — **PHASE 6.1 CERTIFIED**)
 - **Phase 6.2 — Credential management:** `6.2.1` Secure token storage (`ACCEPTED`) | `6.2.2` Token refresh & expiration (`ACCEPTED`) | `6.2.3` Revocation (`ACCEPTED`) | `6.2.4` Secret redaction (`ACCEPTED` — **PHASE 6.2 CERTIFIED**)
-- **Phase 6.3 — Private extraction:** `6.3.1` Installation authorization (`NEXT`) | `6.3.2` Selected repository access | `6.3.3` Private tree & source extraction | `6.3.4` Authorization failure recovery
+- **Phase 6.3 — Private extraction:** `6.3.1` Installation authorization (`ACCEPTED`) | `6.3.2` Selected repository access (`NEXT`) | `6.3.3` Private tree & source extraction | `6.3.4` Authorization failure recovery
 - **Phase 6.4 — Security verification:** `6.4.1` Cross-user isolation | `6.4.2` Unauthorized repository access tests | `6.4.3` Token leakage tests | `6.4.4` Permission audit
 
 ### STAGE 7 — AI CONTEXT AND TOKEN OPTIMIZATION

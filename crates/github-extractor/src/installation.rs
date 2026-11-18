@@ -215,6 +215,52 @@ fn default_main() -> String {
     "main".to_string()
 }
 
+/// Repository permission flags returned by GitHub REST API for an authenticated identity.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct RepositoryPermissions {
+    /// Read/clone/pull access.
+    #[serde(default)]
+    pub pull: bool,
+    /// Push/write access.
+    #[serde(default)]
+    pub push: bool,
+    /// Administrative access.
+    #[serde(default)]
+    pub admin: bool,
+    /// Triage access.
+    #[serde(default)]
+    pub triage: bool,
+    /// Maintain access.
+    #[serde(default)]
+    pub maintain: bool,
+}
+
+/// Detailed repository metadata and access permissions verified for an installation.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RepositoryAccessDetails {
+    /// Numeric repository ID.
+    pub id: u64,
+    /// Short repository name (e.g. "core-engine").
+    pub name: String,
+    /// Full repository slug (e.g. "acme/core-engine").
+    pub full_name: String,
+    /// Whether the repository is private.
+    #[serde(default)]
+    pub private: bool,
+    /// Default branch name.
+    #[serde(default = "default_main")]
+    pub default_branch: String,
+    /// Repository description.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// Web URL on GitHub.
+    #[serde(default)]
+    pub html_url: String,
+    /// Specific permissions granted to the requesting token.
+    #[serde(default)]
+    pub permissions: Option<RepositoryPermissions>,
+}
+
 /// Short-lived installation access token for executing authenticated repository operations.
 ///
 /// Under Rule 05, the `token` string is strictly masked in [`fmt::Debug`] and [`fmt::Display`].

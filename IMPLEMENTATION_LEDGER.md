@@ -5610,13 +5610,72 @@
 
 ---
 
+### Active Subphase (Stage 6 — Private GitHub Repositories)
+
+#### Phase 6.3 — Private extraction
+
+#### Subphase `6.3.1` — Installation authorization in crates/github-extractor
+- **Unique ID:** `6.3.1`
+- **Objective:** Implement tenant-scoped GitHub App installation authorization, account resolution, repository access grant verification (`All` vs `Selected`), Rule 05 read-only permission compliance auditing, proactive token renewal, suspended/revoked installation rejection, and masked bearer token contexts (`AuthorizedInstallationContext`) in `crates/github-extractor`.
+- **Scope:** `crates/github-extractor/src/authorization.rs`, `crates/github-extractor/src/client.rs`, `crates/github-extractor/src/installation.rs`, `crates/github-extractor/src/token_refresh.rs`, `crates/github-extractor/src/lib.rs`, and `crates/github-extractor/tests/authorization_test.rs`.
+- **Prerequisites:** `6.2.4` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/github-extractor/src/authorization.rs`: Implemented `AuthorizedInstallationContext`, `AuthorizationOutcome`, and `InstallationAuthorizer`.
+  - `crates/github-extractor/src/client.rs`: Added `check_repository_access` to query `GET /repos/{owner}/{repo}` with installation token and parse `RepositoryAccessDetails`.
+  - `crates/github-extractor/src/installation.rs`: Added `RepositoryPermissions` and `RepositoryAccessDetails` models.
+  - `crates/github-extractor/src/token_refresh.rs`: Extended `StoredTokenRecord` with `repository_selection`, `repositories`, `permissions`, `is_revoked`, `is_suspended`, and `has_repository`; added `save_token_record`, `list_installations_for_session`, and `find_installation_for_account` to `InstallationTokenStore` and `InMemoryInstallationTokenStore`.
+  - `crates/github-extractor/src/lib.rs`: Re-exported `authorization` module and new installation types.
+  - `crates/github-extractor/tests/authorization_test.rs`: 12 comprehensive integration tests covering all authorization outcomes, mock GitHub API routes, proactive token renewal, and secret masking.
+- **Implementation Tasks:**
+  1. Define `AuthorizedInstallationContext` capturing installation ID, account login, bearer token, repository selection mode, owner, repo, and granted permissions map with masked `Debug` and `Display` formatting.
+  2. Implement `AuthorizationOutcome` enum distinguishing `Authorized`, `NoInstallationForSession`, `AccountMismatch`, `RepositoryNotGranted`, `InstallationRevoked`, `InstallationSuspended`, `InsufficientPermissions`, and `TokenUnavailable`.
+  3. Implement `InstallationAuthorizer` coordinating account resolution, revocation/suspension checks, proactive token freshness evaluation and single-flight renewal, repository selection verification (`All` vs `Selected` with live GitHub fallback), and Rule 05 least-privilege permission policy auditing (`PermissionAuditor::audit_permissions`).
+  4. Extend `GitHubApiClient` with `check_repository_access(&self, token, owner, repo)` verifying live repository access against `GET /repos/{owner}/{repo}` with proper 404/403/401 handling.
+  5. Extend `StoredTokenRecord` and `InstallationTokenStore` with repository selection, granted repositories list, permissions map, and session lookup methods.
+  6. Author unit and integration tests in `crates/github-extractor/tests/authorization_test.rs`.
+  7. Run full monorepo verification checks (`cargo test`, `cargo fmt`, `cargo clippy`, `cargo deny check`, `scripts/check-all.ps1`).
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-github-extractor --test authorization_test`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - Access to private repository requires an active installation under the caller's session ID (tenant isolation).
+  - Installations with `repository_selection == All` authorize all repositories belonging to the installed account.
+  - Installations with `repository_selection == Selected` verify repository membership against local cache or live GitHub API call.
+  - Non-existent, mismatched, revoked, or suspended installations are rejected with explicit, actionable outcome variants.
+  - Permissions are audited against `PermissionPolicy::strict_minimal()`; write or admin scopes are rejected under Rule 05.
+  - Expiring tokens are proactively renewed; expired tokens without refresher fail gracefully.
+  - Plaintext installation tokens are never exposed in debug logs or display strings.
+  - 100% of automated tests and workspace quality checks pass.
+- **Dependencies:** `web-repo-to-ai-core`, `web-repo-to-ai-observability`, `reqwest`, `serde`, `uuid`, `chrono`.
+- **Security Considerations:**
+  - Tenant isolation: Tokens belonging to session A are strictly inaccessible to session B.
+  - Least privilege (Rule 05): Write and admin permissions cause immediate authorization rejection.
+  - Plaintext token masking: `AuthorizedInstallationContext` masks bearer tokens in `Debug` (`***[REDACTED_TOKEN]***`) and `Display`.
+- **Performance Considerations:**
+  - Cached repository list is checked first before initiating external network requests to GitHub API.
+  - Fast-path evaluation completes in sub-millisecond memory lookups.
+- **Documentation Requirements:** Documented authorization architecture, invariants, and outcome taxonomy in `crates/github-extractor/src/authorization.rs`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-github-extractor --test authorization_test`: 12/12 integration tests passed in 0.01s.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: passed with 0 warnings.
+  - `cargo fmt --all -- --check`: verified clean formatting with 0 diffs.
+  - `cargo deny check`: passed (advisories ok, bans ok, licenses ok, sources ok).
+  - `powershell scripts/check-all.ps1`: completed with `ALL GATES PASSED (0 failures)` (all 5 gates passed: Bootstrap & Governance, Workflow Validation, Rust Workspace, Frontend Web [213 vitest passed], Resource Budget & 30 GB Storage Ceiling [5.27 GB / 30 GB, 17.6%]).
+- **Git Commit Reference:** `4504c77`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 6 — Private GitHub Repositories)
 
 #### Phase 6.3 — Private extraction
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `6.3.1` | Installation authorization | `6.2.4` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
+| `6.3.2` | Selected repository access | `6.3.1` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
 
 ---
 

@@ -6,6 +6,40 @@
 
 ## [Unreleased] — Stage 6: Private GitHub Repositories
 
+### 2026-11-18 — Phase 6.3: Private extraction (`6.3.1`)
+
+#### Added
+- **`[6.3.1]` GitHub App Installation Authorization Engine in `crates/github-extractor`:**
+  - Implemented `AuthorizedInstallationContext` in `crates/github-extractor/src/authorization.rs`:
+    - Captures `installation_id`, `account_login`, `token`, `repository_selection`, target `owner`, `repo`, and granted `permissions`.
+    - Custom `fmt::Debug` and `fmt::Display` implementations masking the sensitive bearer token with `***[REDACTED_TOKEN]***` to prevent credential leakage.
+  - Implemented `AuthorizationOutcome` domain enum:
+    - `Authorized(AuthorizedInstallationContext)`: Access granted and valid bearer token ready for private extraction.
+    - `NoInstallationForSession { session_id }`: Calling session has no registered installations.
+    - `AccountMismatch { session_id, requested_owner, available_accounts }`: Session has installations, but none matching requested repository owner.
+    - `RepositoryNotGranted { installation_id, account_login, requested_repo, repository_selection }`: Target repository not granted under installation's repository selection.
+    - `InstallationRevoked { installation_id, account_login }`: Installation is marked as revoked.
+    - `InstallationSuspended { installation_id, account_login }`: Installation is suspended on GitHub.
+    - `InsufficientPermissions { installation_id, account_login, violations }`: Granted permissions violate Rule 05 least-privilege policy.
+    - `TokenUnavailable { installation_id, account_login, reason }`: Token retrieval or renewal failed.
+  - Implemented `InstallationAuthorizer`:
+    - Tenant session isolation: Resolves installations strictly scoped to calling `session_id`.
+    - Revoked/suspended validation rejecting inactive installations upfront.
+    - Proactive token renewal with configurable safety margins (default 300s) via `InstallationTokenRefresher`.
+    - Repository access verification for `All` vs `Selected` selections, querying GitHub REST API `GET /repos/{owner}/{repo}` when repo is not in local cache.
+    - Rule 05 least-privilege audit using `PermissionAuditor::audit_permissions` (rejecting write and admin permissions).
+  - Extended `GitHubApiClient` in `crates/github-extractor/src/client.rs`:
+    - Added `check_repository_access(&self, token, owner, repo) -> Result<Option<RepositoryAccessDetails>, GitHubExtractorError>`.
+  - Added models in `crates/github-extractor/src/installation.rs`:
+    - `RepositoryPermissions` (`admin`, `push`, `pull`, `triage`, `maintain`).
+    - `RepositoryAccessDetails` (`id`, `name`, `full_name`, `private`, `permissions`).
+  - Extended token storage contracts in `crates/github-extractor/src/token_refresh.rs`:
+    - Added `repository_selection`, `repositories`, `permissions`, `is_revoked`, `is_suspended`, and `has_repository` to `StoredTokenRecord`.
+    - Added `save_token_record`, `list_installations_for_session`, and `find_installation_for_account` to `InstallationTokenStore` and `InMemoryInstallationTokenStore`.
+  - Authored comprehensive test suite in `crates/github-extractor/tests/authorization_test.rs`:
+    - 12 integration tests covering all authorization outcomes, mock GitHub API routes, proactive token renewal, and secret masking.
+  - All workspace quality gates passed: 12/12 integration tests, zero clippy warnings, zero fmt diffs, cargo deny passed, and 5/5 check-all gates passed.
+
 ### 2026-11-18 — Phase 6.2: Credential management (`6.2.4`)
 
 #### Added

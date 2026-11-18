@@ -28,7 +28,7 @@ use uuid::Uuid;
 use crate::app_manifest::GitHubAppConfig;
 use crate::client::GitHubApiClient;
 use crate::error::GitHubExtractorError;
-use crate::installation::{GitHubInstallationToken, InstallationTokenRequest};
+use crate::installation::{GitHubInstallationToken, InstallationTokenRequest, RepositorySelection};
 use crate::permissions::PermissionPolicy;
 
 /// Freshness classification for an installation token relative to its expiration deadline.
@@ -162,6 +162,21 @@ pub struct StoredTokenRecord {
     pub expires_at: DateTime<Utc>,
     /// GitHub login handle of the owning account.
     pub account_login: String,
+    /// Scope of repositories granted to the installation (All or Selected).
+    #[serde(default)]
+    pub repository_selection: RepositorySelection,
+    /// Optional explicit list of repositories authorized for this token (e.g. `["org/repo"]`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub repositories: Option<Vec<String>>,
+    /// Granted permission scopes map (e.g. `{"contents": "read", "metadata": "read"}`).
+    #[serde(default)]
+    pub permissions: HashMap<String, String>,
+    /// Whether this installation has been revoked.
+    #[serde(default)]
+    pub is_revoked: bool,
+    /// Whether this installation is currently suspended.
+    #[serde(default)]
+    pub is_suspended: bool,
 }
 
 impl StoredTokenRecord {
@@ -176,7 +191,47 @@ impl StoredTokenRecord {
             token: token.into(),
             expires_at,
             account_login: account_login.into(),
+            repository_selection: RepositorySelection::Selected,
+            repositories: None,
+            permissions: HashMap::new(),
+            is_revoked: false,
+            is_suspended: false,
         }
+    }
+
+    /// Sets the repository selection mode.
+    #[must_use]
+    pub fn with_repository_selection(mut self, selection: RepositorySelection) -> Self {
+        self.repository_selection = selection;
+        self
+    }
+
+    /// Sets the list of authorized repository full names.
+    #[must_use]
+    pub fn with_repositories(mut self, repos: impl Into<Option<Vec<String>>>) -> Self {
+        self.repositories = repos.into();
+        self
+    }
+
+    /// Sets the permission map for this token record.
+    #[must_use]
+    pub fn with_permissions(mut self, permissions: HashMap<String, String>) -> Self {
+        self.permissions = permissions;
+        self
+    }
+
+    /// Sets the revocation state.
+    #[must_use]
+    pub fn with_revoked(mut self, revoked: bool) -> Self {
+        self.is_revoked = revoked;
+        self
+    }
+
+    /// Sets the suspension state.
+    #[must_use]
+    pub fn with_suspended(mut self, suspended: bool) -> Self {
+        self.is_suspended = suspended;
+        self
     }
 
     /// Returns a reference to the plaintext token string.
@@ -190,6 +245,24 @@ impl StoredTokenRecord {
     pub fn freshness(&self, safety_margin_secs: u64) -> TokenFreshness {
         TokenFreshness::evaluate(self.expires_at, Utc::now(), safety_margin_secs)
     }
+
+    /// Checks if a specific repository (e.g. "acme/repo" or "repo") is granted by this token record.
+    #[must_use]
+    pub fn has_repository(&self, owner: &str, repo: &str) -> bool {
+        if self.repository_selection == RepositorySelection::All {
+            return self.account_login.eq_ignore_ascii_case(owner);
+        }
+        if let Some(repos) = &self.repositories {
+            let full_target = format!("{owner}/{repo}").to_ascii_lowercase();
+            let repo_only = repo.to_ascii_lowercase();
+            repos.iter().any(|r| {
+                let lower = r.to_ascii_lowercase();
+                lower == full_target || lower == repo_only
+            })
+        } else {
+            false
+        }
+    }
 }
 
 impl fmt::Debug for StoredTokenRecord {
@@ -198,6 +271,13 @@ impl fmt::Debug for StoredTokenRecord {
             .field("token", &"***[REDACTED_TOKEN]***")
             .field("expires_at", &self.expires_at)
             .field("account_login", &self.account_login)
+            .field("repository_selection", &self.repository_selection)
+            .field(
+                "repositories_count",
+                &self.repositories.as_ref().map(|r| r.len()),
+            )
+            .field("is_revoked", &self.is_revoked)
+            .field("is_suspended", &self.is_suspended)
             .finish()
     }
 }
@@ -206,8 +286,8 @@ impl fmt::Display for StoredTokenRecord {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "StoredTokenRecord(account_login={}, expires_at={})",
-            self.account_login, self.expires_at
+            "StoredTokenRecord(account_login={}, expires_at={}, selection={}, revoked={})",
+            self.account_login, self.expires_at, self.repository_selection, self.is_revoked
         )
     }
 }
@@ -231,6 +311,14 @@ pub trait InstallationTokenStore: Send + Sync {
         token: &GitHubInstallationToken,
     ) -> Result<(), GitHubExtractorError>;
 
+    /// Directly saves a pre-built stored token record.
+    async fn save_token_record(
+        &self,
+        session_id: &Uuid,
+        installation_id: i64,
+        record: StoredTokenRecord,
+    ) -> Result<(), GitHubExtractorError>;
+
     /// Explicitly revokes and deletes a cached token record.
     async fn revoke_token(
         &self,
@@ -243,6 +331,19 @@ pub trait InstallationTokenStore: Send + Sync {
         &self,
         installation_id: i64,
     ) -> Result<usize, GitHubExtractorError>;
+
+    /// Lists all installation token records associated with the specified session.
+    async fn list_installations_for_session(
+        &self,
+        session_id: &Uuid,
+    ) -> Result<Vec<(i64, StoredTokenRecord)>, GitHubExtractorError>;
+
+    /// Finds an active installation for a specific account login within a session.
+    async fn find_installation_for_account(
+        &self,
+        session_id: &Uuid,
+        account_login: &str,
+    ) -> Result<Option<(i64, StoredTokenRecord)>, GitHubExtractorError>;
 }
 
 /// Thread-safe in-memory implementation of [`InstallationTokenStore`].
@@ -280,7 +381,26 @@ impl InstallationTokenStore for InMemoryInstallationTokenStore {
         token: &GitHubInstallationToken,
     ) -> Result<(), GitHubExtractorError> {
         let mut lock = self.records.write().await;
-        let record = StoredTokenRecord::new(&token.token, token.expires_at, account_login);
+        let mut record = StoredTokenRecord::new(&token.token, token.expires_at, account_login)
+            .with_repository_selection(token.repository_selection)
+            .with_permissions(token.permissions.clone());
+
+        if let Some(repos) = &token.repositories {
+            record =
+                record.with_repositories(Some(repos.iter().map(|r| r.full_name.clone()).collect()));
+        }
+
+        lock.insert((*session_id, installation_id), record);
+        Ok(())
+    }
+
+    async fn save_token_record(
+        &self,
+        session_id: &Uuid,
+        installation_id: i64,
+        record: StoredTokenRecord,
+    ) -> Result<(), GitHubExtractorError> {
+        let mut lock = self.records.write().await;
         lock.insert((*session_id, installation_id), record);
         Ok(())
     }
@@ -302,6 +422,35 @@ impl InstallationTokenStore for InMemoryInstallationTokenStore {
         let initial_len = lock.len();
         lock.retain(|(_session_id, inst_id), _| *inst_id != installation_id);
         Ok(initial_len - lock.len())
+    }
+
+    async fn list_installations_for_session(
+        &self,
+        session_id: &Uuid,
+    ) -> Result<Vec<(i64, StoredTokenRecord)>, GitHubExtractorError> {
+        let guard = self.records.read().await;
+        let mut list = Vec::new();
+        for ((sess, inst_id), record) in guard.iter() {
+            if sess == session_id {
+                list.push((*inst_id, record.clone()));
+            }
+        }
+        list.sort_by_key(|(id, _)| *id);
+        Ok(list)
+    }
+
+    async fn find_installation_for_account(
+        &self,
+        session_id: &Uuid,
+        account_login: &str,
+    ) -> Result<Option<(i64, StoredTokenRecord)>, GitHubExtractorError> {
+        let guard = self.records.read().await;
+        for ((sess, inst_id), record) in guard.iter() {
+            if sess == session_id && record.account_login.eq_ignore_ascii_case(account_login) {
+                return Ok(Some((*inst_id, record.clone())));
+            }
+        }
+        Ok(None)
     }
 }
 

@@ -29,7 +29,7 @@ use crate::exclusion::{ExclusionAuditReport, ExclusionReportGenerator};
 use crate::hash_validator::{ContentHashValidator, HashValidationConfig, HashValidationReport};
 use crate::installation::{
     GitHubInstallation, GitHubInstallationToken, InstallationRepositoriesResponse,
-    InstallationTokenRequest, UserInstallationsResponse,
+    InstallationTokenRequest, RepositoryAccessDetails, UserInstallationsResponse,
 };
 use crate::manifest::RepoFileManifest;
 use crate::metadata::{
@@ -2052,6 +2052,65 @@ impl GitHubApiClient {
             Err(GitHubExtractorError::HttpError {
                 status: status.as_u16(),
                 message: format!("GitHub token revocation returned {status}: {sanitized}"),
+            })
+        }
+    }
+
+    /// Verifies whether an installation token has access to a specific repository (`GET /repos/{owner}/{repo}`).
+    ///
+    /// Returns:
+    /// - `Ok(Some(RepositoryAccessDetails))` if the repository exists and the token has access.
+    /// - `Ok(None)` if the repository is not found or inaccessible (HTTP 404 or HTTP 403).
+    /// - `Err(GitHubExtractorError)` on transport or authentication failure.
+    pub async fn check_repository_access(
+        &self,
+        installation_token: &str,
+        owner: &str,
+        repo: &str,
+    ) -> Result<Option<RepositoryAccessDetails>, GitHubExtractorError> {
+        let base = self
+            .base_url_override
+            .as_deref()
+            .unwrap_or("https://api.github.com");
+        let url = format!("{base}/repos/{owner}/{repo}");
+
+        let mut headers = self.prepare_headers();
+        let auth_val = format!("Bearer {installation_token}");
+        if let Ok(hv) = HeaderValue::from_str(&auth_val) {
+            headers.insert(AUTHORIZATION, hv);
+        }
+
+        let req = self.client.get(&url).headers(headers);
+        let resp = req.send().await.map_err(|e| {
+            let sanitized = redact_secrets(&e.to_string());
+            GitHubExtractorError::RequestFailed(sanitized)
+        })?;
+
+        let status = resp.status();
+        if status == StatusCode::OK {
+            let body_text = resp.text().await.unwrap_or_default();
+            let details =
+                serde_json::from_str::<RepositoryAccessDetails>(&body_text).map_err(|e| {
+                    GitHubExtractorError::JsonDecodeError(format!(
+                        "Failed to decode repository access details: {e}"
+                    ))
+                })?;
+            Ok(Some(details))
+        } else if status == StatusCode::NOT_FOUND || status == StatusCode::FORBIDDEN {
+            debug!(
+                "Repository {owner}/{repo} not accessible to installation token (status {status})"
+            );
+            Ok(None)
+        } else if status == StatusCode::UNAUTHORIZED {
+            let body_text = resp.text().await.unwrap_or_default();
+            let sanitized = redact_secrets(&body_text);
+            Err(GitHubExtractorError::BadCredentials { message: sanitized })
+        } else {
+            let body_text = resp.text().await.unwrap_or_default();
+            let sanitized = redact_secrets(&body_text);
+            Err(GitHubExtractorError::HttpError {
+                status: status.as_u16(),
+                message: format!("GitHub repository access check returned {status}: {sanitized}"),
             })
         }
     }
