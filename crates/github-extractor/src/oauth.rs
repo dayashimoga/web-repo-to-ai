@@ -555,7 +555,7 @@ impl GitHubOAuthTokenResponse {
 }
 
 /// Error response returned by GitHub's OAuth endpoint when exchange fails.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GitHubOAuthErrorResponse {
     /// Error code string (e.g. `"bad_verification_code"`, `"redirect_uri_mismatch"`).
     pub error: String,
@@ -567,11 +567,30 @@ pub struct GitHubOAuthErrorResponse {
     pub error_uri: Option<String>,
 }
 
+impl fmt::Debug for GitHubOAuthErrorResponse {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("GitHubOAuthErrorResponse")
+            .field("error", &self.error)
+            .field(
+                "error_description",
+                &self
+                    .error_description
+                    .as_deref()
+                    .map(crate::error::redact_secrets),
+            )
+            .field(
+                "error_uri",
+                &self.error_uri.as_deref().map(crate::error::redact_secrets),
+            )
+            .finish()
+    }
+}
+
 impl fmt::Display for GitHubOAuthErrorResponse {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "OAuth error '{}'", self.error)?;
         if let Some(desc) = &self.error_description {
-            write!(f, ": {desc}")?;
+            write!(f, ": {}", crate::error::redact_secrets(desc))?;
         }
         Ok(())
     }

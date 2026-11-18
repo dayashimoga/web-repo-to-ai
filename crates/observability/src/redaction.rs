@@ -128,6 +128,7 @@ pub fn redact_sensitive_text(text: &str) -> String {
 pub fn is_sensitive_key(key: &str) -> bool {
     let lower = key.to_ascii_lowercase();
     lower.contains("password")
+        || lower.contains("passwd")
         || lower.contains("secret")
         || lower.contains("token")
         || lower.contains("authorization")

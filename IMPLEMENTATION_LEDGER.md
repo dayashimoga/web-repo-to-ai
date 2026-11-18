@@ -5957,13 +5957,75 @@
 
 ---
 
+#### Subphase `6.4.3` — Token leakage tests in crates/github-extractor & crates/observability
+- **Unique ID:** `6.4.3`
+- **Objective:** Verify and guarantee zero token leakage across all domain models, debug/display envelopes, diagnostic cards, wire-level HTTP requests, cryptographic key materials, and observability redaction pipelines under Rule 05.
+- **Scope:** `crates/github-extractor/tests/token_leakage_test.rs`, `crates/observability/tests/token_leakage_test.rs`, `crates/observability/src/redaction.rs`, `crates/github-extractor/src/oauth.rs`, `crates/github-extractor/src/installation.rs`, `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Prerequisites:** `6.4.2` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/github-extractor/src/oauth.rs`
+  - `crates/observability/src/redaction.rs`
+  - `crates/github-extractor/tests/token_leakage_test.rs`
+  - `crates/observability/tests/token_leakage_test.rs`
+  - `IMPLEMENTATION_LEDGER.md`
+  - `PROJECT_STATUS.md`
+  - `TODO.md`
+  - `CHANGELOG.md`
+  - `ROADMAP.md`
+  - `docs/ROADMAP.md`
+- **Implementation Tasks:**
+  1. Author comprehensive observability leakage defense suite in `crates/observability/tests/token_leakage_test.rs` (7 tests):
+     - `test_all_github_token_formats_leakage_prevention`: Verifies complete redaction of all GitHub token formats (`ghp_`, `gho_`, `ghu_`, `ghs_`, `ghr_`, fine-grained `github_pat_`, and OAuth access tokens in URL userinfo `https://ghs_...@github.com`) to `[REDACTED_GITHUB_TOKEN]`.
+     - `test_private_key_leakage_prevention`: Verifies PKCS#1 RSA, PKCS#8, and EC private keys are redacted to `[REDACTED_PRIVATE_KEY]`.
+     - `test_headers_signatures_and_provider_keys_leakage_prevention`: Verifies `Authorization: Bearer`, `Authorization: token`, `X-Hub-Signature-256`, AWS access keys (`AKIA...`), and generic 32-64 char hex API keys are redacted.
+     - `test_recursive_json_value_leakage_prevention`: Verifies recursive JSON AST walks mask sensitive key values and scrub string leaf nodes.
+     - `test_is_sensitive_key_comprehensive_taxonomy`: Validates positive taxonomy (`passwd`, `password`, `secret`, `token`, `credential`, `signing_key`, etc.) and negative non-sensitive keys.
+     - `test_redacting_writer_stream_handling`: Verifies streaming redaction through `RedactingWriter` across chunk boundaries.
+     - `test_custom_redaction_engine_literals_and_regexes`: Verifies custom literal registration and custom regex patterns.
+  2. Author comprehensive domain model and wire-level leakage defense suite in `crates/github-extractor/tests/token_leakage_test.rs` (9 tests):
+     - `test_authorized_installation_context_masks_token`: Confirms `AuthorizedInstallationContext` debug & display representations mask raw token strings.
+     - `test_stored_token_record_masks_token`: Confirms `StoredTokenRecord` debug & display mask tokens to `***[REDACTED_TOKEN]***`.
+     - `test_app_config_masks_all_credentials`: Confirms `GitHubAppConfig` masks client secrets, PEM keys, and webhook secrets.
+     - `test_github_installation_token_masks_token`: Confirms `GitHubInstallationToken` masks bearer tokens in debug and display.
+     - `test_oauth_token_responses_mask_secrets`: Confirms `GitHubOAuthTokenResponse` and `GitHubOAuthErrorResponse` mask credentials.
+     - `test_recovery_plan_and_summary_card_zero_leakage`: Confirms `AuthorizationRecoveryPlan` and `summary_card()` redact sensitive tokens.
+     - `test_extractor_error_variants_sanitized`: Confirms all `GitHubExtractorError` variants scrub tokens.
+     - `test_wire_level_token_isolation_in_headers_only`: In-process Axum server verifies bearer token is passed strictly in `Authorization` header and never leaked in URI path or query parameters.
+     - `test_core_encryption_key_and_payload_masking`: Confirms `EncryptionKey` and `EncryptedPayload` mask raw bytes and ciphertext in debug and display.
+  3. Implement custom `fmt::Debug` and `fmt::Display` for `GitHubOAuthErrorResponse` in `crates/github-extractor/src/oauth.rs` redacting secrets via `redact_secrets`.
+  4. Extend `is_sensitive_key` in `crates/observability/src/redaction.rs` to include `passwd` variations.
+  5. Run full verification gates (`cargo test`, `cargo fmt`, `cargo clippy`, `cargo deny check`, `scripts/check-all.ps1`).
+- **Acceptance Criteria:**
+  - Zero token or credential leakage across all domain structs, debug formatters, display formatters, error envelopes, and recovery cards.
+  - Wire HTTP requests transmit tokens exclusively via standard Authorization headers and never in URL path or query params.
+  - Observability redaction engine captures 100% of defined credential patterns across raw text, streams, and JSON structures.
+  - 100% of tests pass, clippy is warning-free, and monorepo gates pass with 0 failures.
+- **Risk Analysis:**
+  - Risk: New GitHub token format introduced upstream leaking through regex patterns.
+  - Mitigation: Regex patterns cover all existing standard prefixes (`gh[psour]_` and `github_pat_`) plus generic Bearer/token authorization headers and URL userinfo stripping.
+- **Rollback Plan:**
+  - Revert Subphase 6.4.3 additions via `git reset --hard HEAD~1` and restore Subphase 6.4.2 baseline.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-observability --test token_leakage_test`: 7/7 passed in 0.01s.
+  - `cargo test -p web-repo-to-ai-github-extractor --test token_leakage_test`: 9/9 passed in 0.03s.
+  - `cargo test -p web-repo-to-ai-observability`: 34/34 passed (20 unit, 14 integration).
+  - `cargo test -p web-repo-to-ai-github-extractor`: 30 unit tests, 33 integration test targets (127+ integration tests), 1 doc-test passed with 0 failures.
+  - Workspace linter: `cargo clippy --workspace --all-targets -- -D warnings` passed with 0 warnings.
+  - Formatting: `cargo fmt --all -- --check` clean with 0 diffs.
+  - Dependency audit: `cargo deny check` passed (advisories ok, bans ok, licenses ok, sources ok).
+  - Monorepo gatekeeper: `powershell scripts/check-all.ps1` completed with `ALL GATES PASSED (0 failures)` (all 5 gates passed: Bootstrap & Governance, Workflow Validation, Rust Workspace [549+ tests passed], Frontend Web [213 vitest passed], Resource Budget & 30 GB Storage Ceiling [5.27 GB / 30 GB, 17.6%]).
+- **Git Commit Reference:** `c734866`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 6 — Private GitHub Repositories)
 
 #### Phase 6.4 — Security verification
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `6.4.3` | Token leakage tests | `6.4.2` (`ACCEPTED`) | `crates/github-extractor/*`, `crates/observability/*` | `NOT_STARTED` |
+| `6.4.4` | Permission audit | `6.4.3` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
 
 ---
 

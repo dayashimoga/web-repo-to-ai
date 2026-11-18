@@ -6,6 +6,28 @@
 
 ## [Unreleased] — Stage 6: Private GitHub Repositories
 
+### 2026-11-18 — Phase 6.4: Security verification (`6.4.3`)
+
+#### Added
+- **`[6.4.3]` Token Leakage Prevention & Defense Test Suites in `crates/github-extractor` & `crates/observability`:**
+  - Implemented comprehensive domain model, error envelope, and wire-level token leakage defense test suite in `crates/github-extractor/tests/token_leakage_test.rs` (9 integration tests):
+    - `AuthorizedInstallationContext`: Secret bearer tokens are masked with `***[REDACTED_TOKEN]***` in `Debug` and omitted in `Display`.
+    - `StoredTokenRecord`: Masked with `***[REDACTED_TOKEN]***` in `Debug` and `Display`.
+    - `GitHubAppConfig`: Client secret, private key PEM, and webhook secret are masked with `***[REDACTED_SECRET]***` and `***[REDACTED_RSA_KEY]***` in `Debug` and completely omitted in `Display`.
+    - `GitHubInstallationToken`: Ephemeral bearer token string is masked with `***[REDACTED_TOKEN]***` in `Debug` and omitted in `Display`.
+    - `GitHubOAuthTokenResponse` & `GitHubOAuthErrorResponse`: Access tokens and refresh tokens are masked with `***[REDACTED_TOKEN]***` in `Debug`, and OAuth error descriptions/URIs redact sensitive tokens via `redact_secrets`.
+    - `AuthorizationRecoveryPlan` & summary cards: Redact all sensitive tokens to `[REDACTED_GITHUB_TOKEN]` in human-readable diagnostic messages and GFM Markdown cards.
+    - `GitHubExtractorError`: Sanitization scrubs tokens across all error variants (`BadCredentials`, `Forbidden`, `ResourceNotFound`, `RateLimitExceeded`, `RequestFailed`, `AppConfiguration`, `HttpError`).
+    - Wire-level HTTP extraction isolation: In-process Axum mock server verifies bearer token is passed strictly in the standard `Authorization: Bearer <token>` HTTP header and NEVER in the URL path, query params, or body.
+    - Cryptographic keys: `EncryptionKey` and `EncryptedPayload` mask raw key bytes and ciphertext in `Debug` and `Display`.
+  - Implemented comprehensive observability token and credential leakage defense suite in `crates/observability/tests/token_leakage_test.rs` (7 integration tests):
+    - All GitHub token formats (`ghp_`, `gho_`, `ghu_`, `ghs_`, `ghr_`, `github_pat_`, and URL embedded credentials `https://ghs_...@github.com`) are scrubbed to `[REDACTED_GITHUB_TOKEN]`.
+    - Multi-line RSA, PKCS#8, and EC private keys are scrubbed to `[REDACTED_PRIVATE_KEY]`.
+    - Webhook signatures (`sha256=...`), AWS keys (`AKIA...`), and generic hex API keys are redacted.
+    - Recursive JSON AST walking scrubs values under sensitive keys and redacts string values.
+    - `is_sensitive_key` taxonomy expanded to cover `passwd` variations.
+  - 100% passing quality gates: 9/9 extractor tests passed, 7/7 observability tests passed, 268 extractor tests, 34 observability tests, 549+ workspace tests, zero clippy warnings, zero fmt diffs, cargo deny passed, and 5/5 check-all gates passed.
+
 ### 2026-11-18 — Phase 6.4: Security verification (`6.4.2`)
 
 #### Added
