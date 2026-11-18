@@ -6840,13 +6840,64 @@
 
 ---
 
+#### Subphase `7.4.1` — Preservation metrics in crates/context-optimizer
+- **Unique ID:** `7.4.1`
+- **Objective:** Implement rigorous preservation metrics, symbol fidelity measurement, section category retention tracking, critical component audit, and composite fidelity scoring (`PreservationEvaluator`, `PreservationReport`, `PreservationConfig`, `SectionPreservationMetrics`, `SymbolPreservationMetrics`, `CriticalPreservationMetrics`, `TokenPreservationMetrics`, `StructuralIntegrityMetrics`) in `crates/context-optimizer` to quantify content retention, detect silent omissions of critical sections or public API declarations, and evaluate optimization fidelity across all context profiles.
+- **Scope:** `crates/context-optimizer/src/preservation.rs`, `crates/context-optimizer/src/lib.rs`, `crates/context-optimizer/tests/preservation_metrics_test.rs`.
+- **Prerequisites:** `7.3.4` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/context-optimizer/src/preservation.rs`
+  - `crates/context-optimizer/src/lib.rs`
+  - `crates/context-optimizer/tests/preservation_metrics_test.rs`
+- **Implementation Tasks:**
+  1. Implement domain structures in `crates/context-optimizer/src/preservation.rs`:
+     - `KindPreservation` and `SectionPreservationMetrics`: multi-category retention tracking across prose, code files, manifests, and documentation with clean BTreeMap keying.
+     - `CriticalPreservationMetrics`: tracks retention of mission-critical sections (manifests, security modules, error definitions, root READMEs) with zero silent drop detection.
+     - `SymbolPreservationMetrics`: integrates with `crates/code-intelligence` (`Language`, `SymbolDeclaration`, `SymbolExtractor`) to measure AST symbol retention, public API symbol retention, and exact omission inventory.
+     - `TokenPreservationMetrics`: tracks original vs optimized token volume, retention ratio, and reduction percentage.
+     - `StructuralIntegrityMetrics`: checks syntax validity and clean truncation boundary preservation.
+     - `PreservationConfig`: weighted composite scoring (`critical_weight: 0.35`, `public_symbols_weight: 0.30`, `overall_symbols_weight: 0.15`, `section_retention_weight: 0.20`, `min_acceptable_fidelity: 0.50`).
+     - `PreservationReport`: comprehensive report struct with GFM summary tables, multi-section breakdowns, and JSON serialization.
+     - `PreservationEvaluator`: evaluation engine computing all preservation metrics between original and optimized `CdmDocument`s.
+  2. Expose `preservation` module and public convenience APIs (`evaluate_preservation`, `evaluate_preservation_with_config`) in `crates/context-optimizer/src/lib.rs`.
+  3. Implement integration test suite `crates/context-optimizer/tests/preservation_metrics_test.rs` (7 integration tests: unmodified document fidelity, budget optimization retention, symbol omission detection, code review profile preservation, markdown/JSON serialization, empty doc rejection, custom config thresholds).
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-context-optimizer`
+  - `cargo test --workspace`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - Section retention rates, critical component retention, and token reduction are calculated deterministically.
+  - AST symbol retention and public API retention are computed using `code-intelligence` extractors with omitted symbol tracking.
+  - Zero silent drops on mission-critical sections (manifests, errors, root READMEs).
+  - Clean markdown and JSON report serialization.
+  - All 54 crate tests pass, all 694+ workspace tests pass, zero clippy warnings, zero fmt diffs, cargo deny passed, all check-all gates pass (5/5).
+- **Risk Analysis:**
+  - Risk: Non-code sections (prose, markdown) lack AST symbols, which could distort symbol preservation ratios.
+  - Mitigation: Symbol preservation defaults to 1.0 when original documents contain 0 symbols, avoiding false-positive fidelity penalties on pure documentation.
+- **Rollback Plan:**
+  - Revert Subphase 7.4.1 additions via `git reset --hard HEAD~1` and restore Subphase 7.3.4 baseline.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-context-optimizer`: 54 tests passing (19 unit tests, 35 integration tests across 6 test suites).
+  - Full workspace tests: 694+ tests passing across all crates and services with 0 failures.
+  - Workspace linter: `cargo clippy --workspace --all-targets -- -D warnings` clean with 0 warnings.
+  - Formatting: `cargo fmt --all -- --check` clean with 0 diffs.
+  - Dependency audit: `cargo deny check` passed (advisories ok, bans ok, licenses ok, sources ok).
+  - Monorepo gatekeeper: `powershell scripts/check-all.ps1` completed with `ALL GATES PASSED (0 failures)`.
+- **Git Commit Reference:** `07be7ce`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 7 — AI Context and Token Optimization)
 
 #### Phase 7.4 — Quality validation
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `7.4.1` | Preservation metrics | `7.3.4` (`ACCEPTED`) | `crates/context-optimizer/*` | `NOT_STARTED` |
+| `7.4.2` | Compression reporting | `7.4.1` (`ACCEPTED`) | `crates/context-optimizer/*` | `NOT_STARTED` |
 
 ---
 

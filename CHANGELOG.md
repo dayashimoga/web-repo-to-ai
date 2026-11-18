@@ -6,6 +6,23 @@
 
 ## [Unreleased] — Stage 7: AI Context and Token Optimization
 
+### 2026-11-18 — Phase 7.4: Quality validation (`7.4.1`)
+
+#### Added
+- **`[7.4.1]` Preservation Metrics and Symbol Fidelity Evaluation in `crates/context-optimizer`:**
+  - Implemented comprehensive content preservation and symbol fidelity evaluation engine in `crates/context-optimizer/src/preservation.rs`:
+    - `KindPreservation` and `SectionPreservationMetrics`: tracks section retention rates, retained vs original section counts, and token counts across all `SectionKind` categories (prose, code files, manifests, documentation, diffs, etc.) with clean BTreeMap serialization.
+    - `CriticalPreservationMetrics`: audits preservation of mission-critical sections (manifests, security policies, error definitions, root READMEs) with zero silent drop detection.
+    - `SymbolPreservationMetrics`: integrates with `crates/code-intelligence` (`Language`, `SymbolDeclaration`, `SymbolExtractor`) to parse AST symbol declarations from original vs retained code files, measuring overall symbol retention ratio, public API symbol retention ratio, and compiling an exact inventory of `omitted_symbol_names`.
+    - `TokenPreservationMetrics`: tracks original vs optimized token volume, retention ratio, and reduction percentage.
+    - `StructuralIntegrityMetrics`: verifies syntax integrity across retained code sections and ensures clean truncation boundaries without malformed half-tokens.
+    - `PreservationConfig`: configurable fidelity evaluation parameters with weighted composite scoring (`critical_weight: 0.35`, `public_symbols_weight: 0.30`, `overall_symbols_weight: 0.15`, `section_retention_weight: 0.20`, `min_acceptable_fidelity: 0.50`).
+    - `PreservationReport`: comprehensive report struct supporting GFM summary tables, multi-section category breakdowns, symbol omission listings, and JSON serialization.
+    - `PreservationEvaluator`: evaluation engine executing comparative analysis between original and optimized `CdmDocument`s.
+  - Public convenience APIs in `crates/context-optimizer/src/lib.rs`: `evaluate_preservation` and `evaluate_preservation_with_config`.
+  - Authored integration test suite `crates/context-optimizer/tests/preservation_metrics_test.rs` (7 integration tests validating unmodified fidelity, budget optimization retention, symbol omission detection, code review profile preservation, markdown and JSON report serialization, empty doc rejection, and custom thresholds).
+  - 100% passing quality gates: 54 crate tests passed, 694+ workspace tests passed, zero clippy warnings, zero fmt diffs, cargo deny passed, and 5/5 check-all gates passed.
+
 ### 2026-11-18 — Phase 7.3: Context profiles (`7.3.4`) — PHASE 7.3 FULLY CERTIFIED
 
 #### Added

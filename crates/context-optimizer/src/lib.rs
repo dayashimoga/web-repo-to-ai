@@ -15,6 +15,7 @@ pub mod budget;
 pub mod error;
 pub mod optimizer;
 pub mod plan;
+pub mod preservation;
 pub mod priority;
 pub mod profiles;
 pub mod report;
@@ -23,6 +24,11 @@ pub use budget::{BudgetHeadroomSummary, ContextBudget};
 pub use error::ContextOptimizerError;
 pub use optimizer::{BudgetOptimizationConfig, ContextBudgetOptimizer, TruncationStrategy};
 pub use plan::{BudgetAction, BudgetPlan, SectionBudgetDecision};
+pub use preservation::{
+    CriticalPreservationMetrics, KindPreservation, PreservationConfig, PreservationEvaluator,
+    PreservationReport, SectionPreservationMetrics, StructuralIntegrityMetrics,
+    SymbolPreservationMetrics, TokenPreservationMetrics,
+};
 pub use priority::{PinStatus, PriorityScoreFactors, SectionPriority, SectionScorer};
 pub use profiles::{
     CodeReviewConfig, CodeReviewProfile, ContextProfile, DebuggingCategory, DebuggingConfig,
@@ -33,6 +39,23 @@ pub use report::ContextBudgetReport;
 
 use web_repo_to_ai_cdm::CdmDocument;
 use web_repo_to_ai_tokenizer::TargetModel;
+
+/// Convenience function: Evaluates content preservation and symbol fidelity between original and optimized documents.
+pub fn evaluate_preservation(
+    original: &CdmDocument,
+    optimized: &CdmDocument,
+) -> Result<PreservationReport, ContextOptimizerError> {
+    PreservationEvaluator::evaluate(original, optimized)
+}
+
+/// Convenience function: Evaluates content preservation using custom configuration.
+pub fn evaluate_preservation_with_config(
+    original: &CdmDocument,
+    optimized: &CdmDocument,
+    config: &PreservationConfig,
+) -> Result<PreservationReport, ContextOptimizerError> {
+    PreservationEvaluator::evaluate_with_config(original, optimized, config)
+}
 
 /// Convenience function: Optimizes a [`CdmDocument`] using the Debugging & Documentation profile for a target model.
 pub fn apply_debugging_profile_for_model(
