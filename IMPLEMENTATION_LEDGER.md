@@ -5074,13 +5074,84 @@
 
 ---
 
+### Active Subphase (Stage 6 — Private GitHub Repositories)
+
+#### Phase 6.1 — GitHub App
+
+#### Subphase `6.1.1` — App configuration documentation & manifest in crates/github-extractor & docs/GITHUB_APP.md
+- **Unique ID:** `6.1.1`
+- **Objective:** Establish the formal GitHub App configuration models, least-privilege permission validation engine, 1-click GitHub App Manifest generator, runtime environment loader with strict secret masking, and comprehensive operational guide in `docs/GITHUB_APP.md` and `crates/github-extractor/src/app_manifest.rs`. Enforce Rule 05 (strictly `Contents: Read-only` and `Metadata: Read-only` permissions; zero write or administrative scopes).
+- **Scope:** `crates/github-extractor/src/app_manifest.rs`, `crates/github-extractor/src/error.rs`, `crates/github-extractor/src/lib.rs`, `crates/github-extractor/tests/app_manifest_test.rs`, `docs/GITHUB_APP.md`.
+- **Prerequisites:** Stage 5 Certified.
+- **Files/Components Affected:**
+  - `crates/github-extractor/src/app_manifest.rs`
+  - `crates/github-extractor/src/error.rs`
+  - `crates/github-extractor/src/lib.rs`
+  - `crates/github-extractor/tests/app_manifest_test.rs`
+  - `docs/GITHUB_APP.md`
+- **Implementation Tasks:**
+  1. Define strongly-typed GitHub App Manifest models conforming to GitHub's official manifest creation flow:
+     - `PermissionLevel`: `Read` enum variant with strict rejection of write or admin permissions.
+     - `GitHubAppPermissions`: strongly-typed struct ensuring only `contents: read` and `metadata: read` are allowed.
+     - `GitHubHookAttributes`: webhook configuration attributes (`url`, `active`).
+     - `GitHubAppManifest`: root manifest representation with name, url, hooks, callbacks, setup_url, description, public/private toggle, permissions, and webhook events (`installation`, `installation_repositories`).
+  2. Implement `GitHubAppManifestGenerator`:
+     - Fluent builder API (`new`, `with_callback_url`, `with_webhook_url`, `with_setup_url`, `with_public`).
+     - Minimal permissions validator (`validate_minimal_permissions`) rejecting any write or administrative permissions per Rule 05.
+     - 1-click manifest creation URL generator (`to_manifest_create_url`) producing URL-encoded `POST/GET` payloads for GitHub.com and GitHub Enterprise Server.
+     - Serialization helpers (`to_json`, `to_json_pretty`).
+  3. Implement `GitHubAppConfig`:
+     - Strongly-typed runtime configuration capturing `app_id`, `client_id`, `client_secret`, `private_key_pem`, `webhook_secret`, `app_name`, `app_slug`, `base_api_url`, and `html_url`.
+     - Custom `fmt::Debug` and `fmt::Display` implementations masking all sensitive secrets (`client_secret`, `private_key_pem`, `webhook_secret`) with `***[REDACTED_SECRET]***` to prevent credential leakage.
+     - Environment variable loader (`from_env`) loading `GITHUB_APP_ID`, `GITHUB_APP_CLIENT_ID`, `GITHUB_APP_CLIENT_SECRET`, `GITHUB_APP_PRIVATE_KEY_PEM`, and `GITHUB_APP_WEBHOOK_SECRET`.
+     - Domain validation (`validate`) ensuring positive app ID, non-empty client ID/secret, and valid PEM headers (PKCS#1 / PKCS#8).
+     - Public metadata accessor (`public_metadata`) exposing non-sensitive metadata for system health checks.
+  4. Author publication-grade documentation in `docs/GITHUB_APP.md`:
+     - Architecture & security rationale (GitHub App vs PAT vs OAuth App).
+     - 1-click manifest creation workflow.
+     - Manual GitHub App creation walkthrough.
+     - Strict minimal permissions reference matrix and forbidden permissions policy.
+     - Webhook configuration and HMAC-SHA256 signature verification runbook.
+     - RSA key generation, PEM formats, and token exchange lifecycle.
+     - Complete environment variable reference table.
+  5. Author unit and integration tests in `crates/github-extractor/tests/app_manifest_test.rs`.
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-github-extractor --test app_manifest_test`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - Manifest generation strictly adheres to GitHub App Manifest specs with only `contents: read` and `metadata: read`.
+  - Any attempt to define write or admin permissions triggers explicit rejection.
+  - Secrets are completely masked in `Debug` and `Display` representations.
+  - Environment loader correctly parses and validates real or simulated GitHub App credentials.
+  - `docs/GITHUB_APP.md` provides exhaustive operational and security instructions.
+  - 100% of tests pass, clippy is warning-free, and monorepo gates pass with 0 failures.
+- **Risk Analysis:**
+  - Risk: Secret leakage in log messages or error envelopes.
+  - Mitigation: Dedicated custom `Debug`/`Display` implementations masking `client_secret`, `private_key_pem`, and `webhook_secret`; integration tests asserting zero secret leakage.
+- **Rollback Plan:**
+  - Revert Subphase 6.1.1 additions via `git reset --hard HEAD~1` and restore Stage 5 baseline.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-github-extractor --test app_manifest_test` passed 10 test suites (minimal read-only validation, serde level roundtrip, forbidden scope rejection, builder, json serialization, 1-click URL generation, input validation, key formats, secret masking, public metadata).
+  - Full crate test suite: 138 tests passing across unit and integration targets with 0 failures (28 unit tests, 109 integration tests, 1 doc-test).
+  - Full workspace clippy check: `cargo clippy --workspace --all-targets -- -D warnings` passed with 0 warnings.
+  - Code formatting: `cargo fmt --all -- --check` clean with 0 diffs.
+  - Dependency audit: `cargo deny check` passed (advisories ok, bans ok, licenses ok, sources ok).
+  - Monorepo gatekeeper: `powershell scripts/check-all.ps1` completed with `ALL GATES PASSED (0 failures)` including 511 workspace Rust tests, 213 frontend vitest tests, and 17.6% Podman storage footprint.
+- **Git Commit Reference:** `2a9a7b3`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 6 — Private GitHub Repositories)
 
 #### Phase 6.1 — GitHub App
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `6.1.1` | App configuration documentation & manifest | Stage 5 Certified | `docs/GITHUB_APP.md`, `crates/github-extractor/*` | `NOT_STARTED` |
+| `6.1.2` | OAuth & installation flow | `6.1.1` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
 
 ---
 

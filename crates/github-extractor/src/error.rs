@@ -170,6 +170,10 @@ pub enum GitHubExtractorError {
         message: String,
     },
 
+    /// GitHub App configuration, manifest, or credential validation error.
+    #[error("GitHub App configuration error: {0}")]
+    AppConfiguration(String),
+
     /// Internal core system error.
     #[error("Core system error: {0}")]
     Core(#[from] CoreError),

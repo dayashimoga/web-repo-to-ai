@@ -11,6 +11,7 @@
 #![warn(missing_docs)]
 
 pub mod accounting;
+pub mod app_manifest;
 pub mod architecture;
 pub mod classification;
 pub mod client;
@@ -34,6 +35,10 @@ pub mod tree_generator;
 pub use accounting::{
     AccountingDiscrepancy, AccountingDiscrepancyKind, DiscrepancySeverity, FileAccountingAuditor,
     FileAccountingBalanceSheet,
+};
+pub use app_manifest::{
+    GitHubAppConfig, GitHubAppConfigBuilder, GitHubAppManifest, GitHubAppManifestGenerator,
+    GitHubAppPermissions, GitHubAppPublicMetadata, GitHubHookAttributes, PermissionLevel,
 };
 pub use architecture::{
     ComponentInfo, ComponentRole, EntryPointInfo, EntryPointRole, RepoArchitectureContext,

@@ -4,6 +4,35 @@
 
 ---
 
+## [Unreleased] — Stage 6: Private GitHub Repositories
+
+### 2026-11-18 — Phase 6.1: GitHub App (`6.1.1`)
+
+#### Added
+- **`[6.1.1]` App Configuration Documentation & Manifest in `crates/github-extractor` & `docs/GITHUB_APP.md`:**
+  - Implemented strongly-typed GitHub App Manifest models and least-privilege permission validation adhering to Rule 05 in `crates/github-extractor/src/app_manifest.rs`:
+    - `PermissionLevel`: enum representing permission levels, strictly constrained to `Read` (`"read"`); write and admin deserialization or assignment is explicitly rejected with Rule 05 errors.
+    - `GitHubAppPermissions`: struct enforcing minimal read-only permissions (`contents: read`, `metadata: read`); systematically validates and rejects write, admin, or unauthorized permission scopes (`administration`, `actions`, `secrets`, etc.).
+    - `GitHubHookAttributes`: models webhook configuration attributes (`url`, `active`).
+    - `GitHubAppManifest`: root manifest model conforming to GitHub's official manifest creation flow (`name`, `url`, `hook_attributes`, `redirect_url`, `callback_urls`, `setup_url`, `description`, `public`, `default_permissions`, `default_events`).
+    - `GitHubAppManifestGenerator`: fluent builder for constructing, validating, and serializing manifests, with `to_manifest_create_url()` generating 1-click URL-encoded registration links for GitHub.com and GitHub Enterprise Server.
+  - Implemented runtime configuration loader with strict secret masking:
+    - `GitHubAppConfig`: capturing `app_id`, `client_id`, `client_secret`, `private_key_pem`, `webhook_secret`, `app_name`, `app_slug`, `base_api_url`, and `html_url`.
+    - Custom `fmt::Debug` and `fmt::Display` implementations masking all sensitive secrets with `***[REDACTED_SECRET]***` and `***[REDACTED_RSA_KEY]***` to prevent credential exposure in application logs.
+    - Domain validation verifying positive numeric App ID, non-empty client ID/secret, valid PKCS#1 (`-----BEGIN RSA PRIVATE KEY-----`) and PKCS#8 (`-----BEGIN PRIVATE KEY-----`) PEM delimiters.
+    - `from_env()` loading credentials from standard environment variables with direct PEM string or `.pem` file reading support.
+    - `public_metadata()` exposing non-sensitive metadata for system status and health endpoints.
+  - Authored comprehensive operational and architectural documentation in `docs/GITHUB_APP.md`:
+    - Security philosophy and comparison between GitHub Apps, Personal Access Tokens, and OAuth Apps.
+    - Automated 1-click manifest creation flow vs manual web UI registration guide.
+    - Permissions and events reference matrix explaining least-privilege access and forbidden scopes.
+    - Cryptographic key specifications (RSA 2048/4096-bit, PKCS#1, PKCS#8) and two-tier JWT/installation token exchange lifecycle.
+    - Webhook event tracking (`installation`, `installation_repositories`) and HMAC-SHA256 constant-time signature verification runbook.
+    - Environment variables reference table and operational troubleshooting runbook.
+  - Authored 10 integration test suites in `crates/github-extractor/tests/app_manifest_test.rs`:
+    - Validating minimal read-only default permissions, Rule 05 rejection of write/admin scopes, serialization/deserialization roundtrip, 1-click manifest URL generation, input validation, runtime config builder and PEM validation, secret masking in `Debug` and `Display`, and public metadata extraction.
+  - Verified 511 passing workspace Rust tests (138 in `crates/github-extractor`), 213 frontend tests, zero clippy warnings, zero fmt diffs, and 100% passing gates across all 5 checks in `scripts/check-all.ps1`.
+
 ## [Unreleased] — Stage 5: Public GitHub Repository Extraction
 
 ### 2026-11-18 — Phase 5.5: Integrity (`5.5.4` & Stage 5 Formal Certification)

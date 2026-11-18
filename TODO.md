@@ -172,8 +172,35 @@
 
 ---
 
+## Stage 6: Private GitHub Repositories (`IN_PROGRESS`)
+
+### Phase 6.1 — GitHub App
+- [x] **[6.1.1]** App configuration documentation & manifest in crates/github-extractor & docs/GITHUB_APP.md *(Completed 2026-11-18, GitHubAppManifest, GitHubAppManifestGenerator, GitHubAppPermissions with strict read-only Rule 05 enforcement, GitHubAppConfig with PEM validation and secret masking, docs/GITHUB_APP.md publication-grade architecture runbook, 10 integration tests, 138 crate tests, 511 workspace tests, 100% passing quality gates)*
+- [ ] **[6.1.2]** OAuth & installation flow in crates/github-extractor
+- [ ] **[6.1.3]** Minimum permissions in crates/github-extractor
+- [ ] **[6.1.4]** Callback security in crates/github-extractor
+
+### Phase 6.2 — Credential management
+- [ ] **[6.2.1]** Secure token storage in crates/storage & crates/core
+- [ ] **[6.2.2]** Token refresh & expiration in crates/github-extractor
+- [ ] **[6.2.3]** Revocation in crates/github-extractor & services/api
+- [ ] **[6.2.4]** Secret redaction in crates/observability & crates/github-extractor
+
+### Phase 6.3 — Private extraction
+- [ ] **[6.3.1]** Installation authorization in crates/github-extractor
+- [ ] **[6.3.2]** Selected repository access in crates/github-extractor
+- [ ] **[6.3.3]** Private tree & source extraction in crates/github-extractor
+- [ ] **[6.3.4]** Authorization failure recovery in crates/github-extractor
+
+### Phase 6.4 — Security verification
+- [ ] **[6.4.1]** Cross-user isolation in services/api & crates/github-extractor
+- [ ] **[6.4.2]** Unauthorized repository access tests in crates/github-extractor
+- [ ] **[6.4.3]** Token leakage tests in crates/github-extractor & crates/observability
+- [ ] **[6.4.4]** Permission audit in crates/github-extractor
+
+---
+
 ## Subsequent Stages (Queued)
-- [ ] **[Stage 6]** Private GitHub Repositories (`6.1.1` – `6.4.4`)
 - [ ] **[Stage 7]** AI Context and Token Optimization (`7.1.1` – `7.4.4`)
 - [ ] **[Stage 8]** Large Repositories, Batch and Crawling (`8.1.1` – `8.4.4`)
 - [ ] **[Stage 9]** Developer and AI Agent Integrations (`9.1.1` – `9.4.4`)
