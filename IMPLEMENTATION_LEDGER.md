@@ -5204,7 +5204,7 @@
   - Code formatting: `cargo fmt --all -- --check` clean with 0 diffs.
   - Dependency audit: `cargo deny check` passed (advisories ok, bans ok, licenses ok, sources ok).
   - Monorepo gatekeeper: `powershell scripts/check-all.ps1` completed with `ALL GATES PASSED (0 failures)` including 521 workspace Rust tests, 213 frontend vitest tests, and 17.6% Podman storage footprint.
-- **Git Commit Reference:** `f38b4c1`
+- **Git Commit Reference:** `01d1290`
 - **Status:** `ACCEPTED`
 
 ---
@@ -5262,18 +5262,95 @@
   - Code formatting: `cargo fmt --all -- --check` clean with 0 diffs.
   - Dependency audit: `cargo deny check` passed (advisories ok, bans ok, licenses ok, sources ok).
   - Monorepo gatekeeper: `powershell scripts/check-all.ps1` completed with `ALL GATES PASSED (0 failures)` including 535 workspace Rust tests, 213 frontend vitest tests, and 17.6% Podman storage footprint.
-- **Git Commit Reference:** `PENDING_COMMIT`
+- **Git Commit Reference:** `8e4d575`
 - **Status:** `ACCEPTED`
+
+---
+
+#### Subphase `6.1.4` — Callback security in crates/github-extractor
+- **Unique ID:** `6.1.4`
+- **Objective:** Implement cryptographic OAuth callback validation, open-redirect defense, installation setup callback verification, HMAC-SHA256 webhook signature validation (`X-Hub-Signature-256`), delivery GUID deduplication (replay prevention), and strongly-typed lifecycle event routing in `crates/github-extractor`. Enforce Rule 05 invariants (constant-time MAC and nonce verification, fail-closed parsing, zero-trust redirect validation).
+- **Scope:** `crates/github-extractor/src/callback.rs`, `crates/github-extractor/src/error.rs`, `crates/github-extractor/src/lib.rs`, `crates/github-extractor/tests/callback_security_test.rs`.
+- **Prerequisites:** `6.1.3` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/github-extractor/src/callback.rs`
+  - `crates/github-extractor/src/error.rs`
+  - `crates/github-extractor/src/lib.rs`
+  - `crates/github-extractor/tests/callback_security_test.rs`
+- **Implementation Tasks:**
+  1. Implement OAuth callback validation and open-redirect defense in `crates/github-extractor/src/callback.rs`:
+     - `OAuthCallbackParams`: Deserializes query parameters (`code`, `state`, `error`, `error_description`, `error_uri`).
+     - `ValidatedOAuthCallback`: Encapsulates verified code and the consumed, validated `OAuthState`.
+     - `OAuthCallbackValidator`: Validates non-empty sanitized code, single-use state nonce consumption with constant-time matching, session ID / tenant ID verification, and handles GitHub OAuth error responses (`access_denied`, etc.).
+     - `OpenRedirectGuard`: Rejects open redirect attacks by strictly allowing relative paths starting with a single `/` (and rejecting protocol-relative `//` or `/\`), and requiring whitelisted base origins for absolute URLs.
+  2. Implement GitHub App post-installation setup callback handling:
+     - `InstallationCallbackParams`: Captures `installation_id`, `setup_action`, `code`, and `state`.
+     - `SetupAction`: Strongly-typed enum (`Install`, `Update`, `Request`).
+     - `InstallationCallbackValidator`: Validates positive installation IDs, allowed setup actions, and verifies state against `OAuthStateStore` if provided.
+  3. Implement webhook callback security:
+     - `WebhookSignatureVerifier`: Verifies `X-Hub-Signature-256` HMAC-SHA256 signature against raw request body using constant-time MAC verification via `ring::hmac::verify`. Rejects malformed, missing, or mismatched signatures.
+     - `WebhookDeliveryTracker` trait and `InMemoryWebhookDeliveryTracker`: Prevents replay attacks by tracking `X-GitHub-Delivery` GUIDs with sliding-window expiration.
+     - `WebhookEventParser`: Enforces HMAC verification *before* parsing JSON payloads. Deserializes events into `GitHubWebhookEvent` (`Ping`, `Installation`, `InstallationRepositories`, `Other`).
+  4. Author comprehensive test suite in `crates/github-extractor/tests/callback_security_test.rs`:
+     - Test valid/invalid/replayed/expired OAuth callbacks.
+     - Test open redirect guard against protocol-relative URLs, javascript schemes, and untrusted hosts.
+     - Test installation setup callback validation.
+     - Test HMAC-SHA256 webhook signature verification (valid, tampered payload, wrong secret, missing/malformed header).
+     - Test webhook delivery deduplication and lifecycle event parsing.
+     - Test live Axum mock HTTP server webhook endpoint with signature verification.
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-github-extractor --test callback_security_test`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - OAuth callbacks strictly require valid, unexpired, single-use state nonces and matching session IDs.
+  - Open redirect guard rejects malicious redirect attempts.
+  - Webhooks without valid HMAC-SHA256 signatures are rejected before JSON deserialization.
+  - Duplicate webhook delivery GUIDs are detected and rejected.
+  - 100% of workspace tests pass, clippy is warning-free, and monorepo quality gates pass.
+- **Risk Analysis:**
+  - Risk: CSRF attacks during OAuth callback, open redirects leading users to phishing domains, or webhook spoofing.
+  - Mitigation: Single-use cryptographic nonces, constant-time comparisons, URL path validation, and HMAC-SHA256 signatures.
+- **Rollback Plan:**
+  - Revert changes via Git reset to commit `8e4d575`.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-github-extractor --test callback_security_test` passed 14 test suites in 0.01s.
+  - Full crate test suite: 176 tests passing across unit and integration targets with 0 failures (28 unit tests, 147 integration tests, 1 doc-test).
+  - Full workspace clippy check: `cargo clippy --workspace --all-targets -- -D warnings` passed with 0 warnings.
+  - Code formatting: `cargo fmt --all -- --check` clean with 0 diffs.
+  - Dependency audit: `cargo deny check` passed (advisories ok, bans ok, licenses ok, sources ok).
+  - Monorepo gatekeeper: `powershell scripts/check-all.ps1` completed with `ALL GATES PASSED (0 failures)` including 549 workspace Rust tests, 213 frontend vitest tests, and 17.6% Podman storage footprint.
+- **Git Commit Reference:** `4f8a68e`
+- **Status:** `ACCEPTED`
+
+---
+
+### Phase 6.1 Milestone Certification (`6.1.1` – `6.1.4`)
+- **Phase 6.1 Goal:** Complete GitHub App foundation, including manifest models and 1-click generator, cryptographic OAuth state management and installation token exchange, least-privilege permission validation under Rule 05, and timing-safe callback and HMAC-SHA256 webhook security.
+- **Subphases Completed & Accepted (4 of 4):**
+  - `6.1.1`: App configuration documentation & manifest in `crates/github-extractor` & `docs/GITHUB_APP.md` (`ACCEPTED`, commit `7575950`)
+  - `6.1.2`: OAuth & installation flow in `crates/github-extractor` (`ACCEPTED`, commit `01d1290`)
+  - `6.1.3`: Minimum permissions in `crates/github-extractor` (`ACCEPTED`, commit `8e4d575`)
+  - `6.1.4`: Callback security in `crates/github-extractor` (`ACCEPTED`, commit `4f8a68e`)
+- **Certification Date:** 2026-11-18
+- **Certification Summary:**
+  1. Complete strongly-typed GitHub App manifest model and 1-click URL registration generator, backed by `docs/GITHUB_APP.md` enterprise runbook and credentials secret masking.
+  2. Cryptographic OAuth state management (`OAuthState`, `InMemoryOAuthStateStore`) with 256-bit BLAKE3 nonces, single-use replay mitigation, session/tenant binding, and RS256 JWT signing from PKCS#1 and PKCS#8 RSA keys without Marvin attack timing vulnerabilities (`ring::signature::RsaKeyPair`).
+  3. Strict least-privilege permission policy engine (`PermissionPolicy`, `PermissionAuditor`) enforcing `contents: read` and `metadata: read`, rejecting write/admin scopes and dangerous categories (`secrets`, `actions`, `administration`), with GFM Markdown and JSON audit reporting.
+  4. Timing-safe OAuth callback validation, open-redirect defense (`OpenRedirectGuard`), installation setup callback verification, HMAC-SHA256 webhook signature verification (`WebhookSignatureVerifier`), delivery GUID deduplication (`WebhookDeliveryTracker`), and strongly-typed lifecycle event parsing.
+- **Certification Status:** **PHASE 6.1 FORMALLY CERTIFIED & ACCEPTED**
 
 ---
 
 ### Upcoming Subphase (Stage 6 — Private GitHub Repositories)
 
-#### Phase 6.1 — GitHub App
+#### Phase 6.2 — Credential management
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `6.1.4` | Callback security | `6.1.3` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
+| `6.2.1` | Secure token storage | `6.1.4` (`ACCEPTED`) | `crates/storage/*`, `crates/core/*` | `NOT_STARTED` |
 
 ---
 

@@ -6,6 +6,33 @@
 
 ## [Unreleased] — Stage 6: Private GitHub Repositories
 
+### 2026-11-18 — Phase 6.1: GitHub App (`6.1.4` & Phase 6.1 Formal Certification)
+
+#### Added
+- **`[6.1.4]` Callback Security, Open-Redirect Defense & Webhook Verification in `crates/github-extractor`:**
+  - Implemented cryptographic OAuth callback validation and open-redirect protection in `crates/github-extractor/src/callback.rs`:
+    - `OAuthCallbackParams`: Models query parameters (`code`, `state`, `error`, `error_description`, `error_uri`) with robust error handling for user-denied authorization flows.
+    - `ValidatedOAuthCallback`: Contains the sanitized authorization code and consumed, verified `OAuthState`.
+    - `OAuthCallbackValidator`: Validates non-empty code, single-use state nonce consumption with constant-time matching, session ID and tenant ID matching to prevent CSRF and session hijacking, and URL length/character sanity checks.
+    - `OpenRedirectGuard`: Defends against open-redirect phishing by strictly validating redirect targets; permits relative paths starting with a single `/` while explicitly rejecting protocol-relative URLs (`//evil.com`, `/\evil.com`), control characters, and non-whitelisted absolute URLs.
+  - Implemented GitHub App post-installation setup callback handling:
+    - `InstallationCallbackParams`: Models parameters (`installation_id`, `setup_action`, `code`, `state`).
+    - `SetupAction`: Strongly-typed enum representing `Install`, `Update`, `Request`.
+    - `InstallationCallbackValidator`: Validates positive installation IDs, allowed setup actions, code sanitization, and timing-safe state validation.
+  - Implemented HMAC-SHA256 webhook signature verification and replay prevention:
+    - `WebhookSignatureVerifier`: Verifies `X-Hub-Signature-256` HMAC-SHA256 digests in constant time using `ring::hmac::verify`; fails closed on missing, malformed, or tampered signatures.
+    - `WebhookDeliveryTracker` trait and `InMemoryWebhookDeliveryTracker`: Prevents webhook replay attacks by tracking `X-GitHub-Delivery` GUIDs with sliding-window TTL eviction.
+    - `WebhookEventParser`: Enforces HMAC signature verification *prior* to JSON deserialization; routes events into strongly-typed `GitHubWebhookEvent` variants (`Ping`, `Installation`, `InstallationRepositories`, `Other`).
+    - `InstallationAction` and `InstallationRepoAction`: Strongly-typed models for installation lifecycle events.
+  - Authored 14 integration test suites in `crates/github-extractor/tests/callback_security_test.rs`:
+    - Validating valid OAuth callback, replay prevention, session ID mismatch, parameter sanitization, error responses, open-redirect defense, installation callback validation, HMAC-SHA256 verification (valid, tampered payload, wrong secret, malformed header), delivery deduplication, lifecycle event parsing, and live Axum mock webhook HTTP server integration.
+  - Formally certified **Phase 6.1 — GitHub App** across all 4 subphases:
+    - `6.1.1` App configuration documentation & manifest models (`ACCEPTED`, commit `7575950`)
+    - `6.1.2` OAuth & installation flow (`ACCEPTED`, commit `01d1290`)
+    - `6.1.3` Minimum permissions runtime policy engine (`ACCEPTED`, commit `8e4d575`)
+    - `6.1.4` Callback security, open-redirect defense & webhook verification (`ACCEPTED`)
+  - Verified 549 passing workspace Rust tests (176 in `crates/github-extractor`), 213 frontend tests, zero clippy warnings, zero fmt diffs, and 100% passing gates across all 5 checks in `scripts/check-all.ps1`.
+
 ### 2026-11-18 — Phase 6.1: GitHub App (`6.1.3`)
 
 #### Added

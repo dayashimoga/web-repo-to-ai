@@ -178,6 +178,10 @@ pub enum GitHubExtractorError {
     #[error("GitHub App permission violation: {0}")]
     PermissionViolation(String),
 
+    /// Callback security violation (CSRF mismatch, open redirect, invalid webhook signature, or replay).
+    #[error("Callback security violation: {0}")]
+    CallbackSecurity(String),
+
     /// Internal core system error.
     #[error("Core system error: {0}")]
     Core(#[from] CoreError),

@@ -13,6 +13,7 @@
 pub mod accounting;
 pub mod app_manifest;
 pub mod architecture;
+pub mod callback;
 pub mod classification;
 pub mod client;
 pub mod code_review;
@@ -46,6 +47,13 @@ pub use app_manifest::{
 pub use architecture::{
     ComponentInfo, ComponentRole, EntryPointInfo, EntryPointRole, RepoArchitectureContext,
     WorkspaceType,
+};
+pub use callback::{
+    GitHubWebhookEvent, InMemoryWebhookDeliveryTracker, InstallationAction,
+    InstallationCallbackParams, InstallationCallbackValidator, InstallationRepoAction,
+    OAuthCallbackParams, OAuthCallbackValidator, OpenRedirectGuard, SetupAction,
+    ValidatedInstallationCallback, ValidatedOAuthCallback, WebhookDeliveryTracker,
+    WebhookEventParser, WebhookSignatureVerifier,
 };
 pub use classification::{
     detect_language, ClassifiedFile, FileCategory, FileClassificationConfig, FileClassifier,
