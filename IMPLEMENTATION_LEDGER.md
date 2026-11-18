@@ -4059,11 +4059,71 @@
 
 ---
 
+#### Subphase `5.1.4` — Repository metadata extraction in crates/github-extractor
+- **Unique ID:** `5.1.4`
+- **Objective:** Implement comprehensive repository metadata retrieval via GitHub REST API (`GET /repos/{owner}/{repo}`) and programming language breakdown (`GET /repos/{owner}/{repo}/languages`), extracting repository properties (description, primary language, topics/tags, license SPDX identifiers, fork/archived/visibility status, default branch, stars, watchers, forks, open issues, size in KB, timestamps), language byte distribution and percentages, and mapping into the Canonical Context Document Model (`DocumentMetadata`).
+- **Scope:** `crates/github-extractor/src/metadata.rs`, `crates/github-extractor/src/client.rs`, `crates/github-extractor/src/lib.rs`, `crates/github-extractor/tests/metadata_extraction_test.rs`.
+- **Prerequisites:** `5.1.3` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/github-extractor/src/metadata.rs`
+  - `crates/github-extractor/src/client.rs`
+  - `crates/github-extractor/src/lib.rs`
+  - `crates/github-extractor/tests/metadata_extraction_test.rs`
+- **Implementation Tasks:**
+  1. Define metadata models in `crates/github-extractor/src/metadata.rs`: `GitHubLicense`, `GitHubRepositoryMetadata`, `GitHubLanguages`, and consolidated `GitHubRepoContext`.
+  2. Implement helper methods for language percentage calculation and descending byte sorting in `GitHubLanguages`.
+  3. Implement `to_cdm_metadata(&self, languages: &GitHubLanguages) -> DocumentMetadata` converting repository properties and language breakdown into standard CDM schema (`crates/cdm`).
+  4. Implement `get_repo_metadata(&self, target: &GitHubTarget)` in `GitHubApiClient` querying `GET /repos/{owner}/{repo}` with rate limit header tracking and secret token redaction.
+  5. Implement `get_repo_languages(&self, target: &GitHubTarget)` in `GitHubApiClient` querying `GET /repos/{owner}/{repo}/languages`.
+  6. Implement `fetch_repo_context(&self, target: &GitHubTarget, pin: bool)` orchestrating parallel metadata and language extraction via `tokio::join!`, with optional immutable revision pinning.
+  7. Implement comprehensive integration tests in `crates/github-extractor/tests/metadata_extraction_test.rs` with an in-process Axum test server validating repo metadata parsing, language percentages, CDM metadata conversion, 404 handling, and token redaction under failure modes.
+  8. Run full monorepo quality audit via `scripts/check-all.ps1`.
+- **Acceptance Criteria:**
+  - Repository metadata and programming languages breakdown are retrieved and parsed correctly.
+  - Languages percentage distribution accurately sums to 100% (within floating point precision).
+  - CDM `DocumentMetadata` mapping populates title, description, authors, license, primary language, language breakdown, tags, timestamps, and extra statistics.
+  - 100% of tests pass, zero clippy warnings, zero fmt diffs, cargo-deny clean.
+- **Tests:** `cargo test -p web-repo-to-ai-github-extractor`, `cargo test --workspace`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, 04, 05: Token redaction on all metadata API requests and error responses; SSRF validation via `crates/url-security`; license and topic sanitization.
+- **Performance Considerations:** Parallel retrieval of repo metadata and language breakdown via `tokio::join!`; zero-copy JSON parsing where feasible.
+- **Documentation Requirements:** Module documentation in `crates/github-extractor`, tracking updates in `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-github-extractor`: 37/37 tests passed (1 lib unit test, 21 target decomposition tests, 7 ref discovery tests, 4 commit selection tests, 4 metadata extraction tests).
+  - `cargo test --workspace`: 371/371 tests passed across all 17 crates and services.
+  - `cargo clippy -p web-repo-to-ai-github-extractor --all-targets -- -D warnings`: 0 warnings, 0 errors.
+  - `cargo fmt --all -- --check`: 100% clean formatting.
+  - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
+  - `npm test` (`apps/web`): 213/213 tests passed across 17 suites; `svelte-check` reports 0 errors and 0 warnings.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (224/224 bootstrap checks, 7/7 workflows, Rust checks, Frontend checks, Podman storage 5.27 GB / 30 GB, 17.6%).
+- **Git Commit Reference:** `471c0a6` / `5d0b133`
+- **Status:** `ACCEPTED`
+
+---
+
+### Phase 5.1 Milestone Certification (`5.1.1` – `5.1.4`)
+- **Phase 5.1 Goal:** Complete GitHub repository metadata, URL identification, branch/tag ref discovery, commit selection, language breakdown, and CDM document metadata mapping.
+- **Subphases Completed & Accepted:**
+  - `5.1.1`: Repository identification and URL decomposition in `crates/github-extractor` (`ACCEPTED`, commit `9adc56b` / `67a0d53`)
+  - `5.1.2`: Branch & tag discovery in `crates/github-extractor` (`ACCEPTED`, commit `8d8ded7` / `2f0de6d`)
+  - `5.1.3`: Commit selection in `crates/github-extractor` (`ACCEPTED`, commit `de994ea` / `1696347`)
+  - `5.1.4`: Repository metadata extraction in `crates/github-extractor` (`ACCEPTED`, commit `471c0a6` / `5d0b133`)
+- **Certification Date:** 2026-11-18
+- **Certification Summary:**
+  1. Complete URL parsing and target decomposition supporting HTTPS, SSH, Git, shorthand (`owner/repo@ref`), tree/blob subpaths, release tags, and commit SHAs with path traversal protection and zero-trust SSRF validation.
+  2. Rate-limit-aware asynchronous GitHub API client (`GitHubApiClient`) supporting pagination, rate limit headers (`x-ratelimit-*`), and robust token secret redaction.
+  3. Parallel branch and release tag discovery with longest-prefix disambiguation resolving slash-separated branch names against repository subpaths.
+  4. Immutable commit resolution (`/commits/{ref}`) and revision pinning (`PinnedRevision`) capturing author, committer, timestamps, message, and root Git tree SHA, eliminating mutable ref-drift.
+  5. Repository metadata and languages breakdown extraction (`/repos/{owner}/{repo}`, `/languages`) calculating exact language percentages and mapping cleanly to CDM `DocumentMetadata`.
+  6. 37 tests passing in `crates/github-extractor`, 371 tests passing across the workspace with zero clippy warnings and all 5 monorepo gates passing.
+- **Phase Status:** `COMPLETED` / `ACCEPTED` (Certified 2026-11-18)
+
+---
+
 ### Upcoming Subphase (Stage 5 — Public GitHub Repository Extraction)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `5.1.4` | Repository metadata extraction | `5.1.3` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
+| `5.2.1` | Git Trees integration | `5.1.4` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
 
 ---
 

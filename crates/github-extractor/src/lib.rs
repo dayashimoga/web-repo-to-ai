@@ -13,6 +13,7 @@
 pub mod client;
 pub mod commit;
 pub mod error;
+pub mod metadata;
 pub mod models;
 pub mod target;
 
@@ -22,6 +23,7 @@ pub use client::{
 };
 pub use commit::{CommitAuthor, CommitSignatureVerification, GitHubCommitMetadata, PinnedRevision};
 pub use error::{redact_secrets, GitHubExtractorError};
+pub use metadata::{GitHubLanguages, GitHubLicense, GitHubRepoContext, GitHubRepositoryMetadata};
 pub use models::{GitHubBranch, GitHubRateLimit, GitHubTag, RefDiscoveryReport};
 pub use target::{
     is_default_host, is_reserved_github_path, validate_and_sanitize_subpath, validate_owner,

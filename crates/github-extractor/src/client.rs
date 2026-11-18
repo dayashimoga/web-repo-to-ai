@@ -3,6 +3,7 @@
 //! Provides an asynchronous, rate-limit-aware HTTP client for GitHub repository
 //! discovery, branch and tag enumeration, pagination, and reference disambiguation.
 
+use std::collections::BTreeMap;
 use std::time::Duration;
 
 use chrono::Utc;
@@ -15,6 +16,9 @@ use crate::commit::{
     CommitAuthor, CommitSignatureVerification, GitHubCommitMetadata, PinnedRevision,
 };
 use crate::error::{redact_secrets, GitHubExtractorError};
+use crate::metadata::{
+    GitHubLanguages, GitHubLicense, GitHubRepoContext, GitHubRepositoryMetadata,
+};
 use crate::models::{GitHubBranch, GitHubRateLimit, GitHubTag, RefDiscoveryReport};
 use crate::target::GitHubTarget;
 
@@ -94,6 +98,65 @@ struct RawCommitDetail {
     commit: RawCommitPayload,
     #[serde(default)]
     parents: Vec<RawParentRef>,
+}
+
+#[derive(Debug, Deserialize)]
+struct RawLicensePayload {
+    key: String,
+    name: String,
+    spdx_id: Option<String>,
+    url: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct RawOwnerPayload {
+    login: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct RawRepoPayload {
+    id: u64,
+    node_id: Option<String>,
+    name: String,
+    full_name: String,
+    owner: RawOwnerPayload,
+    description: Option<String>,
+    #[serde(default)]
+    fork: bool,
+    #[serde(default)]
+    archived: bool,
+    #[serde(default)]
+    disabled: bool,
+    #[serde(default = "default_visibility")]
+    visibility: String,
+    #[serde(default = "default_branch_name")]
+    default_branch: String,
+    homepage: Option<String>,
+    language: Option<String>,
+    #[serde(default)]
+    topics: Vec<String>,
+    license: Option<RawLicensePayload>,
+    #[serde(default)]
+    stargazers_count: u32,
+    #[serde(default)]
+    watchers_count: u32,
+    #[serde(default)]
+    forks_count: u32,
+    #[serde(default)]
+    open_issues_count: u32,
+    #[serde(default)]
+    size: u64,
+    created_at: Option<chrono::DateTime<chrono::Utc>>,
+    updated_at: Option<chrono::DateTime<chrono::Utc>>,
+    pushed_at: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+fn default_visibility() -> String {
+    "public".to_string()
+}
+
+fn default_branch_name() -> String {
+    "main".to_string()
 }
 
 #[derive(Debug, Deserialize)]
@@ -578,6 +641,136 @@ impl GitHubApiClient {
             root_tree_sha,
             metadata,
             effective_ref,
+        ))
+    }
+
+    /// Retrieves detailed repository metadata for a given target repository.
+    ///
+    /// # Errors
+    /// Returns `GitHubExtractorError::ResourceNotFound` if the repository does not exist,
+    /// or `GitHubExtractorError::RateLimitExceeded` if API limits are breached.
+    pub async fn get_repo_metadata(
+        &self,
+        target: &GitHubTarget,
+    ) -> Result<(GitHubRepositoryMetadata, Option<GitHubRateLimit>), GitHubExtractorError> {
+        let base_url = self.effective_base_url(target);
+        let url = format!("{base_url}/repos/{}/{}", target.owner, target.repo);
+
+        let req = self
+            .client
+            .get(&url)
+            .headers(self.prepare_headers())
+            .timeout(self.timeout);
+
+        let (res, rate_limit) = self.execute_request(req, &url).await?;
+
+        let body_text = res.text().await.map_err(|e| {
+            let sanitized = redact_secrets(&e.to_string());
+            GitHubExtractorError::RequestFailed(sanitized)
+        })?;
+
+        let raw: RawRepoPayload = serde_json::from_str(&body_text).map_err(|e| {
+            let sanitized = redact_secrets(&e.to_string());
+            GitHubExtractorError::JsonDecodeError(sanitized)
+        })?;
+
+        let license = raw
+            .license
+            .map(|l| GitHubLicense::new(l.key, l.name, l.spdx_id, l.url));
+
+        let metadata = GitHubRepositoryMetadata {
+            id: raw.id,
+            node_id: raw.node_id,
+            name: raw.name,
+            full_name: raw.full_name,
+            owner: raw.owner.login,
+            description: raw.description,
+            fork: raw.fork,
+            archived: raw.archived,
+            disabled: raw.disabled,
+            visibility: raw.visibility,
+            default_branch: raw.default_branch,
+            homepage: raw.homepage,
+            primary_language: raw.language,
+            topics: raw.topics,
+            license,
+            stargazers_count: raw.stargazers_count,
+            watchers_count: raw.watchers_count,
+            forks_count: raw.forks_count,
+            open_issues_count: raw.open_issues_count,
+            size_kb: raw.size,
+            created_at: raw.created_at,
+            updated_at: raw.updated_at,
+            pushed_at: raw.pushed_at,
+        };
+
+        Ok((metadata, rate_limit))
+    }
+
+    /// Retrieves programming language breakdown statistics (in bytes) for a repository.
+    ///
+    /// # Errors
+    /// Returns `GitHubExtractorError` if the API request fails or decoding fails.
+    pub async fn get_repo_languages(
+        &self,
+        target: &GitHubTarget,
+    ) -> Result<(GitHubLanguages, Option<GitHubRateLimit>), GitHubExtractorError> {
+        let base_url = self.effective_base_url(target);
+        let url = format!(
+            "{base_url}/repos/{}/{}/languages",
+            target.owner, target.repo
+        );
+
+        let req = self
+            .client
+            .get(&url)
+            .headers(self.prepare_headers())
+            .timeout(self.timeout);
+
+        let (res, rate_limit) = self.execute_request(req, &url).await?;
+
+        let body_text = res.text().await.map_err(|e| {
+            let sanitized = redact_secrets(&e.to_string());
+            GitHubExtractorError::RequestFailed(sanitized)
+        })?;
+
+        let breakdown: BTreeMap<String, u64> = serde_json::from_str(&body_text).map_err(|e| {
+            let sanitized = redact_secrets(&e.to_string());
+            GitHubExtractorError::JsonDecodeError(sanitized)
+        })?;
+
+        Ok((GitHubLanguages::new(breakdown), rate_limit))
+    }
+
+    /// Fetches unified repository context by retrieving metadata and language distribution in parallel,
+    /// with optional immutable revision pinning.
+    ///
+    /// # Errors
+    /// Returns `GitHubExtractorError` if any underlying request fails.
+    pub async fn fetch_repo_context(
+        &self,
+        target: &GitHubTarget,
+        pin: bool,
+    ) -> Result<GitHubRepoContext, GitHubExtractorError> {
+        let (meta_res, lang_res) = tokio::join!(
+            self.get_repo_metadata(target),
+            self.get_repo_languages(target)
+        );
+
+        let (metadata, _meta_rl) = meta_res?;
+        let (languages, _lang_rl) = lang_res?;
+
+        let pinned_revision = if pin {
+            Some(self.pin_revision(target).await?)
+        } else {
+            None
+        };
+
+        Ok(GitHubRepoContext::new(
+            target.clone(),
+            metadata,
+            languages,
+            pinned_revision,
         ))
     }
 }

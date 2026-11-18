@@ -6,6 +6,25 @@
 
 ## [Unreleased] — Stage 5: Public GitHub Repository Extraction
 
+### 2026-11-18 — Phase 5.1: GitHub Metadata (`5.1.4` — PHASE 5.1 CERTIFIED)
+
+#### Added
+- **`[5.1.4]` Repository Metadata Extraction, Language Breakdown & CDM Integration in `crates/github-extractor` (Phase 5.1 Certified):**
+  - Implemented repository metadata and language models in `crates/github-extractor/src/metadata.rs`:
+    - `GitHubLicense`: represents key, title name, SPDX identifier, and license endpoint URL.
+    - `GitHubLanguages`: captures raw byte volumes per programming language (`BTreeMap<String, u64>`), calculating `total_bytes()`, language `percentage()`, and descending sorted `percentages()`.
+    - `GitHubRepositoryMetadata`: extracts comprehensive repository properties (id, node_id, full_name, owner, description, fork/archived/disabled/visibility flags, default_branch, homepage, primary_language, topics, license, stars/watchers/forks/issues counts, size in KB, and timestamps).
+    - `GitHubRepoContext`: combines repository target, metadata, language distribution, and optional pinned revision into a consolidated extraction container with a Markdown `summary_card()`.
+    - Seamless CDM Mapping: `to_cdm_metadata()` translating repository properties and language breakdown into standard CDM `DocumentMetadata` (`title`, `description`, `authors`, `license`, `primary_language`, `language_breakdown`, `tags`, `published_at`, `modified_at`, and structured `extra` stats).
+  - Extended REST client `GitHubApiClient` in `crates/github-extractor/src/client.rs`:
+    - `get_repo_metadata(&target)`: queries `GET /repos/{owner}/{repo}` with rate limit tracking and secret token redaction.
+    - `get_repo_languages(&target)`: queries `GET /repos/{owner}/{repo}/languages`.
+    - `fetch_repo_context(&target, pin)`: orchestrates parallel metadata and language extraction via `tokio::join!`, with optional immutable revision pinning.
+  - Authored comprehensive integration tests in `crates/github-extractor/tests/metadata_extraction_test.rs`:
+    - 4 test suites covering license structures, language byte calculations, CDM `DocumentMetadata` mapping, and live in-process Axum mock server tests on ephemeral port validating metadata queries, language percentages, unified context fetching with pinned revisions, 404 `ResourceNotFound` handling, and token redaction under error conditions.
+  - Formally completed and certified **Phase 5.1 — GitHub metadata** (`5.1.1` – `5.1.4`).
+  - Verified 371 passing workspace Rust tests (37 in `crates/github-extractor`), zero clippy warnings, zero fmt diffs, and 100% passing gates across all 5 checks in `scripts/check-all.ps1`.
+
 ### 2026-11-18 — Phase 5.1: GitHub Metadata (`5.1.3`)
 
 #### Added
