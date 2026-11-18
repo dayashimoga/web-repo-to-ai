@@ -70,7 +70,7 @@
 - **Phases:**
   - `6.1` GitHub App (`6.1.1` [ACCEPTED], `6.1.2` [ACCEPTED], `6.1.3` [ACCEPTED], `6.1.4` [ACCEPTED — PHASE 6.1 CERTIFIED])
   - `6.2` Credential management (`6.2.1` [ACCEPTED], `6.2.2` [ACCEPTED], `6.2.3` [ACCEPTED], `6.2.4` [ACCEPTED — PHASE 6.2 CERTIFIED])
-  - `6.3` Private extraction (`6.3.1` [ACCEPTED], `6.3.2` [ACCEPTED], `6.3.3` [NEXT] – `6.3.4`)
+  - `6.3` Private extraction (`6.3.1` [ACCEPTED], `6.3.2` [ACCEPTED], `6.3.3` [ACCEPTED], `6.3.4` [NEXT])
   - `6.4` Security verification (`6.4.1` – `6.4.4`)
 
 ### STAGE 7 — AI CONTEXT AND TOKEN OPTIMIZATION

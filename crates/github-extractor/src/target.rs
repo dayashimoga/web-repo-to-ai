@@ -144,6 +144,20 @@ pub struct GitHubTarget {
 }
 
 impl GitHubTarget {
+    /// Constructs a root repository target for the given owner and repo on default GitHub host.
+    #[must_use]
+    pub fn for_repo(owner: impl Into<String>, repo: impl Into<String>) -> Self {
+        Self {
+            owner: owner.into(),
+            repo: repo.into(),
+            target_type: GitHubTargetType::RepositoryRoot,
+            ref_spec: None,
+            subpath: None,
+            host: DEFAULT_GITHUB_HOST.to_string(),
+            is_enterprise: false,
+        }
+    }
+
     /// Returns the repository owner username or organization.
     #[must_use]
     pub fn owner(&self) -> &str {

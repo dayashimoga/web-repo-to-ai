@@ -31,6 +31,7 @@ pub mod metadata;
 pub mod models;
 pub mod oauth;
 pub mod permissions;
+pub mod private_extractor;
 pub mod recovery;
 pub mod revocation;
 pub mod selected_repositories;
@@ -115,6 +116,9 @@ pub use oauth::{
 pub use permissions::{
     PermissionAuditReport, PermissionAuditor, PermissionPolicy, PermissionPolicyBuilder,
     PermissionViolation, DEFAULT_FORBIDDEN_CATEGORIES, DEFAULT_FORBIDDEN_LEVELS,
+};
+pub use private_extractor::{
+    PrivateExtractionConfig, PrivateExtractionResult, PrivateRepositoryExtractor,
 };
 pub use recovery::{
     scan_zip_archive, stitch_child_path, ArchiveFormat, SubtreeRecoveryConfig,

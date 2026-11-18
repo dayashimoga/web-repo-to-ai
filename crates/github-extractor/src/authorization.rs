@@ -49,6 +49,35 @@ pub struct AuthorizedInstallationContext {
     pub permissions: HashMap<String, String>,
 }
 
+impl AuthorizedInstallationContext {
+    /// Creates a new `AuthorizedInstallationContext`.
+    pub fn new(
+        owner: impl Into<String>,
+        repo: impl Into<String>,
+        installation_id: i64,
+        account_login: impl Into<String>,
+        token: impl Into<String>,
+        repository_selection: RepositorySelection,
+    ) -> Self {
+        Self {
+            installation_id,
+            account_login: account_login.into(),
+            token: token.into(),
+            repository_selection,
+            owner: owner.into(),
+            repo: repo.into(),
+            permissions: HashMap::new(),
+        }
+    }
+
+    /// Sets the permissions map.
+    #[must_use]
+    pub fn with_permissions(mut self, permissions: HashMap<String, String>) -> Self {
+        self.permissions = permissions;
+        self
+    }
+}
+
 impl fmt::Debug for AuthorizedInstallationContext {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("AuthorizedInstallationContext")

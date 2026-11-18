@@ -6,6 +6,33 @@
 
 ## [Unreleased] — Stage 6: Private GitHub Repositories
 
+### 2026-11-18 — Phase 6.3: Private extraction (`6.3.3`)
+
+#### Added
+- **`[6.3.3]` Private Repository Tree and Source Extraction Engine in `crates/github-extractor`:**
+  - Implemented `PrivateExtractionConfig` in `crates/github-extractor/src/private_extractor.rs`:
+    - Configures source extraction concurrency, file classification rules, automated subtree recovery, cryptographic hash validation, explicit target ref (`target_ref`), metadata acquisition toggle (`fetch_metadata`), and proactive token renewal safety margin (`proactive_token_renewal_margin_secs`).
+  - Implemented `PrivateExtractionResult`:
+    - Comprehensive extraction bundle capturing target, installation ID, account login, commit metadata, optional repository metadata, recovered tree, classification report, source report, doc report, dependency report, config/test report, accounting balance sheet, hash validation report, manifest, and architecture context.
+    - Helper methods: `is_balanced()`, `total_extracted_files()`, `total_discovered_entries()`, `total_extracted_bytes()`, `commit_sha()`, and `root_tree_sha()`.
+    - Custom `fmt::Display` displaying target, commit, extracted files count, and conservation balance status.
+  - Implemented `PrivateRepositoryExtractor`:
+    - Coordinates authenticated Git Trees API traversal with ephemeral installation access tokens (`Bearer ghs_*`).
+    - Integrates with `InstallationTokenRefresher` and `InstallationTokenStore` to proactively detect and renew expiring tokens prior to extraction.
+    - Resolves target ref (defaults to `"HEAD"`) and fetches commit metadata.
+    - Performs Git tree traversal with automated recursive subtree recovery on truncated trees.
+    - Classifies files and executes bounded concurrent content extraction across sources, docs, dependencies, configs, and tests via `tokio::join!`.
+    - Audits mathematical completeness conservation identity ($\text{Discovered} = \text{Extracted} + \text{Excluded} + \text{Failed} + \text{Unsupported} + \text{Missing}$) via `FileAccountingAuditor`.
+    - Validates file integrity via multi-algorithm cryptographic hash validation (Git SHA-1, SHA-256, BLAKE3).
+    - Assembles unified file manifest and derives repository architecture context.
+  - Added constructors and helpers:
+    - Added `GitHubTarget::for_repo(owner, repo)` in `crates/github-extractor/src/target.rs`.
+    - Added `AuthorizedInstallationContext::new(...)` and `with_permissions(...)` in `crates/github-extractor/src/authorization.rs`.
+    - Re-exported `PrivateExtractionConfig`, `PrivateExtractionResult`, and `PrivateRepositoryExtractor` in `crates/github-extractor/src/lib.rs`.
+  - Authored comprehensive test suite in `crates/github-extractor/tests/private_extractor_test.rs`:
+    - 6 integration tests validating end-to-end private extraction, mathematical conservation balance, multi-algorithm hash checks, proactive token renewal, subtree recovery on truncation, unauthorized 401 handling, and zero secret token leakage.
+  - 100% passing quality gates: 6/6 new tests passed, 231 total extractor tests passed, zero clippy warnings, zero fmt diffs, cargo deny passed, and 5/5 check-all gates passed.
+
 ### 2026-11-18 — Phase 6.3: Private extraction (`6.3.2`)
 
 #### Added

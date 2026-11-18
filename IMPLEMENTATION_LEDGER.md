@@ -5727,13 +5727,65 @@
 
 ---
 
+#### Subphase `6.3.3` — Private tree & source extraction in crates/github-extractor
+- **Unique ID:** `6.3.3`
+- **Objective:** Implement end-to-end private repository extraction orchestrator (`PrivateRepositoryExtractor`) coordinating authenticated Git Trees API traversal, automated recursive subtree recovery, file classification, bounded concurrent content extraction across sources, docs, dependencies, configs, and tests, mathematical completeness accounting ($\text{Discovered} = \text{Extracted} + \text{Excluded} + \text{Failed} + \text{Unsupported} + \text{Missing}$), multi-algorithm cryptographic hash validation (Git blob SHA-1, SHA-256, BLAKE3), file manifest assembly, and architecture context derivation under Rule 05 ephemeral token authentication.
+- **Scope:** `crates/github-extractor/src/private_extractor.rs`, `crates/github-extractor/src/lib.rs`, `crates/github-extractor/src/target.rs`, `crates/github-extractor/src/authorization.rs`, `crates/github-extractor/tests/private_extractor_test.rs`.
+- **Prerequisites:** `6.3.2` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/github-extractor/src/private_extractor.rs`: Implemented `PrivateExtractionConfig`, `PrivateExtractionResult`, and `PrivateRepositoryExtractor`.
+  - `crates/github-extractor/src/lib.rs`: Re-exported `private_extractor` module and primary public structures.
+  - `crates/github-extractor/src/target.rs`: Added `GitHubTarget::for_repo(owner, repo)` constructor.
+  - `crates/github-extractor/src/authorization.rs`: Added `AuthorizedInstallationContext::new` and `with_permissions`.
+  - `crates/github-extractor/tests/private_extractor_test.rs`: 6 integration tests verifying end-to-end private extraction, mathematical conservation balance, multi-algorithm hash checks, proactive token renewal, subtree recovery on truncation, unauthorized 401 handling, and zero secret token leakage.
+- **Implementation Tasks:**
+  1. Define `PrivateExtractionConfig` with configurable `source_config`, `classification_config`, `recovery_config`, `hash_config`, `target_ref`, `fetch_metadata`, and `proactive_token_renewal_margin_secs`.
+  2. Define `PrivateExtractionResult` capturing target, installation ID, account login, commit metadata, optional repository metadata, recovered tree, classification report, source report, doc report, dependency report, config/test report, accounting balance sheet, hash validation report, manifest, and architecture context with helper metrics (`is_balanced`, `total_extracted_files`, `total_discovered_entries`, `total_extracted_bytes`).
+  3. Implement `PrivateRepositoryExtractor` orchestrator with `extract()` executing target resolution, token freshness check & proactive renewal, ref discovery & commit resolution, tree traversal & automated subtree recovery, file classification, bounded concurrent extraction (`tokio::join!`), completeness accounting auditing, cryptographic hash verification, file manifest generation, and architecture context derivation.
+  4. Author integration tests in `crates/github-extractor/tests/private_extractor_test.rs`.
+  5. Run monorepo verification checks (`cargo test`, `cargo fmt`, `cargo clippy`, `cargo deny check`, `scripts/check-all.ps1`).
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-github-extractor --test private_extractor_test`
+  - `cargo test -p web-repo-to-ai-github-extractor`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - Complete private repository tree traversal and source extraction succeeds via authenticated API client.
+  - Mathematical conservation identity ($\text{Discovered} = \text{Extracted} + \text{Excluded} + \text{Failed} + \text{Unsupported} + \text{Missing}$) holds with zero discrepancies.
+  - Ephemeral bearer tokens are refreshed proactively when expiring during long extractions.
+  - Automated recursive subtree recovery handles truncated trees seamlessly.
+  - Sensitive bearer tokens are strictly masked in `Debug`, `Display`, logs, and error traces.
+  - 100% of workspace tests, lints, and format checks pass.
+- **Dependencies:** `web-repo-to-ai-core`, `web-repo-to-ai-cdm`, `web-repo-to-ai-observability`, `reqwest`, `serde`, `chrono`, `uuid`, `tokio`.
+- **Security Considerations:**
+  - Rule 05 least-privilege: Ephemeral tokens are used strictly for read-only repository endpoints.
+  - Zero token leakage: Tokens are redacted in error messages and excluded from result structs.
+  - Constant-time checks and authenticated client injection.
+- **Performance Considerations:**
+  - Bounded concurrent downloads via `tokio::join!` across categories with semaphore concurrency limits.
+  - Lazy evaluation and memory-conscious streaming for large trees.
+- **Documentation Requirements:** Documented private extraction architecture and invariants in `crates/github-extractor/src/private_extractor.rs`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-github-extractor --test private_extractor_test`: 6/6 passed in 0.02s.
+  - `cargo test -p web-repo-to-ai-github-extractor`: all unit and integration tests passed (30 lib tests, 29 test files, 1 doc-test).
+  - `cargo clippy --workspace --all-targets -- -D warnings`: passed with 0 warnings.
+  - `cargo fmt --all -- --check`: verified clean formatting with 0 diffs.
+  - `cargo deny check`: passed (advisories ok, bans ok, licenses ok, sources ok).
+  - `powershell scripts/check-all.ps1`: completed with `ALL GATES PASSED (0 failures)` (all 5 gates passed: Bootstrap & Governance, Workflow Validation, Rust Workspace, Frontend Web [213 vitest passed], Resource Budget & 30 GB Storage Ceiling [5.27 GB / 30 GB, 17.6%]).
+- **Git Commit Reference:** `3787909`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 6 — Private GitHub Repositories)
 
 #### Phase 6.3 — Private extraction
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `6.3.3` | Private tree & source extraction | `6.3.2` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
+| `6.3.4` | Authorization failure recovery | `6.3.3` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
 
 ---
 
