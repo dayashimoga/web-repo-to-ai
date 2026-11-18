@@ -159,7 +159,7 @@
 - [x] **[5.3.4]** Configuration & test extraction in crates/github-extractor *(Completed 2026-11-18, ConfigCategory & TestCategory classification, CI/CD workflow, build config, linter/formatter, unit/integration test, fixture acquisition, bounded concurrent batch extraction, CDM code sections, 6 new integration tests, 98 crate tests, 100% passing quality gates — PHASE 5.3 CERTIFIED)*
 
 ### Phase 5.4 — Repository packaging
-- [ ] **[5.4.1]** Repository tree generation in crates/github-extractor
+- [x] **[5.4.1]** Repository tree generation in crates/github-extractor *(Completed 2026-11-18, RepoTree & RepoTreeNode hierarchical model, Unicode/ASCII formatting, category & size annotations, depth/entry limiting, CDM manifest section mapping, 7 new integration tests, 109 crate tests, 100% passing quality gates)*
 - [ ] **[5.4.2]** File manifest in crates/github-extractor
 - [ ] **[5.4.3]** Architecture context in crates/github-extractor
 - [ ] **[5.4.4]** Code-review package in crates/github-extractor

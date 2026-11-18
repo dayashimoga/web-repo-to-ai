@@ -33,6 +33,7 @@ use crate::source::{
 };
 use crate::target::GitHubTarget;
 use crate::tree::{GitTreeResponse, TreeCompleteness};
+use crate::tree_generator::RepoTree;
 
 /// Default HTTP request timeout for GitHub API calls.
 pub const DEFAULT_GITHUB_TIMEOUT: Duration = Duration::from_secs(30);
@@ -1535,6 +1536,18 @@ impl GitHubApiClient {
 
         report.duration = start.elapsed();
         report
+    }
+
+    /// Generates a structured repository directory tree from a `GitTreeResponse`.
+    #[must_use]
+    pub fn generate_repo_tree(&self, tree_response: &GitTreeResponse) -> RepoTree {
+        RepoTree::from_tree_response(tree_response)
+    }
+
+    /// Generates a structured repository directory tree from classified repository files.
+    #[must_use]
+    pub fn generate_repo_tree_classified(&self, classified_files: &[ClassifiedFile]) -> RepoTree {
+        RepoTree::from_classified_files(classified_files)
     }
 }
 

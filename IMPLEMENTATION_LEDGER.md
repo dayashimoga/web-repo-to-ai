@@ -4517,9 +4517,66 @@
 
 #### Phase 5.4 — Repository packaging
 
+#### Subphase `5.4.1` — Repository tree generation in crates/github-extractor
+- **Unique ID:** `5.4.1`
+- **Objective:** Implement hierarchical repository directory tree generation, formatting, and CDM manifest section construction in `crates/github-extractor`. Provide structured tree models (`RepoTree`, `RepoTreeNode`), recursive path insertion, directory/file aggregation metrics, visual ASCII and Unicode box-drawing diagram formatting with configurable depth and entry count limiting, category badge annotations, and conversion into Canonical Context Document Model ([`CdmSection`]) manifest sections ([`SectionKind::Manifest`]).
+- **Scope:** `crates/github-extractor/src/tree_generator.rs`, `crates/github-extractor/src/tree.rs`, `crates/github-extractor/src/classification.rs`, `crates/github-extractor/src/client.rs`, `crates/github-extractor/src/lib.rs`, `crates/github-extractor/tests/repo_tree_generation_test.rs`.
+- **Prerequisites:** `5.3.4` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/github-extractor/src/tree_generator.rs`
+  - `crates/github-extractor/src/tree.rs`
+  - `crates/github-extractor/src/classification.rs`
+  - `crates/github-extractor/src/client.rs`
+  - `crates/github-extractor/src/lib.rs`
+  - `crates/github-extractor/tests/repo_tree_generation_test.rs`
+- **Implementation Tasks:**
+  1. Implement `crates/github-extractor/src/tree_generator.rs`:
+     - `TreeStyle` enum (`Unicode`, `Ascii`) with `#[derive(Default)]`.
+     - `TreeFormatConfig` with options for style, depth ceiling (`max_depth`), entry limit (`max_entries`), file sizes, category badges, language tags, and directories-first sorting.
+     - `RepoTreeNode` recursive hierarchy model with `insert_entry`, `file_count`, `dir_count`, `total_bytes`, and `max_depth`.
+     - `RepoTree` aggregated model with `from_entries`, `from_classified_files`, `from_tree_response`, and `render`.
+     - `category_badge` helper for compact visual annotation (`[source]`, `[doc]`, `[manifest]`, `[config]`, `[test]`, `[lockfile]`, `[binary]`, `[oversized]`).
+     - `to_cdm_section`: generates a CDM `CdmSection` with `SectionKind::Manifest`, title `"Repository Directory Tree"`, `manifest_role: "repository_tree"`, BLAKE3 content hash, and token metrics.
+  2. Extend `GitTreeResponse` in `crates/github-extractor/src/tree.rs`:
+     - `to_repo_tree(&self) -> RepoTree`.
+  3. Extend `TreeClassificationReport` in `crates/github-extractor/src/classification.rs`:
+     - `to_repo_tree(&self) -> RepoTree`.
+  4. Extend `GitHubApiClient` in `crates/github-extractor/src/client.rs`:
+     - `generate_repo_tree(&self, tree_response) -> RepoTree`.
+     - `generate_repo_tree_classified(&self, classified_files) -> RepoTree`.
+  5. Re-export `tree_generator` models and helpers in `crates/github-extractor/src/lib.rs`.
+  6. Author comprehensive integration tests in `crates/github-extractor/tests/repo_tree_generation_test.rs` covering Git tree entry construction, classification badge formatting, ASCII/Unicode styles, depth limiting, entry count ceiling, CDM section mapping, and live Axum API client integration.
+  7. Run full quality gate (`cargo test`, `cargo clippy`, `cargo fmt`, `cargo deny`, `scripts/check-all.ps1`).
+- **Acceptance Criteria:**
+  - Hierarchical directory tree is accurately assembled from arbitrary flat Git tree entries or classified files.
+  - Directories and files are sorted deterministically with directories listed first when configured.
+  - Visual output supports both Unicode and ASCII box-drawing styles with clean indentation.
+  - Depth limiting and entry count capping prevent token blowout on deep or massive repositories.
+  - Tree converts into valid CDM `CdmSection` (`SectionKind::Manifest`) with complete metadata.
+  - 100% test pass rate, 0 clippy warnings, clean formatting.
+- **Tests:** `cargo test -p web-repo-to-ai-github-extractor`, `cargo test --workspace`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, Rule 04, Rule 05: Safe string allocation with entry capping (`max_entries`); zero shell execution; path normalization preventing directory traversal attacks.
+- **Performance Considerations:** $O(N \log N)$ deterministic sorting; streaming string buffer generation with bounded memory.
+- **Documentation Requirements:** Module and type documentation in `crates/github-extractor`, tracking updates in `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-github-extractor`: 109/109 tests passed (28 unit tests, 7 tree integration tests, 73 other integration tests, 1 doc test) in 0.18s.
+  - `cargo test --workspace`: 437/437 tests passed across all workspace crates.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors.
+  - `cargo fmt --all -- --check`: 100% compliant with standard formatting.
+  - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
+- **Git Commit Reference:** `9dce03e`
+- **Status:** `ACCEPTED`
+
+---
+
+### Upcoming Subphase (Stage 5 — Public GitHub Repository Extraction)
+
+#### Phase 5.4 — Repository packaging
+
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `5.4.1` | Repository tree generation | `5.3.4` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
+| `5.4.2` | File manifest | `5.4.1` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
 
 ---
 

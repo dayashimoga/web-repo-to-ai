@@ -336,6 +336,12 @@ impl TreeClassificationReport {
             unsupported,
         )
     }
+
+    /// Converts this tree classification report into a structured hierarchical repository directory tree.
+    #[must_use]
+    pub fn to_repo_tree(&self) -> crate::tree_generator::RepoTree {
+        crate::tree_generator::RepoTree::from_classified_files(&self.files)
+    }
 }
 
 /// File classification engine implementing heuristic pattern matching and rules.

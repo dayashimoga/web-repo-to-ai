@@ -23,6 +23,7 @@ pub mod recovery;
 pub mod source;
 pub mod target;
 pub mod tree;
+pub mod tree_generator;
 
 pub use classification::{
     detect_language, ClassifiedFile, FileCategory, FileClassificationConfig, FileClassifier,
@@ -69,6 +70,9 @@ pub use tree::{
     GitFileMode, GitTreeEntry, GitTreeEntryType, GitTreeResponse, RecoveryStrategy,
     TreeCompleteness, TruncationReason, TruncationReport, GITHUB_TREE_ENTRY_LIMIT,
     SUBTREE_TRAVERSAL_LIMIT,
+};
+pub use tree_generator::{
+    category_badge, format_byte_size, RepoTree, RepoTreeNode, TreeFormatConfig, TreeStyle,
 };
 
 /// Returns the unique crate identifier name.

@@ -6,6 +6,27 @@
 
 ## [Unreleased] — Stage 5: Public GitHub Repository Extraction
 
+### 2026-11-18 — Phase 5.4: Repository Packaging (`5.4.1`)
+
+#### Added
+- **`[5.4.1]` Repository Directory Tree Generation in `crates/github-extractor`:**
+  - Implemented hierarchical directory tree models, formatting engines, and CDM manifest section mappings in `crates/github-extractor/src/tree_generator.rs`:
+    - `RepoTreeNode`: recursive hierarchical node representation supporting files, subdirectories, modes, byte sizes, file categories, and language tags.
+    - `RepoTree`: aggregated tree model with `from_entries`, `from_classified_files`, and `from_tree_response` constructors, computing recursive file counts, directory counts, total byte sizes, and max nesting depths.
+    - `TreeFormatConfig` and `TreeStyle`: configurable diagram renderer supporting Unicode box-drawing (`├── `, `└── `, `│   `) and plain ASCII (`|-- `, `\-- `), depth ceilings (`max_depth`), total entry ceilings (`max_entries`), directories-first sorting, file sizes, and category badges.
+    - `category_badge`: compact category indicator formatter (`[source]`, `[doc]`, `[manifest]`, `[config]`, `[test]`, `[lockfile]`, `[binary]`, `[oversized]`).
+    - `to_cdm_section`: renders the complete directory diagram into a Canonical Context Document Model [`CdmSection`] with `SectionKind::Manifest`, `manifest_role: "repository_tree"`, BLAKE3 content hash, and baseline token metrics.
+  - Extended `GitTreeResponse` in `crates/github-extractor/src/tree.rs`:
+    - `to_repo_tree(&self) -> RepoTree`: direct conversion from Git tree response.
+  - Extended `TreeClassificationReport` in `crates/github-extractor/src/classification.rs`:
+    - `to_repo_tree(&self) -> RepoTree`: direct conversion preserving classification categories and languages.
+  - Extended `GitHubApiClient` in `crates/github-extractor/src/client.rs`:
+    - `generate_repo_tree(&self, tree_response) -> RepoTree` and `generate_repo_tree_classified(&self, classified_files) -> RepoTree`.
+  - Re-exported tree generator models in `crates/github-extractor/src/lib.rs`.
+  - Authored comprehensive integration tests in `crates/github-extractor/tests/repo_tree_generation_test.rs`:
+    - 7 test suites validating Git tree entry construction, classification badge formatting, ASCII/Unicode styles, depth limiting, entry count ceiling, CDM section mapping, and live Axum API client integration.
+  - Verified 437 passing workspace Rust tests (109 in `crates/github-extractor` + 1 doc-test), 213 frontend tests, zero clippy warnings, zero fmt diffs, and 100% passing gates across all 5 checks in `scripts/check-all.ps1`.
+
 ### 2026-11-18 — Phase 5.3: File Extraction (`5.3.4`) — PHASE 5.3 CERTIFIED
 
 #### Added

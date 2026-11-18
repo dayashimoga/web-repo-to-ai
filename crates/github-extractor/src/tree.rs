@@ -524,4 +524,10 @@ impl GitTreeResponse {
     ) -> crate::classification::TreeClassificationReport {
         crate::classification::FileClassifier::classify_tree(self, config)
     }
+
+    /// Converts this Git tree response into a structured hierarchical repository directory tree.
+    #[must_use]
+    pub fn to_repo_tree(&self) -> crate::tree_generator::RepoTree {
+        crate::tree_generator::RepoTree::from_tree_response(self)
+    }
 }
