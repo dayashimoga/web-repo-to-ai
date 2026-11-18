@@ -71,13 +71,13 @@
   - `6.1` GitHub App (`6.1.1` [ACCEPTED], `6.1.2` [ACCEPTED], `6.1.3` [ACCEPTED], `6.1.4` [ACCEPTED — PHASE 6.1 CERTIFIED])
   - `6.2` Credential management (`6.2.1` [ACCEPTED], `6.2.2` [ACCEPTED], `6.2.3` [ACCEPTED], `6.2.4` [ACCEPTED — PHASE 6.2 CERTIFIED])
   - `6.3` Private extraction (`6.3.1` [ACCEPTED], `6.3.2` [ACCEPTED], `6.3.3` [ACCEPTED], `6.3.4` [ACCEPTED — PHASE 6.3 CERTIFIED])
-  - `6.4` Security verification (`6.4.1` [ACCEPTED], `6.4.2` [ACCEPTED], `6.4.3` [ACCEPTED], `6.4.4` [NEXT])
+  - `6.4` Security verification (`6.4.1` [ACCEPTED], `6.4.2` [ACCEPTED], `6.4.3` [ACCEPTED], `6.4.4` [ACCEPTED — PHASE 6.4 & STAGE 6 CERTIFIED])
 
 ### STAGE 7 — AI CONTEXT AND TOKEN OPTIMIZATION
 - **Deliverable:** Accurate, measurable, token-efficient context optimization across specialized engineering profiles.
 - **Stage Acceptance Gate:** Measurable optimization with exact/labeled token counts, transparent information-preservation metrics, and exclusion reports.
 - **Phases:**
-  - `7.1` Content optimization (`7.1.1` – `7.1.4`)
+  - `7.1` Content optimization (`7.1.1` [NEXT] – `7.1.4`)
   - `7.2` Token intelligence (`7.2.1` – `7.2.4`)
   - `7.3` Context profiles (`7.3.1` – `7.3.4`)
   - `7.4` Quality validation (`7.4.1` – `7.4.4`)

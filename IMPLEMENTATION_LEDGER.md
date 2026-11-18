@@ -6019,13 +6019,95 @@
 
 ---
 
-### Upcoming Subphase (Stage 6 — Private GitHub Repositories)
+#### Subphase `6.4.4` — Permission audit in crates/github-extractor
+- **Unique ID:** `6.4.4`
+- **Objective:** Perform exhaustive security verification and permission auditing across all private repository extraction components in `crates/github-extractor`, asserting strict minimal read-only least-privilege compliance (`contents: read`, `metadata: read`), zero repository modification capability, automatic detection and rejection of excessive levels (write, admin) and prohibited sensitive categories (`administration`, `actions`, `secrets`, etc.), installation suspension enforcement, wire-level token request scoping, and formal certification of Stage 6 under Rule 05.
+- **Scope:** `crates/github-extractor/src/permissions.rs`, `crates/github-extractor/src/authorization.rs`, `crates/github-extractor/src/private_extractor.rs`, `crates/github-extractor/tests/permission_audit_test.rs`, `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Prerequisites:** `6.4.3` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/github-extractor/src/permissions.rs`
+  - `crates/github-extractor/src/authorization.rs`
+  - `crates/github-extractor/src/private_extractor.rs`
+  - `crates/github-extractor/tests/permission_audit_test.rs`
+  - `IMPLEMENTATION_LEDGER.md`
+  - `PROJECT_STATUS.md`
+  - `TODO.md`
+  - `CHANGELOG.md`
+  - `ROADMAP.md`
+  - `docs/ROADMAP.md`
+- **Implementation Tasks:**
+  1. Author comprehensive permission audit integration test suite `crates/github-extractor/tests/permission_audit_test.rs` (14 tests):
+     - `test_permission_audit_strict_minimal_exact_compliance`: Validates exact `contents: read` and `metadata: read` compliance under `PermissionPolicy::strict_minimal()`, zero violations, summary formatting, markdown report generation, and JSON roundtrip serialization.
+     - `test_permission_audit_rejects_missing_required_scopes`: Tests rejection when missing `contents: read`, missing `metadata: read`, or having an empty permission map.
+     - `test_permission_audit_rejects_all_write_and_admin_levels`: Exhaustively validates rejection of `write` and `admin` levels across `contents`, `metadata`, `pull_requests`, `issues`, and `packages`.
+     - `test_permission_audit_rejects_all_prohibited_sensitive_categories`: Exhaustively iterates over `DEFAULT_FORBIDDEN_CATEGORIES` (`administration`, `actions`, `secrets`, `deployments`, `packages`, `security_events`, `members`, `organization_administration`, `organization_secrets`, `organization_actions`, `workflows`, `blocking_keys`), asserting each is rejected with `ForbiddenScope` citing Rule 05 even if granted with `read` level.
+     - `test_permission_audit_rejects_unexpected_scopes_under_strict_minimal`: Validates that under `StrictMinimal`, benign non-required read scopes (`pull_requests: read`, `issues: read`, `discussions: read`, `pages: read`, `statuses: read`, `checks: read`) are flagged with `UnexpectedScope`.
+     - `test_permission_audit_standard_policy_permits_benign_read_scopes`: Validates that `PermissionPolicy::standard()` permits benign read scopes while strictly preserving write/admin and prohibited category bans.
+     - `test_permission_audit_custom_policy_builder`: Validates `PermissionPolicy::builder()` custom required scopes, custom forbidden categories, custom forbidden levels, and explicit whitelist scoping.
+     - `test_permission_audit_installation_suspension_detection`: Validates that suspended installations (`is_suspended: true`) are flagged with `SuspendedInstallation` violation and rejected by `validate_installation`.
+     - `test_permission_audit_installation_token_validation`: Validates `audit_installation_token` and `validate_installation_token` on compliant and non-compliant tokens.
+     - `test_permission_audit_authorized_installation_context_methods`: Validates `audit_permissions`, `validate_permissions`, `audit_permissions_with_policy`, and `validate_permissions_with_policy` on `AuthorizedInstallationContext`.
+     - `test_permission_audit_private_extractor_fail_closed_on_policy_violation`: Verifies that `PrivateRepositoryExtractor::extract` fails closed immediately with `PermissionViolation` on violating permissions before issuing any network requests.
+     - `test_permission_audit_live_http_installation_token_request_read_only_preservation`: In-process Axum mock server verifies client sends strictly `{"contents": "read", "metadata": "read"}` when requesting installation access tokens.
+     - `test_permission_audit_markdown_and_json_report_fidelity`: Validates multi-violation markdown table formatting with `REJECTED` and `PERMITTED` badges, caution alerts, and JSON schema fidelity.
+     - `test_stage_6_security_acceptance_gate_invariants`: Verifies the holistic Stage 6 Security Acceptance Gate: at-rest AES-256-GCM encryption with session AAD, zero token leakage in debug/display, zero repository modification permissions, and strict read-only least-privilege enforcement.
+  2. Implement helper query methods on `PermissionAuditReport` (`has_excessive_level`, `has_forbidden_category`, `has_missing_required`, `has_unexpected_scope`).
+  3. Implement `audit_context` and `validate_context` on `PermissionAuditor`.
+  4. Implement `audit_permissions`, `validate_permissions`, `audit_permissions_with_policy`, `validate_permissions_with_policy` on `AuthorizedInstallationContext`.
+  5. Add `permission_policy` and `with_permission_policy` to `PrivateExtractionConfig`, and enforce pre-flight permission validation in `PrivateRepositoryExtractor::extract`.
+  6. Execute full verification suite (`cargo test`, `cargo fmt`, `cargo clippy`, `cargo deny check`, `scripts/check-all.ps1`).
+  7. Formally certify Phase 6.4 and STAGE 6 in all tracking ledgers and roadmaps.
+- **Acceptance Criteria:**
+  - Strict minimal permissions (`contents: read`, `metadata: read`) are enforced across all installation, token, and extraction operations.
+  - Any attempt to grant or use write, admin, or prohibited category permissions fails closed with explicit `PermissionViolation`.
+  - Suspended installations are systematically blocked.
+  - Diagnostic and audit reports render valid GFM Markdown tables with accurate status badges and RFC-compliant JSON.
+  - Stage 6 Acceptance Gate ("Authorized private repositories can be extracted without exposing credentials, leaking tokens, or permitting repository modifications") is 100% satisfied.
+  - 100% of tests pass, clippy is warning-free, and monorepo gates pass with 0 failures.
+- **Risk Analysis:**
+  - Risk: Permission elevation through newly added GitHub App scopes.
+  - Mitigation: `PermissionPolicy::strict_minimal()` rejects all non-whitelisted scopes; `PermissionAuditor` runs at token minting, installation registration, session evaluation, and extraction start.
+- **Rollback Plan:**
+  - Revert Subphase 6.4.4 additions via `git reset --hard HEAD~1` and restore Subphase 6.4.3 baseline.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-github-extractor --test permission_audit_test`: 14/14 passed in 0.01s.
+  - `cargo test -p web-repo-to-ai-github-extractor`: all 30 unit tests, 34 integration test suites (141+ integration tests), and 1 doc-test passed with 0 failures.
+  - Workspace linter: `cargo clippy --workspace --all-targets -- -D warnings` passed with 0 warnings.
+  - Formatting: `cargo fmt --all -- --check` clean with 0 diffs.
+  - Dependency audit: `cargo deny check` passed (advisories ok, bans ok, licenses ok, sources ok).
+  - Monorepo gatekeeper: `powershell scripts/check-all.ps1` completed with `ALL GATES PASSED (0 failures)` (all 5 gates passed: Bootstrap & Governance, Workflow Validation, Rust Workspace [563+ tests passed], Frontend Web [213 vitest passed], Resource Budget & 30 GB Storage Ceiling [5.27 GB / 30 GB, 17.6%]).
+- **Git Commit Reference:** `2ed1aba`
+- **Status:** `ACCEPTED`
 
-#### Phase 6.4 — Security verification
+---
+
+### PHASE 6.4 & STAGE 6 FORMAL CERTIFICATION
+
+- **Stage:** `STAGE 6 — PRIVATE GITHUB REPOSITORIES`
+- **Phase:** `Phase 6.4 — Security verification`
+- **Subphases Certified (16 of 16):**
+  - Phase 6.1 (GitHub App): `6.1.1` (App Configuration & Manifest), `6.1.2` (OAuth & Installation Flow), `6.1.3` (Minimum Permissions), `6.1.4` (Callback Security) — `ACCEPTED` (**FORMALLY CERTIFIED**)
+  - Phase 6.2 (Credential Management): `6.2.1` (Secure Token Storage), `6.2.2` (Token Refresh & Expiration), `6.2.3` (Revocation), `6.2.4` (Secret Redaction) — `ACCEPTED` (**FORMALLY CERTIFIED**)
+  - Phase 6.3 (Private Extraction): `6.3.1` (Installation Authorization), `6.3.2` (Selected Repository Access), `6.3.3` (Private Tree & Source Extraction), `6.3.4` (Authorization Failure Recovery) — `ACCEPTED` (**FORMALLY CERTIFIED**)
+  - Phase 6.4 (Security Verification): `6.4.1` (Cross-User Isolation), `6.4.2` (Unauthorized Access Tests), `6.4.3` (Token Leakage Tests), `6.4.4` (Permission Audit) — `ACCEPTED` (**FORMALLY CERTIFIED**)
+- **Stage Acceptance Gate Verification:**
+  - Authorized private repositories can be extracted without exposing credentials, leaking tokens, or permitting repository modifications.
+  - Least privilege strictly enforced: mandatory `contents: read` and `metadata: read`; zero write/admin scopes permitted across all layers.
+  - Secret tokens encrypted at rest via `AES-256-GCM` with session-scoped Authenticated Associated Data (AAD).
+  - Multi-tenant tenant session isolation cryptographically and logically verified across memory stores, caches, and Axum endpoints.
+  - Observability and wire HTTP traffic verified: zero token leakage in URI paths, queries, logs, or error envelopes.
+  - Bounded memory, CPU-only 16 GB RAM baseline, and `<= 30 GB` storage ceiling strictly observed (5.27 GB / 30 GB, 17.6%).
+- **Certification Status:** **STAGE 6 FORMALLY CERTIFIED & ACCEPTED**
+
+---
+
+### Upcoming Subphase (Stage 7 — AI Context and Token Optimization)
+
+#### Phase 7.1 — Content optimization
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `6.4.4` | Permission audit | `6.4.3` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
+| `7.1.1` | Structural normalization | Stage 6 Certified (`ACCEPTED`) | `crates/normalizer/*`, `crates/cdm/*` | `NOT_STARTED` |
 
 ---
 

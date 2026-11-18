@@ -62,6 +62,8 @@ pub struct PrivateExtractionConfig {
     pub fetch_metadata: bool,
     /// Safety margin in seconds for proactive token renewal.
     pub proactive_token_renewal_margin_secs: u64,
+    /// Permission policy governing this extraction (defaults to `PermissionPolicy::strict_minimal()`).
+    pub permission_policy: crate::permissions::PermissionPolicy,
 }
 
 impl Default for PrivateExtractionConfig {
@@ -74,6 +76,7 @@ impl Default for PrivateExtractionConfig {
             target_ref: None,
             fetch_metadata: true,
             proactive_token_renewal_margin_secs: 300,
+            permission_policy: crate::permissions::PermissionPolicy::strict_minimal(),
         }
     }
 }
@@ -125,6 +128,13 @@ impl PrivateExtractionConfig {
     #[must_use]
     pub fn with_proactive_token_renewal_margin_secs(mut self, secs: u64) -> Self {
         self.proactive_token_renewal_margin_secs = secs;
+        self
+    }
+
+    /// Sets an explicit permission policy to enforce during extraction.
+    #[must_use]
+    pub fn with_permission_policy(mut self, policy: crate::permissions::PermissionPolicy) -> Self {
+        self.permission_policy = policy;
         self
     }
 }
@@ -311,6 +321,14 @@ impl PrivateRepositoryExtractor {
             "Starting private repository extraction for {}/{} (installation_id={})",
             ctx.owner, ctx.repo, ctx.installation_id
         );
+
+        // 0. Defense-in-depth: validate permissions if populated in the context
+        if !ctx.permissions.is_empty() {
+            crate::permissions::PermissionAuditor::validate_permissions(
+                &ctx.permissions,
+                &effective_config.permission_policy,
+            )?;
+        }
 
         // 1. Target resolution
         let target = GitHubTarget::for_repo(&ctx.owner, &ctx.repo);

@@ -2,17 +2,17 @@
 
 **Project:** `web-repo-to-ai` (Universal URL & GitHub Repository → AI-Ready Content Converter)  
 **Last Updated:** 2026-11-18  
-**Current Stage:** `STAGE 6 — PRIVATE GITHUB REPOSITORIES` (`IN_PROGRESS`)  
-**Current Phase:** `Phase 6.4 — Security verification` (`IN_PROGRESS`)  
-**Active Subphase:** `None (Awaiting user confirmation to begin Subphase 6.4.4)`  
-**Last Completed Subphase:** `6.4.3 — Token leakage tests in crates/github-extractor & crates/observability` (`ACCEPTED`)  
-**Next Upcoming Subphase:** `6.4.4 — Permission audit in crates/github-extractor`
+**Current Stage:** `STAGE 6 — PRIVATE GITHUB REPOSITORIES` (`COMPLETED` / `ACCEPTED` — **FORMALLY CERTIFIED**)  
+**Current Phase:** `Phase 6.4 — Security verification` (`COMPLETED` / `ACCEPTED` — **FORMALLY CERTIFIED**)  
+**Active Subphase:** `None (Awaiting user confirmation to begin Stage 7 / Subphase 7.1.1)`  
+**Last Completed Subphase:** `6.4.4 — Permission audit in crates/github-extractor` (`ACCEPTED` — **STAGE 6 FORMALLY CERTIFIED**)  
+**Next Upcoming Subphase:** `7.1.1 — Structural normalization in crates/normalizer & crates/cdm`
 
 ---
 
 ## 1. Executive Summary
 
-Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 subphases), Stage 2 (`2.1.1` – `2.4.4`, 15 subphases), Stage 3 (`3.1.1` – `3.4.4`, 16 subphases), Stage 4 (`4.1.1` – `4.4.4`, 16 subphases), Stage 5 (`5.1.1` – `5.5.4`, 20 subphases), Phase 6.1 (`6.1.1` – `6.1.4`, 4 subphases), Phase 6.2 (`6.2.1` – `6.2.4`, 4 subphases), Phase 6.3 (`6.3.1` – `6.3.4`, 4 subphases), Subphase 6.4.1, Subphase 6.4.2, and Subphase 6.4.3 are 100% complete, verified, and accepted across 111 subphases. Subphase `6.4.3` ("Token leakage tests in crates/github-extractor & crates/observability") verifies and enforces defense-in-depth against credential leakage across all credential-bearing domain models (`AuthorizedInstallationContext`, `StoredTokenRecord`, `GitHubAppConfig`, `GitHubInstallationToken`, `GitHubOAuthTokenResponse`, `GitHubOAuthErrorResponse`, `EncryptionKey`, `EncryptedPayload`), all error variants, recovery diagnostic plans, wire HTTP network transmissions, and the observability redaction engine (`RedactionEngine`, `RedactingWriter`, JSON AST scrubbing) under Rule 05.
+Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 subphases), Stage 2 (`2.1.1` – `2.4.4`, 15 subphases), Stage 3 (`3.1.1` – `3.4.4`, 16 subphases), Stage 4 (`4.1.1` – `4.4.4`, 16 subphases), Stage 5 (`5.1.1` – `5.5.4`, 20 subphases), and Stage 6 (`6.1.1` – `6.4.4`, 16 subphases) are 100% complete, verified, and accepted across 112 subphases. Subphase `6.4.4` ("Permission audit in crates/github-extractor") conducts exhaustive least-privilege verification across domain models, token requests, pre-flight extraction validation, suspension detection, markdown reporting, and formally certifies Stage 6 under Rule 05: authorized private repositories can be extracted without exposing credentials, leaking tokens, or permitting repository modifications.
 
 ---
 
@@ -20,12 +20,12 @@ Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 su
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 111 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.1.4`, `6.2.1` – `6.2.4`, `6.3.1` – `6.3.4`, `6.4.1` – `6.4.3` |
+| `ACCEPTED` | 112 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 86 | `6.4.4` – `11.4.5` |
+| `NOT_STARTED` | 85 | `7.1.1` – `11.4.5` |
 | **Total** | **197** | `Stage 0` – `Stage 11` |
 
 ---

@@ -76,6 +76,46 @@ impl AuthorizedInstallationContext {
         self.permissions = permissions;
         self
     }
+
+    /// Audits this context's permissions against the default strict minimal policy.
+    #[must_use]
+    pub fn audit_permissions(&self) -> crate::permissions::PermissionAuditReport {
+        crate::permissions::PermissionAuditor::audit_permissions(
+            &self.permissions,
+            &crate::permissions::PermissionPolicy::strict_minimal(),
+        )
+    }
+
+    /// Audits this context's permissions against a custom policy.
+    #[must_use]
+    pub fn audit_permissions_with_policy(
+        &self,
+        policy: &crate::permissions::PermissionPolicy,
+    ) -> crate::permissions::PermissionAuditReport {
+        crate::permissions::PermissionAuditor::audit_permissions(&self.permissions, policy)
+    }
+
+    /// Validates this context's permissions against the default strict minimal policy.
+    ///
+    /// # Errors
+    /// Returns [`GitHubExtractorError::PermissionViolation`] if permissions are non-compliant.
+    pub fn validate_permissions(&self) -> Result<(), GitHubExtractorError> {
+        crate::permissions::PermissionAuditor::validate_permissions(
+            &self.permissions,
+            &crate::permissions::PermissionPolicy::strict_minimal(),
+        )
+    }
+
+    /// Validates this context's permissions against a custom policy.
+    ///
+    /// # Errors
+    /// Returns [`GitHubExtractorError::PermissionViolation`] if permissions are non-compliant.
+    pub fn validate_permissions_with_policy(
+        &self,
+        policy: &crate::permissions::PermissionPolicy,
+    ) -> Result<(), GitHubExtractorError> {
+        crate::permissions::PermissionAuditor::validate_permissions(&self.permissions, policy)
+    }
 }
 
 impl fmt::Debug for AuthorizedInstallationContext {

@@ -331,6 +331,38 @@ impl PermissionAuditReport {
         self.compliant
     }
 
+    /// Returns true if any detected violation is due to excessive permission levels (e.g. write/admin).
+    #[must_use]
+    pub fn has_excessive_level(&self) -> bool {
+        self.violations
+            .iter()
+            .any(|v| matches!(v, PermissionViolation::ExcessiveLevel { .. }))
+    }
+
+    /// Returns true if any detected violation is due to a prohibited sensitive category.
+    #[must_use]
+    pub fn has_forbidden_category(&self) -> bool {
+        self.violations
+            .iter()
+            .any(|v| matches!(v, PermissionViolation::ForbiddenScope { .. }))
+    }
+
+    /// Returns true if any detected violation is due to a missing required scope.
+    #[must_use]
+    pub fn has_missing_required(&self) -> bool {
+        self.violations
+            .iter()
+            .any(|v| matches!(v, PermissionViolation::MissingRequired { .. }))
+    }
+
+    /// Returns true if any detected violation is due to an unexpected additional scope.
+    #[must_use]
+    pub fn has_unexpected_scope(&self) -> bool {
+        self.violations
+            .iter()
+            .any(|v| matches!(v, PermissionViolation::UnexpectedScope { .. }))
+    }
+
     /// Returns the slice of detected violations.
     #[must_use]
     pub fn violations(&self) -> &[PermissionViolation] {
@@ -617,5 +649,25 @@ impl PermissionAuditor {
         } else {
             Err(GitHubExtractorError::PermissionViolation(report.summary()))
         }
+    }
+
+    /// Audits an [`AuthorizedInstallationContext`] against the provided [`PermissionPolicy`].
+    #[must_use]
+    pub fn audit_context(
+        ctx: &crate::authorization::AuthorizedInstallationContext,
+        policy: &PermissionPolicy,
+    ) -> PermissionAuditReport {
+        Self::audit_permissions(&ctx.permissions, policy)
+    }
+
+    /// Validates an [`AuthorizedInstallationContext`] against the provided [`PermissionPolicy`].
+    ///
+    /// # Errors
+    /// Returns [`GitHubExtractorError::PermissionViolation`] if permissions violate policy.
+    pub fn validate_context(
+        ctx: &crate::authorization::AuthorizedInstallationContext,
+        policy: &PermissionPolicy,
+    ) -> Result<(), GitHubExtractorError> {
+        Self::validate_permissions(&ctx.permissions, policy)
     }
 }

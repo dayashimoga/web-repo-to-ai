@@ -6,6 +6,31 @@
 
 ## [Unreleased] — Stage 6: Private GitHub Repositories
 
+### 2026-11-18 — Phase 6.4: Security verification (`6.4.4` — Phase 6.4 & Stage 6 Certified)
+
+#### Added
+- **`[6.4.4]` Least-Privilege Permission Auditing & Stage 6 Certification in `crates/github-extractor`:**
+  - Implemented comprehensive permission audit integration test suite `crates/github-extractor/tests/permission_audit_test.rs` (14 integration tests):
+    - Strict minimal policy exact compliance (`PermissionPolicy::strict_minimal()`): Verified exact compliance for `contents: read` + `metadata: read` with zero violations, valid GFM Markdown report with `PERMITTED` badges, and JSON roundtrip serialization.
+    - Missing required scopes: Validated immediate rejection when `contents` or `metadata` scopes are missing.
+    - Prohibited permission levels: Exhaustively verified rejection of `write` and `admin` levels across `contents`, `metadata`, `pull_requests`, `issues`, and `packages`.
+    - Prohibited sensitive categories: Exhaustively verified rejection of all 12 sensitive categories (`DEFAULT_FORBIDDEN_CATEGORIES`) under Rule 05 (`administration`, `actions`, `secrets`, `deployments`, `packages`, `security_events`, `members`, `organization_administration`, `organization_secrets`, `organization_actions`, `workflows`, `blocking_keys`).
+    - Unexpected scope detection: Confirmed unexpected additional scopes are flagged under `StrictMinimal`.
+    - Benign read scopes under `PermissionPolicy::standard()`: Confirmed benign read scopes (`pull_requests: read`, `issues: read`) are permitted while strictly rejecting write/admin and prohibited categories.
+    - Custom policy builder: Verified fine-grained customization with `PermissionPolicyBuilder`.
+    - Installation suspension enforcement: Verified suspended installations (`is_suspended: true`) produce `SuspendedInstallation` violation and fail validation.
+    - Token validation: Verified `audit_installation_token` and `validate_installation_token`.
+    - Context validation: Extended `AuthorizedInstallationContext` with `audit_permissions`, `validate_permissions`, `audit_permissions_with_policy`, and `validate_permissions_with_policy`.
+    - Fail-closed private extraction: Verified `PrivateRepositoryExtractor::extract` enforces pre-flight permission validation, failing closed immediately on violating permissions (`contents: write` or forbidden scopes) before making network calls.
+    - Wire-level token request scoping: In-process Axum mock server verified that client requests strictly minimal read-only permissions (`contents: read`, `metadata: read`).
+    - Markdown & JSON reporting fidelity: Verified rendering of status badges (`PERMITTED` vs `REJECTED`), caution alerts, and JSON schema fidelity.
+    - Stage 6 Security Acceptance Gate: Proved all Stage 6 invariants: at-rest AES-256-GCM encryption with session AAD, zero credential leakage in debug/display, zero repository modification permissions, and strict read-only least-privilege enforcement.
+  - Implemented query helpers on `PermissionAuditReport`: `has_excessive_level`, `has_forbidden_category`, `has_missing_required`, `has_unexpected_scope`.
+  - Implemented `audit_context` and `validate_context` on `PermissionAuditor`.
+  - Extended `PrivateExtractionConfig` with `permission_policy` and `with_permission_policy`.
+  - 100% passing quality gates: 14/14 new tests passed, 282 total extractor tests passed, 563+ workspace tests passed, zero clippy warnings, zero fmt diffs, cargo deny passed, and 5/5 check-all gates passed.
+  - **Formally certified Phase 6.4 and STAGE 6 (Private GitHub Repositories).**
+
 ### 2026-11-18 — Phase 6.4: Security verification (`6.4.3`)
 
 #### Added
