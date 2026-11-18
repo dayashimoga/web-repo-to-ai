@@ -4,15 +4,15 @@
 **Last Updated:** 2026-11-18  
 **Current Stage:** `STAGE 7 — AI CONTEXT AND TOKEN OPTIMIZATION` (`IN_PROGRESS`)  
 **Current Phase:** `Phase 7.1 — Content optimization` (`IN_PROGRESS`)  
-**Active Subphase:** `None (Awaiting user confirmation to begin Subphase 7.1.2)`  
-**Last Completed Subphase:** `7.1.1 — Structural normalization in crates/normalizer & crates/cdm` (`ACCEPTED`)  
-**Next Upcoming Subphase:** `7.1.2 — Exact duplicate removal in crates/deduplication`
+**Active Subphase:** `None (Awaiting user confirmation to begin Subphase 7.1.3)`  
+**Last Completed Subphase:** `7.1.2 — Exact duplicate removal in crates/deduplication & crates/cdm` (`ACCEPTED`)  
+**Next Upcoming Subphase:** `7.1.3 — Semantic-aware deduplication in crates/deduplication`
 
 ---
 
 ## 1. Executive Summary
 
-Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 subphases), Stage 2 (`2.1.1` – `2.4.4`, 15 subphases), Stage 3 (`3.1.1` – `3.4.4`, 16 subphases), Stage 4 (`4.1.1` – `4.4.4`, 16 subphases), Stage 5 (`5.1.1` – `5.5.4`, 20 subphases), and Stage 6 (`6.1.1` – `6.4.4`, 16 subphases) are 100% complete, verified, and accepted across 112 subphases. Subphase `7.1.1` ("Structural normalization in crates/normalizer & crates/cdm") implements deterministic character encoding sanitization (BOM stripping, null bytes, zero-width chars, unprintable controls, smart quotes), whitespace and line-ending standardization (CRLF/CR -> Unix LF, blank line limits, trailing whitespace stripping), Markdown syntax canonicalization (code fence languages, heading levels, list markers, GFM table rectangularization), kind-specific normalization with 100% semantic code fidelity preservation, document-level orchestration, cryptographic BLAKE3 content hash recalculation, and quantitative `NormalizationReport` generation with 29 passing tests.
+Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 subphases), Stage 2 (`2.1.1` – `2.4.4`, 15 subphases), Stage 3 (`3.1.1` – `3.4.4`, 16 subphases), Stage 4 (`4.1.1` – `4.4.4`, 16 subphases), Stage 5 (`5.1.1` – `5.5.4`, 20 subphases), and Stage 6 (`6.1.1` – `6.4.4`, 16 subphases) are 100% complete, verified, and accepted across 112 subphases. Stage 7 ("AI Context and Token Optimization") is actively underway: Subphase `7.1.1` established structural normalization in `crates/normalizer` with 29 passing tests; Subphase `7.1.2` ("Exact duplicate removal in crates/deduplication & crates/cdm") implements deterministic cryptographic content hashing (BLAKE3), policy-driven canonical election (`FirstSeen`, `ShortestPath`, `StructuralHierarchy`, `PreferredPrefix`), flexible deduplication strategies (`Remove`, `ReplaceWithPointer`, `MarkOnly`), auditable exclusion accounting (`ExclusionReason::Duplicate`), directed relationship linking (`RelationshipKind::DuplicateOf`), and quantitative telemetry reporting (`ExactDeduplicationReport`) with 14 passing tests.
 
 ---
 
@@ -20,12 +20,12 @@ Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 su
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 113 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` |
+| `ACCEPTED` | 114 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.1.2` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 84 | `7.1.2` – `11.4.5` |
+| `NOT_STARTED` | 83 | `7.1.3` – `11.4.5` |
 | **Total** | **197** | `Stage 0` – `Stage 11` |
 
 ---

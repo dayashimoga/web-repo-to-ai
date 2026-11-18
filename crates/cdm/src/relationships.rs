@@ -27,6 +27,8 @@ pub enum RelationshipKind {
     ChildOf,
     /// Source defines a declared symbol (class, struct, trait, function).
     DefinesSymbol,
+    /// Source section is an exact or near duplicate of target section.
+    DuplicateOf,
 }
 
 impl RelationshipKind {
@@ -43,6 +45,7 @@ impl RelationshipKind {
             Self::ParentOf => "parent_of",
             Self::ChildOf => "child_of",
             Self::DefinesSymbol => "defines_symbol",
+            Self::DuplicateOf => "duplicate_of",
         }
     }
 }

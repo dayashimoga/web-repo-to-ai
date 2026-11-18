@@ -6,6 +6,30 @@
 
 ## [Unreleased] — Stage 7: AI Context and Token Optimization
 
+### 2026-11-18 — Phase 7.1: Content optimization (`7.1.2`)
+
+#### Added
+- **`[7.1.2]` Exact Content Deduplication Engine in `crates/deduplication` & `crates/cdm`:**
+  - Extended CDM relationship taxonomy:
+    - Added `RelationshipKind::DuplicateOf` (`"duplicate_of"`) in `crates/cdm/src/relationships.rs` and updated schema validation tests.
+  - Implemented strongly-typed configuration models and presets in `crates/deduplication/src/config.rs`:
+    - `DeduplicationStrategy`: `Remove`, `ReplaceWithPointer`, `MarkOnly`.
+    - `CanonicalSelectionPolicy`: `FirstSeen`, `ShortestPath`, `StructuralHierarchy` (`CodeFile` > `CodeSnippet` > `Prose` > `Table` > `Admonition` > `Frontmatter` > `Manifest` > `Navigation`), `PreferredPrefix(String)`.
+    - `HashScope`: `ExactBytes` (raw byte BLAKE3), `Normalized` (canonical line-endings and whitespace trimming).
+    - `ExactDeduplicationConfig`: `strategy`, `canonical_policy`, `hash_scope`, `min_byte_threshold` (default 32 bytes), `log_exclusions` (default true), presets `aggressive()`, `conservative()`, `lossless()`.
+  - Implemented duplicate cluster model in `crates/deduplication/src/cluster.rs`:
+    - `DuplicateCluster`: records `content_hash`, `canonical_section_id`, `canonical_title`, `canonical_path`, `canonical_kind`, `duplicate_section_ids`, `duplicate_count`, `bytes_per_instance`, `total_duplicate_bytes`, `estimated_tokens_saved`.
+  - Implemented exact deduplication engine in `crates/deduplication/src/exact.rs`:
+    - `compute_dedup_hash` evaluating raw or normalized whitespace text via BLAKE3.
+    - `ExactDeduplicator::find_duplicate_clusters` grouping candidate sections by hash, filtering clusters with >1 instances, electing canonical section via configured policy, and sorting clusters by net bytes saved descending.
+  - Implemented document-level deduplicator in `crates/deduplication/src/document.rs`:
+    - `DocumentDeduplicator`: orchestrates exact deduplication across `CdmDocument`, executes strategy (`Remove` drops sections and logs `ExclusionRecord`, `ReplaceWithPointer` substitutes pointer comment and updates hash/metrics, `MarkOnly` preserves bodies), logs `ExclusionReason::Duplicate` records, registers `RelationshipKind::DuplicateOf` edges, and recomputes document-level BLAKE3 revision hash.
+  - Implemented deduplication telemetry report in `crates/deduplication/src/report.rs`:
+    - `ExactDeduplicationReport`: records before/after bytes and estimated tokens, net reduction, percentage compression, unique sections, duplicate sections, clusters, Markdown summary table, and JSON roundtrip serialization.
+  - Implemented comprehensive integration test suite `crates/deduplication/tests/exact_deduplication_test.rs` (10 integration tests, 4 unit tests, 14 total passing tests):
+    - Validates exact vs normalized hashing, aggressive removal, conservative pointer replacement, lossless mark-only, structural hierarchy election, shortest path election, preferred prefix election, minimum byte threshold defense, idempotency, and Markdown/JSON report serialization.
+  - 100% passing quality gates: 14 deduplication tests passed, 577+ workspace tests passed, zero clippy warnings, zero fmt diffs, cargo deny passed, and 5/5 check-all gates passed.
+
 ### 2026-11-18 — Phase 7.1: Content optimization (`7.1.1`)
 
 #### Added

@@ -204,7 +204,7 @@
 
 ### Phase 7.1 — Content optimization (`IN_PROGRESS`)
 - [x] **[7.1.1]** Structural normalization in crates/normalizer & crates/cdm *(Completed 2026-11-18, EncodingConfig/WhitespaceConfig/MarkdownConfig/NormalizationConfig with lossless/compact/code_focused presets, EncodingSanitizer BOM/null/control/zero-width/smart-quote sanitization, WhitespaceNormalizer CRLF/CR -> LF and blank line ceilings, MarkdownNormalizer fence/heading/list/table rectangularization, SectionNormalizer kind-specific code preservation, DocumentNormalizer whole-document orchestration, NormalizationReport metrics & markdown/json serialization, 29 normalizer tests, 100% passing quality gates)*
-- [ ] **[7.1.2]** Exact duplicate removal in crates/deduplication
+- [x] **[7.1.2]** Exact duplicate removal in crates/deduplication *(Completed 2026-11-18, RelationshipKind::DuplicateOf, ExactDeduplicationConfig with aggressive/conservative/lossless presets, CanonicalSelectionPolicy with FirstSeen/ShortestPath/StructuralHierarchy/PreferredPrefix, DeduplicationStrategy with Remove/ReplaceWithPointer/MarkOnly, compute_dedup_hash with ExactBytes/Normalized scopes, ExactDeduplicator cluster engine, DocumentDeduplicator with ExclusionRecord logging and revision hash recalculation, ExactDeduplicationReport with Markdown/JSON serialization, 14 deduplication tests, 100% passing quality gates)*
 - [ ] **[7.1.3]** Semantic-aware deduplication in crates/deduplication
 - [ ] **[7.1.4]** Content classification in crates/normalizer & crates/code-intelligence
 

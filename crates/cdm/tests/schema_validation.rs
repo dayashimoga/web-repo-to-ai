@@ -302,6 +302,7 @@ fn test_all_enum_as_str_helpers() {
     assert_eq!(RelationshipKind::ParentOf.as_str(), "parent_of");
     assert_eq!(RelationshipKind::ChildOf.as_str(), "child_of");
     assert_eq!(RelationshipKind::DefinesSymbol.as_str(), "defines_symbol");
+    assert_eq!(RelationshipKind::DuplicateOf.as_str(), "duplicate_of");
 
     assert_eq!(ExclusionReason::RulePattern.as_str(), "rule_pattern");
     assert_eq!(ExclusionReason::SizeLimit.as_str(), "size_limit");

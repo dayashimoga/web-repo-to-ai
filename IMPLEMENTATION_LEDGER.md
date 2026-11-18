@@ -6172,16 +6172,84 @@
 
 ---
 
+#### Subphase `7.1.2` — Exact duplicate removal in crates/deduplication & crates/cdm
+- **Unique ID:** `7.1.2`
+- **Objective:** Implement exact cryptographic duplicate detection, policy-driven canonical election, duplicate consolidation strategies, exclusion logging, and relationship linking in `crates/deduplication` and `crates/cdm`. Support `Remove`, `ReplaceWithPointer`, and `MarkOnly` deduplication strategies, `FirstSeen`, `ShortestPath`, `StructuralHierarchy`, and `PreferredPrefix` canonical selection policies, `ExactBytes` and `Normalized` hashing scopes, auditable `ExclusionRecord` logging (`ExclusionReason::Duplicate`), directed relationship creation (`RelationshipKind::DuplicateOf`), and quantitative telemetry reporting (`ExactDeduplicationReport`).
+- **Scope:** `crates/deduplication/src/*`, `crates/deduplication/Cargo.toml`, `crates/deduplication/tests/exact_deduplication_test.rs`, `crates/cdm/src/relationships.rs`.
+- **Prerequisites:** `7.1.1` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/cdm/src/relationships.rs`
+  - `crates/cdm/tests/schema_validation.rs`
+  - `crates/deduplication/Cargo.toml`
+  - `crates/deduplication/src/cluster.rs`
+  - `crates/deduplication/src/config.rs`
+  - `crates/deduplication/src/document.rs`
+  - `crates/deduplication/src/error.rs`
+  - `crates/deduplication/src/exact.rs`
+  - `crates/deduplication/src/lib.rs`
+  - `crates/deduplication/src/report.rs`
+  - `crates/deduplication/tests/exact_deduplication_test.rs`
+- **Implementation Tasks:**
+  1. Extend CDM relationship taxonomy:
+     - Add `RelationshipKind::DuplicateOf` (`"duplicate_of"`) in `crates/cdm/src/relationships.rs` and update schema validation tests.
+  2. Implement strongly-typed configuration models and presets in `crates/deduplication/src/config.rs`:
+     - `DeduplicationStrategy`: `Remove`, `ReplaceWithPointer`, `MarkOnly`.
+     - `CanonicalSelectionPolicy`: `FirstSeen`, `ShortestPath`, `StructuralHierarchy` (`CodeFile` > `CodeSnippet` > `Prose` > `Table` > `Admonition` > `Frontmatter` > `Manifest` > `Navigation`), `PreferredPrefix(String)`.
+     - `HashScope`: `ExactBytes` (raw byte BLAKE3), `Normalized` (canonical line-endings and whitespace trimming).
+     - `ExactDeduplicationConfig`: `strategy`, `canonical_policy`, `hash_scope`, `min_byte_threshold` (default 32 bytes), `log_exclusions` (default true), presets `aggressive()`, `conservative()`, `lossless()`.
+  3. Implement duplicate cluster model in `crates/deduplication/src/cluster.rs`:
+     - `DuplicateCluster`: records `content_hash`, `canonical_section_id`, `canonical_title`, `canonical_path`, `canonical_kind`, `duplicate_section_ids`, `duplicate_count`, `bytes_per_instance`, `total_duplicate_bytes`, `estimated_tokens_saved`.
+  4. Implement exact deduplication engine in `crates/deduplication/src/exact.rs`:
+     - `compute_dedup_hash` evaluating raw or normalized whitespace text via BLAKE3.
+     - `ExactDeduplicator::find_duplicate_clusters` grouping candidate sections by hash, filtering clusters with >1 instances, electing canonical section via configured policy, and sorting clusters by net bytes saved descending.
+  5. Implement document-level deduplicator in `crates/deduplication/src/document.rs`:
+     - `DocumentDeduplicator`: orchestrates exact deduplication across `CdmDocument`, executes strategy (`Remove` drops sections and logs `ExclusionRecord`, `ReplaceWithPointer` substitutes pointer comment and updates hash/metrics, `MarkOnly` preserves bodies), logs `ExclusionReason::Duplicate` records, registers `RelationshipKind::DuplicateOf` edges, and recomputes document-level BLAKE3 revision hash.
+  6. Implement deduplication telemetry report in `crates/deduplication/src/report.rs`:
+     - `ExactDeduplicationReport`: records before/after bytes and estimated tokens, net reduction, percentage compression, unique sections, duplicate sections, clusters, Markdown summary table, and JSON roundtrip serialization.
+  7. Author unit and integration tests:
+     - 4 unit tests in `crates/deduplication/src/*` and 10 integration tests in `crates/deduplication/tests/exact_deduplication_test.rs` covering exact vs normalized hashing, aggressive removal, conservative pointer replacement, lossless mark-only, structural hierarchy election, shortest path election, preferred prefix election, minimum byte threshold defense, idempotency, and Markdown/JSON report serialization.
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-deduplication`
+  - `cargo test --workspace`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - Duplicate sections are identified deterministically across exact byte and normalized hash modes.
+  - Canonical sections are elected strictly according to configured policy.
+  - `Remove` strategy drops duplicate bodies and records auditable `ExclusionRecord` items with `ExclusionReason::Duplicate`.
+  - `ReplaceWithPointer` strategy inserts pointer comments and updates BLAKE3 content hashes.
+  - Directed `DuplicateOf` relationships are generated linking duplicates to their canonical sections.
+  - Deduplication is provably idempotent (`deduplicate(deduplicate(doc)) == deduplicate(doc)`).
+  - All 14 deduplication tests pass, all workspace tests pass, zero clippy warnings, zero fmt diffs, cargo deny passed, all check-all gates pass.
+- **Risk Analysis:**
+  - Risk: Erroneous canonical election causing loss of primary source file in favor of generated fixture.
+  - Mitigation: `CanonicalSelectionPolicy::StructuralHierarchy` ranks `CodeFile` above `CodeSnippet` and ties break on path length and outline order.
+- **Rollback Plan:**
+  - Revert Subphase 7.1.2 additions via `git reset --hard HEAD~1` and restore Subphase 7.1.1 baseline.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-deduplication`: 14 tests passing (4 unit tests, 10 integration tests).
+  - Full workspace tests: 577+ tests passing across all crates and services with 0 failures.
+  - Workspace linter: `cargo clippy --workspace --all-targets -- -D warnings` clean with 0 warnings.
+  - Formatting: `cargo fmt --all -- --check` clean with 0 diffs.
+  - Dependency audit: `cargo deny check` passed (advisories ok, bans ok, licenses ok, sources ok).
+  - Monorepo gatekeeper: `powershell scripts/check-all.ps1` completed with `ALL GATES PASSED (0 failures)`.
+- **Git Commit Reference:** `7f5bc7a`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 7 — AI Context and Token Optimization)
 
 #### Phase 7.1 — Content optimization
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `7.1.2` | Exact duplicate removal | `7.1.1` (`ACCEPTED`) | `crates/deduplication/*`, `crates/cdm/*` | `NOT_STARTED` |
+| `7.1.3` | Semantic-aware deduplication | `7.1.2` (`ACCEPTED`) | `crates/deduplication/*`, `crates/cdm/*` | `NOT_STARTED` |
 
 ---
 
 ## STAGES 7 – 11 QUEUED LEDGER SUMMARY
 
-All subsequent subphases for **Stage 7** (`7.1.2`–`7.4.4`), **Stage 8** (`8.1.1`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.
+All subsequent subphases for **Stage 7** (`7.1.3`–`7.4.4`), **Stage 8** (`8.1.1`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.
