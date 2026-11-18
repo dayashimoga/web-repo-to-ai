@@ -6,6 +6,28 @@
 
 ## [Unreleased] — Stage 5: Public GitHub Repository Extraction
 
+### 2026-11-18 — Phase 5.4: Repository Packaging (`5.4.2`)
+
+#### Added
+- **`[5.4.2]` File Manifest & Completeness Index in `crates/github-extractor`:**
+  - Implemented structured repository file manifest indexing, per-file extraction status accounting, multi-report aggregation, and CDM manifest section construction in `crates/github-extractor/src/manifest.rs`:
+    - `FileExtractionStatus`: strongly-typed enum tracking extraction outcomes (`Extracted`, `Excluded { reason }`, `Failed { error }`, `Unsupported { reason }`) with query helpers (`is_extracted`, `is_excluded`, `is_failed`, `is_unsupported`, `status_name`, `reason_or_error`).
+    - `ManifestFileEntry`: comprehensive per-file manifest model capturing relative path, 40-character Git SHA-1, classified file category, byte size, line count, detected programming language, BLAKE3 and SHA-256 digests, extraction status, and associated CDM section ID.
+    - `RepoFileManifest`: consolidated repository index with aggregate metrics (total discovered files, extracted files, excluded files, failed files, unsupported files, total bytes, extracted bytes, total line count, category distribution map, language distribution map, and status distribution map).
+    - Multi-report aggregator `from_classification_and_reports`: stitches `TreeClassificationReport` with downstream reports from sources, documentation, dependencies, configurations, and tests, guaranteeing 100% accounting for all discovered tree files.
+    - Completeness equation validation `verify_completeness()`: enforces the fundamental conservation law `total_files == extracted + excluded + failed + unsupported`.
+    - Formatters & serializers: `to_markdown_table()` generating GFM executive summary tables and complete file indices; `to_json()` and `to_json_compact()` for structured JSON export.
+    - CDM integration: `to_cdm_section()` generating a Canonical Context Document Model [`CdmSection`] with `SectionKind::Manifest`, `manifest_role: "file_manifest"`, BLAKE3 content hash, and completeness attributes.
+    - `to_completeness_report()`: direct translation into CDM [`CompletenessReport`].
+  - Extended `TreeClassificationReport` in `crates/github-extractor/src/classification.rs`:
+    - `to_file_manifest(&self) -> RepoFileManifest`: converts classification report into an initial repository manifest.
+  - Extended `GitHubApiClient` in `crates/github-extractor/src/client.rs`:
+    - `generate_file_manifest`: convenience client method assembling classification and arbitrary extraction reports into `RepoFileManifest`.
+  - Re-exported manifest types in `crates/github-extractor/src/lib.rs`.
+  - Authored comprehensive integration tests in `crates/github-extractor/tests/file_manifest_test.rs`:
+    - 7 test suites validating explicit entry assembly, multi-report stitching, GFM Markdown formatting, JSON serialization roundtrip, CDM completeness report mapping, CDM manifest section construction, and live Axum API client integration.
+  - Verified 444 passing workspace Rust tests (116 in `crates/github-extractor` + 1 doc-test), 213 frontend tests, zero clippy warnings, zero fmt diffs, and 100% passing gates across all 5 checks in `scripts/check-all.ps1`.
+
 ### 2026-11-18 — Phase 5.4: Repository Packaging (`5.4.1`)
 
 #### Added

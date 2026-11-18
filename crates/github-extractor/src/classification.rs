@@ -342,6 +342,14 @@ impl TreeClassificationReport {
     pub fn to_repo_tree(&self) -> crate::tree_generator::RepoTree {
         crate::tree_generator::RepoTree::from_classified_files(&self.files)
     }
+
+    /// Converts this tree classification report into an initial repository file manifest.
+    #[must_use]
+    pub fn to_file_manifest(&self) -> crate::manifest::RepoFileManifest {
+        crate::manifest::RepoFileManifest::from_classification_and_reports(
+            self, None, None, None, None,
+        )
+    }
 }
 
 /// File classification engine implementing heuristic pattern matching and rules.

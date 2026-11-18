@@ -17,6 +17,7 @@ pub mod config_test;
 pub mod dependency;
 pub mod documentation;
 pub mod error;
+pub mod manifest;
 pub mod metadata;
 pub mod models;
 pub mod recovery;
@@ -49,6 +50,7 @@ pub use documentation::{
     DocFormat, DocType, ExtractedDocFile,
 };
 pub use error::{redact_secrets, GitHubExtractorError};
+pub use manifest::{FileExtractionStatus, ManifestFileEntry, RepoFileManifest};
 pub use metadata::{GitHubLanguages, GitHubLicense, GitHubRepoContext, GitHubRepositoryMetadata};
 pub use models::{GitHubBranch, GitHubRateLimit, GitHubTag, RefDiscoveryReport};
 pub use recovery::{

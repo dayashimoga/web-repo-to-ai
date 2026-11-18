@@ -160,7 +160,7 @@
 
 ### Phase 5.4 — Repository packaging
 - [x] **[5.4.1]** Repository tree generation in crates/github-extractor *(Completed 2026-11-18, RepoTree & RepoTreeNode hierarchical model, Unicode/ASCII formatting, category & size annotations, depth/entry limiting, CDM manifest section mapping, 7 new integration tests, 109 crate tests, 100% passing quality gates)*
-- [ ] **[5.4.2]** File manifest in crates/github-extractor
+- [x] **[5.4.2]** File manifest in crates/github-extractor *(Completed 2026-11-18, FileExtractionStatus, ManifestFileEntry, RepoFileManifest index, multi-report aggregation across sources/docs/dependencies/configs/tests, fundamental completeness conservation verification, GFM Markdown summary table, JSON serialization, CDM manifest section mapping, 7 new integration tests, 116 crate tests, 100% passing quality gates)*
 - [ ] **[5.4.3]** Architecture context in crates/github-extractor
 - [ ] **[5.4.4]** Code-review package in crates/github-extractor
 

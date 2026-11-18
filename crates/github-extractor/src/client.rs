@@ -13,7 +13,7 @@ use reqwest::{Client, StatusCode};
 use serde::Deserialize;
 use tracing::{debug, info, warn};
 
-use crate::classification::ClassifiedFile;
+use crate::classification::{ClassifiedFile, TreeClassificationReport};
 use crate::commit::{
     CommitAuthor, CommitSignatureVerification, GitHubCommitMetadata, PinnedRevision,
 };
@@ -21,6 +21,7 @@ use crate::config_test::{ConfigTestExtractionReport, ExtractedConfigFile, Extrac
 use crate::dependency::{DependencyExtractionReport, ExtractedDependencyFile};
 use crate::documentation::{DocExtractionReport, ExtractedDocFile};
 use crate::error::{redact_secrets, GitHubExtractorError};
+use crate::manifest::RepoFileManifest;
 use crate::metadata::{
     GitHubLanguages, GitHubLicense, GitHubRepoContext, GitHubRepositoryMetadata,
 };
@@ -1548,6 +1549,25 @@ impl GitHubApiClient {
     #[must_use]
     pub fn generate_repo_tree_classified(&self, classified_files: &[ClassifiedFile]) -> RepoTree {
         RepoTree::from_classified_files(classified_files)
+    }
+
+    /// Assembles a consolidated file manifest and completeness accounting index.
+    #[must_use]
+    pub fn generate_file_manifest(
+        &self,
+        classification: &TreeClassificationReport,
+        sources: Option<&SourceExtractionReport>,
+        docs: Option<&DocExtractionReport>,
+        dependencies: Option<&DependencyExtractionReport>,
+        configs_tests: Option<&ConfigTestExtractionReport>,
+    ) -> RepoFileManifest {
+        RepoFileManifest::from_classification_and_reports(
+            classification,
+            sources,
+            docs,
+            dependencies,
+            configs_tests,
+        )
     }
 }
 

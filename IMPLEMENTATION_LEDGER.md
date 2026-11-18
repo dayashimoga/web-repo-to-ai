@@ -4570,13 +4570,70 @@
 
 ---
 
+#### Subphase `5.4.2` — File manifest in crates/github-extractor
+- **Unique ID:** `5.4.2`
+- **Objective:** Implement structured repository file manifest indexing, per-file extraction status accounting, multi-report aggregation, GFM Markdown summary table formatting, JSON serialization, completeness formula verification, and CDM manifest section construction in `crates/github-extractor`. Provide unified data structures (`FileExtractionStatus`, `ManifestFileEntry`, `RepoFileManifest`), stitching across classification and extraction reports (sources, docs, dependencies, configs, tests), verification of the fundamental conservation invariant (`total_files == extracted + excluded + failed + unsupported`), and conversion into Canonical Context Document Model ([`CdmSection`]) manifest sections ([`SectionKind::Manifest`]).
+- **Scope:** `crates/github-extractor/src/manifest.rs`, `crates/github-extractor/src/classification.rs`, `crates/github-extractor/src/client.rs`, `crates/github-extractor/src/lib.rs`, `crates/github-extractor/tests/file_manifest_test.rs`.
+- **Prerequisites:** `5.4.1` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/github-extractor/src/manifest.rs`
+  - `crates/github-extractor/src/classification.rs`
+  - `crates/github-extractor/src/client.rs`
+  - `crates/github-extractor/src/lib.rs`
+  - `crates/github-extractor/tests/file_manifest_test.rs`
+- **Implementation Tasks:**
+  1. Implement `crates/github-extractor/src/manifest.rs`:
+     - `FileExtractionStatus` enum (`Extracted`, `Excluded { reason: String }`, `Failed { error: String }`, `Unsupported { reason: String }`) with query helpers (`is_extracted`, `is_excluded`, `is_failed`, `is_unsupported`, `status_name`, `reason_or_error`).
+     - `ManifestFileEntry` model representing a single file entry in the manifest with attributes: relative repository path, Git object SHA, file category, size in bytes, line count, detected language, BLAKE3 content hash, SHA-256 digest, extraction status, and optional CDM section ID.
+     - `RepoFileManifest` consolidated manifest model with aggregate metrics: total discovered files, extracted files, excluded files, failed files, unsupported files, total bytes, extracted bytes, total line count, category distribution map, language distribution map, and status breakdown map.
+     - Builder and stitcher constructors:
+       - `from_entries(entries: Vec<ManifestFileEntry>) -> Self`: builds and computes metrics from explicit file entries.
+       - `from_classification_and_reports`: aggregates tree classification and arbitrary extraction reports (sources, documentation, dependencies, configs, and tests) into a cohesive repository manifest.
+     - Completeness and invariant verification:
+       - `verify_completeness(&self) -> bool`: enforces `total_files == extracted + excluded + failed + unsupported`.
+       - `is_complete(&self) -> bool`: checks invariant and ensures zero failed or unsupported files.
+       - `to_completeness_report(&self) -> CompletenessReport`: converts to CDM `CompletenessReport`.
+     - Output serializers & formatters:
+       - `to_markdown_table(&self) -> String`: generates formatted GitHub-Flavored Markdown summary metrics and file table.
+       - `to_json(&self) -> Result<String, serde_json::Error>` and `to_json_compact(&self)`: serializes to JSON string.
+       - `to_cdm_section(&self, section_id, source_url) -> CdmSection`: produces a CDM manifest section (`SectionKind::Manifest`) with `manifest_role: "file_manifest"`, BLAKE3 content digest, and metrics attributes.
+  2. Extend `TreeClassificationReport` in `crates/github-extractor/src/classification.rs`:
+     - `to_file_manifest(&self) -> RepoFileManifest`.
+  3. Extend `GitHubApiClient` in `crates/github-extractor/src/client.rs`:
+     - `generate_file_manifest`: convenience client method assembling classification and extraction reports into `RepoFileManifest`.
+  4. Re-export `manifest` models and helpers in `crates/github-extractor/src/lib.rs`.
+  5. Author comprehensive integration tests in `crates/github-extractor/tests/file_manifest_test.rs` covering multi-report manifest construction, extraction status tracking, Markdown table generation, JSON roundtrip serialization, completeness formula verification, CDM manifest section creation, and live client integration.
+  6. Run full quality gate (`cargo test`, `cargo clippy`, `cargo fmt`, `cargo deny`, `scripts/check-all.ps1`).
+- **Acceptance Criteria:**
+  - Manifest cleanly tracks extraction status for every discovered file in the repository tree.
+  - Multi-report aggregator accurately stitches results from sources, docs, dependencies, configs, and tests.
+  - Completeness invariant `total_files == extracted + excluded + failed + unsupported` is strictly verified.
+  - Formatted Markdown table and JSON serialization cleanly represent repository index and metrics.
+  - Converts into valid CDM `CdmSection` (`SectionKind::Manifest`) with complete metadata.
+  - 100% test pass rate, 0 clippy warnings, clean formatting.
+- **Tests:** `cargo test -p web-repo-to-ai-github-extractor`, `cargo test --workspace`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, Rule 04, Rule 05: Safe string allocation; zero shell execution; path normalization preventing directory traversal attacks; sanitization of error messages.
+- **Performance Considerations:** $O(N)$ single-pass aggregation; deterministic sorting; bounded memory usage.
+- **Documentation Requirements:** Module and type documentation in `crates/github-extractor`, tracking updates in `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-github-extractor`: 116/116 tests passed (28 unit tests, 7 manifest integration tests, 80 other integration tests, 1 doc test) in 0.19s.
+  - `cargo test --workspace`: 444/444 tests passed across all workspace crates.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors.
+  - `cargo fmt --all -- --check`: 100% compliant with standard formatting.
+  - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures across bootstrap, workflows, Rust quality checks, frontend web quality checks, and 5.27 GB / 30 GB storage ceiling).
+- **Git Commit Reference:** `760d17e`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 5 — Public GitHub Repository Extraction)
 
 #### Phase 5.4 — Repository packaging
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `5.4.2` | File manifest | `5.4.1` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
+| `5.4.3` | Architecture context | `5.4.2` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
 
 ---
 
