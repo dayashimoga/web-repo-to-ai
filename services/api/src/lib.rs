@@ -414,6 +414,313 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_create_batch_job_valid_shorthand_urls() {
+        let app = setup_test_app();
+        let payload = serde_json::json!({
+            "urls": [
+                "https://github.com/rust-lang/rust",
+                "https://example.com/docs"
+            ],
+            "name": "Documentation and Core",
+            "default_token_budget": 50000,
+            "max_parallelism": 5
+        });
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/api/v1/jobs/batch")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(payload.to_string()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::ACCEPTED);
+        let body = body_to_string(response.into_body()).await;
+        assert!(body.contains("\"status\":\"queued\""));
+        assert!(body.contains("\"batch_id\""));
+        assert!(body.contains("\"total_items\":2"));
+        assert!(body.contains("\"queued_items\":2"));
+        assert!(body.contains("\"max_parallelism\":5"));
+        assert!(body.contains("\"name\":\"Documentation and Core\""));
+    }
+
+    #[tokio::test]
+    async fn test_create_batch_job_valid_structured_items() {
+        let app = setup_test_app();
+        let payload = serde_json::json!({
+            "name": "Custom Structured Batch",
+            "items": [
+                {
+                    "url": "https://github.com/org/repo-a",
+                    "custom_id": "item-alpha",
+                    "git_ref": "v1.2.0",
+                    "token_budget": 30000,
+                    "target_model": "gpt-4o",
+                    "context_profile": "code_review"
+                },
+                {
+                    "url": "https://example.com/api-spec",
+                    "custom_id": "item-beta",
+                    "export_formats": ["markdown", "json"]
+                }
+            ],
+            "default_target_model": "claude-3-5-sonnet",
+            "max_parallelism": 8
+        });
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/api/v1/jobs/batch")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(payload.to_string()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::ACCEPTED);
+        let body = body_to_string(response.into_body()).await;
+        assert!(body.contains("\"batch_id\""));
+        assert!(body.contains("\"total_items\":2"));
+        assert!(body.contains("\"item-alpha\""));
+        assert!(body.contains("\"item-beta\""));
+        assert!(body.contains("\"max_parallelism\":8"));
+    }
+
+    #[tokio::test]
+    async fn test_create_batch_job_empty_batch_rejected() {
+        let app = setup_test_app();
+        let payload = serde_json::json!({
+            "urls": []
+        });
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/api/v1/jobs/batch")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(payload.to_string()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        let body = body_to_string(response.into_body()).await;
+        assert!(body.contains("VALIDATION_ERROR"));
+        assert!(body.contains("items"));
+    }
+
+    #[tokio::test]
+    async fn test_create_batch_job_exceeds_max_urls_rejected() {
+        let app = setup_test_app();
+        let too_many_urls: Vec<String> = (0..101)
+            .map(|i| format!("https://example.com/endpoint/{i}"))
+            .collect();
+        let payload = serde_json::json!({
+            "urls": too_many_urls
+        });
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/api/v1/jobs/batch")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(payload.to_string()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        let body = body_to_string(response.into_body()).await;
+        assert!(body.contains("VALIDATION_ERROR"));
+        assert!(body.contains("Maximum allowable URLs per batch is 100"));
+    }
+
+    #[tokio::test]
+    async fn test_create_batch_job_invalid_url_rejected() {
+        let app = setup_test_app();
+        let payload = serde_json::json!({
+            "urls": [
+                "https://example.com/valid",
+                "ftp://invalid-scheme.com/file"
+            ]
+        });
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/api/v1/jobs/batch")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(payload.to_string()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        let body = body_to_string(response.into_body()).await;
+        assert!(body.contains("VALIDATION_ERROR"));
+        assert!(body.contains("Unsupported URL scheme"));
+    }
+
+    #[tokio::test]
+    async fn test_create_batch_job_invalid_token_budget_rejected() {
+        let app = setup_test_app();
+        let payload = serde_json::json!({
+            "urls": ["https://example.com/doc"],
+            "default_token_budget": 500
+        });
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/api/v1/jobs/batch")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(payload.to_string()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        let body = body_to_string(response.into_body()).await;
+        assert!(body.contains("VALIDATION_ERROR"));
+        assert!(body.contains("token_budget"));
+    }
+
+    #[tokio::test]
+    async fn test_create_batch_job_invalid_context_profile_rejected() {
+        let app = setup_test_app();
+        let payload = serde_json::json!({
+            "urls": ["https://example.com/doc"],
+            "default_context_profile": "unsupported_profile"
+        });
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/api/v1/jobs/batch")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(payload.to_string()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        let body = body_to_string(response.into_body()).await;
+        assert!(body.contains("VALIDATION_ERROR"));
+        assert!(body.contains("context_profile"));
+    }
+
+    #[tokio::test]
+    async fn test_create_batch_job_invalid_max_parallelism_rejected() {
+        let app = setup_test_app();
+        let payload = serde_json::json!({
+            "urls": ["https://example.com/doc"],
+            "max_parallelism": 50
+        });
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/api/v1/jobs/batch")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(payload.to_string()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        let body = body_to_string(response.into_body()).await;
+        assert!(body.contains("VALIDATION_ERROR"));
+        assert!(body.contains("max_parallelism"));
+    }
+
+    #[tokio::test]
+    async fn test_create_batch_job_deduplicates_urls() {
+        let app = setup_test_app();
+        let payload = serde_json::json!({
+            "urls": [
+                "https://example.com/doc",
+                "https://example.com/doc",
+                "https://example.com/other"
+            ]
+        });
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/api/v1/jobs/batch")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(payload.to_string()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::ACCEPTED);
+        let body = body_to_string(response.into_body()).await;
+        assert!(body.contains("\"total_items\":2"));
+        assert!(body.contains("\"queued_items\":2"));
+    }
+
+    #[tokio::test]
+    async fn test_get_batch_job_not_found_problem_details() {
+        let app = setup_test_app();
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method(Method::GET)
+                    .uri("/api/v1/jobs/batch/018f0a00-0000-7000-8000-000000000000")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+        let body = body_to_string(response.into_body()).await;
+        assert!(body.contains("RESOURCE_NOT_FOUND"));
+        assert!(body.contains("BatchJob"));
+    }
+
+    #[tokio::test]
+    async fn test_get_batch_job_invalid_uuid_rejected() {
+        let app = setup_test_app();
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method(Method::GET)
+                    .uri("/api/v1/jobs/batch/not-a-valid-uuid")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        let body = body_to_string(response.into_body()).await;
+        assert!(body.contains("VALIDATION_ERROR"));
+    }
+
+    #[tokio::test]
     async fn test_list_jobs_valid_query() {
         let app = setup_test_app();
         let response = app

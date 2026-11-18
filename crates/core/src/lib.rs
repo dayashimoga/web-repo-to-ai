@@ -24,7 +24,7 @@ pub use crypto::{
     build_token_aad, decrypt_token, encrypt_token, Aes256GcmEngine, EncryptedPayload, EncryptionKey,
 };
 pub use error::{ApiError, ApiErrorEnvelope, CoreError, ErrorCode, Result};
-pub use id::{ArtifactId, DocumentId, JobId, RequestId, TenantId};
+pub use id::{ArtifactId, BatchId, DocumentId, JobId, RequestId, TenantId};
 pub use traits::{Clock, Identifiable, SystemClock, Validatable};
 
 /// Returns the semantic crate version.

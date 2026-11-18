@@ -1,11 +1,17 @@
 //! Data Transfer Objects (DTOs) and request/response models.
 
+pub mod batch;
 pub mod github;
 pub mod jobs;
 pub mod params;
 pub mod query;
 pub mod sources;
 
+pub use batch::{
+    BatchItemRequest, BatchItemStatus, BatchJobResponse, BatchPathParams, BatchProgress,
+    BatchStatus, CreateBatchJobRequest, CreateBatchJobResponse, DEFAULT_BATCH_PARALLELISM,
+    MAX_BATCH_PARALLELISM, MAX_BATCH_URLS, MIN_BATCH_URLS, VALID_CONTEXT_PROFILES,
+};
 pub use github::{
     InstallationPathParams, InstallationSummaryResponse, RevokeInstallationResponse,
     WebhookReceiptResponse,
@@ -187,5 +193,68 @@ mod tests {
             ..Default::default()
         };
         assert!(too_high_max.validate().is_err());
+    }
+
+    #[test]
+    fn test_create_batch_job_request_validation() {
+        // Valid shorthand
+        let valid_shorthand = CreateBatchJobRequest {
+            urls: Some(vec![
+                "https://github.com/rust-lang/rust".to_string(),
+                "https://example.com/docs".to_string(),
+            ]),
+            ..Default::default()
+        };
+        assert!(valid_shorthand.validate().is_ok());
+        assert_eq!(valid_shorthand.effective_items().len(), 2);
+
+        // Valid structured items with overrides
+        let valid_items = CreateBatchJobRequest {
+            items: Some(vec![BatchItemRequest {
+                url: "https://github.com/org/repo".to_string(),
+                custom_id: Some("item-1".to_string()),
+                git_ref: Some("main".to_string()),
+                path_patterns: None,
+                token_budget: Some(50_000),
+                target_model: Some("gpt-4o".to_string()),
+                export_formats: Some(vec!["markdown".to_string()]),
+                context_profile: Some("code_review".to_string()),
+            }]),
+            ..Default::default()
+        };
+        assert!(valid_items.validate().is_ok());
+
+        // Empty batch rejected
+        let empty_batch = CreateBatchJobRequest::default();
+        assert!(empty_batch.validate().is_err());
+
+        // Batch > 100 rejected
+        let too_many_urls = (0..101)
+            .map(|i| format!("https://example.com/item/{i}"))
+            .collect();
+        let overflow_batch = CreateBatchJobRequest {
+            urls: Some(too_many_urls),
+            ..Default::default()
+        };
+        assert!(overflow_batch.validate().is_err());
+
+        // Invalid URL scheme in batch item
+        let invalid_scheme = CreateBatchJobRequest {
+            urls: Some(vec!["ftp://files.example.com".to_string()]),
+            ..Default::default()
+        };
+        assert!(invalid_scheme.validate().is_err());
+
+        // Duplicate URLs within batch deduplicated
+        let duplicates = CreateBatchJobRequest {
+            urls: Some(vec![
+                "https://example.com/item1".to_string(),
+                "https://example.com/item1".to_string(),
+                "https://example.com/item2".to_string(),
+            ]),
+            ..Default::default()
+        };
+        assert!(duplicates.validate().is_ok());
+        assert_eq!(duplicates.effective_items().len(), 2);
     }
 }

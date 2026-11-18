@@ -18,8 +18,8 @@
 | **STAGE 4** | Canonical Model & Export Engine | Versioned CDM (`v1.0`), Markdown/TXT/JSON/HTML/JSONL/ZIP exporters, and end-to-end web integration | `4.1` – `4.4` | 16 (`4.1.1` – `4.4.4`) | `COMPLETED` / `ACCEPTED` |
 | **STAGE 5** | Public GitHub Repository Extraction | Complete public GitHub repo conversion with 100% file completeness accounting | `5.1` – `5.5` | 20 (`5.1.1` – `5.5.4`) | `COMPLETED` / `ACCEPTED` |
 | **STAGE 6** | Private GitHub Repositories | Secure read-only GitHub App integration, encrypted tokens, and tenant isolation | `6.1` – `6.4` | 16 (`6.1.1` – `6.4.4`) | `COMPLETED` / `ACCEPTED` |
-| **STAGE 7** | AI Context & Token Optimization | Structural normalization, deduplication, exact/estimated tokenizers, and context profiles | `7.1` – `7.4` | 16 (`7.1.1` – `7.4.4`) | `IN_PROGRESS` |
-| **STAGE 8** | Large Repositories, Batch & Crawling | Multi-URL batching, bounded crawling, content-addressed caching, and streaming scale | `8.1` – `8.4` | 16 (`8.1.1` – `8.4.4`) | `NOT_STARTED` |
+| **STAGE 7** | AI Context & Token Optimization | Structural normalization, deduplication, exact/estimated tokenizers, and context profiles | `7.1` – `7.4` | 16 (`7.1.1` – `7.4.4`) | `COMPLETED` / `ACCEPTED` |
+| **STAGE 8** | Large Repositories, Batch & Crawling | Multi-URL batching, bounded crawling, content-addressed caching, and streaming scale | `8.1` – `8.4` | 16 (`8.1.1` – `8.4.4`) | `IN_PROGRESS` |
 | **STAGE 9** | Developer & AI Agent Integrations | Authenticated REST API, Rust CLI, MCP server, and browser extension foundation | `9.1` – `9.4` | 16 (`9.1.1` – `9.4.4`) | `NOT_STARTED` |
 | **STAGE 10** | Advanced Documents & Content | Modular PDF extraction, Tesseract OCR, structured docs, RAG chunks, and optional AI adapters | `10.1` – `10.5` | 20 (`10.1.1` – `10.5.4`) | `NOT_STARTED` |
 | **STAGE 11** | Production Certification | Comprehensive security, performance, reliability, SBOM, and production release certification | `11.1` – `11.4` | 17 (`11.1.1` – `11.4.5`) | `NOT_STARTED` |
@@ -85,14 +85,14 @@
 - **Phase 6.3 — Private extraction:** `6.3.1` Installation authorization (`ACCEPTED`) | `6.3.2` Selected repository access (`ACCEPTED`) | `6.3.3` Private tree & source extraction (`ACCEPTED`) | `6.3.4` Authorization failure recovery (`ACCEPTED` — **PHASE 6.3 CERTIFIED**)
 - **Phase 6.4 — Security verification:** `6.4.1` Cross-user isolation (`ACCEPTED`) | `6.4.2` Unauthorized repository access tests (`ACCEPTED`) | `6.4.3` Token leakage tests (`ACCEPTED`) | `6.4.4` Permission audit (`ACCEPTED` — **PHASE 6.4 & STAGE 6 CERTIFIED**)
 
-### STAGE 7 — AI CONTEXT AND TOKEN OPTIMIZATION
+### STAGE 7 — AI CONTEXT AND TOKEN OPTIMIZATION (`COMPLETED` / `ACCEPTED` — **STAGE 7 CERTIFIED**)
 - **Phase 7.1 — Content optimization:** `7.1.1` Structural normalization (`ACCEPTED`) | `7.1.2` Exact duplicate removal (`ACCEPTED`) | `7.1.3` Semantic-aware deduplication (`ACCEPTED`) | `7.1.4` Content classification (`ACCEPTED` — **PHASE 7.1 CERTIFIED**)
 - **Phase 7.2 — Token intelligence:** `7.2.1` Tokenizer adapter architecture (`ACCEPTED`) | `7.2.2` Model-specific counting (`ACCEPTED`) | `7.2.3` Cost estimation (`ACCEPTED`) | `7.2.4` Context-budget calculation (`ACCEPTED` — **PHASE 7.2 CERTIFIED**)
 - **Phase 7.3 — Context profiles:** `7.3.1` General AI (`ACCEPTED`) | `7.3.2` Code review (`ACCEPTED`) | `7.3.3` Security review (`ACCEPTED`) | `7.3.4` Debugging & documentation (`ACCEPTED` — **PHASE 7.3 CERTIFIED**)
 - **Phase 7.4 — Quality validation:** `7.4.1` Preservation metrics (`ACCEPTED`) | `7.4.2` Compression reporting (`ACCEPTED`) | `7.4.3` Exclusion explanations (`ACCEPTED`) | `7.4.4` Golden comparison tests (`ACCEPTED` — **PHASE 7.4 & STAGE 7 CERTIFIED**)
 
-### STAGE 8 — LARGE REPOSITORIES, BATCH AND CRAWLING
-- **Phase 8.1 — Batch URLs:** `8.1.1` Multi-URL submission (`NEXT`) | `8.1.2` Bounded parallel execution | `8.1.3` Individual result tracking | `8.1.4` Batch export
+### STAGE 8 — LARGE REPOSITORIES, BATCH AND CRAWLING (`IN_PROGRESS`)
+- **Phase 8.1 — Batch URLs:** `8.1.1` Multi-URL submission (`ACCEPTED`) | `8.1.2` Bounded parallel execution (`NEXT`) | `8.1.3` Individual result tracking | `8.1.4` Batch export
 - **Phase 8.2 — Website crawling:** `8.2.1` Sitemap discovery | `8.2.2` Internal link discovery | `8.2.3` Crawl-depth & domain restrictions | `8.2.4` Duplicate & loop prevention
 - **Phase 8.3 — Incremental processing:** `8.3.1` HTTP validators | `8.3.2` Git commit/blob caching | `8.3.3` Content-addressed storage | `8.3.4` Changed-file processing
 - **Phase 8.4 — Scalability:** `8.4.1` Adaptive concurrency | `8.4.2` Backpressure | `8.4.3` Streaming large exports | `8.4.4` Resumable processing

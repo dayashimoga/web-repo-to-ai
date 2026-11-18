@@ -4,7 +4,35 @@
 
 ---
 
-## [Unreleased] — Stage 7: AI Context and Token Optimization
+## [Unreleased] — Stage 8: Large Repositories, Batch and Crawling
+
+### 2026-11-18 — Phase 8.1: Batch URLs (`8.1.1`)
+
+#### Added
+- **`[8.1.1]` Multi-URL Batch Submission Endpoint and Payload Validation in `services/api`:**
+  - Defined strongly-typed `BatchId` domain identifier in `crates/core/src/id.rs` via `define_domain_id!` and re-exported in `crates/core/src/lib.rs`.
+  - Implemented comprehensive batch DTO models in `services/api/src/dto/batch.rs`:
+    - Enforced boundary limits: `MIN_BATCH_URLS = 1`, `MAX_BATCH_URLS = 100`, `DEFAULT_BATCH_PARALLELISM = 5`, `MAX_BATCH_PARALLELISM = 20`.
+    - Context profile validation: `["general_ai", "code_review", "security_review", "debugging_and_documentation", "debugging"]`.
+    - `BatchItemRequest`: supports target `url`, optional `custom_id`, `git_ref`, `path_patterns`, `token_budget` (>= 1,000), `target_model`, `export_formats`, and `context_profile`.
+    - `CreateBatchJobRequest`: accepts either structured `items` array or shorthand `urls` list, applies global default settings, deduplicates identical URLs while preserving submission order via `effective_items()`, and enforces strict batch size and parallelism bounds.
+    - `BatchStatus` enum: `Queued`, `Processing`, `Completed`, `PartialFailure`, `Failed`, `Cancelled`.
+    - `BatchItemStatus`: item index, target URL, optional custom ID, allocated UUID v7 `JobId`, queued status, and creation timestamp.
+    - `BatchProgress`: aggregated metrics for total, completed, failed, processing, and queued items, with progress percentage calculation.
+    - `CreateBatchJobResponse`: HTTP 202 response descriptor with `BatchId`, parallelism, and allocated sub-job statuses.
+    - `BatchJobResponse`: query descriptor for batch progress and item execution statuses.
+    - `BatchPathParams`: `Validatable` path parameter wrapper for `BatchId`.
+  - Re-exported batch models in `services/api/src/dto/mod.rs` with unit tests for shorthand URLs, structured overrides, URL deduplication, and invalid parameter rejection.
+  - Implemented Axum route handlers in `services/api/src/routes/batch.rs`:
+    - `create_batch_job_handler`: handles `POST /api/v1/jobs/batch`, assigns UUID v7 `JobId`s to each batch item, increments Prometheus metric `jobs_total.inc("batch_submitted")`, and returns HTTP 202 Accepted.
+    - `get_batch_job_handler`: handles `GET /api/v1/jobs/batch/:batch_id`, returning RFC 7807 404 Problem Details when the batch is not found.
+  - Registered batch routes in `services/api/src/routes/mod.rs` before parameterized `:job_id` wildcard to ensure unambiguous route dispatch, and published `"jobs_batch"` in the root handler metadata.
+  - Authored 11 integration tests in `services/api/src/lib.rs` verifying valid shorthand submissions, structured submissions with per-item overrides, empty batch rejection, excessive batch size rejection (>100 URLs), invalid URL rejection, invalid token budget rejection, invalid context profile rejection, invalid parallelism rejection (>20), duplicate URL deduplication, not-found RFC 7807 problem details, and malformed batch UUID rejection.
+  - 100% passing quality gates: 70 API crate tests passed, 26 core tests passed, 705+ workspace tests passed, zero clippy warnings, zero fmt diffs, cargo deny passed, and 5/5 check-all gates passed.
+
+---
+
+## Stage 7: AI Context and Token Optimization (`COMPLETED` / `ACCEPTED` — **STAGE 7 CERTIFIED**)
 
 ### 2026-11-18 — Phase 7.4: Quality validation (`7.4.4`) — PHASE 7.4 & STAGE 7 FULLY CERTIFIED
 

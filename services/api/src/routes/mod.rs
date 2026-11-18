@@ -4,6 +4,7 @@
 //! and RFC 7807 fallback handlers.
 
 pub mod auth_github;
+pub mod batch;
 pub mod health;
 pub mod jobs;
 pub mod metrics;
@@ -31,6 +32,7 @@ async fn root_handler(State(_state): State<AppState>) -> impl IntoResponse {
             "metrics": "/api/v1/metrics",
             "sources_detect": "/api/v1/sources/detect",
             "jobs": "/api/v1/jobs",
+            "jobs_batch": "/api/v1/jobs/batch",
             "auth_github_installations": "/api/v1/auth/github/installations",
             "auth_github_webhook": "/api/v1/auth/github/webhook",
         }
@@ -53,6 +55,8 @@ pub fn create_router(state: AppState) -> Router {
         .route("/ready", get(health::readiness_handler))
         .route("/metrics", get(metrics::metrics_handler))
         .route("/sources/detect", post(sources::detect_sources_handler))
+        .route("/jobs/batch", post(batch::create_batch_job_handler))
+        .route("/jobs/batch/:batch_id", get(batch::get_batch_job_handler))
         .route(
             "/jobs",
             post(jobs::create_job_handler).get(jobs::list_jobs_handler),

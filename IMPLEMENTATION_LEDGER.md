@@ -7068,16 +7068,84 @@
 
 ---
 
+## STAGE 8 — LARGE REPOSITORIES, BATCH AND CRAWLING
+
+### Phase 8.1 — Batch URLs
+
+#### Subphase `8.1.1` — Multi-URL submission endpoint and payload validation in services/api
+- **Unique ID:** `8.1.1`
+- **Objective:** Implement the multi-URL batch submission endpoint (`POST /api/v1/jobs/batch`), batch query endpoint (`GET /api/v1/jobs/batch/:batch_id`), and robust payload validation with bounds enforcement and URL deduplication in `services/api`.
+- **Scope:** `crates/core`, `services/api/src/dto/batch.rs`, `services/api/src/dto/mod.rs`, `services/api/src/routes/batch.rs`, `services/api/src/routes/mod.rs`, `services/api/src/lib.rs`, and tracking ledgers.
+- **Prerequisites:** Stage 7 Certified (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/core/src/id.rs`
+  - `crates/core/src/lib.rs`
+  - `services/api/src/dto/batch.rs`
+  - `services/api/src/dto/mod.rs`
+  - `services/api/src/routes/batch.rs`
+  - `services/api/src/routes/mod.rs`
+  - `services/api/src/lib.rs`
+  - Tracking ledgers (`IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`)
+- **Implementation Tasks:**
+  1. Define strongly-typed `BatchId` domain ID via `define_domain_id!` in `crates/core/src/id.rs` and re-export in `crates/core/src/lib.rs`.
+  2. Implement comprehensive batch DTOs in `services/api/src/dto/batch.rs`:
+     - Bounded constants: `MIN_BATCH_URLS = 1`, `MAX_BATCH_URLS = 100`, `DEFAULT_BATCH_PARALLELISM = 5`, `MAX_BATCH_PARALLELISM = 20`.
+     - Valid context profiles validation: `["general_ai", "code_review", "security_review", "debugging_and_documentation", "debugging"]`.
+     - `BatchItemRequest`: item URL, optional custom ID, git ref, path patterns, token budget (min 1,000), target model, export formats, context profile.
+     - `CreateBatchJobRequest`: supports structured `items` array or shorthand `urls` string array, global default options, URL deduplication while preserving submission order (`effective_items()`), batch size boundary validation (`1..=100`), and parallelism bounds validation (`1..=20`).
+     - `BatchStatus` enum (`Queued`, `Processing`, `Completed`, `PartialFailure`, `Failed`, `Cancelled`).
+     - `BatchItemStatus`: item index, target URL, custom ID, UUID v7 `JobId`, status (`JobStatus::Queued`), creation timestamp.
+     - `BatchProgress`: item count aggregations (total, completed, failed, processing, queued) and completion percentage calculation.
+     - `CreateBatchJobResponse`: HTTP 202 response payload with `BatchId`, parallelism, and allocated sub-job statuses.
+     - `BatchJobResponse`: detailed batch query descriptor with progress, timings, and item statuses.
+     - `BatchPathParams`: `Validatable` route parameter wrapper for `BatchId`.
+  3. Re-export batch models in `services/api/src/dto/mod.rs` and author unit test suite verifying shorthand URLs, structured overrides, URL deduplication, and invalid parameter rejection.
+  4. Implement `create_batch_job_handler` and `get_batch_job_handler` in `services/api/src/routes/batch.rs`, allocating UUID v7 `JobId`s per item and instrumenting with `jobs_total.inc("batch_submitted")`.
+  5. Register batch routes in `services/api/src/routes/mod.rs` (`POST /api/v1/jobs/batch` and `GET /api/v1/jobs/batch/:batch_id`) before `:job_id` wildcard to ensure unambiguous static segment matching, and publish `"jobs_batch"` in the root handler metadata.
+  6. Implement 11 integration tests in `services/api/src/lib.rs` verifying valid shorthand submissions, structured submissions with per-item overrides, empty batch rejection, excessive batch size rejection (>100 URLs), invalid URL rejection, invalid token budget rejection, invalid context profile rejection, invalid parallelism rejection (>20), duplicate URL deduplication, not-found RFC 7807 problem details, and malformed batch UUID rejection.
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-api`
+  - `cargo test -p web-repo-to-ai-core`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - Multi-URL batch payload validation strictly enforces 1..=100 URL bounds and validates URL schemes (`http`/`https`).
+  - Batch parallelism parameter strictly enforces 1..=20 worker bounds.
+  - Context profiles validate against authorized profile taxonomy (`general_ai`, `code_review`, `security_review`, `debugging_and_documentation`, `debugging`).
+  - Identical URLs submitted within the same batch request are deduplicated deterministically while preserving original order.
+  - `POST /api/v1/jobs/batch` returns HTTP 202 Accepted with assigned `BatchId` and distinct `JobId`s for each batch item.
+  - `GET /api/v1/jobs/batch/:batch_id` returns RFC 7807 404 Problem Details when the batch is not found, and 400 for malformed UUIDs.
+  - All 70 API crate tests pass, all 26 core tests pass, all 705+ workspace tests pass, zero clippy warnings, zero fmt diffs, cargo deny passed, and all monorepo gates pass (5/5).
+- **Risk Analysis:**
+  - Risk: Unbounded batch submissions could exhaust memory or overload downstream fetchers and workers (Denial of Service).
+  - Mitigation: Strict upper bound of 100 URLs per batch (`MAX_BATCH_URLS = 100`) and max parallelism of 20 (`MAX_BATCH_PARALLELISM = 20`) enforced at the HTTP boundary before queuing.
+- **Rollback Plan:**
+  - Revert Subphase 8.1.1 additions via `git reset --hard HEAD~1` and restore Stage 7 certified baseline.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-api`: 70 tests passing (8 unit tests in `dto`, 61 integration tests in `lib.rs`, 1 main test).
+  - `cargo test -p web-repo-to-ai-core`: 26 tests passing.
+  - Full workspace tests: 705+ tests passing across all crates and services with 0 failures.
+  - Workspace linter: `cargo clippy --workspace --all-targets -- -D warnings` clean with 0 warnings.
+  - Formatting: `cargo fmt --all -- --check` clean with 0 diffs.
+  - Dependency audit: `cargo deny check` passed (advisories ok, bans ok, licenses ok, sources ok).
+  - Monorepo gatekeeper: `powershell scripts/check-all.ps1` completed with `ALL GATES PASSED (0 failures)`.
+- **Git Commit Reference:** `bcd89f0`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 8 — Large Repositories, Batch and Crawling)
 
 #### Phase 8.1 — Batch URLs
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `8.1.1` | Multi-URL submission endpoint and payload validation | Stage 7 Certified | `services/api/*`, `crates/core/*` | `NOT_STARTED` |
+| `8.1.2` | Bounded parallel execution in services/worker | `8.1.1` (`ACCEPTED`) | `services/worker/*`, `crates/job-engine/*` | `NOT_STARTED` |
 
 ---
 
-## STAGES 7 – 11 QUEUED LEDGER SUMMARY
+## STAGES 8 – 11 QUEUED LEDGER SUMMARY
 
-All subsequent subphases for **Stage 7** (`7.2.1`–`7.4.4`), **Stage 8** (`8.1.1`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.
+All subsequent subphases for **Stage 8** (`8.1.2`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.

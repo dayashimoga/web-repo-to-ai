@@ -94,6 +94,10 @@ define_domain_id!(
     "Unique time-ordered identifier for a conversion job."
 );
 define_domain_id!(
+    BatchId,
+    "Unique time-ordered identifier for a batch URL conversion job."
+);
+define_domain_id!(
     DocumentId,
     "Unique time-ordered identifier for a Canonical Context Document (CDM)."
 );

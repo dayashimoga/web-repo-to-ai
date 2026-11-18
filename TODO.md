@@ -200,7 +200,7 @@
 
 ---
 
-## Stage 7: AI Context and Token Optimization (`IN_PROGRESS`)
+## Stage 7: AI Context and Token Optimization (`COMPLETED` / `ACCEPTED` — **STAGE 7 CERTIFIED**)
 
 ### Phase 7.1 — Content optimization (`COMPLETED` / `ACCEPTED` — **PHASE 7.1 CERTIFIED**)
 - [x] **[7.1.1]** Structural normalization in crates/normalizer & crates/cdm *(Completed 2026-11-18, EncodingConfig/WhitespaceConfig/MarkdownConfig/NormalizationConfig with lossless/compact/code_focused presets, EncodingSanitizer BOM/null/control/zero-width/smart-quote sanitization, WhitespaceNormalizer CRLF/CR -> LF and blank line ceilings, MarkdownNormalizer fence/heading/list/table rectangularization, SectionNormalizer kind-specific code preservation, DocumentNormalizer whole-document orchestration, NormalizationReport metrics & markdown/json serialization, 29 normalizer tests, 100% passing quality gates)*
@@ -214,13 +214,13 @@
 - [x] **[7.2.3]** Cost estimation in crates/tokenizer *(Completed 2026-11-18, ModelPricingSchedule covering all models [GPT-4o, GPT-4o-mini, GPT-4 Turbo, Claude 3.5 Sonnet, Claude 3 Opus, Claude 3 Haiku, Gemini 1.5 Pro, Gemini 1.5 Flash, Llama 3, Llama 3 70B, Mistral Large, Mixtral 8x7B, self-hosted $0.00], standard/cached [up to 90% discount]/batch [50% discount]/output pricing, CostBreakdown, CrossModelCostReport with GFM table & JSON serialization, CostGuardrail with CostBudgetExceeded error, budget remaining headroom, and economical alternative model recommendations, TargetModel::Gpt4oMini in registry, 6 new integration tests in cost_estimation_test, 52 tokenizer tests, 100% passing quality gates)*
 - [x] **[7.2.4]** Context-budget calculation in crates/context-optimizer *(Completed 2026-11-18, ContextBudget multi-tier headroom allocation for system/output/query/content, SectionScorer & SectionPriority with kind weights, prominence bonus, density modifiers, and Rule 04/09 test/boilerplate penalties, PinStatus MustInclude/Normal/Deprioritized/MustExclude, BudgetPlan & BudgetAction with token conservation accounting, ContextBudgetOptimizer greedy knapsack utility-per-token allocation with boundary truncation and BLAKE3 revision recalculation, zero silent drops logging to CdmDocument::exclusions with ExclusionReason::SizeLimit, ContextBudgetReport telemetry & JSON roundtrip, 20 crate tests, 662+ workspace tests, 100% passing quality gates — PHASE 7.2 FULLY CERTIFIED)*
 
-### Phase 7.3 — Context profiles
+### Phase 7.3 — Context profiles (`COMPLETED` / `ACCEPTED` — **PHASE 7.3 FORMALLY CERTIFIED**)
 - [x] **[7.3.1]** General AI context profile in crates/context-optimizer *(Completed 2026-11-18, ContextProfile trait, ProfileKind taxonomy, ProfileMetrics category token distribution tracking [documentation, core code, manifests, tests], ProfileOptimizationResult, GeneralAiConfig with test/benchmark suppression toggles, GeneralAiProfile prioritizing READMEs, architecture specs, manifests, and core implementation code while suppressing low-signal test suites and generated boilerplate, apply_general_ai_profile and apply_general_ai_profile_for_model convenience APIs, 5 new integration tests in general_ai_profile_test, 26 context-optimizer tests, 668+ workspace tests, 100% passing quality gates)*
 - [x] **[7.3.2]** Code review context profile in crates/context-optimizer *(Completed 2026-11-18, CodeReviewConfig with changed_files set, associated tests inclusion, manifest preservation, and unmodified prose docs suppression, CodeReviewProfile unconditionally pinning changed files [PinStatus::MustInclude, is_changed_file: true], prioritizing associated test suites [associated_test: true] to verify correctness, preserving manifests & interface definitions, suppressing unmodified docs to dedicate token budget to diff review, apply_code_review_profile and apply_code_review_profile_for_model convenience APIs, 5 new integration tests in code_review_profile_test, 32 context-optimizer tests, 673+ workspace tests, 100% passing quality gates)*
 - [x] **[7.3.3]** Security review context profile in crates/context-optimizer *(Completed 2026-11-18, SecurityCategory taxonomy [AuthAndAccessControl, CryptographyAndSecrets, AttackSurfaceAndEndpoints, InputValidationAndSanitizers, SecurityPolicyAndDocs, SecurityManifests, SecurityTests, GeneralImplementation, BenignPresentationOrAsset], SecurityReviewConfig with toggles for auth/crypto, attack surface, input validation, security docs/manifests/tests, benign presentation suppression, and pinned paths/keywords, SecurityReviewProfile unconditionally pinning auth/crypto/policy with PinStatus::MustInclude, prioritizing network routes/validators/security tests, and suppressing benign UI components/docs with PinStatus::MustExclude, apply_security_review_profile and apply_security_review_profile_for_model convenience APIs, 6 new integration tests in security_review_profile_test, 39 context-optimizer tests, 680+ workspace tests, 100% passing quality gates)*
 - [x] **[7.3.4]** Debugging and documentation context profile in crates/context-optimizer *(Completed 2026-11-18, DebuggingCategory taxonomy [ErrorDefinitionsAndPropagation, ObservabilityAndLogging, ApiContractsAndInterfaces, TroubleshootingDocsAndRunbooks, NegativeAndEdgeCaseTests, ManifestsAndEnvironment, InternalImplementation, CosmeticOrUnrelatedAsset], DebuggingConfig with toggles for error definitions, observability/tracing, API contracts, troubleshooting runbooks, negative tests, manifests, and target error patterns, DebuggingProfile unconditionally pinning errors, tracing, and API contracts with PinStatus::MustInclude, supporting targeted error pattern matching with from_error_pattern, prioritizing runbooks and negative tests with PinStatus::Normal, suppressing cosmetic presentation assets and non-technical changelogs with PinStatus::MustExclude, apply_debugging_profile, apply_debugging_profile_for_model, apply_debugging_profile_with_target, and apply_debugging_profile_with_target_for_model convenience APIs, 6 new integration tests in debugging_profile_test, 46 context-optimizer tests, 687+ workspace tests, 100% passing quality gates — PHASE 7.3 FORMALLY CERTIFIED)*
 
-### Phase 7.4 — Quality validation
+### Phase 7.4 — Quality validation (`COMPLETED` / `ACCEPTED` — **PHASE 7.4 & STAGE 7 FORMALLY CERTIFIED**)
 - [x] **[7.4.1]** Preservation metrics in crates/context-optimizer *(Completed 2026-11-18, PreservationEvaluator, PreservationReport, PreservationConfig, SectionPreservationMetrics with KindPreservation category tracking, CriticalPreservationMetrics zero silent drop audit, SymbolPreservationMetrics AST symbol & public API retention tracking via code-intelligence, TokenPreservationMetrics volume & reduction analysis, StructuralIntegrityMetrics syntax & clean boundary verification, evaluate_preservation convenience APIs, 7 new integration tests in preservation_metrics_test, 54 context-optimizer tests, 694+ workspace tests, 100% passing quality gates)*
 - [x] **[7.4.2]** Compression reporting in crates/context-optimizer *(Completed 2026-11-18, CompressionReport, CompressionEvaluator, CompressionPipelineTracker, OverallCompressionMetrics, StageCompressionMetrics, DocumentVolume, CostSavingsMetrics, MultiModelCostSavings, OptimizationStage, evaluate_compression, evaluate_compression_for_model, evaluate_compression_with_profile convenience APIs, 7 new integration tests in compression_reporting_test, 61 context-optimizer tests, 694+ workspace tests, 100% passing quality gates)*
 - [x] **[7.4.3]** Exclusion explanations in crates/context-optimizer *(Completed 2026-11-18, ExclusionReport, ExclusionExplainer, ExclusionExplanation, ExclusionImpact, ExclusionCategorySummary, ExclusionSource, RemediationAdvice, explain_exclusions, explain_exclusions_with_profile, explain_exclusions_from_document, explain_exclusions_from_plan convenience APIs, 7 new integration tests in exclusion_explanations_test, 68 context-optimizer tests, 694+ workspace tests, 100% passing quality gates)*
@@ -228,8 +228,35 @@
 
 ---
 
+## Stage 8: Large Repositories, Batch and Crawling (`IN_PROGRESS`)
+
+### Phase 8.1 — Batch URLs (`IN_PROGRESS`)
+- [x] **[8.1.1]** Multi-URL submission endpoint and payload validation in services/api *(Completed 2026-11-18, BatchId in crates/core, BatchItemRequest/CreateBatchJobRequest with bounds 1..=100 URLs and 1..=20 parallelism, context profiles validation, URL deduplication, BatchStatus/BatchItemStatus/BatchProgress models, POST /api/v1/jobs/batch returning HTTP 202 Accepted, GET /api/v1/jobs/batch/:batch_id returning RFC 7807 problem details, 11 API integration tests, 70 API crate tests, 705+ workspace tests, 100% passing quality gates)*
+- [ ] **[8.1.2]** Bounded parallel execution in services/worker
+- [ ] **[8.1.3]** Individual result tracking
+- [ ] **[8.1.4]** Batch export
+
+### Phase 8.2 — Website crawling
+- [ ] **[8.2.1]** Sitemap discovery
+- [ ] **[8.2.2]** Internal link discovery
+- [ ] **[8.2.3]** Crawl-depth & domain restrictions
+- [ ] **[8.2.4]** Duplicate & loop prevention
+
+### Phase 8.3 — Incremental processing
+- [ ] **[8.3.1]** HTTP validators
+- [ ] **[8.3.2]** Git commit/blob caching
+- [ ] **[8.3.3]** Content-addressed storage
+- [ ] **[8.3.4]** Changed-file processing
+
+### Phase 8.4 — Scalability
+- [ ] **[8.4.1]** Adaptive concurrency
+- [ ] **[8.4.2]** Backpressure
+- [ ] **[8.4.3]** Streaming large exports
+- [ ] **[8.4.4]** Resumable processing
+
+---
+
 ## Subsequent Stages (Queued)
-- [ ] **[Stage 8]** Large Repositories, Batch and Crawling (`8.1.1` – `8.4.4`)
 - [ ] **[Stage 9]** Developer and AI Agent Integrations (`9.1.1` – `9.4.4`)
 - [ ] **[Stage 10]** Advanced Documents and Content (`10.1.1` – `10.5.4`)
 - [ ] **[Stage 11]** Production Certification (`11.1.1` – `11.4.5`)
