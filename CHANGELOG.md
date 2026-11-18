@@ -6,6 +6,29 @@
 
 ## [Unreleased] — Stage 6: Private GitHub Repositories
 
+### 2026-11-18 — Phase 6.1: GitHub App (`6.1.3`)
+
+#### Added
+- **`[6.1.3]` Minimum Permissions & Least-Privilege Policy in `crates/github-extractor`:**
+  - Implemented configurable permission policy engine and auditing framework in `crates/github-extractor/src/permissions.rs`:
+    - `PermissionPolicy`: Configurable policy engine with `strict_minimal()` (strictly `contents: read` and `metadata: read`), `standard()` (permits benign read-only scopes like `pull_requests: read`, `issues: read`, while strictly rejecting write/admin or sensitive scopes), and `builder()` for custom domain policies.
+    - `PermissionViolation`: Granular enum representing `MissingRequired`, `ExcessiveLevel`, `ForbiddenScope`, `UnexpectedScope`, and `SuspendedInstallation`.
+    - `PermissionAuditReport`: Structured audit report containing compliance status, violation list, summary description, JSON export, and GitHub-Flavored Markdown table generation with callout alerts.
+    - `PermissionAuditor`: Verification engine for raw permissions maps, `GitHubInstallation`, and `GitHubInstallationToken`.
+    - `DEFAULT_FORBIDDEN_CATEGORIES`: Strictly prohibited scopes presenting credential exposure, CI/CD, or administrative risk (`administration`, `actions`, `secrets`, `deployments`, `packages`, `security_events`, `members`, `organization_administration`, `workflows`, `blocking_keys`).
+    - `DEFAULT_FORBIDDEN_LEVELS`: Strictly prohibited levels violating read-only policy (`write`, `admin`).
+  - Enhanced GitHub App installation and token models in `crates/github-extractor/src/installation.rs`:
+    - Added `audit_permissions()`, `audit_permissions_with_policy()`, `validate_permissions()`, and `validate_permissions_with_policy()` on `GitHubInstallation` and `GitHubInstallationToken`.
+    - Added `InstallationTokenRequest`: strongly-typed request payload for scoped token issuance (`POST /app/installations/{id}/access_tokens`) with `minimal_read_only()` and `for_repositories()` builder methods.
+  - Extended `GitHubApiClient` in `crates/github-extractor/src/client.rs`:
+    - Added `create_scoped_installation_access_token` taking an `InstallationTokenRequest`.
+    - Added automatic response permission validation ensuring that issued tokens from GitHub are checked against least privilege before returning.
+  - Extended error taxonomy in `crates/github-extractor/src/error.rs`:
+    - Added `GitHubExtractorError::PermissionViolation` for fail-closed permission rejections.
+  - Authored 14 integration test suites in `crates/github-extractor/tests/minimum_permissions_test.rs`:
+    - Validating compliant minimal permissions, missing contents, missing metadata, excessive write/admin levels, forbidden categories, suspended installations, Markdown audit generation, token request scoping, and live mock HTTP server validation.
+  - Verified 535 passing workspace Rust tests (162 in `crates/github-extractor`), 213 frontend tests, zero clippy warnings, zero fmt diffs, and 100% passing gates across all 5 checks in `scripts/check-all.ps1`.
+
 ### 2026-11-18 — Phase 6.1: GitHub App (`6.1.2`)
 
 #### Added

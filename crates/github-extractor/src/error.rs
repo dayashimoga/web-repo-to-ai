@@ -174,6 +174,10 @@ pub enum GitHubExtractorError {
     #[error("GitHub App configuration error: {0}")]
     AppConfiguration(String),
 
+    /// GitHub App permission violation under Rule 05 (insufficient, excessive, or forbidden scopes).
+    #[error("GitHub App permission violation: {0}")]
+    PermissionViolation(String),
+
     /// Internal core system error.
     #[error("Core system error: {0}")]
     Core(#[from] CoreError),

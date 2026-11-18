@@ -143,6 +143,46 @@ impl GitHubInstallation {
                 .account_type
                 .eq_ignore_ascii_case("organization")
     }
+
+    /// Audits this installation's permissions against the strict minimal permission policy under Rule 05.
+    #[must_use]
+    pub fn audit_permissions(&self) -> crate::permissions::PermissionAuditReport {
+        crate::permissions::PermissionAuditor::audit_installation(
+            self,
+            &crate::permissions::PermissionPolicy::strict_minimal(),
+        )
+    }
+
+    /// Audits this installation's permissions against the specified permission policy.
+    #[must_use]
+    pub fn audit_permissions_with_policy(
+        &self,
+        policy: &crate::permissions::PermissionPolicy,
+    ) -> crate::permissions::PermissionAuditReport {
+        crate::permissions::PermissionAuditor::audit_installation(self, policy)
+    }
+
+    /// Validates that this installation complies with the strict minimal permission policy.
+    ///
+    /// # Errors
+    /// Returns [`crate::error::GitHubExtractorError::PermissionViolation`] if non-compliant.
+    pub fn validate_permissions(&self) -> Result<(), crate::error::GitHubExtractorError> {
+        crate::permissions::PermissionAuditor::validate_installation(
+            self,
+            &crate::permissions::PermissionPolicy::strict_minimal(),
+        )
+    }
+
+    /// Validates that this installation complies with the specified permission policy.
+    ///
+    /// # Errors
+    /// Returns [`crate::error::GitHubExtractorError::PermissionViolation`] if non-compliant.
+    pub fn validate_permissions_with_policy(
+        &self,
+        policy: &crate::permissions::PermissionPolicy,
+    ) -> Result<(), crate::error::GitHubExtractorError> {
+        crate::permissions::PermissionAuditor::validate_installation(self, policy)
+    }
 }
 
 /// Summary of a repository accessible to an installation.
@@ -238,6 +278,89 @@ impl GitHubInstallationToken {
     pub fn is_expiring_soon(&self, safety_margin_secs: u64) -> bool {
         let margin = chrono::Duration::seconds(safety_margin_secs as i64);
         Utc::now() + margin >= self.expires_at
+    }
+
+    /// Audits this installation token's permissions against the strict minimal permission policy under Rule 05.
+    #[must_use]
+    pub fn audit_permissions(&self) -> crate::permissions::PermissionAuditReport {
+        crate::permissions::PermissionAuditor::audit_installation_token(
+            self,
+            &crate::permissions::PermissionPolicy::strict_minimal(),
+        )
+    }
+
+    /// Audits this installation token's permissions against the specified permission policy.
+    #[must_use]
+    pub fn audit_permissions_with_policy(
+        &self,
+        policy: &crate::permissions::PermissionPolicy,
+    ) -> crate::permissions::PermissionAuditReport {
+        crate::permissions::PermissionAuditor::audit_installation_token(self, policy)
+    }
+
+    /// Validates that this installation token complies with the strict minimal permission policy.
+    ///
+    /// # Errors
+    /// Returns [`crate::error::GitHubExtractorError::PermissionViolation`] if non-compliant.
+    pub fn validate_permissions(&self) -> Result<(), crate::error::GitHubExtractorError> {
+        crate::permissions::PermissionAuditor::validate_installation_token(
+            self,
+            &crate::permissions::PermissionPolicy::strict_minimal(),
+        )
+    }
+
+    /// Validates that this installation token complies with the specified permission policy.
+    ///
+    /// # Errors
+    /// Returns [`crate::error::GitHubExtractorError::PermissionViolation`] if non-compliant.
+    pub fn validate_permissions_with_policy(
+        &self,
+        policy: &crate::permissions::PermissionPolicy,
+    ) -> Result<(), crate::error::GitHubExtractorError> {
+        crate::permissions::PermissionAuditor::validate_installation_token(self, policy)
+    }
+}
+
+/// Request payload for creating a scoped installation access token via `POST /app/installations/{id}/access_tokens`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct InstallationTokenRequest {
+    /// Explicit list of repository names to scope the token to.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub repositories: Option<Vec<String>>,
+    /// Explicit list of repository IDs to scope the token to.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub repository_ids: Option<Vec<u64>>,
+    /// Explicit permissions to scope the token to (strictly read-only under Rule 05).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub permissions: Option<crate::app_manifest::GitHubAppPermissions>,
+}
+
+impl InstallationTokenRequest {
+    /// Creates a token request enforcing minimal read-only permissions (`contents: read`, `metadata: read`).
+    #[must_use]
+    pub fn minimal_read_only() -> Self {
+        Self {
+            repositories: None,
+            repository_ids: None,
+            permissions: Some(crate::app_manifest::GitHubAppPermissions::minimal_read_only()),
+        }
+    }
+
+    /// Creates a token request scoped to specific repository names with minimal read-only permissions.
+    #[must_use]
+    pub fn for_repositories(repositories: impl IntoIterator<Item = impl Into<String>>) -> Self {
+        Self {
+            repositories: Some(repositories.into_iter().map(Into::into).collect()),
+            repository_ids: None,
+            permissions: Some(crate::app_manifest::GitHubAppPermissions::minimal_read_only()),
+        }
+    }
+
+    /// Sets explicit repository IDs for this request.
+    #[must_use]
+    pub fn with_repository_ids(mut self, ids: Vec<u64>) -> Self {
+        self.repository_ids = Some(ids);
+        self
     }
 }
 

@@ -29,7 +29,7 @@ use crate::exclusion::{ExclusionAuditReport, ExclusionReportGenerator};
 use crate::hash_validator::{ContentHashValidator, HashValidationConfig, HashValidationReport};
 use crate::installation::{
     GitHubInstallation, GitHubInstallationToken, InstallationRepositoriesResponse,
-    UserInstallationsResponse,
+    InstallationTokenRequest, UserInstallationsResponse,
 };
 use crate::manifest::RepoFileManifest;
 use crate::metadata::{
@@ -1895,11 +1895,76 @@ impl GitHubApiClient {
 
         let (res, _) = self.execute_request(req, &url).await?;
 
-        res.json::<GitHubInstallationToken>().await.map_err(|e| {
+        let token = res.json::<GitHubInstallationToken>().await.map_err(|e| {
             GitHubExtractorError::JsonDecodeError(format!(
                 "Failed to decode installation access token response: {e}"
             ))
-        })
+        })?;
+
+        // If the token response includes permissions, validate that they comply with least privilege
+        if !token.permissions.is_empty() {
+            token.validate_permissions()?;
+        }
+
+        Ok(token)
+    }
+
+    /// Creates a scoped installation access token using an [`InstallationTokenRequest`].
+    ///
+    /// Under Rule 05, this enforces minimal read-only permissions (`contents: read`,
+    /// `metadata: read`) and automatically validates that the issued token does not
+    /// carry write/admin or forbidden scopes before returning.
+    pub async fn create_scoped_installation_access_token(
+        &self,
+        installation_id: u64,
+        app_jwt: &str,
+        request: &InstallationTokenRequest,
+    ) -> Result<GitHubInstallationToken, GitHubExtractorError> {
+        let base = self
+            .base_url_override
+            .as_deref()
+            .unwrap_or("https://api.github.com");
+        let url = format!("{base}/app/installations/{installation_id}/access_tokens");
+
+        let mut headers = self.prepare_headers();
+        let auth_val = format!("Bearer {app_jwt}");
+        if let Ok(hv) = HeaderValue::from_str(&auth_val) {
+            headers.insert(AUTHORIZATION, hv);
+        }
+
+        let mut body = serde_json::json!({});
+        if let Some(repos) = &request.repositories {
+            body["repositories"] = serde_json::json!(repos);
+        }
+        if let Some(repo_ids) = &request.repository_ids {
+            body["repository_ids"] = serde_json::json!(repo_ids);
+        }
+        if let Some(perms) = &request.permissions {
+            perms.validate()?;
+            body["permissions"] = serde_json::json!({
+                "contents": perms.contents.as_str(),
+                "metadata": perms.metadata.as_str(),
+            });
+        }
+
+        let mut req = self.client.post(&url).headers(headers);
+        if !body.as_object().unwrap().is_empty() {
+            req = req.json(&body);
+        }
+
+        let (res, _) = self.execute_request(req, &url).await?;
+
+        let token = res.json::<GitHubInstallationToken>().await.map_err(|e| {
+            GitHubExtractorError::JsonDecodeError(format!(
+                "Failed to decode installation access token response: {e}"
+            ))
+        })?;
+
+        if !token.permissions.is_empty() {
+            token.validate_permissions()?;
+        }
+
+        Ok(token)
     }
 
     /// Lists all repositories accessible to an installation access token (`GET /installation/repositories`).

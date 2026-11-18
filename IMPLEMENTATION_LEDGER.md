@@ -5209,13 +5209,71 @@
 
 ---
 
+#### Subphase `6.1.3` — Minimum permissions in crates/github-extractor
+- **Unique ID:** `6.1.3`
+- **Objective:** Implement runtime permission verification, least-privilege policy enforcement, excessive and forbidden scope detection, and audit report generation for GitHub App installations and tokens in `crates/github-extractor`. Enforce Rule 05 invariants (strictly `contents: read` and `metadata: read`; zero write/admin scopes; immediate rejection of sensitive categories like `secrets`, `actions`, `administration`).
+- **Scope:** `crates/github-extractor/src/permissions.rs`, `crates/github-extractor/src/installation.rs`, `crates/github-extractor/src/client.rs`, `crates/github-extractor/src/error.rs`, `crates/github-extractor/src/lib.rs`, `crates/github-extractor/tests/minimum_permissions_test.rs`.
+- **Prerequisites:** `6.1.2` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/github-extractor/src/permissions.rs`
+  - `crates/github-extractor/src/installation.rs`
+  - `crates/github-extractor/src/client.rs`
+  - `crates/github-extractor/src/error.rs`
+  - `crates/github-extractor/src/lib.rs`
+  - `crates/github-extractor/tests/minimum_permissions_test.rs`
+- **Implementation Tasks:**
+  1. Implement configurable permission policy engine in `crates/github-extractor/src/permissions.rs`:
+     - `PermissionPolicy`: `strict_minimal()` (strictly `contents: read`, `metadata: read`), `standard()` (permits benign read-only scopes, forbids all write/admin and dangerous categories), and `builder()` API for custom policies.
+     - `PermissionViolation`: Granular enum representing `MissingRequired`, `ExcessiveLevel`, `ForbiddenScope`, `UnexpectedScope`, and `SuspendedInstallation`.
+     - `PermissionAuditReport`: Report with compliance boolean, violation list, summary description, JSON export, and GitHub-Flavored Markdown report formatting with tables and alerts.
+     - `PermissionAuditor`: Auditor and validator for raw permission maps, `GitHubInstallation`, and `GitHubInstallationToken`.
+  2. Enhance `crates/github-extractor/src/installation.rs`:
+     - Implemented `audit_permissions()`, `audit_permissions_with_policy()`, `validate_permissions()`, and `validate_permissions_with_policy()` on `GitHubInstallation` and `GitHubInstallationToken`.
+     - Implemented `InstallationTokenRequest` modeling scoped token requests (`POST /app/installations/{id}/access_tokens`) with minimal read-only presets.
+  3. Extend `crates/github-extractor/src/client.rs`:
+     - Added `create_scoped_installation_access_token` taking an `InstallationTokenRequest`.
+     - Validates returned token permissions against the least-privilege policy before returning.
+  4. Extended `crates/github-extractor/src/error.rs`:
+     - Added `GitHubExtractorError::PermissionViolation`.
+  5. Authored comprehensive test suite in `crates/github-extractor/tests/minimum_permissions_test.rs`:
+     - 14 test suites covering compliant minimal permissions, missing contents, missing metadata, excessive write/admin levels, forbidden categories, suspended installations, Markdown audit generation, token request scoping, and live mock HTTP server validation.
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-github-extractor --test minimum_permissions_test`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - Runtime validation strictly enforces `contents: read` and `metadata: read`.
+  - Any write or admin permission is immediately detected and rejected.
+  - Sensitive categories (`secrets`, `actions`, etc.) are detected and rejected even if set to `read`.
+  - Suspended installations are rejected.
+  - Markdown audit reports provide clear diagnostic visibility.
+  - 100% of workspace tests pass, clippy has 0 warnings, formatting is clean, and monorepo quality gates pass.
+- **Risk Analysis:**
+  - Risk: Over-permissive installations could silently gain unauthorized write access or expose organization secrets.
+  - Mitigation: Strict fail-closed validation at both the App installation and minted token layers under Rule 05.
+- **Rollback Plan:**
+  - Revert changes via Git reset to commit `01d1290`.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-github-extractor --test minimum_permissions_test` passed 14 test suites in 0.01s.
+  - Full crate test suite: 162 tests passing across unit and integration targets with 0 failures (28 unit tests, 133 integration tests, 1 doc-test).
+  - Full workspace clippy check: `cargo clippy --workspace --all-targets -- -D warnings` passed with 0 warnings.
+  - Code formatting: `cargo fmt --all -- --check` clean with 0 diffs.
+  - Dependency audit: `cargo deny check` passed (advisories ok, bans ok, licenses ok, sources ok).
+  - Monorepo gatekeeper: `powershell scripts/check-all.ps1` completed with `ALL GATES PASSED (0 failures)` including 535 workspace Rust tests, 213 frontend vitest tests, and 17.6% Podman storage footprint.
+- **Git Commit Reference:** `PENDING_COMMIT`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 6 — Private GitHub Repositories)
 
 #### Phase 6.1 — GitHub App
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `6.1.3` | Minimum permissions | `6.1.2` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
+| `6.1.4` | Callback security | `6.1.3` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
 
 ---
 

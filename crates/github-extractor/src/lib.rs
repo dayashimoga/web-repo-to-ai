@@ -28,6 +28,7 @@ pub mod manifest;
 pub mod metadata;
 pub mod models;
 pub mod oauth;
+pub mod permissions;
 pub mod recovery;
 pub mod source;
 pub mod target;
@@ -84,8 +85,8 @@ pub use hash_validator::{
 };
 pub use installation::{
     GitHubAccountSummary, GitHubInstallation, GitHubInstallationToken,
-    InstallationRepositoriesResponse, InstalledRepositorySummary, RepositorySelection,
-    UserInstallationsResponse,
+    InstallationRepositoriesResponse, InstallationTokenRequest, InstalledRepositorySummary,
+    RepositorySelection, UserInstallationsResponse,
 };
 pub use manifest::{FileExtractionStatus, ManifestFileEntry, RepoFileManifest};
 pub use metadata::{GitHubLanguages, GitHubLicense, GitHubRepoContext, GitHubRepositoryMetadata};
@@ -95,6 +96,10 @@ pub use oauth::{
     generate_app_jwt_at_time, parse_rsa_pem_to_pkcs8_der, pkcs1_to_pkcs8_der,
     GitHubOAuthErrorResponse, GitHubOAuthTokenResponse, InMemoryOAuthStateStore, OAuthState,
     OAuthStateStore,
+};
+pub use permissions::{
+    PermissionAuditReport, PermissionAuditor, PermissionPolicy, PermissionPolicyBuilder,
+    PermissionViolation, DEFAULT_FORBIDDEN_CATEGORIES, DEFAULT_FORBIDDEN_LEVELS,
 };
 pub use recovery::{
     scan_zip_archive, stitch_child_path, ArchiveFormat, SubtreeRecoveryConfig,
