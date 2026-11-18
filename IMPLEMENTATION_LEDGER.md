@@ -4237,7 +4237,7 @@
   - Frontend checks: 213 unit/component tests passed across 17 test suites, 0 type errors, 0 lint warnings.
   - Resource budget: Podman storage footprint healthy at 5.27 GB / 30 GB (17.6%).
   - All 5 gates in `scripts/check-all.ps1` passed with 0 failures.
-- **Git Commit Reference:** `2dc9dd6`
+- **Git Commit Reference:** `2495a78`
 - **Status:** `ACCEPTED`
 
 ---
