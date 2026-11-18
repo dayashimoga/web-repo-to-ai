@@ -4448,11 +4448,78 @@
 
 ---
 
-### Upcoming Subphase (Stage 5 — Public GitHub Repository Extraction)
+#### Subphase `5.3.4` — Configuration & test extraction in crates/github-extractor
+- **Unique ID:** `5.3.4`
+- **Objective:** Implement comprehensive repository configuration and test/fixture extraction from GitHub (`FileCategory::Configuration` and `FileCategory::TestFixture`), classifying configurations into functional categories (`CiCd`, `Build`, `LinterFormatter`, `Environment`, `General`) and test files into test categories (`Unit`, `Integration`, `E2e`, `Fixture`, `Benchmark`, `General`), orchestrating bounded concurrent batch extraction, generating Canonical Context Document Model ([`CdmSection`]) code sections with rich categorization metadata, and formally certifying Phase 5.3 ("File extraction").
+- **Scope:** `crates/github-extractor/src/config_test.rs`, `crates/github-extractor/src/client.rs`, `crates/github-extractor/src/lib.rs`, `crates/github-extractor/tests/config_test_extraction_test.rs`.
+- **Prerequisites:** `5.3.3` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/github-extractor/src/config_test.rs`
+  - `crates/github-extractor/src/client.rs`
+  - `crates/github-extractor/src/lib.rs`
+  - `crates/github-extractor/tests/config_test_extraction_test.rs`
+- **Implementation Tasks:**
+  1. Implement `crates/github-extractor/src/config_test.rs`:
+     - `ConfigCategory` enum (`CiCd`, `Build`, `LinterFormatter`, `Environment`, `General`) and detector `detect_config_category(path, file_name)`.
+     - `TestCategory` enum (`Unit`, `Integration`, `E2e`, `Fixture`, `Benchmark`, `General`) and detector `detect_test_category(path, file_name)`.
+     - `ExtractedConfigFile` model capturing path, Git blob SHA, config category, format, body, byte size, line count, cryptographic BLAKE3 and SHA-256 digests, and conversion to CDM `CdmSection` (`SectionKind::CodeFile`).
+     - `ExtractedTestFile` model capturing path, Git blob SHA, test category, language, body, byte size, line count, cryptographic BLAKE3 and SHA-256 digests, and conversion to CDM `CdmSection` (`SectionKind::CodeFile`).
+     - `ConfigTestExtractionReport` capturing extracted configs, extracted tests, failures, unsupported binaries, category filtering, dedicated `ci_workflows()` and `fixtures()` accessors, and CDM `CompletenessReport` mapping.
+  2. Extend `GitHubApiClient` in `crates/github-extractor/src/client.rs`:
+     - `fetch_config_file`: acquires blob, verifies Git SHA, and constructs `ExtractedConfigFile`.
+     - `fetch_test_file`: acquires blob, verifies Git SHA, and constructs `ExtractedTestFile`.
+     - `extract_config_and_test_files`: concurrent bounded batch extraction of configuration and test files via semaphore.
+  3. Re-export config and test models and functions in `crates/github-extractor/src/lib.rs`.
+  4. Author comprehensive integration tests in `crates/github-extractor/tests/config_test_extraction_test.rs` covering CI/CD workflow extraction, build configuration, linter/formatter config, unit/integration test extraction, test fixtures, bounded concurrent batch retrieval, and CDM section mapping.
+  5. Run full quality gate (`cargo test`, `cargo clippy`, `cargo fmt`, `cargo deny`, `scripts/check-all.ps1`).
+  6. Formally certify Phase 5.3 ("File extraction") in `IMPLEMENTATION_LEDGER.md` and `CHANGELOG.md`.
+- **Acceptance Criteria:**
+  - All configuration files (`FileCategory::Configuration`) and test/fixture files (`FileCategory::TestFixture`) are extracted, validated against Git SHA-1, and classified into appropriate categories.
+  - CI/CD workflows, build configurations, and test fixtures are cleanly categorized and accessible via convenient accessors.
+  - Bounded concurrency with semaphore prevents hitting GitHub rate limits or socket exhaustion.
+  - Extracted files map cleanly to CDM `CdmSection` (`SectionKind::CodeFile`) satisfying the completeness report invariant.
+  - 100% test pass rate, 0 clippy warnings, clean formatting.
+- **Tests:** `cargo test -p web-repo-to-ai-github-extractor`, `cargo test --workspace`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, Rule 04, Rule 05: Cryptographic hash validation (SHA-1, BLAKE3, SHA-256); secret redaction; prompt-injection defenses (untrusted config and test files are safely encapsulated in CDM code sections without host execution).
+- **Performance Considerations:** Bounded concurrency via `tokio::sync::Semaphore`; zero-copy string slicing during category detection.
+- **Documentation Requirements:** Module and type documentation in `crates/github-extractor`, tracking updates in `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-github-extractor`: 98/98 tests passed (24 unit tests, 6 config/test integration tests, 6 dependency integration tests, 6 documentation integration tests, 55 other integration tests, 1 doc test) in 0.19s.
+  - `cargo test --workspace`: 430/430 tests passed across all workspace crates.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors.
+  - `cargo fmt --all -- --check`: 100% compliant with standard formatting.
+  - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures).
+- **Git Commit Reference:** `b9893d0`
+- **Status:** `ACCEPTED`
+
+---
+
+### Phase 5.3 Milestone Certification (`5.3.1` – `5.3.4`)
+- **Phase 5.3 Goal:** Complete source code acquisition, documentation extraction, package dependency & manifest extraction, and configuration & test/fixture extraction with Git SHA-1 verification, bounded concurrency, and CDM section mapping.
+- **Subphases Completed & Accepted:**
+  - `5.3.1`: Source acquisition in `crates/github-extractor` (`ACCEPTED`, commit `98cade2` / `a6e2e51`)
+  - `5.3.2`: Documentation extraction in `crates/github-extractor` (`ACCEPTED`, commit `627ecad` / `6bca508`)
+  - `5.3.3`: Dependency extraction in `crates/github-extractor` (`ACCEPTED`, commit `0637c35` / `74e6952`)
+  - `5.3.4`: Configuration & test extraction in `crates/github-extractor` (`ACCEPTED`, commit `b9893d0`)
+- **Certification Date:** 2026-11-18
+- **Certification Summary:**
+  1. Source code acquisition via Git Blobs API and raw fallback with RFC 4648 base64 decoding, Git object SHA-1 validation, BLAKE3 and SHA-256 digests, binary null-byte sniffing, and CDM [`SectionKind::CodeFile`] construction.
+  2. Functional documentation categorization across 10 `DocType` variants, format detection (Markdown, Asciidoc, RST, PlainText), title/frontmatter extraction, primary README/LICENSE indexers, and CDM [`SectionKind::Prose`] construction.
+  3. Package manifest extraction across 9 ecosystems (`Cargo`, `Npm`, `Pip`, `GoMod`, `MavenGradle`, `Bundler`, `Composer`, `Pub`, `Mix`), role separation (`Manifest` vs `Lockfile`), lightweight deterministic parsers for `Cargo.toml`, `package.json`, `requirements.txt`, `go.mod`, `pyproject.toml`, direct dependency rollup, and CDM [`SectionKind::Manifest`] construction.
+  4. Repository configuration categorization (`CiCd`, `Build`, `LinterFormatter`, `Environment`, `General`) and test classification (`Unit`, `Integration`, `E2e`, `Fixture`, `Benchmark`, `General`) with bounded concurrent batch extraction via `tokio::sync::Semaphore` and CDM [`SectionKind::CodeFile`] mapping.
+  5. 98 tests passing in `crates/github-extractor` (+ 1 doc test), 430 tests passing across all workspace crates with zero clippy warnings and all 5 monorepo quality gates passing.
+- **Phase Status:** `COMPLETED` / `ACCEPTED` (Certified 2026-11-18)
+
+---
+
+### Upcoming Phase (Stage 5 — Public GitHub Repository Extraction)
+
+#### Phase 5.4 — Repository packaging
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `5.3.4` | Configuration & test extraction | `5.3.3` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
+| `5.4.1` | Repository tree generation | `5.3.4` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
 
 ---
 

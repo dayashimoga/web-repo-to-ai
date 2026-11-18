@@ -6,6 +6,27 @@
 
 ## [Unreleased] — Stage 5: Public GitHub Repository Extraction
 
+### 2026-11-18 — Phase 5.3: File Extraction (`5.3.4`) — PHASE 5.3 CERTIFIED
+
+#### Added
+- **`[5.3.4]` Configuration & Test Extraction in `crates/github-extractor` (PHASE 5.3 CERTIFIED):**
+  - Implemented specialized configuration and test extraction models in `crates/github-extractor/src/config_test.rs`:
+    - `ConfigCategory`: functional taxonomy for repository configuration covering `CiCd` (GitHub Actions, GitLab CI, Jenkins, CircleCI), `Build` (Dockerfile, tsconfig.json, Makefile, docker-compose, bundler configs), `LinterFormatter` (rustfmt, clippy, eslint, prettier, editorconfig, biome), `Environment` (.env templates), and `General`.
+    - `TestCategory`: functional classification for test files covering `Unit` (*_test.rs, *.test.ts, test_*.py), `Integration` (tests/*, integration suites), `E2e` (playwright, cypress, e2e specs), `Fixture` (fixtures/*, mocks/*, testdata/*), `Benchmark` (benches/*), and `General`.
+    - `detect_config_format`: presentation format resolver for YAML, JSON, TOML, Dockerfile, Makefile, INI, TypeScript, JavaScript, and plaintext.
+    - `ExtractedConfigFile`: verified configuration model with Git blob SHA-1 validation, format identification, BLAKE3 and SHA-256 digests, and conversion to CDM [`CdmSection`] with `SectionKind::CodeFile` and `file_category: "configuration"`.
+    - `ExtractedTestFile`: verified test code/fixture model with language resolution, BLAKE3 and SHA-256 digests, and conversion to CDM [`CdmSection`] with `SectionKind::CodeFile` and `file_category: "test_fixture"`.
+    - `ConfigTestExtractionReport`: aggregated outcome report capturing extracted configs, extracted tests, failures, unsupported binaries, dedicated `ci_workflows()` and `fixtures()` accessors, and CDM `CompletenessReport` mapping preserving the invariant `discovered == extracted + excluded + failed + unsupported`.
+  - Extended `GitHubApiClient` in `crates/github-extractor/src/client.rs`:
+    - `fetch_config_file(&target, file, config)`: acquires and verifies an individual configuration file.
+    - `fetch_test_file(&target, file, config)`: acquires and verifies an individual test file or fixture.
+    - `extract_config_and_test_files(&target, files, config)`: bounded concurrent batch extraction via `tokio::sync::Semaphore`.
+  - Re-exported configuration and test types in `crates/github-extractor/src/lib.rs`.
+  - Authored comprehensive integration tests in `crates/github-extractor/tests/config_test_extraction_test.rs`:
+    - 6 test suites validating live Axum GitHub Actions CI workflow extraction, Dockerfile container specification, rustfmt.toml formatting config, unit and integration test code, static JSON fixture extraction, and bounded concurrent batch extraction with partial failures and CDM section mapping.
+  - Verified 430 passing workspace Rust tests (98 in `crates/github-extractor` + 1 doc-test), 213 frontend tests, zero clippy warnings, zero fmt diffs, and 100% passing gates across all 5 checks in `scripts/check-all.ps1`.
+  - **FORMALLY CERTIFIED PHASE 5.3 ("File extraction", Subphases `5.3.1` – `5.3.4`).**
+
 ### 2026-11-18 — Phase 5.3: File Extraction (`5.3.3`)
 
 #### Added

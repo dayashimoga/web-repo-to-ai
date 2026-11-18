@@ -75,8 +75,8 @@
 ### STAGE 5 — PUBLIC GITHUB REPOSITORY EXTRACTION
 - **Phase 5.1 — GitHub metadata:** `5.1.1` Repository identification (`ACCEPTED`) | `5.1.2` Branch & tag discovery (`ACCEPTED`) | `5.1.3` Commit selection (`ACCEPTED`) | `5.1.4` Repository metadata extraction (`ACCEPTED` — **PHASE 5.1 CERTIFIED**)
 - **Phase 5.2 — File discovery:** `5.2.1` Git Trees integration (`ACCEPTED`) | `5.2.2` Tree truncation detection (`ACCEPTED`) | `5.2.3` Subtree recovery (`ACCEPTED`) | `5.2.4` File classification (`ACCEPTED` — **PHASE 5.2 CERTIFIED**)
-- **Phase 5.3 — File extraction:** `5.3.1` Source acquisition (`ACCEPTED`) | `5.3.2` Documentation extraction (`ACCEPTED`) | `5.3.3` Dependency extraction (`ACCEPTED`) | `5.3.4` Configuration & test extraction (`NEXT`)
-- **Phase 5.4 — Repository packaging:** `5.4.1` Repository tree generation | `5.4.2` File manifest | `5.4.3` Architecture context | `5.4.4` Code-review package
+- **Phase 5.3 — File extraction:** `5.3.1` Source acquisition (`ACCEPTED`) | `5.3.2` Documentation extraction (`ACCEPTED`) | `5.3.3` Dependency extraction (`ACCEPTED`) | `5.3.4` Configuration & test extraction (`ACCEPTED` — **PHASE 5.3 CERTIFIED**)
+- **Phase 5.4 — Repository packaging:** `5.4.1` Repository tree generation (`NEXT`) | `5.4.2` File manifest | `5.4.3` Architecture context | `5.4.4` Code-review package
 - **Phase 5.5 — Integrity:** `5.5.1` Expected-vs-actual file accounting | `5.5.2` Content hash validation | `5.5.3` Missing & excluded file reports | `5.5.4` Large repository regression tests
 
 ### STAGE 6 — PRIVATE GITHUB REPOSITORIES

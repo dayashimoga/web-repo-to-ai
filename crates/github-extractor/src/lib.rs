@@ -13,6 +13,7 @@
 pub mod classification;
 pub mod client;
 pub mod commit;
+pub mod config_test;
 pub mod dependency;
 pub mod documentation;
 pub mod error;
@@ -32,6 +33,10 @@ pub use client::{
     DEFAULT_USER_AGENT, GITHUB_API_VERSION_HEADER,
 };
 pub use commit::{CommitAuthor, CommitSignatureVerification, GitHubCommitMetadata, PinnedRevision};
+pub use config_test::{
+    detect_config_category, detect_config_format, detect_test_category, ConfigCategory,
+    ConfigTestExtractionReport, ExtractedConfigFile, ExtractedTestFile, TestCategory,
+};
 pub use dependency::{
     detect_ecosystem, detect_manifest_role, parse_cargo_toml, parse_go_mod, parse_manifest,
     parse_package_json, parse_pyproject_toml, parse_requirements_txt, DeclaredDependency,

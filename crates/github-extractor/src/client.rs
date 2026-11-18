@@ -17,6 +17,7 @@ use crate::classification::ClassifiedFile;
 use crate::commit::{
     CommitAuthor, CommitSignatureVerification, GitHubCommitMetadata, PinnedRevision,
 };
+use crate::config_test::{ConfigTestExtractionReport, ExtractedConfigFile, ExtractedTestFile};
 use crate::dependency::{DependencyExtractionReport, ExtractedDependencyFile};
 use crate::documentation::{DocExtractionReport, ExtractedDocFile};
 use crate::error::{redact_secrets, GitHubExtractorError};
@@ -1425,4 +1426,119 @@ impl GitHubApiClient {
         report.duration = start.elapsed();
         report
     }
+
+    /// Fetches and verifies a single classified configuration file, producing an `ExtractedConfigFile`.
+    ///
+    /// # Errors
+    /// Returns `GitHubExtractorError::BlobError` if Git SHA verification fails or binary content is detected.
+    pub async fn fetch_config_file(
+        &self,
+        target: &GitHubTarget,
+        file: &ClassifiedFile,
+        config: &SourceExtractionConfig,
+    ) -> Result<ExtractedConfigFile, GitHubExtractorError> {
+        let blob = self.get_blob(target, &file.sha).await?;
+        ExtractedConfigFile::from_blob(&file.path, &blob, config)
+    }
+
+    /// Fetches and verifies a single classified test file or fixture, producing an `ExtractedTestFile`.
+    ///
+    /// # Errors
+    /// Returns `GitHubExtractorError::BlobError` if Git SHA verification fails or binary content is detected.
+    pub async fn fetch_test_file(
+        &self,
+        target: &GitHubTarget,
+        file: &ClassifiedFile,
+        config: &SourceExtractionConfig,
+    ) -> Result<ExtractedTestFile, GitHubExtractorError> {
+        let blob = self.get_blob(target, &file.sha).await?;
+        ExtractedTestFile::from_blob(&file.path, &blob, config, file.language.clone())
+    }
+
+    /// Concurrently extracts and parses repository configuration and test/fixture files with bounded concurrency.
+    ///
+    /// Classifies configs and tests, collecting extracted configs, test files, and failures into a consolidated
+    /// `ConfigTestExtractionReport`.
+    pub async fn extract_config_and_test_files(
+        &self,
+        target: &GitHubTarget,
+        files: &[ClassifiedFile],
+        config: &SourceExtractionConfig,
+    ) -> ConfigTestExtractionReport {
+        let start = std::time::Instant::now();
+        let mut report = ConfigTestExtractionReport::new();
+
+        let mut eligible_files = Vec::new();
+        for file in files {
+            if !file.is_eligible {
+                if file.category.is_binary() {
+                    report.add_unsupported(file.clone());
+                }
+            } else {
+                eligible_files.push(file.clone());
+            }
+        }
+
+        let semaphore = std::sync::Arc::new(tokio::sync::Semaphore::new(config.concurrency));
+        let mut task_handles = Vec::with_capacity(eligible_files.len());
+
+        for file in eligible_files {
+            let sem = semaphore.clone();
+            let client = self.clone();
+            let target = target.clone();
+            let f = file.clone();
+            let cfg = config.clone();
+
+            let handle = tokio::spawn(async move {
+                let _permit = sem
+                    .acquire()
+                    .await
+                    .map_err(|e| GitHubExtractorError::RequestFailed(e.to_string()))?;
+
+                if f.category.is_test() {
+                    client
+                        .fetch_test_file(&target, &f, &cfg)
+                        .await
+                        .map(EitherConfigOrTest::Test)
+                } else {
+                    client
+                        .fetch_config_file(&target, &f, &cfg)
+                        .await
+                        .map(EitherConfigOrTest::Config)
+                }
+            });
+
+            task_handles.push((file, handle));
+        }
+
+        for (file, handle) in task_handles {
+            match handle.await {
+                Ok(Ok(EitherConfigOrTest::Config(c))) => {
+                    report.add_config(c);
+                }
+                Ok(Ok(EitherConfigOrTest::Test(t))) => {
+                    report.add_test(t);
+                }
+                Ok(Err(err)) => {
+                    let err_str = err.to_string();
+                    if err_str.contains("Binary or null bytes") {
+                        report.add_unsupported(file);
+                    } else {
+                        report.add_failed(file.path, file.sha, err_str);
+                    }
+                }
+                Err(join_err) => {
+                    report.add_failed(file.path, file.sha, format!("Task join error: {join_err}"));
+                }
+            }
+        }
+
+        report.duration = start.elapsed();
+        report
+    }
+}
+
+enum EitherConfigOrTest {
+    Config(ExtractedConfigFile),
+    Test(ExtractedTestFile),
 }
