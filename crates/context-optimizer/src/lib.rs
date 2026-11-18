@@ -25,13 +25,34 @@ pub use optimizer::{BudgetOptimizationConfig, ContextBudgetOptimizer, Truncation
 pub use plan::{BudgetAction, BudgetPlan, SectionBudgetDecision};
 pub use priority::{PinStatus, PriorityScoreFactors, SectionPriority, SectionScorer};
 pub use profiles::{
-    ContextProfile, GeneralAiConfig, GeneralAiProfile, ProfileKind, ProfileMetrics,
-    ProfileOptimizationResult,
+    CodeReviewConfig, CodeReviewProfile, ContextProfile, GeneralAiConfig, GeneralAiProfile,
+    ProfileKind, ProfileMetrics, ProfileOptimizationResult,
 };
 pub use report::ContextBudgetReport;
 
 use web_repo_to_ai_cdm::CdmDocument;
 use web_repo_to_ai_tokenizer::TargetModel;
+
+/// Convenience function: Optimizes a [`CdmDocument`] using the Code Review profile for a target model.
+pub fn apply_code_review_profile_for_model(
+    document: &CdmDocument,
+    changed_files: &[String],
+    model: TargetModel,
+) -> Result<ProfileOptimizationResult, ContextOptimizerError> {
+    let budget = ContextBudget::from_model(model);
+    let profile = CodeReviewProfile::from_changed_files(changed_files.to_vec());
+    profile.optimize(document, &budget)
+}
+
+/// Convenience function: Optimizes a [`CdmDocument`] using the Code Review profile against a custom budget.
+pub fn apply_code_review_profile(
+    document: &CdmDocument,
+    changed_files: &[String],
+    budget: &ContextBudget,
+) -> Result<ProfileOptimizationResult, ContextOptimizerError> {
+    let profile = CodeReviewProfile::from_changed_files(changed_files.to_vec());
+    profile.optimize(document, budget)
+}
 
 /// Convenience function: Optimizes a [`CdmDocument`] using the General AI profile for a target model.
 pub fn apply_general_ai_profile_for_model(

@@ -6,6 +6,23 @@
 
 ## [Unreleased] — Stage 7: AI Context and Token Optimization
 
+### 2026-11-18 — Phase 7.3: Context profiles (`7.3.2`)
+
+#### Added
+- **`[7.3.2]` Code Review Context Profile & Changed File Prioritization in `crates/context-optimizer`:**
+  - Implemented specialized Code Review configuration and engine in `crates/context-optimizer/src/profiles/code_review.rs`:
+    - `CodeReviewConfig`: configurable set of `changed_files`, toggles for `include_associated_tests` (default `true` to verify regression and behavior), `include_manifests` (default `true`), `include_interface_definitions` (default `true`), `include_unmodified_docs` (default `false` to conserve token budget for diffs), and boundary truncation thresholds.
+    - `CodeReviewProfile`: implements `ContextProfile`:
+      - Unconditionally pins modified/changed files (`PinStatus::MustInclude`) and marks them with `is_changed_file: true`.
+      - Identifies associated unit/regression test files corresponding to changed source paths via naming heuristics and path patterns, assigning elevated priority and tagging with `associated_test: true`.
+      - Preserves manifests (`Cargo.toml`, `package.json`, etc.) and interface definitions (`.d.ts`, trait definitions).
+      - Suppresses unmodified prose documentation (`README.md`, `CHANGELOG.md`, `ROADMAP.md`) and generated assets by default to dedicate maximum context window headroom to code diffs.
+      - Enforces `ContextBudgetOptimizer` greedy knapsack allocation and boundary truncation under constrained token ceilings.
+      - Computes `ProfileMetrics` category distribution (changed files, associated tests, manifests, and auxiliary context).
+  - Public convenience APIs in `crates/context-optimizer/src/lib.rs`: `apply_code_review_profile` and `apply_code_review_profile_for_model`.
+  - Authored integration test suite `crates/context-optimizer/tests/code_review_profile_test.rs` (5 integration tests validating changed file pinning, associated test prioritization, model-targeted optimization, tight budget boundary truncation, zero changed files fallback, and telemetry serialization).
+  - 100% passing quality gates: 32 crate tests passed, 673+ workspace tests passed, zero clippy warnings, zero fmt diffs, cargo deny passed, and 5/5 check-all gates passed.
+
 ### 2026-11-18 — Phase 7.3: Context profiles (`7.3.1`)
 
 #### Added

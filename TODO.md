@@ -216,7 +216,7 @@
 
 ### Phase 7.3 — Context profiles
 - [x] **[7.3.1]** General AI context profile in crates/context-optimizer *(Completed 2026-11-18, ContextProfile trait, ProfileKind taxonomy, ProfileMetrics category token distribution tracking [documentation, core code, manifests, tests], ProfileOptimizationResult, GeneralAiConfig with test/benchmark suppression toggles, GeneralAiProfile prioritizing READMEs, architecture specs, manifests, and core implementation code while suppressing low-signal test suites and generated boilerplate, apply_general_ai_profile and apply_general_ai_profile_for_model convenience APIs, 5 new integration tests in general_ai_profile_test, 26 context-optimizer tests, 668+ workspace tests, 100% passing quality gates)*
-- [ ] **[7.3.2]** Code review context profile in crates/context-optimizer
+- [x] **[7.3.2]** Code review context profile in crates/context-optimizer *(Completed 2026-11-18, CodeReviewConfig with changed_files set, associated tests inclusion, manifest preservation, and unmodified prose docs suppression, CodeReviewProfile unconditionally pinning changed files [PinStatus::MustInclude, is_changed_file: true], prioritizing associated test suites [associated_test: true] to verify correctness, preserving manifests & interface definitions, suppressing unmodified docs to dedicate token budget to diff review, apply_code_review_profile and apply_code_review_profile_for_model convenience APIs, 5 new integration tests in code_review_profile_test, 32 context-optimizer tests, 673+ workspace tests, 100% passing quality gates)*
 - [ ] **[7.3.3]** Security review context profile in crates/context-optimizer
 - [ ] **[7.3.4]** Debugging and documentation context profile in crates/context-optimizer
 

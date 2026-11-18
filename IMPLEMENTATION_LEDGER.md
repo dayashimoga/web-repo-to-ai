@@ -6674,7 +6674,59 @@
   - Formatting: `cargo fmt --all -- --check` clean with 0 diffs.
   - Dependency audit: `cargo deny check` passed (advisories ok, bans ok, licenses ok, sources ok).
   - Monorepo gatekeeper: `powershell scripts/check-all.ps1` completed with `ALL GATES PASSED (0 failures)`.
-- **Git Commit Reference:** `9fa6966`
+- **Git Commit Reference:** `3295f48`
+- **Status:** `ACCEPTED`
+
+---
+
+#### Subphase `7.3.2` — Code review context profile in crates/context-optimizer
+- **Unique ID:** `7.3.2`
+- **Objective:** Implement the specialized Code Review context profile (`CodeReviewProfile`, `CodeReviewConfig`) in `crates/context-optimizer` that prioritizes pull-request / diff-modified files (`PinStatus::MustInclude`), includes associated test files (`associated_test: true`) to assess behavioral correctness and test coverage, preserves manifest and interface definitions, suppresses unmodified documentation (`README.md`, `CHANGELOG.md`, `ROADMAP.md`) and generated assets to maximize diff context headroom, and integrates with `ContextBudgetOptimizer` greedy knapsack allocation and boundary truncation.
+- **Scope:** `crates/context-optimizer/src/profiles/code_review.rs`, `crates/context-optimizer/src/profiles/mod.rs`, `crates/context-optimizer/src/lib.rs`, `crates/context-optimizer/tests/code_review_profile_test.rs`.
+- **Prerequisites:** `7.3.1` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/context-optimizer/src/profiles/code_review.rs`
+  - `crates/context-optimizer/src/profiles/mod.rs`
+  - `crates/context-optimizer/src/lib.rs`
+  - `crates/context-optimizer/tests/code_review_profile_test.rs`
+- **Implementation Tasks:**
+  1. Implement `CodeReviewConfig` in `crates/context-optimizer/src/profiles/code_review.rs` with `changed_files: HashSet<String>`, `include_associated_tests: bool` (default `true`), `include_manifests: bool` (default `true`), `include_interface_definitions: bool` (default `true`), `include_unmodified_docs: bool` (default `false`), and boundary truncation controls.
+  2. Implement `CodeReviewProfile` implementing `ContextProfile`:
+     - Identifies changed/modified files and sets `PinStatus::MustInclude` with metadata `is_changed_file: true`.
+     - Identifies associated unit/regression tests for changed files using naming conventions and path relations, tagging them with `associated_test: true` and elevated priority.
+     - Preserves manifests (`Cargo.toml`, `package.json`, etc.) and interface definitions (`.d.ts`, trait definitions).
+     - Suppresses unmodified prose documentation and generated assets by default to maximize diff context headroom.
+     - Enforces `ContextBudgetOptimizer` knapsack allocation and boundary truncation under constrained token ceilings.
+     - Generates `ProfileMetrics` reporting category token distribution across changed files, associated tests, manifests, and others.
+  3. Re-export `CodeReviewConfig` and `CodeReviewProfile` in `crates/context-optimizer/src/profiles/mod.rs`.
+  4. Expose public convenience APIs `apply_code_review_profile` and `apply_code_review_profile_for_model` in `crates/context-optimizer/src/lib.rs`.
+  5. Implement comprehensive integration test suite `crates/context-optimizer/tests/code_review_profile_test.rs` (5 integration tests validating changed file pinning, associated test elevation, model-targeted optimization, tight budget boundary truncation, zero changed files fallback, and telemetry serialization).
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-context-optimizer`
+  - `cargo test --workspace`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - Modified/changed files are unconditionally prioritized with `PinStatus::MustInclude` and `is_changed_file: true`.
+  - Associated unit/regression tests are identified and prioritized when `include_associated_tests` is enabled.
+  - Unmodified prose documentation is suppressed by default (`include_unmodified_docs: false`) to conserve tokens for code diffs.
+  - Strict compliance with model token budgets (`TargetModel::Gpt4o`, `Claude35Sonnet`, `Gemini15Pro`, `Llama3`) with clean boundary truncation.
+  - All 32 crate tests pass, all 673+ workspace tests pass, zero clippy warnings, zero fmt diffs, cargo deny passed, all check-all gates pass (5/5).
+- **Risk Analysis:**
+  - Risk: When no changed files are supplied or match the document, all sections might be suppressed or misclassified.
+  - Mitigation: Implemented fallback logic that treats core implementation files as candidate review targets with warning telemetry when `changed_files` is empty.
+- **Rollback Plan:**
+  - Revert Subphase 7.3.2 additions via `git reset --hard HEAD~1` and restore Subphase 7.3.1 baseline.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-context-optimizer`: 32 tests passing (16 unit tests, 16 integration tests across 3 test suites).
+  - Full workspace tests: 673+ tests passing across all crates and services with 0 failures.
+  - Workspace linter: `cargo clippy --workspace --all-targets -- -D warnings` clean with 0 warnings.
+  - Formatting: `cargo fmt --all -- --check` clean with 0 diffs.
+  - Dependency audit: `cargo deny check` passed (advisories ok, bans ok, licenses ok, sources ok).
+  - Monorepo gatekeeper: `powershell scripts/check-all.ps1` completed with `ALL GATES PASSED (0 failures)`.
+- **Git Commit Reference:** `6a322ac`
 - **Status:** `ACCEPTED`
 
 ---
@@ -6685,7 +6737,7 @@
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `7.3.2` | Code review context profile | `7.3.1` (`ACCEPTED`) | `crates/context-optimizer/*` | `NOT_STARTED` |
+| `7.3.3` | Security review context profile | `7.3.2` (`ACCEPTED`) | `crates/context-optimizer/*` | `NOT_STARTED` |
 
 ---
 

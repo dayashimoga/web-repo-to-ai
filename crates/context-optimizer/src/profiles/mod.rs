@@ -7,8 +7,10 @@
 //! - `SecurityReviewProfile` ([`ProfileKind::SecurityReview`]): Attack surface, auth, and crypto paths (Phase 7.3.3).
 //! - `DebuggingProfile` ([`ProfileKind::DebuggingAndDocumentation`]): Error propagation, logs, and API docs (Phase 7.3.4).
 
+pub mod code_review;
 pub mod general_ai;
 
+pub use code_review::{CodeReviewConfig, CodeReviewProfile};
 pub use general_ai::{GeneralAiConfig, GeneralAiProfile};
 
 use crate::budget::ContextBudget;
