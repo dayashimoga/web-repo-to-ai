@@ -2579,11 +2579,13 @@ name = "web-repo-to-ai-github-extractor"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "bytes",
  "chrono",
  "regex",
  "reqwest",
  "serde",
  "serde_json",
+ "sha2",
  "thiserror 1.0.69",
  "tokio",
  "tracing",
@@ -2591,6 +2593,7 @@ dependencies = [
  "web-repo-to-ai-cdm",
  "web-repo-to-ai-core",
  "web-repo-to-ai-url-security",
+ "zip",
 ]
 
 [[package]]

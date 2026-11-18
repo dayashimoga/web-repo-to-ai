@@ -3,14 +3,15 @@
 //! Provides an asynchronous, rate-limit-aware HTTP client for GitHub repository
 //! discovery, branch and tag enumeration, pagination, and reference disambiguation.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet, VecDeque};
 use std::time::Duration;
 
+use bytes::Bytes;
 use chrono::Utc;
 use reqwest::header::{HeaderMap, HeaderValue, ACCEPT, AUTHORIZATION, USER_AGENT};
 use reqwest::{Client, StatusCode};
 use serde::Deserialize;
-use tracing::debug;
+use tracing::{debug, info, warn};
 
 use crate::commit::{
     CommitAuthor, CommitSignatureVerification, GitHubCommitMetadata, PinnedRevision,
@@ -20,8 +21,11 @@ use crate::metadata::{
     GitHubLanguages, GitHubLicense, GitHubRepoContext, GitHubRepositoryMetadata,
 };
 use crate::models::{GitHubBranch, GitHubRateLimit, GitHubTag, RefDiscoveryReport};
+use crate::recovery::{
+    scan_zip_archive, ArchiveFormat, SubtreeRecoveryConfig, SubtreeRecoveryReport, TreeStitcher,
+};
 use crate::target::GitHubTarget;
-use crate::tree::GitTreeResponse;
+use crate::tree::{GitTreeResponse, TreeCompleteness};
 
 /// Default HTTP request timeout for GitHub API calls.
 pub const DEFAULT_GITHUB_TIMEOUT: Duration = Duration::from_secs(30);
@@ -835,5 +839,267 @@ impl GitHubApiClient {
             .get_tree(pinned.target(), pinned.root_tree_sha(), recursive)
             .await?;
         Ok(tree_res)
+    }
+
+    /// Downloads a repository snapshot archive (tarball or zipball) for a specified ref or commit SHA.
+    ///
+    /// Requests `GET /repos/{owner}/{repo}/{archive_format}/{git_ref}`, following redirects
+    /// to the underlying download endpoint, with credentials and token redaction.
+    ///
+    /// # Errors
+    /// Returns `GitHubExtractorError::ResourceNotFound` if the ref does not exist,
+    /// or `GitHubExtractorError::RequestFailed` on network failure.
+    pub async fn download_archive(
+        &self,
+        target: &GitHubTarget,
+        git_ref: &str,
+        format: ArchiveFormat,
+    ) -> Result<Bytes, GitHubExtractorError> {
+        let base_url = self.effective_base_url(target);
+        let url = format!(
+            "{base_url}/repos/{}/{}/{}/{}",
+            target.owner,
+            target.repo,
+            format.as_str(),
+            git_ref
+        );
+
+        let mut headers = self.prepare_headers();
+        headers.insert(ACCEPT, HeaderValue::from_static("*/*"));
+
+        let req = self.client.get(&url).headers(headers).timeout(self.timeout);
+
+        let (res, _rate_limit) = self.execute_request(req, &url).await?;
+
+        let bytes = res.bytes().await.map_err(|e| {
+            let sanitized = redact_secrets(&e.to_string());
+            GitHubExtractorError::RequestFailed(sanitized)
+        })?;
+
+        Ok(bytes)
+    }
+
+    /// Orchestrates automated subtree recovery on a potentially truncated `GitTreeResponse`.
+    ///
+    /// If the tree is already complete, returns immediately with zero recovery queries.
+    /// If unexpanded subtrees exist or truncation is detected, recursively queries unexpanded
+    /// subtrees up to `config.max_subtrees` and `config.max_depth`.
+    ///
+    /// If the subtree count exceeds bounds or traversal fails to achieve 100% completeness,
+    /// and `config.auto_fallback` is enabled, falls back to downloading a shallow zipball archive
+    /// (if `fallback_ref` is provided, e.g. the commit SHA or target ref) to reconstruct the full tree.
+    ///
+    /// # Errors
+    /// Returns `GitHubExtractorError` if recovery fails.
+    pub async fn recover_tree(
+        &self,
+        target: &GitHubTarget,
+        mut base_tree: GitTreeResponse,
+        config: &SubtreeRecoveryConfig,
+        fallback_ref: Option<&str>,
+    ) -> Result<(GitTreeResponse, SubtreeRecoveryReport), GitHubExtractorError> {
+        let initial_completeness = base_tree.completeness();
+        if initial_completeness.is_complete() {
+            let total = base_tree.tree.len();
+            return Ok((
+                base_tree,
+                SubtreeRecoveryReport {
+                    initial_completeness: TreeCompleteness::Complete,
+                    subtrees_attempted: 0,
+                    subtrees_succeeded: 0,
+                    subtrees_failed: 0,
+                    additional_blobs_recovered: 0,
+                    additional_trees_recovered: 0,
+                    final_total_entries: total,
+                    final_completeness: TreeCompleteness::Complete,
+                    fallback_triggered: false,
+                    remaining_unexpanded: Vec::new(),
+                },
+            ));
+        }
+
+        let mut subtrees_attempted = 0;
+        let mut subtrees_succeeded = 0;
+        let mut subtrees_failed = 0;
+        let mut additional_blobs_recovered = 0;
+        let mut additional_trees_recovered = 0;
+        let mut fallback_triggered = false;
+
+        // Collect initial unexpanded subtrees
+        let initial_unexpanded = base_tree.find_unexpanded_subtrees();
+        let initial_unexpanded_count = initial_unexpanded.len();
+
+        // Check if we should immediately fallback to archive download
+        if config.auto_fallback
+            && (initial_unexpanded_count > config.max_subtrees
+                || base_tree.tree.len() >= crate::tree::GITHUB_TREE_ENTRY_LIMIT)
+            && fallback_ref.is_some()
+        {
+            let git_ref = fallback_ref.unwrap_or_default();
+            info!(
+                "Initial tree truncation too large ({initial_unexpanded_count} subtrees); triggering shallow archive fallback for {git_ref}",
+            );
+            match self
+                .download_archive(target, git_ref, ArchiveFormat::Zipball)
+                .await
+            {
+                Ok(bytes) => match scan_zip_archive(&bytes, true) {
+                    Ok(recovered_tree) => {
+                        let total = recovered_tree.tree.len();
+                        let final_completeness = recovered_tree.completeness();
+                        return Ok((
+                            recovered_tree,
+                            SubtreeRecoveryReport {
+                                initial_completeness,
+                                subtrees_attempted: 0,
+                                subtrees_succeeded: 0,
+                                subtrees_failed: 0,
+                                additional_blobs_recovered: 0,
+                                additional_trees_recovered: 0,
+                                final_total_entries: total,
+                                final_completeness,
+                                fallback_triggered: true,
+                                remaining_unexpanded: Vec::new(),
+                            },
+                        ));
+                    }
+                    Err(e) => {
+                        warn!("Failed to parse zip archive fallback: {e}");
+                    }
+                },
+                Err(e) => {
+                    warn!("Failed to download archive fallback: {e}");
+                }
+            }
+        }
+
+        // Bounded queue for subtree queries: (parent_dir_path, subtree_sha, current_depth)
+        let mut queue: VecDeque<(String, String, usize)> = VecDeque::new();
+        let mut visited_shas: HashSet<String> = HashSet::new();
+
+        for entry in initial_unexpanded {
+            if visited_shas.insert(entry.sha.clone()) {
+                queue.push_back((entry.path.clone(), entry.sha.clone(), 0));
+            }
+        }
+
+        while let Some((parent_dir, sha, depth)) = queue.pop_front() {
+            if subtrees_attempted >= config.max_subtrees {
+                warn!(
+                    "Subtree recovery reached max_subtrees limit ({}); stopping traversal",
+                    config.max_subtrees
+                );
+                break;
+            }
+
+            subtrees_attempted += 1;
+            debug!("Querying subtree {parent_dir} (sha: {sha}, depth: {depth})");
+
+            match self.get_tree(target, &sha, true).await {
+                Ok((subtree_response, _rate_limit)) => {
+                    subtrees_succeeded += 1;
+
+                    // Stitch recovered entries into base_tree
+                    let (blobs, trees) = TreeStitcher::stitch_subtree(
+                        &mut base_tree,
+                        &parent_dir,
+                        &subtree_response,
+                    );
+                    additional_blobs_recovered += blobs;
+                    additional_trees_recovered += trees;
+
+                    // If the subtree itself contains unexpanded subtrees, and depth + 1 < max_depth, queue them
+                    if depth + 1 < config.max_depth {
+                        for sub in subtree_response.find_unexpanded_subtrees() {
+                            let stitched_sub_path =
+                                TreeStitcher::stitch_child_path(&parent_dir, &sub.path);
+                            if visited_shas.insert(sub.sha.clone()) {
+                                queue.push_back((stitched_sub_path, sub.sha.clone(), depth + 1));
+                            }
+                        }
+                    }
+                }
+                Err(e) => {
+                    warn!("Failed to fetch subtree {parent_dir} (sha: {sha}): {e}");
+                    subtrees_failed += 1;
+                }
+            }
+        }
+
+        // If all queued subtrees succeeded and no unexpanded subtrees remain, the tree is fully expanded
+        let remaining = base_tree.find_unexpanded_subtrees();
+        if queue.is_empty()
+            && subtrees_failed == 0
+            && remaining.is_empty()
+            && base_tree.tree.len() < crate::tree::GITHUB_TREE_ENTRY_LIMIT
+        {
+            base_tree.truncated = false;
+        }
+
+        // Re-analyze completeness after stitching
+        let mut final_completeness = base_tree.completeness();
+        let mut remaining_unexpanded = Vec::new();
+
+        if let TreeCompleteness::Truncated(ref report) = final_completeness {
+            remaining_unexpanded = report.unexpanded_subtrees.clone();
+
+            // If still incomplete and auto_fallback enabled with fallback_ref, attempt archive fallback
+            if config.auto_fallback && fallback_ref.is_some() && !remaining_unexpanded.is_empty() {
+                let git_ref = fallback_ref.unwrap_or_default();
+                info!("Subtree recovery left unexpanded subtrees; triggering archive fallback for {git_ref}");
+                if let Ok(bytes) = self
+                    .download_archive(target, git_ref, ArchiveFormat::Zipball)
+                    .await
+                {
+                    if let Ok(archive_tree) = scan_zip_archive(&bytes, true) {
+                        base_tree = archive_tree;
+                        final_completeness = base_tree.completeness();
+                        fallback_triggered = true;
+                        remaining_unexpanded.clear();
+                    }
+                }
+            }
+        }
+
+        // If tree is now complete, clear truncated flag on base_tree
+        if final_completeness.is_complete() {
+            base_tree.truncated = false;
+        }
+
+        let report = SubtreeRecoveryReport {
+            initial_completeness,
+            subtrees_attempted,
+            subtrees_succeeded,
+            subtrees_failed,
+            additional_blobs_recovered,
+            additional_trees_recovered,
+            final_total_entries: base_tree.tree.len(),
+            final_completeness,
+            fallback_triggered,
+            remaining_unexpanded,
+        };
+
+        Ok((base_tree, report))
+    }
+
+    /// Fetches and recovers the Git tree corresponding to an immutable `PinnedRevision`.
+    ///
+    /// Guarantees zero ref-drift by using the pinned commit SHA as immutable anchor and fallback ref.
+    ///
+    /// # Errors
+    /// Returns `GitHubExtractorError` if the initial fetch or recovery fails.
+    pub async fn recover_pinned_tree(
+        &self,
+        pinned: &PinnedRevision,
+        config: &SubtreeRecoveryConfig,
+    ) -> Result<(GitTreeResponse, SubtreeRecoveryReport), GitHubExtractorError> {
+        let base_tree = self.fetch_pinned_tree(pinned, true).await?;
+        self.recover_tree(
+            pinned.target(),
+            base_tree,
+            config,
+            Some(pinned.commit_sha()),
+        )
+        .await
     }
 }

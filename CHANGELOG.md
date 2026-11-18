@@ -6,6 +6,26 @@
 
 ## [Unreleased] — Stage 5: Public GitHub Repository Extraction
 
+### 2026-11-18 — Phase 5.2: File Discovery (`5.2.3`)
+
+#### Added
+- **`[5.2.3]` Git Subtree Recovery & Shallow Archive Fallback in `crates/github-extractor`:**
+  - Implemented recovery models and utilities in `crates/github-extractor/src/recovery.rs`:
+    - `ArchiveFormat`: supports `Tarball` (`.tar.gz`) and `Zipball` (`.zip`) formats with URL path and MIME helpers.
+    - `SubtreeRecoveryConfig`: configurable parameters for recovery (`max_subtrees`, `max_depth`, `auto_fallback`, `concurrency`).
+    - `SubtreeRecoveryReport`: diagnostic outcome report detailing subtrees attempted, succeeded, failed, additional blobs/trees recovered, final completeness, fallback status, and remaining unexpanded paths.
+    - `TreeStitcher`: path prefixing and normalization utility (`stitch_child_path`) and in-place subtree merging with deduplication (`stitch_subtree`).
+    - `scan_zip_archive`: in-memory GitHub zipball parser extracting complete `GitTreeResponse` hierarchies, stripping top-level archive prefixes, detecting executable permissions (`100755`) and directory modes (`040000`), and generating deterministic SHA hashes.
+  - Extended `GitHubApiClient` in `crates/github-extractor/src/client.rs`:
+    - `download_archive(&target, git_ref, format)`: downloads binary archive stream with secret redaction and redirect handling.
+    - `recover_tree(&target, base_tree, config, fallback_ref)`: orchestrates bounded BFS queue traversal of unexpanded subtrees, stitches child entries, and executes shallow archive fallback if thresholds are exceeded or unexpanded subtrees remain.
+    - `recover_pinned_tree(&pinned, config)`: fetches pinned revision tree and automatically recovers complete hierarchy with zero ref-drift.
+  - Added `ArchiveError` variant to `GitHubExtractorError` in `crates/github-extractor/src/error.rs`.
+  - Re-exported recovery types in `crates/github-extractor/src/lib.rs`.
+  - Authored comprehensive integration tests in `crates/github-extractor/tests/subtree_recovery_test.rs`:
+    - 7 test suites covering path stitching, in-place tree merging and deduplication, config defaults/builders, in-memory zip archive parsing, live Axum recursive subtree traversal, threshold-based archive fallback, and upstream failure archive fallback.
+  - Verified 388 passing workspace Rust tests (54 in `crates/github-extractor`), zero clippy warnings, zero fmt diffs, and 100% passing gates across all 5 checks in `scripts/check-all.ps1`.
+
 ### 2026-11-18 — Phase 5.2: File Discovery (`5.2.2`)
 
 #### Added

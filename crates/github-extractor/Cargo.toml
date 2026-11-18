@@ -24,6 +24,9 @@ tracing = { workspace = true }
 reqwest = { workspace = true, features = ["json"] }
 chrono = { workspace = true, features = ["serde"] }
 tokio = { workspace = true, features = ["rt", "time"] }
+bytes = { workspace = true }
+sha2 = { workspace = true }
+zip = { version = "9.6", default-features = false, features = ["deflate"] }
 
 [dev-dependencies]
 serde_json = { workspace = true }

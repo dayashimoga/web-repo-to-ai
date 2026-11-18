@@ -4200,11 +4200,53 @@
 
 ---
 
+#### Subphase `5.2.3` — Subtree recovery in crates/github-extractor
+- **Unique ID:** `5.2.3`
+- **Objective:** Implement automated subtree recovery for truncated Git Trees via bounded recursive subtree querying (`GET /repos/{owner}/{repo}/git/trees/{tree_sha}`) and tree stitching, with graceful fallback to shallow zipball archive downloads if subtree count exceeds threshold or rate limits require it.
+- **Scope:** `crates/github-extractor/Cargo.toml`, `crates/github-extractor/src/recovery.rs`, `crates/github-extractor/src/client.rs`, `crates/github-extractor/src/lib.rs`, `crates/github-extractor/tests/subtree_recovery_test.rs`.
+- **Prerequisites:** `5.2.2` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/github-extractor/Cargo.toml`
+  - `crates/github-extractor/src/recovery.rs`
+  - `crates/github-extractor/src/client.rs`
+  - `crates/github-extractor/src/lib.rs`
+  - `crates/github-extractor/tests/subtree_recovery_test.rs`
+- **Implementation Tasks:**
+  1. Define `SubtreeRecoveryConfig`, `SubtreeRecoveryReport`, and `ArchiveFormat` in `crates/github-extractor/src/recovery.rs`.
+  2. Implement `TreeStitcher` and `stitch_child_path` to prefix and merge unexpanded subtree results into the parent tree without duplicate paths.
+  3. Implement in-memory zip archive scanner `scan_zip_archive` to extract complete `GitTreeResponse` from GitHub archive streams.
+  4. Extend `GitHubApiClient` with `download_archive`, `recover_tree`, and `recover_pinned_tree` orchestrating bounded queue-based recursive subtree queries and archive fallback.
+  5. Author comprehensive integration tests in `crates/github-extractor/tests/subtree_recovery_test.rs` verifying path stitching, zip parsing, live Axum recursive subtree traversal, and archive fallback.
+  6. Run full verification suite (`cargo test`, `cargo clippy`, `cargo fmt`, `cargo deny`, `scripts/check-all.ps1`).
+- **Acceptance Criteria:**
+  - Truncated trees with unexpanded subdirectories are successfully recovered via bounded subtree queries.
+  - Subtree child paths are accurately prefixed relative to the repository root.
+  - When subtree count exceeds limits, shallow zipball archive fallback seamlessly reconstructs the complete tree.
+  - Zero token leaks, rate-limit aware error reporting.
+  - 100% test pass rate, 0 clippy warnings, clean formatting.
+- **Tests:** `cargo test -p web-repo-to-ai-github-extractor`, `cargo test --workspace`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, Rule 04, Rule 05: Redacts secret tokens from all URLs, logs, and error responses; bounds recursion depth (max 10) and subtree queries (max 500) to prevent denial of service or unbounded memory usage.
+- **Performance Considerations:** In-memory streaming zip parsing, path deduplication via hash sets, bounded concurrency.
+- **Documentation Requirements:** Module and API documentation in `crates/github-extractor`, tracking updates in `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-github-extractor`: 54 tests passed (100% success rate, 0 failures), including 7 new tests in `crates/github-extractor/tests/subtree_recovery_test.rs`.
+  - `cargo test --workspace`: 388 tests passed across all 15 crates and 3 services.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: passed with 0 warnings.
+  - `cargo fmt --all -- --check`: verified clean formatting.
+  - `cargo deny check`: advisories ok, bans ok, licenses ok, sources ok.
+  - Frontend checks: 213 unit/component tests passed across 17 test suites, 0 type errors, 0 lint warnings.
+  - Resource budget: Podman storage footprint healthy at 5.27 GB / 30 GB (17.6%).
+  - All 5 gates in `scripts/check-all.ps1` passed with 0 failures.
+- **Git Commit Reference:** `2dc9dd6`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 5 — Public GitHub Repository Extraction)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `5.2.3` | Subtree recovery | `5.2.2` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
+| `5.2.4` | File classification | `5.2.3` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
 
 ---
 

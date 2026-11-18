@@ -157,6 +157,10 @@ pub enum GitHubExtractorError {
     #[error("Failed to decode GitHub JSON response: {0}")]
     JsonDecodeError(String),
 
+    /// Failure during extraction or parsing of an archive file (e.g. zipball or tarball fallback).
+    #[error("GitHub archive processing error: {0}")]
+    ArchiveError(String),
+
     /// Internal core system error.
     #[error("Core system error: {0}")]
     Core(#[from] CoreError),

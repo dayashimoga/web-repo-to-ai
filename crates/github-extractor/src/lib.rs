@@ -15,6 +15,7 @@ pub mod commit;
 pub mod error;
 pub mod metadata;
 pub mod models;
+pub mod recovery;
 pub mod target;
 pub mod tree;
 
@@ -26,6 +27,10 @@ pub use commit::{CommitAuthor, CommitSignatureVerification, GitHubCommitMetadata
 pub use error::{redact_secrets, GitHubExtractorError};
 pub use metadata::{GitHubLanguages, GitHubLicense, GitHubRepoContext, GitHubRepositoryMetadata};
 pub use models::{GitHubBranch, GitHubRateLimit, GitHubTag, RefDiscoveryReport};
+pub use recovery::{
+    scan_zip_archive, stitch_child_path, ArchiveFormat, SubtreeRecoveryConfig,
+    SubtreeRecoveryReport, TreeStitcher,
+};
 pub use target::{
     is_default_host, is_reserved_github_path, validate_and_sanitize_subpath, validate_owner,
     validate_repo, GitHubTarget, GitHubTargetType, GitHubUrlParser, DEFAULT_GITHUB_API_BASE,
