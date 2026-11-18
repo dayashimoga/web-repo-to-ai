@@ -4,15 +4,15 @@
 **Last Updated:** 2026-11-18  
 **Current Stage:** `STAGE 6 — PRIVATE GITHUB REPOSITORIES` (`IN_PROGRESS`)  
 **Current Phase:** `Phase 6.2 — Credential management` (`IN_PROGRESS`)  
-**Active Subphase:** `None (Awaiting User Instruction to Begin 6.2.2)`  
-**Last Completed Subphase:** `6.2.1 — Secure token storage in crates/storage & crates/core` (`ACCEPTED`)  
-**Next Upcoming Subphase:** `6.2.2 — Token refresh & expiration in crates/storage & crates/github-extractor`
+**Active Subphase:** None (Awaiting user confirmation to begin `6.2.3 — Revocation in crates/github-extractor & services/api`)  
+**Last Completed Subphase:** `6.2.2 — Token refresh & expiration in crates/github-extractor & crates/storage` (`ACCEPTED`)  
+**Next Upcoming Subphase:** `6.2.3 — Revocation in crates/github-extractor & services/api`
 
 ---
 
 ## 1. Executive Summary
 
-Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 subphases), Stage 2 (`2.1.1` – `2.4.4`, 15 subphases), Stage 3 (`3.1.1` – `3.4.4`, 16 subphases), Stage 4 (`4.1.1` – `4.4.4`, 16 subphases), Stage 5 (`5.1.1` – `5.5.4`, 20 subphases), and Phase 6.1 (`6.1.1` – `6.1.4`, 4 subphases) are 100% complete, verified, certified, and accepted across 100 subphases. Phase 6.2 ("Credential management") is active: Subphase `6.2.1` ("Secure token storage") has been fully implemented and verified with authenticated AES-256-GCM envelope encryption, tenant-isolated associated data binding (`owner_session_id`, `github_installation_id`), secret masking and zeroization in `crates/core`, and `TokenStorageRepository` implementations (`InMemoryTokenStorage`, `PostgresTokenStorageRepository`) in `crates/storage`. All 5 monorepo quality gates are passing cleanly.
+Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 subphases), Stage 2 (`2.1.1` – `2.4.4`, 15 subphases), Stage 3 (`3.1.1` – `3.4.4`, 16 subphases), Stage 4 (`4.1.1` – `4.4.4`, 16 subphases), Stage 5 (`5.1.1` – `5.5.4`, 20 subphases), Phase 6.1 (`6.1.1` – `6.1.4`, 4 subphases), Subphase `6.2.1` ("Secure token storage"), and Subphase `6.2.2` ("Token refresh & expiration") are 100% complete, verified, and accepted across 102 subphases. Subphase `6.2.2` successfully delivered proactive token freshness evaluation, safety margin filtering, single-flight renewal deduplication preventing thundering-herd API calls, and bounded backoff retries. The monorepo is clean, passing all 5 gates in `scripts/check-all.ps1`.
 
 ---
 
@@ -20,12 +20,12 @@ Stage 0 (`0.1.1` – `0.3.5`, 15 subphases), Stage 1 (`1.1.1` – `1.4.3`, 15 su
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 101 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.1.4`, `6.2.1` |
+| `ACCEPTED` | 102 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.1.4`, `6.2.1`, `6.2.2` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 96 | `6.2.2` – `11.4.5` |
+| `NOT_STARTED` | 95 | `6.2.3` – `11.4.5` |
 | **Total** | **197** | `Stage 0` – `Stage 11` |
 
 ---

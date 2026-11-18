@@ -81,6 +81,39 @@ impl GitHubInstallationRow {
         }
     }
 
+    /// Returns `true` if the token is already expired or revoked according to current UTC time.
+    #[must_use]
+    pub fn is_expired(&self) -> bool {
+        if self.revoked_at.is_some() {
+            return true;
+        }
+        match self.token_expires_at {
+            Some(exp) => Utc::now() >= exp,
+            None => false,
+        }
+    }
+
+    /// Returns `true` if the token is revoked, expired, or will expire within `safety_margin`.
+    #[must_use]
+    pub fn is_expiring_soon(&self, safety_margin: chrono::Duration) -> bool {
+        if self.revoked_at.is_some() {
+            return true;
+        }
+        match self.token_expires_at {
+            Some(exp) => Utc::now() + safety_margin >= exp,
+            None => false,
+        }
+    }
+
+    /// Returns the remaining duration until token expiration, or `None` if token has no expiration or is revoked.
+    #[must_use]
+    pub fn time_until_expiration(&self) -> Option<chrono::Duration> {
+        if self.revoked_at.is_some() {
+            return None;
+        }
+        self.token_expires_at.map(|exp| exp - Utc::now())
+    }
+
     /// Returns `true` if this installation grant has been explicitly revoked.
     #[must_use]
     pub fn is_revoked(&self) -> bool {

@@ -321,3 +321,69 @@ async fn test_in_memory_token_storage_validation() {
         .await;
     assert!(err_empty.is_err());
 }
+
+#[tokio::test]
+async fn test_in_memory_token_storage_safety_margin_filtering() {
+    let key = EncryptionKey::generate().unwrap();
+    let storage = InMemoryTokenStorage::new(key);
+    let session = Uuid::new_v4();
+    let install_id = 99112233i64;
+    let token = "ghs_ProactiveRefreshTestToken";
+    // Expires in 10 minutes (600 seconds)
+    let expires_at = Utc::now() + Duration::minutes(10);
+
+    storage
+        .save_installation_token(session, install_id, "margin-user", token, expires_at)
+        .await
+        .unwrap();
+
+    // 1. With 300s (5 min) margin, token has 600s left -> still fresh -> returns Some
+    let token_300 = storage
+        .get_active_token_with_margin(session, install_id, 300)
+        .await
+        .unwrap();
+    assert_eq!(token_300.as_deref(), Some(token));
+
+    // 2. With 700s (11 min) margin, token has only 600s left -> expiring soon -> returns None
+    let token_700 = storage
+        .get_active_token_with_margin(session, install_id, 700)
+        .await
+        .unwrap();
+    assert!(token_700.is_none());
+
+    // 3. Normal get_active_token still returns Some because it is not expired
+    let normal = storage.get_active_token(session, install_id).await.unwrap();
+    assert_eq!(normal.as_deref(), Some(token));
+}
+
+#[tokio::test]
+async fn test_in_memory_token_storage_expiration_metadata() {
+    let key = EncryptionKey::generate().unwrap();
+    let storage = InMemoryTokenStorage::new(key);
+    let session = Uuid::new_v4();
+    let install_id = 44556677i64;
+    let token = "ghs_ExpirationMetadataTest";
+    let expires_at = Utc::now() + Duration::hours(1);
+
+    storage
+        .save_installation_token(session, install_id, "meta-user", token, expires_at)
+        .await
+        .unwrap();
+
+    let fetched_exp = storage
+        .get_token_expiration(session, install_id)
+        .await
+        .unwrap();
+    assert_eq!(fetched_exp, Some(expires_at));
+
+    // After revocation, get_token_expiration returns None
+    storage
+        .revoke_installation(session, install_id)
+        .await
+        .unwrap();
+    let revoked_exp = storage
+        .get_token_expiration(session, install_id)
+        .await
+        .unwrap();
+    assert!(revoked_exp.is_none());
+}

@@ -182,7 +182,7 @@
 
 ### Phase 6.2 — Credential management
 - [x] **[6.2.1]** Secure token storage in crates/storage & crates/core *(Completed 2026-11-18, EncryptionKey with volatile zeroization & secret masking, EncryptedPayload, Aes256GcmEngine with ring AEAD, build_token_aad/encrypt_token/decrypt_token tenant isolation binding to owner_session_id & github_installation_id, TokenStorageRepository trait, InMemoryTokenStorage, PostgresTokenStorageRepository with UPSERT, 6 new core unit tests, 8 new storage integration tests, 563 workspace tests, 100% passing quality gates)*
-- [ ] **[6.2.2]** Token refresh & expiration in crates/github-extractor
+- [x] **[6.2.2]** Token refresh & expiration in crates/github-extractor *(Completed 2026-11-18, TokenFreshness evaluate predicates with Fresh/ExpiringSoon/Expired, TokenLifecyclePolicy with configurable safety margin default 300s, max retries & exponential backoff, StoredTokenRecord with secret masking, InstallationTokenStore async trait & InMemoryInstallationTokenStore, InstallationTokenRefresher with double-checked locking & single-flight in-flight deduplication mutex registry, Rule 05 permission policy validation on renewed tokens, GitHubInstallationRow expiration predicates, TokenStorageRepository get_active_token_with_margin & get_token_expiration, 10 new integration tests in token_refresh_test, 2 new storage tests, 186 crate tests, 575 workspace tests, 100% passing quality gates)*
 - [ ] **[6.2.3]** Revocation in crates/github-extractor & services/api
 - [ ] **[6.2.4]** Secret redaction in crates/observability & crates/github-extractor
 

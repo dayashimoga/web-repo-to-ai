@@ -33,6 +33,7 @@ pub mod permissions;
 pub mod recovery;
 pub mod source;
 pub mod target;
+pub mod token_refresh;
 pub mod tree;
 pub mod tree_generator;
 
@@ -123,6 +124,10 @@ pub use target::{
     is_default_host, is_reserved_github_path, validate_and_sanitize_subpath, validate_owner,
     validate_repo, GitHubTarget, GitHubTargetType, GitHubUrlParser, DEFAULT_GITHUB_API_BASE,
     DEFAULT_GITHUB_HOST, DEFAULT_GITHUB_WWW_HOST, DEFAULT_RAW_GITHUB_USERCONTENT_BASE,
+};
+pub use token_refresh::{
+    InMemoryInstallationTokenStore, InstallationTokenRefresher, InstallationTokenStore,
+    StoredTokenRecord, TokenFreshness, TokenLifecyclePolicy,
 };
 pub use tree::{
     GitFileMode, GitTreeEntry, GitTreeEntryType, GitTreeResponse, RecoveryStrategy,

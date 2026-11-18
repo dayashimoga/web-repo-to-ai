@@ -2579,6 +2579,7 @@ dependencies = [
 name = "web-repo-to-ai-github-extractor"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "axum",
  "blake3",
  "bytes",

@@ -5414,13 +5414,67 @@
 
 ---
 
+#### Subphase `6.2.2` — Token refresh & expiration in crates/github-extractor & crates/storage
+- **Unique ID:** `6.2.2`
+- **Objective:** Implement proactive token expiration evaluation with configurable safety margins, single-flight concurrent token renewal deduplication, automated background refresh against GitHub App access token API, and extended token storage query interfaces.
+- **Scope:** `crates/github-extractor/src/token_refresh.rs`, `crates/github-extractor/src/lib.rs`, `crates/storage/src/token_storage.rs`, `crates/storage/src/schema/github.rs`, `crates/storage/tests/token_storage_test.rs`, and `crates/github-extractor/tests/token_refresh_test.rs`.
+- **Prerequisites:** `6.2.1` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/storage/src/schema/github.rs` (expiration helper predicates: `is_expired`, `is_expiring_soon`, `time_until_expiration`)
+  - `crates/storage/src/token_storage.rs` (extended `TokenStorageRepository`, `InMemoryTokenStorage`, and `PostgresTokenStorageRepository` with `get_active_token_with_margin` and `get_token_expiration`)
+  - `crates/storage/tests/token_storage_test.rs` (added 2 new integration tests for safety margin filtering and expiration metadata retrieval; 10/10 passing)
+  - `crates/github-extractor/Cargo.toml` (added `async-trait` dependency)
+  - `crates/github-extractor/src/token_refresh.rs` (created `TokenFreshness`, `TokenLifecyclePolicy`, `StoredTokenRecord`, `InstallationTokenStore`, and `InstallationTokenRefresher`)
+  - `crates/github-extractor/src/lib.rs` (re-exported `token_refresh` module components)
+  - `crates/github-extractor/tests/token_refresh_test.rs` (created 10 integration tests with live Axum mock GitHub API server)
+- **Implementation Tasks:**
+  1. Add expiration and proactive safety margin helper methods on `GitHubInstallationRow` in `crates/storage/src/schema/github.rs`.
+  2. Extend `TokenStorageRepository` trait and implementations in `crates/storage/src/token_storage.rs` with `get_active_token_with_margin` and `get_token_expiration`.
+  3. Author unit/integration tests in `crates/storage/tests/token_storage_test.rs` covering safety margin filtering and expiration checks.
+  4. Create `crates/github-extractor/src/token_refresh.rs` defining `TokenFreshness` (`Fresh`, `ExpiringSoon`, `Expired`), `TokenLifecyclePolicy` with 300s default margin and bounded exponential backoff retries, `StoredTokenRecord` with `[REDACTED]` secret masking, and `InstallationTokenStore` async trait.
+  5. Implement `InstallationTokenRefresher` with double-checked locking, single-flight per-installation synchronization lock registry, proactive renewal on `ExpiringSoon`/`Expired`, force refresh capabilities, and Rule 05 permission policy enforcement.
+  6. Author comprehensive integration test suite `crates/github-extractor/tests/token_refresh_test.rs` covering freshness evaluation, redaction, CRUD, proactive renewal, force refresh, 20-thread single-flight deduplication, Rule 05 policy rejection, and retry with backoff.
+  7. Verify all tests pass, format cleanly, clippy is zero-warning, and all gates in `scripts/check-all.ps1` pass.
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-github-extractor --test token_refresh_test`
+  - `cargo test -p web-repo-to-ai-github-extractor`
+  - `cargo test -p web-repo-to-ai-storage`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - Token freshness evaluation accurately identifies tokens that are fresh, expiring within margin, or expired.
+  - `get_active_token_with_margin` filters out tokens expiring within the safety buffer window.
+  - Concurrent requests for the same installation are single-flight deduplicated so exactly 1 API call is issued to GitHub.
+  - Refreshed tokens are verified against Rule 05 read-only permission policy before being stored.
+  - Stored tokens redact credentials in `Debug` and `Display`.
+  - All workspace tests pass, clippy is warning-free, and monorepo quality gates pass.
+- **Risk Analysis:**
+  - Risk: Mid-flight token expiration during long-running repository extractions causing 401 Unauthorized failures; thundering-herd API requests on token expiration.
+  - Mitigation: 5-minute proactive renewal safety margin buffer; in-flight lock registry deduplicating concurrent renewal requests per `(owner_session_id, github_installation_id)`.
+- **Rollback Plan:**
+  - Revert changes via Git reset to commit `798ee84`.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-github-extractor --test token_refresh_test`: 10/10 tests passed in 1.53s.
+  - `cargo test -p web-repo-to-ai-github-extractor`: 186/186 tests passed (28 unit + 158 integration + 1 doc test).
+  - `cargo test -p web-repo-to-ai-storage`: 65/65 tests passed (55 unit + 10 integration).
+  - `cargo clippy --workspace --all-targets -- -D warnings`: passed with 0 warnings.
+  - `cargo fmt --all -- --check`: verified clean formatting with 0 diffs.
+  - `cargo deny check`: passed (advisories ok, bans ok, licenses ok, sources ok).
+  - `powershell scripts/check-all.ps1`: completed with `ALL GATES PASSED (0 failures)` (575 workspace Rust tests, 213 frontend vitest tests, 5.27 GB / 30 GB storage ceiling).
+- **Git Commit Reference:** `8f1adfe`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 6 — Private GitHub Repositories)
 
 #### Phase 6.2 — Credential management
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `6.2.2` | Token refresh & expiration | `6.2.1` (`ACCEPTED`) | `crates/github-extractor/*`, `crates/storage/*` | `NOT_STARTED` |
+| `6.2.3` | Revocation | `6.2.2` (`ACCEPTED`) | `crates/github-extractor/*`, `services/api/*` | `NOT_STARTED` |
 
 ---
 

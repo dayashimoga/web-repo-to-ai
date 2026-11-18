@@ -53,6 +53,29 @@ pub trait TokenStorageRepository: Send + Sync {
         github_installation_id: i64,
     ) -> Result<Option<String>, CoreError>;
 
+    /// Retrieves and decrypts the active installation access token if it will not expire within `safety_margin_secs`.
+    ///
+    /// Returns `None` if the token does not exist, is revoked, is expired, or will expire within `safety_margin_secs`.
+    ///
+    /// # Errors
+    /// Returns [`CoreError`] if decryption integrity or cryptographic binding verification fails.
+    async fn get_active_token_with_margin(
+        &self,
+        owner_session_id: Uuid,
+        github_installation_id: i64,
+        safety_margin_secs: u64,
+    ) -> Result<Option<String>, CoreError>;
+
+    /// Retrieves the expiration timestamp of an installation token without decrypting it.
+    ///
+    /// # Errors
+    /// Returns [`CoreError`] if query execution fails.
+    async fn get_token_expiration(
+        &self,
+        owner_session_id: Uuid,
+        github_installation_id: i64,
+    ) -> Result<Option<DateTime<Utc>>, CoreError>;
+
     /// Retrieves the installation record metadata without decrypting the token.
     ///
     /// # Errors
@@ -201,6 +224,57 @@ impl TokenStorageRepository for InMemoryTokenStorage {
         )?;
 
         Ok(Some(token))
+    }
+
+    async fn get_active_token_with_margin(
+        &self,
+        owner_session_id: Uuid,
+        github_installation_id: i64,
+        safety_margin_secs: u64,
+    ) -> Result<Option<String>, CoreError> {
+        let lock = self.records.read().await;
+        let key = (owner_session_id, github_installation_id);
+
+        let row = match lock.get(&key) {
+            Some(r) => r,
+            None => return Ok(None),
+        };
+
+        let margin = chrono::Duration::seconds(safety_margin_secs as i64);
+        if row.is_expiring_soon(margin) {
+            return Ok(None);
+        }
+
+        let (ciphertext, nonce) = match (&row.encrypted_token, &row.token_nonce) {
+            (Some(c), Some(n)) => (c, n),
+            _ => return Ok(None),
+        };
+
+        let token = decrypt_token(
+            &self.key,
+            ciphertext,
+            nonce,
+            &owner_session_id,
+            github_installation_id,
+        )?;
+
+        Ok(Some(token))
+    }
+
+    async fn get_token_expiration(
+        &self,
+        owner_session_id: Uuid,
+        github_installation_id: i64,
+    ) -> Result<Option<DateTime<Utc>>, CoreError> {
+        let lock = self.records.read().await;
+        let key = (owner_session_id, github_installation_id);
+        Ok(lock.get(&key).and_then(|r| {
+            if r.revoked_at.is_some() {
+                None
+            } else {
+                r.token_expires_at
+            }
+        }))
     }
 
     async fn get_installation(
@@ -392,6 +466,84 @@ impl TokenStorageRepository for PostgresTokenStorageRepository {
         )?;
 
         Ok(Some(token))
+    }
+
+    async fn get_active_token_with_margin(
+        &self,
+        owner_session_id: Uuid,
+        github_installation_id: i64,
+        safety_margin_secs: u64,
+    ) -> Result<Option<String>, CoreError> {
+        let margin_secs = safety_margin_secs as f64;
+        let row: Option<GitHubInstallationRow> = sqlx::query_as(
+            r#"
+            SELECT
+                id,
+                owner_session_id,
+                github_installation_id,
+                account_login,
+                encrypted_token,
+                token_nonce,
+                token_expires_at,
+                revoked_at,
+                created_at,
+                updated_at
+            FROM github_installations
+            WHERE owner_session_id = $1
+              AND github_installation_id = $2
+              AND revoked_at IS NULL
+              AND (token_expires_at IS NULL OR token_expires_at > NOW() + ($3 * INTERVAL '1 second'))
+            "#,
+        )
+        .bind(owner_session_id)
+        .bind(github_installation_id)
+        .bind(margin_secs)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| CoreError::Storage(format!("Failed to fetch active installation with margin: {e}")))?;
+
+        let row = match row {
+            Some(r) => r,
+            None => return Ok(None),
+        };
+
+        let (ciphertext, nonce) = match (&row.encrypted_token, &row.token_nonce) {
+            (Some(c), Some(n)) => (c, n),
+            _ => return Ok(None),
+        };
+
+        let token = decrypt_token(
+            &self.key,
+            ciphertext,
+            nonce,
+            &owner_session_id,
+            github_installation_id,
+        )?;
+
+        Ok(Some(token))
+    }
+
+    async fn get_token_expiration(
+        &self,
+        owner_session_id: Uuid,
+        github_installation_id: i64,
+    ) -> Result<Option<DateTime<Utc>>, CoreError> {
+        let row: Option<(Option<DateTime<Utc>>,)> = sqlx::query_as(
+            r#"
+            SELECT token_expires_at
+            FROM github_installations
+            WHERE owner_session_id = $1
+              AND github_installation_id = $2
+              AND revoked_at IS NULL
+            "#,
+        )
+        .bind(owner_session_id)
+        .bind(github_installation_id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| CoreError::Storage(format!("Failed to fetch token expiration: {e}")))?;
+
+        Ok(row.and_then(|(exp,)| exp))
     }
 
     async fn get_installation(

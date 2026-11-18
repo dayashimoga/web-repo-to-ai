@@ -6,6 +6,32 @@
 
 ## [Unreleased] — Stage 6: Private GitHub Repositories
 
+### 2026-11-18 — Phase 6.2: Credential management (`6.2.2`)
+
+#### Added
+- **`[6.2.2]` Token Refresh, Expiration Evaluation & Concurrent Deduplication in `crates/github-extractor` & `crates/storage`:**
+  - Implemented token freshness and lifecycle evaluation models in `crates/github-extractor/src/token_refresh.rs`:
+    - `TokenFreshness`: Enum representing `Fresh { seconds_remaining }`, `ExpiringSoon { seconds_remaining }`, and `Expired { expired_ago_secs }` with `evaluate(expires_at, now, safety_margin_secs)` and predicate helpers (`is_fresh()`, `is_expired()`, `needs_refresh()`).
+    - `TokenLifecyclePolicy`: Configurable policy supporting `safety_margin_secs` (default 300s / 5m buffer), `max_retries` (default 3), `retry_backoff_ms` (default 200ms exponential), and an optional `PermissionPolicy` under Rule 05.
+    - `StoredTokenRecord`: Tenant token metadata container with `expires_at`, `account_login`, and strict secret masking in `Debug` and `Display` (`***[REDACTED_INSTALLATION_TOKEN]***`).
+    - `InstallationTokenStore` async trait and `InMemoryInstallationTokenStore`: Thread-safe, non-mock in-memory token cache with CRUD and revocation.
+    - `InstallationTokenRefresher`: Production-grade token renewal engine featuring:
+      - Double-checked locking preventing race conditions during concurrent cache misses.
+      - Per-installation single-flight deduplication mutex registry (`InFlightRegistry`), ensuring that concurrent extraction tasks targeting the same GitHub installation coalesce onto a single renewal roundtrip.
+      - Proactive renewal when remaining TTL falls below the configurable safety margin.
+      - Force refresh capability bypassing the cache.
+      - Automated bounded exponential backoff retries for transient GitHub API outages (HTTP 5xx).
+      - Strict Rule 05 permission policy validation: renewed tokens granting write, admin, or unauthorized scopes fail closed and are discarded.
+  - Extended token storage query models in `crates/storage`:
+    - Added `is_expired()`, `is_expiring_soon(margin_secs)`, and `time_until_expiration()` helper methods to `GitHubInstallationRow` in `crates/storage/src/schema/github.rs`.
+    - Added `get_active_token_with_margin` and `get_token_expiration` to `TokenStorageRepository` trait, `InMemoryTokenStorage`, and `PostgresTokenStorageRepository` in `crates/storage/src/token_storage.rs`.
+  - Re-exported token refresh components in `crates/github-extractor/src/lib.rs`.
+  - Authored comprehensive test suites:
+    - 2 new integration tests in `crates/storage/tests/token_storage_test.rs` validating proactive safety margin filtering and expiration metadata retrieval (10/10 passing).
+    - 10 new integration tests in `crates/github-extractor/tests/token_refresh_test.rs` with live Axum mock GitHub API server:
+      - Freshness evaluation states, secret redaction, store CRUD, fresh token cache hit, proactive renewal on expiring soon, force refresh, Rule 05 permission rejection, transient retry recovery, retry exhaustion, and 20-thread single-flight deduplication.
+  - Verified 575 passing workspace Rust tests (186 in `github-extractor`, 65 in `storage`), 213 passing frontend vitest tests, zero clippy warnings, zero fmt diffs, and 100% passing gates across all 5 checks in `scripts/check-all.ps1`.
+
 ### 2026-11-18 — Phase 6.2: Credential management (`6.2.1`)
 
 #### Added
