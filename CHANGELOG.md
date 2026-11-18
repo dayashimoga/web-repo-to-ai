@@ -6,6 +6,25 @@
 
 ## [Unreleased] — Stage 5: Public GitHub Repository Extraction
 
+### 2026-11-18 — Phase 5.2: File Discovery (`5.2.2`)
+
+#### Added
+- **`[5.2.2]` Git Tree Truncation Detection & Completeness Auditing in `crates/github-extractor`:**
+  - Implemented truncation domain models and constants in `crates/github-extractor/src/tree.rs`:
+    - `GITHUB_TREE_ENTRY_LIMIT`: 100,000 entry ceiling per GitHub Git Trees API.
+    - `SUBTREE_TRAVERSAL_LIMIT`: 500 unexpanded subtree threshold before escalating to archive fallback.
+    - `TruncationReason`: enum identifying truncation triggers (`GitHubFlag`, `EntryCountCap`, `IncompleteSubtrees`).
+    - `RecoveryStrategy`: enum classifying remediation path (`None`, `SubtreeTraversal`, `ShallowArchiveFallback`).
+    - `TreeCompleteness`: enum identifying whether repository tree is `Complete` or `Truncated(TruncationReport)`.
+    - `TruncationReport`: diagnostic record capturing total entries, blob count, tree count, truncation flag, explicit reasons, unexpanded subtree paths and SHAs, and recommended recovery strategy.
+  - Implemented linear O(N) unexpanded subtree detection and completeness auditing on `GitTreeResponse`:
+    - `find_unexpanded_subtrees(&self)`: identifies directory subtree entries lacking child records in recursive payloads in linear time via a single-pass `HashSet<&str>` of directory segments.
+    - `analyze_completeness(&self)`: comprehensively audits tree health, checks explicit GitHub flags, entry caps, and incomplete directories, and selects optimal recovery strategies.
+  - Re-exported truncation models in `crates/github-extractor/src/lib.rs`.
+  - Authored comprehensive integration tests in `crates/github-extractor/tests/tree_truncation_test.rs`:
+    - 5 test suites covering complete trees, explicit `truncated: true` detection, unexpanded subtree path identification, 100k entry cap enforcement, and live in-process Axum mock server tests validating full tree vs truncated responses.
+  - Verified 380 passing workspace Rust tests (46 in `crates/github-extractor`), zero clippy warnings, zero fmt diffs, and 100% passing gates across all 5 checks in `scripts/check-all.ps1`.
+
 ### 2026-11-18 — Phase 5.2: File Discovery (`5.2.1`)
 
 #### Added

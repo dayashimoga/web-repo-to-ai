@@ -9,6 +9,111 @@ use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
+/// Maximum entries returned by GitHub's Git Trees API before truncating.
+pub const GITHUB_TREE_ENTRY_LIMIT: usize = 100_000;
+
+/// Threshold count of unexpanded subtrees beyond which single subtree API traversal
+/// becomes inefficient and shallow Git archive fallback is recommended.
+pub const SUBTREE_TRAVERSAL_LIMIT: usize = 500;
+
+/// Specific cause or indicator of Git tree truncation.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum TruncationReason {
+    /// GitHub explicitly flagged the response with `"truncated": true`.
+    GitHubFlag,
+    /// Total entries returned reached or exceeded GitHub's hard ceiling (100,000 entries).
+    EntryCountCap,
+    /// One or more directory subtree entries appear in the response but have no children listed,
+    /// indicating unexpanded subdirectories resulting from truncation.
+    IncompleteSubtrees,
+}
+
+impl TruncationReason {
+    /// Returns a human-readable description of the truncation reason.
+    #[must_use]
+    pub const fn description(&self) -> &'static str {
+        match self {
+            Self::GitHubFlag => "GitHub Git Trees API returned truncated: true",
+            Self::EntryCountCap => "Discovered entries reached or exceeded the 100,000 limit",
+            Self::IncompleteSubtrees => {
+                "One or more directory subtrees contain no child entries in recursive mode"
+            }
+        }
+    }
+}
+
+/// Recovery strategy recommended when a Git tree response is detected as truncated.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum RecoveryStrategy {
+    /// Tree is complete and fully expanded; zero recovery needed.
+    None,
+    /// Moderate truncation with a manageable number of unexpanded subtrees (< 500);
+    /// recover by recursively traversing each unexpanded subtree.
+    SubtreeTraversal,
+    /// Severe truncation (> 500 unexpanded subtrees or > 100,000 entries);
+    /// recover via shallow Git archive / tarball streaming fallback.
+    ShallowArchiveFallback,
+}
+
+impl RecoveryStrategy {
+    /// Returns a human-readable identifier for the strategy.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::None => "none",
+            Self::SubtreeTraversal => "subtree_traversal",
+            Self::ShallowArchiveFallback => "shallow_archive_fallback",
+        }
+    }
+}
+
+/// Completeness evaluation status for a Git tree response.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TreeCompleteness {
+    /// Tree is fully expanded, verified, and complete.
+    Complete,
+    /// Tree is truncated and missing entries.
+    Truncated(TruncationReport),
+}
+
+impl TreeCompleteness {
+    /// Returns whether the tree is complete.
+    #[must_use]
+    pub const fn is_complete(&self) -> bool {
+        matches!(self, Self::Complete)
+    }
+
+    /// Returns whether the tree is truncated.
+    #[must_use]
+    pub const fn is_truncated(&self) -> bool {
+        matches!(self, Self::Truncated(_))
+    }
+}
+
+/// Comprehensive audit report detailing whether and why a Git tree is truncated,
+/// which subtrees are unexpanded, and the recommended recovery strategy.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TruncationReport {
+    /// Whether any truncation indicator was verified.
+    pub is_truncated: bool,
+    /// All specific truncation reasons identified during auditing.
+    pub reasons: Vec<TruncationReason>,
+    /// Total entries currently discovered in the tree.
+    pub total_entries: usize,
+    /// Total file blobs discovered.
+    pub total_blobs: usize,
+    /// Total directory subtrees discovered.
+    pub total_trees: usize,
+    /// List of directory subtree paths that have zero child entries beneath them.
+    pub unexpanded_subtrees: Vec<String>,
+    /// Deepest relative file path reached in the tree.
+    pub deepest_path: Option<String>,
+    /// Maximum nesting depth reached in the tree.
+    pub max_depth: usize,
+    /// Recommended recovery strategy.
+    pub recommended_recovery_strategy: RecoveryStrategy,
+}
+
 /// Git file modes representing file types and POSIX permission bits.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum GitFileMode {
@@ -316,5 +421,97 @@ impl GitTreeResponse {
     #[must_use]
     pub fn to_path_set(&self) -> HashSet<String> {
         self.tree.iter().map(|e| e.path.clone()).collect()
+    }
+
+    /// Returns whether the tree response was flagged as truncated by GitHub.
+    #[must_use]
+    pub const fn is_truncated(&self) -> bool {
+        self.truncated
+    }
+
+    /// Finds directory subtrees present in the response that have zero child entries,
+    /// indicating unexpanded subtrees resulting from truncation or incomplete traversal.
+    #[must_use]
+    pub fn find_unexpanded_subtrees(&self) -> Vec<&GitTreeEntry> {
+        let mut known_parent_dirs = HashSet::new();
+
+        // Pass 1: Collect all parent directory path segments across all entries
+        for entry in &self.tree {
+            let mut current = entry.path.as_str();
+            while let Some((parent, _)) = current.rsplit_once('/') {
+                known_parent_dirs.insert(parent);
+                current = parent;
+            }
+        }
+
+        // Pass 2: Any directory tree entry not in known_parent_dirs has zero children in this tree
+        self.tree
+            .iter()
+            .filter(|e| e.is_tree() && !known_parent_dirs.contains(e.path.as_str()))
+            .collect()
+    }
+
+    /// Performs deep completeness analysis auditing the tree response for truncation flags,
+    /// size/count ceilings, and unexpanded subdirectories.
+    #[must_use]
+    pub fn analyze_completeness(&self) -> TruncationReport {
+        let mut reasons = Vec::new();
+
+        if self.truncated {
+            reasons.push(TruncationReason::GitHubFlag);
+        }
+
+        if self.tree.len() >= GITHUB_TREE_ENTRY_LIMIT {
+            reasons.push(TruncationReason::EntryCountCap);
+        }
+
+        let unexpanded = self.find_unexpanded_subtrees();
+        if !unexpanded.is_empty() && (self.truncated || self.tree.len() > 10) {
+            reasons.push(TruncationReason::IncompleteSubtrees);
+        }
+
+        let is_truncated = !reasons.is_empty();
+
+        let unexpanded_paths: Vec<String> = unexpanded.iter().map(|e| e.path.clone()).collect();
+
+        let max_depth = self.tree.iter().map(|e| e.depth()).max().unwrap_or(0);
+        let deepest_path = self
+            .tree
+            .iter()
+            .max_by_key(|e| e.depth())
+            .map(|e| e.path.clone());
+
+        let recommended_recovery_strategy = if !is_truncated {
+            RecoveryStrategy::None
+        } else if self.tree.len() >= GITHUB_TREE_ENTRY_LIMIT
+            || unexpanded_paths.len() > SUBTREE_TRAVERSAL_LIMIT
+        {
+            RecoveryStrategy::ShallowArchiveFallback
+        } else {
+            RecoveryStrategy::SubtreeTraversal
+        };
+
+        TruncationReport {
+            is_truncated,
+            reasons,
+            total_entries: self.tree.len(),
+            total_blobs: self.blob_count(),
+            total_trees: self.tree_count(),
+            unexpanded_subtrees: unexpanded_paths,
+            deepest_path,
+            max_depth,
+            recommended_recovery_strategy,
+        }
+    }
+
+    /// Evaluates the tree completeness status.
+    #[must_use]
+    pub fn completeness(&self) -> TreeCompleteness {
+        let report = self.analyze_completeness();
+        if report.is_truncated {
+            TreeCompleteness::Truncated(report)
+        } else {
+            TreeCompleteness::Complete
+        }
     }
 }

@@ -4161,11 +4161,50 @@
 
 ---
 
+#### Subphase `5.2.2` — Tree truncation detection in crates/github-extractor
+- **Unique ID:** `5.2.2`
+- **Objective:** Implement rigorous Git Trees truncation detection and completeness auditing in `crates/github-extractor`, preventing silent data loss by analyzing explicit GitHub `truncated: true` flags, GitHub hard ceilings (100,000 entries / 7 MB response), unexpanded directory subtrees, and recommending optimal recovery strategies (`SubtreeTraversal`, `ShallowArchiveFallback`, `None`).
+- **Scope:** `crates/github-extractor/src/tree.rs`, `crates/github-extractor/src/lib.rs`, `crates/github-extractor/tests/tree_truncation_test.rs`.
+- **Prerequisites:** `5.2.1` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/github-extractor/src/tree.rs`
+  - `crates/github-extractor/src/lib.rs`
+  - `crates/github-extractor/tests/tree_truncation_test.rs`
+- **Implementation Tasks:**
+  1. Define truncation detection models in `crates/github-extractor/src/tree.rs`: `TruncationReason`, `TreeCompleteness`, `RecoveryStrategy`, and `TruncationReport`.
+  2. Implement `find_unexpanded_subtrees(&self) -> Vec<&GitTreeEntry>` on `GitTreeResponse` detecting directory entries that have zero child objects present in the recursive response.
+  3. Implement `analyze_completeness(&self) -> TruncationReport` on `GitTreeResponse` evaluating explicit GitHub truncation flags, entry limits (`GITHUB_TREE_ENTRY_LIMIT = 100_000`), and incomplete directory subtrees.
+  4. Implement recommendation heuristics in `RecoveryStrategy`: `SubtreeTraversal` for manageable truncation (< 500 unexpanded subtrees), `ShallowArchiveFallback` for massive repositories, and `None` for verified complete trees.
+  5. Implement comprehensive integration tests in `crates/github-extractor/tests/tree_truncation_test.rs` validating complete tree analysis, explicit `truncated: true` detection, unexpanded subtree path identification, entry cap enforcement, and live in-process Axum mock server integration testing.
+  6. Run full monorepo quality audit via `scripts/check-all.ps1`.
+- **Acceptance Criteria:**
+  - `analyze_completeness` accurately identifies `truncated: true` flags and isolates all unexpanded subdirectories.
+  - Zero false positives on complete trees: fully expanded trees report `TreeCompleteness::Complete` and `RecoveryStrategy::None`.
+  - Structured `TruncationReport` specifies all reasons, unexpanded subtrees, and recommended recovery strategy.
+  - 100% of tests pass, zero clippy warnings, zero fmt diffs, cargo-deny clean.
+- **Tests:** `cargo test -p web-repo-to-ai-github-extractor`, `cargo test --workspace`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, 04, 05: Eliminates silent truncation vulnerability where missing files go undetected; bounded memory evaluation of subtrees.
+- **Performance Considerations:** Single-pass hash set construction for O(N) unexpanded subtree detection rather than O(N^2) path prefix comparisons.
+- **Documentation Requirements:** Module documentation in `crates/github-extractor`, tracking updates in `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-github-extractor`: 46 tests passed (100% success rate, 0 failures), including 5 new integration tests in `crates/github-extractor/tests/tree_truncation_test.rs`.
+  - `cargo test --workspace`: 380 tests passed across all 15 crates and 3 services.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: passed with 0 warnings.
+  - `cargo fmt --all -- --check`: verified clean formatting.
+  - `cargo deny check`: advisories ok, bans ok, licenses ok, sources ok.
+  - Frontend checks: 213 unit/component tests passed across 17 test suites, 0 type errors, 0 lint warnings.
+  - Resource budget: Podman storage footprint healthy at 5.27 GB / 30 GB (17.6%).
+  - All 5 gates in `scripts/check-all.ps1` passed with 0 failures.
+- **Git Commit Reference:** `deab218`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 5 — Public GitHub Repository Extraction)
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `5.2.2` | Tree truncation detection | `5.2.1` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
+| `5.2.3` | Subtree recovery | `5.2.2` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
 
 ---
 

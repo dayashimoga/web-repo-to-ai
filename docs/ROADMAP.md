@@ -59,7 +59,7 @@
 - **Stage Acceptance Gate:** Real public repositories produce verifiable, complete packages where $\text{Discovered} = \text{Extracted} + \text{Excluded} + \text{Failed} + \text{Unsupported}$.
 - **Phases:**
   - `5.1` GitHub metadata (`5.1.1` [ACCEPTED], `5.1.2` [ACCEPTED], `5.1.3` [ACCEPTED], `5.1.4` [ACCEPTED — PHASE 5.1 CERTIFIED])
-  - `5.2` File discovery (`5.2.1` [ACCEPTED], `5.2.2` [NEXT] – `5.2.4`)
+  - `5.2` File discovery (`5.2.1` [ACCEPTED], `5.2.2` [ACCEPTED], `5.2.3` [NEXT] – `5.2.4`)
   - `5.3` File extraction (`5.3.1` – `5.3.4`)
   - `5.4` Repository packaging (`5.4.1` – `5.4.4`)
   - `5.5` Integrity (`5.5.1` – `5.5.4`)
