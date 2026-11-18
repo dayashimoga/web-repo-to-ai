@@ -13,6 +13,7 @@ use reqwest::{Client, StatusCode};
 use serde::Deserialize;
 use tracing::{debug, info, warn};
 
+use crate::architecture::RepoArchitectureContext;
 use crate::classification::{ClassifiedFile, TreeClassificationReport};
 use crate::commit::{
     CommitAuthor, CommitSignatureVerification, GitHubCommitMetadata, PinnedRevision,
@@ -1567,6 +1568,27 @@ impl GitHubApiClient {
             docs,
             dependencies,
             configs_tests,
+        )
+    }
+
+    /// Synthesizes automated architecture context, workspace topology, component catalog, and entry points.
+    #[must_use]
+    pub fn generate_architecture_context(
+        &self,
+        classification: &TreeClassificationReport,
+        manifest: Option<&RepoFileManifest>,
+        docs: Option<&DocExtractionReport>,
+        dependencies: Option<&DependencyExtractionReport>,
+        configs_tests: Option<&ConfigTestExtractionReport>,
+        metadata: Option<&GitHubRepositoryMetadata>,
+    ) -> RepoArchitectureContext {
+        RepoArchitectureContext::from_repository_data(
+            classification,
+            manifest,
+            docs,
+            dependencies,
+            configs_tests,
+            metadata,
         )
     }
 }

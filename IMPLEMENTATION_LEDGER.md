@@ -4622,7 +4622,69 @@
   - `cargo fmt --all -- --check`: 100% compliant with standard formatting.
   - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
   - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures across bootstrap, workflows, Rust quality checks, frontend web quality checks, and 5.27 GB / 30 GB storage ceiling).
-- **Git Commit Reference:** `760d17e`
+- **Git Commit Reference:** `51415e6`
+- **Status:** `ACCEPTED`
+
+---
+
+#### Subphase `5.4.3` — Architecture context in crates/github-extractor
+- **Unique ID:** `5.4.3`
+- **Objective:** Implement automated repository architecture analysis, workspace topology classification, entry point discovery, component cataloging, technology stack inference, architecture document reference mapping, and CDM architecture overview section construction in `crates/github-extractor`. Provide structured domain models (`RepoArchitectureContext`, `WorkspaceType`, `EntryPointInfo`, `ComponentInfo`), multi-signal synthesis from repository files, manifests, and documentation, GFM Markdown overview generation, and conversion into Canonical Context Document Model ([`CdmSection`]) prose sections ([`SectionKind::Prose`]).
+- **Scope:** `crates/github-extractor/src/architecture.rs`, `crates/github-extractor/src/client.rs`, `crates/github-extractor/src/lib.rs`, `crates/github-extractor/tests/architecture_context_test.rs`.
+- **Prerequisites:** `5.4.2` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/github-extractor/src/architecture.rs`
+  - `crates/github-extractor/src/client.rs`
+  - `crates/github-extractor/src/lib.rs`
+  - `crates/github-extractor/tests/architecture_context_test.rs`
+- **Implementation Tasks:**
+  1. Implement `crates/github-extractor/src/architecture.rs`:
+     - `WorkspaceType` enum (`SinglePackage`, `Monorepo`, `MultiService`, `Library`, `Other`) with heuristics detecting monorepo directory patterns (`crates/*`, `packages/*`, `apps/*`, `services/*`, `libs/*`, Cargo/pnpm/npm/turborepo workspace manifests).
+     - `EntryPointInfo` model capturing entry point path, programming language, role/target type (`BinaryMain`, `LibraryRoot`, `WebApi`, `UiRoute`, `WorkerDaemon`, `ScriptCli`), and brief functional note.
+     - `ComponentInfo` model capturing component name, relative root path, component role/type (`Service`, `LibraryCrate`, `WebFrontend`, `Worker`, `ToolCli`, `Infrastructure`), primary language, and description.
+     - `RepoArchitectureContext` consolidated architecture analysis model with:
+       - Workspace topology (`WorkspaceType`).
+       - Primary ecosystems and programming languages with percentages.
+       - Key frameworks and runtime technologies detected from manifests and dependencies (e.g., Tokio, Axum, SvelteKit, React, Playwright, Tailwind, SQLx).
+       - Discovered application and service entry points (`Vec<EntryPointInfo>`).
+       - High-level component and subsystem catalog (`Vec<ComponentInfo>`).
+       - Discovered architectural and design documentation (`Vec<String>`).
+       - Build and CI/CD pipelines detected.
+     - Synthesis constructor `from_repository_data`:
+       - Inspects `TreeClassificationReport`, `RepoFileManifest`, `Option<&DocExtractionReport>`, `Option<&DependencyExtractionReport>`, `Option<&ConfigTestExtractionReport>`, and `Option<&GitHubRepositoryMetadata>`.
+       - Classifies workspace topology based on directory layouts and manifest workspace declarations.
+       - Detects entry points based on standard language and framework conventions.
+       - Catalogs components by grouping top-level directories and nested crates/packages.
+       - Discovers architecture and design documents (`ARCHITECTURE.md`, `docs/ARCHITECTURE.md`, `DESIGN.md`, `docs/DATA_MODEL.md`, ADRs, etc.).
+     - Formatters & CDM generation:
+       - `to_markdown(&self) -> String`: generates clean, highly structured GitHub-Flavored Markdown architecture summary.
+       - `to_json(&self) -> Result<String, serde_json::Error>` and `to_json_compact(&self)`: serializes architecture context.
+       - `to_cdm_section(&self, section_id, source_url) -> CdmSection`: produces a CDM section (`SectionKind::Prose`) with `manifest_role: "architecture_context"`, title `"Repository Architecture & System Overview"`, BLAKE3 content hash, and telemetry attributes.
+  2. Extend `GitHubApiClient` in `crates/github-extractor/src/client.rs`:
+     - `generate_architecture_context`: client method assembling architecture synthesis from repository extraction reports and metadata.
+  3. Re-export `architecture` models and helpers in `crates/github-extractor/src/lib.rs`.
+  4. Author comprehensive integration tests in `crates/github-extractor/tests/architecture_context_test.rs` covering workspace topology detection (monorepo vs single package), entry point discovery, component cataloging, technology inference, architecture doc indexing, Markdown generation, JSON serialization, CDM section mapping, and live client integration.
+  5. Run full quality gate (`cargo test`, `cargo clippy`, `cargo fmt`, `cargo deny`, `scripts/check-all.ps1`).
+- **Acceptance Criteria:**
+  - Architecture synthesis accurately classifies monorepo vs single-package topologies.
+  - Entry points for backend mains, library roots, web routes, and CLI scripts are detected.
+  - Subsystems and components are structured into a cohesive catalog.
+  - Key frameworks, technologies, and build tools are extracted from manifests and configs.
+  - Discovered architecture documents are indexed and linked.
+  - Generates clear, informative GFM Markdown and valid CDM `CdmSection` (`SectionKind::Prose`).
+  - 100% test pass rate, 0 clippy warnings, clean formatting.
+- **Tests:** `cargo test -p web-repo-to-ai-github-extractor`, `cargo test --workspace`, `powershell scripts/check-all.ps1`.
+- **Security Considerations:** Enforces Rule 00, Rule 04, Rule 05: Safe string generation; zero shell execution; path sanitization preventing directory traversal.
+- **Performance Considerations:** Single-pass deterministic evaluation; $O(N)$ scanning of files and manifests; bounded memory.
+- **Documentation Requirements:** Module and type documentation in `crates/github-extractor`, tracking updates in `IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`.
+- **Validation Evidence:**
+  - `cargo test -p web-repo-to-ai-github-extractor`: 126/126 tests passed (28 unit tests, 10 architecture integration tests, 87 other integration tests, 1 doc test) in 0.20s.
+  - `cargo test --workspace`: 454/454 tests passed across all workspace crates.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings, 0 errors.
+  - `cargo fmt --all -- --check`: 100% compliant with standard formatting.
+  - `cargo deny check`: `advisories ok, bans ok, licenses ok, sources ok`.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures across bootstrap, workflows, Rust quality checks, frontend web quality checks, and 5.27 GB / 30 GB storage ceiling).
+- **Git Commit Reference:** `40806aa`
 - **Status:** `ACCEPTED`
 
 ---
@@ -4633,7 +4695,7 @@
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `5.4.3` | Architecture context | `5.4.2` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
+| `5.4.4` | Code-review package | `5.4.3` (`ACCEPTED`) | `crates/github-extractor/*` | `NOT_STARTED` |
 
 ---
 

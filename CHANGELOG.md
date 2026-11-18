@@ -6,6 +6,24 @@
 
 ## [Unreleased] — Stage 5: Public GitHub Repository Extraction
 
+### 2026-11-18 — Phase 5.4: Repository Packaging (`5.4.3`)
+
+#### Added
+- **`[5.4.3]` Architecture Context & System Overview in `crates/github-extractor`:**
+  - Implemented automated repository architecture analysis, workspace topology classification, entry point discovery, component cataloging, and CDM overview section construction in `crates/github-extractor/src/architecture.rs`:
+    - `WorkspaceType`: strongly-typed topology enum (`SinglePackage`, `Monorepo`, `MultiService`, `Library`, `Other`) with multi-signal heuristics detecting directory groupings (`crates/*`, `packages/*`, `apps/*`, `services/*`, `deploy/`, `docs/`, `scripts/`) and nested workspace manifests.
+    - `EntryPointRole` & `EntryPointInfo`: discovers and catalogs executable application entry points (`BinaryMain`, `LibraryRoot`, `WebApi`, `UiRoute`, `WorkerDaemon`, `ScriptCli`) with language, path, and functional notes.
+    - `ComponentRole` & `ComponentInfo`: discovers and catalogs repository subsystems and packages (`Service`, `LibraryCrate`, `WebFrontend`, `Worker`, `ToolCli`, `Infrastructure`, `Documentation`, `GeneralModule`) with file counts, byte sizes, and primary languages.
+    - `RepoArchitectureContext`: unified domain model synthesizing workspace topology, primary language distribution, ecosystems, inferred key technologies (Tokio, Axum, SQLx, SvelteKit, Tailwind CSS, Playwright, Prettier, etc.), discovered architecture/design documents (ADRs, specifications, data models), and build/CI/CD pipelines.
+    - Formatters & serializers: `to_markdown()` producing clean, structured GFM architecture overviews with summary profiles and markdown tables; `to_json()` and `to_json_compact()` for structured JSON export.
+    - CDM integration: `to_cdm_section()` generating a Canonical Context Document Model [`CdmSection`] with `SectionKind::Prose`, `manifest_role: "architecture_context"`, title `"Repository Architecture & System Overview"`, and BLAKE3 content hash.
+  - Extended `GitHubApiClient` in `crates/github-extractor/src/client.rs`:
+    - `generate_architecture_context`: client method assembling architecture synthesis from repository classification, manifests, and extraction reports.
+  - Re-exported architecture models and helpers in `crates/github-extractor/src/lib.rs`.
+  - Authored comprehensive integration tests in `crates/github-extractor/tests/architecture_context_test.rs`:
+    - 10 test suites validating monorepo, single-package, and library topology classification, entry point discovery, component cataloging, technology stack inference, architecture doc indexing, Markdown formatting, JSON roundtrip serialization, CDM section creation, and live API client integration.
+  - Verified 454 passing workspace Rust tests (126 in `crates/github-extractor` + 1 doc-test), 213 frontend tests, zero clippy warnings, zero fmt diffs, and 100% passing gates across all 5 checks in `scripts/check-all.ps1`.
+
 ### 2026-11-18 — Phase 5.4: Repository Packaging (`5.4.2`)
 
 #### Added

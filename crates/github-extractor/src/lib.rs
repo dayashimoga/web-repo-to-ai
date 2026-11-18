@@ -10,6 +10,7 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
+pub mod architecture;
 pub mod classification;
 pub mod client;
 pub mod commit;
@@ -26,6 +27,10 @@ pub mod target;
 pub mod tree;
 pub mod tree_generator;
 
+pub use architecture::{
+    ComponentInfo, ComponentRole, EntryPointInfo, EntryPointRole, RepoArchitectureContext,
+    WorkspaceType,
+};
 pub use classification::{
     detect_language, ClassifiedFile, FileCategory, FileClassificationConfig, FileClassifier,
     TreeClassificationReport, DEFAULT_MAX_FILE_SIZE_BYTES,
