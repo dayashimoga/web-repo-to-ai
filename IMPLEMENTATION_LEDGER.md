@@ -7487,7 +7487,7 @@
   - `cargo fmt --all -- --check`: verified clean formatting with 0 diffs.
   - `cargo deny check`: passed (`advisories ok, bans ok, licenses ok, sources ok`).
   - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures) including 213 frontend vitest tests and 17.6% Podman storage footprint.
-- **Git Commit Reference:** `d7c33fc`
+- **Git Commit Reference:** `f402be8`
 - **Status:** `ACCEPTED`
 
 ---
@@ -7498,10 +7498,79 @@
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `8.2.3` | Crawl-depth & domain restrictions in crates/web-extractor | `8.2.2` (`ACCEPTED`) | `crates/web-extractor/*` | `NOT_STARTED` |
+| `8.2.3` | Crawl-depth & domain restrictions in crates/web-extractor | `8.2.2` (`ACCEPTED`) | `crates/web-extractor/*` | `IN_PROGRESS` |
+
+---
+
+### Subphase `8.2.3` — Crawl-depth & domain restrictions in crates/web-extractor
+- **Unique ID:** `8.2.3`
+- **Objective:** Implement crawl traversal depth limits, domain scoping policies, path inclusion/exclusion glob and regex filtering, query parameter policies, and page budget quotas in `crates/web-extractor`. Provide stateful evaluation of candidate URLs against boundary restrictions, tracking depths, host quotas, and total crawl limits to prevent runaway crawling, crawl loops, and cross-origin resource exhaustion.
+- **Scope:** `crates/web-extractor/src/crawler/restrictions.rs`, `crates/web-extractor/src/crawler/mod.rs`, `crates/web-extractor/src/lib.rs`, `crates/web-extractor/Cargo.toml`, `crates/web-extractor/tests/crawl_restrictions_test.rs`.
+- **Prerequisites:** `8.2.2` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/web-extractor/src/crawler/restrictions.rs`
+  - `crates/web-extractor/src/crawler/mod.rs`
+  - `crates/web-extractor/src/lib.rs`
+  - `crates/web-extractor/Cargo.toml`
+  - `crates/web-extractor/tests/crawl_restrictions_test.rs`
+- **Implementation Tasks:**
+  1. Define domain models and configuration types in `crates/web-extractor/src/crawler/restrictions.rs`:
+     - `CrawlScope`: `ExactHost`, `Subdomains`, `PathPrefix`, and `DomainAllowlist(Vec<String>)`.
+     - `QueryParamPolicy`: `StripAll`, `AllowList(HashSet<String>)`, `BlockList(HashSet<String>)`, and `AllowAll`.
+     - `CrawlRestrictions`: scoping, depth boundaries (`max_depth`), total page budgets (`max_pages`), per-depth and per-host quotas (`max_pages_per_depth`, `max_pages_per_host`), path pattern rules (`include_patterns`, `exclude_patterns`), static asset extension filters, port and scheme validation, and SSRF security policies.
+     - `CrawlRejectionReason`: strongly-typed classification for depth exceeded, external host, subdomain disallowed, path prefix mismatch, pattern exclusions, include pattern non-match, asset extensions, scheme/port violations, budget exhaustion, and SSRF security defense.
+     - `CrawlDecision`: `Allowed { url, depth }` or `Rejected { url, reason }`.
+     - `CrawlBudgetStats`: runtime accounting for total crawled pages, remaining quotas, and per-depth/per-host distribution.
+  2. Implement stateful `CrawlRestrictionsEvaluator`:
+     - Compile path patterns into regexes supporting recursive wildcards (`**`), single-segment wildcards (`*`), character wildcards (`?`), prefix matching, and explicit `regex:` prefixes.
+     - Enforce `CrawlScope` domain boundaries against seed host, subdomains, path prefixes, and wildcard domain allowlists (`*.partner.org`).
+     - Track minimum observed traversal depth for discovered URLs to optimize traversal ordering.
+     - Enforce global page quotas, per-depth ceilings, and per-host limits.
+     - Filter/normalize query parameters according to `QueryParamPolicy` and strip in-page section fragments (`#anchor`).
+     - Validate candidate URLs against zero-trust SSRF policy.
+     - Provide `record_page_crawled` and `stats` inspection methods.
+  3. Wire restrictions into `crates/web-extractor/src/crawler/mod.rs` and re-export in `crates/web-extractor/src/lib.rs`.
+  4. Author 14 comprehensive integration test suites in `crates/web-extractor/tests/crawl_restrictions_test.rs` covering depth enforcement, exact host scope, subdomain scope, path prefix scope, custom allowlists, path include patterns, path exclude patterns, query parameter policies, asset extension blocking, scheme/port enforcement, page budget exhaustion, per-depth/per-host quotas, SSRF defense, and minimum depth deduplication.
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-web-extractor`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - Candidate URLs exceeding `max_depth` are rejected with `ExceedsMaxDepth`.
+  - `ExactHost`, `Subdomains`, `PathPrefix`, and `DomainAllowlist` scopes restrict domains strictly.
+  - Path glob patterns (`**`, `*`, `?`) and regex patterns filter allowed/disallowed paths accurately.
+  - Query parameter policies (`StripAll`, `AllowList`, `BlockList`, `AllowAll`) normalize candidate URLs without loss of legitimate parameters.
+  - Page budgets (global, per-depth, per-host) enforce quotas and report exhaustion.
+  - SSRF violations trigger immediate rejection.
+  - 100% of web-extractor tests pass (185/185), workspace clippy is warning-free, zero fmt diffs, cargo deny clean, and all monorepo gates pass (5/5).
+- **Risk Analysis:**
+  - Risk: Path pattern regex compilation errors or backtracking explosion on malformed glob patterns.
+  - Mitigation: Pre-compilation of patterns in `CrawlRestrictionsEvaluator::new`, safe translation of glob tokens, and error propagation.
+- **Rollback Plan:**
+  - Revert Subphase 8.2.3 additions via Git reset to commit `f402be8`.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-web-extractor`: 185 tests passed (135 unit in `lib.rs`, 14 crawl restrictions, 8 golden dataset, 14 internal link discovery, 14 sitemap discovery).
+  - `cargo clippy --workspace --all-targets -- -D warnings`: passed with 0 warnings.
+  - `cargo fmt --all -- --check`: verified clean formatting with 0 diffs.
+  - `cargo deny check`: passed (`advisories ok, bans ok, licenses ok, sources ok`).
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures) including 213 frontend vitest tests and 17.6% Podman storage footprint.
+- **Git Commit Reference:** `13cdaa9`
+- **Status:** `ACCEPTED`
+
+---
+
+### Upcoming Subphase (Stage 8 — Large Repositories, Batch and Crawling)
+
+#### Phase 8.2 — Website crawling
+
+| Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| `8.2.4` | Duplicate & loop prevention in crates/web-extractor | `8.2.3` (`ACCEPTED`) | `crates/web-extractor/*` | `NOT_STARTED` |
 
 ---
 
 ## STAGES 8 – 11 QUEUED LEDGER SUMMARY
 
-All subsequent subphases for **Stage 8** (`8.2.3`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.
+All subsequent subphases for **Stage 8** (`8.2.4`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.

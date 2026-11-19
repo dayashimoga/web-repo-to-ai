@@ -7,10 +7,8 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
-use url::Url;
-use web_repo_to_ai_url_security::{
-    SecureDnsResolver, UrlNormalizer, UrlSecurityPolicy, ValidatedUrl,
-};
+use url::{form_urlencoded, Url};
+use web_repo_to_ai_url_security::{SecureDnsResolver, UrlSecurityPolicy, ValidatedUrl};
 
 use crate::dom::parser::decode_html_entities;
 use crate::elements::link::ASSET_EXTENSIONS;
@@ -243,15 +241,18 @@ impl InternalLinkDiscoverer {
     }
 
     /// Fetches a target webpage over HTTP and extracts all internal links.
-    pub async fn discover_from_url(&self, target_url_str: &str) -> Result<PageLinkDiscoveryReport, WebExtractorError> {
-        let validated_target = ValidatedUrl::parse(target_url_str, &self.policy)
-            .map_err(WebExtractorError::from)?;
+    pub async fn discover_from_url(
+        &self,
+        target_url_str: &str,
+    ) -> Result<PageLinkDiscoveryReport, WebExtractorError> {
+        let validated_target =
+            ValidatedUrl::parse(target_url_str, &self.policy).map_err(WebExtractorError::from)?;
         let target = WebTarget::new(validated_target);
 
         let response = self.fetcher.fetch(&target).await?;
         let body_text = String::from_utf8_lossy(&response.body);
 
-        self.discover_from_html(&body_text, &response.final_url)
+        self.discover_from_html(&body_text, response.url.url())
     }
 
     /// Parses raw HTML markup and extracts all internal links relative to `source_url`.
@@ -282,11 +283,12 @@ impl InternalLinkDiscoverer {
             Some(h) => h.to_ascii_lowercase(),
             None => {
                 return Err(WebExtractorError::Sitemap(format!(
-                    "Source URL '{}' has no host",
-                    source_url
+                    "Source URL '{source_url}' has no host"
                 )))
             }
         };
+
+        let parent_map = build_parent_map(vdom);
 
         let mut internal_links_map: HashMap<String, DiscoveredInternalLink> = HashMap::new();
         let mut external_links_count = 0;
@@ -300,7 +302,6 @@ impl InternalLinkDiscoverer {
         if let Some(nodes) = a_nodes {
             for handle in nodes {
                 if let Some(tl::Node::Tag(tag)) = handle.get(parser) {
-                    let tag_name = tag.name().as_utf8_str();
                     let attrs = tag.attributes();
 
                     let raw_href = match attrs.get("href").flatten() {
@@ -393,14 +394,14 @@ impl InternalLinkDiscoverer {
                         .filter(|s| !s.is_empty());
 
                     // Heuristics: content link vs boilerplate navigation
-                    let is_content_link = is_content_area_link(tag, parser);
+                    let is_content_link = is_content_area_link(handle, parser, &parent_map);
 
                     // Heuristics: pagination detection
                     let is_pagination = is_pagination_link(&rel, &anchor_text, attrs);
 
                     // Context snippet extraction
                     let context_snippet = if self.config.extract_context_snippets {
-                        extract_surrounding_context(tag, parser)
+                        extract_surrounding_context(handle, parser, &parent_map)
                     } else {
                         None
                     };
@@ -443,12 +444,16 @@ impl InternalLinkDiscoverer {
             }
         }
 
-        // Deterministic sorting: content links first, then pagination links, then alphabetical URL
-        let mut internal_links: Vec<DiscoveredInternalLink> = internal_links_map.into_values().collect();
+        // Deterministic 3-tier priority sorting:
+        // Tier 0: Primary content links (is_content_link && !is_pagination)
+        // Tier 1: Pagination transitions (is_pagination)
+        // Tier 2: Boilerplate navigation (nav, header, footer, sidebar)
+        // Tie-breaker: Alphabetical URL string
+        let mut internal_links: Vec<DiscoveredInternalLink> =
+            internal_links_map.into_values().collect();
         internal_links.sort_by(|a, b| {
-            b.is_content_link
-                .cmp(&a.is_content_link)
-                .then_with(|| b.is_pagination.cmp(&a.is_pagination))
+            link_priority_tier(a)
+                .cmp(&link_priority_tier(b))
                 .then_with(|| a.url.as_str().cmp(b.url.as_str()))
         });
 
@@ -547,7 +552,8 @@ fn resolve_html_base_url(vdom: &tl::VDom<'_>, fallback: &Url) -> Url {
         for handle in nodes {
             if let Some(tl::Node::Tag(tag)) = handle.get(parser) {
                 if let Some(raw_href) = tag.attributes().get("href").flatten() {
-                    let href_str = raw_href.as_utf8_str().trim();
+                    let href_cow = raw_href.as_utf8_str();
+                    let href_str = href_cow.trim();
                     if !href_str.is_empty() {
                         if let Ok(base_url) = fallback.join(href_str) {
                             return base_url;
@@ -560,12 +566,42 @@ fn resolve_html_base_url(vdom: &tl::VDom<'_>, fallback: &Url) -> Url {
     fallback.clone()
 }
 
+/// Builds a child-to-parent handle lookup map for DOM hierarchy traversal.
+fn build_parent_map(vdom: &tl::VDom<'_>) -> HashMap<u32, tl::NodeHandle> {
+    let mut map = HashMap::new();
+    let parser = vdom.parser();
+    for &child in vdom.children() {
+        populate_parents(child, None, parser, &mut map);
+    }
+    map
+}
+
+fn populate_parents(
+    handle: tl::NodeHandle,
+    parent: Option<tl::NodeHandle>,
+    parser: &tl::Parser<'_>,
+    map: &mut HashMap<u32, tl::NodeHandle>,
+) {
+    let id = handle.get_inner();
+    if let Some(p) = parent {
+        map.insert(id, p);
+    }
+    if let Some(tl::Node::Tag(tag)) = handle.get(parser) {
+        for &child in tag.children().top().iter() {
+            populate_parents(child, Some(handle), parser, map);
+        }
+    }
+}
+
 /// Checks whether an `<a>` element was situated in primary content rather than navigation boilerplate.
-fn is_content_area_link(tag: &tl::HTMLTag<'_>, parser: &tl::Parser<'_>) -> bool {
-    // If the element has parents, inspect their tag names and classes
-    let mut current_parent = tag.parent();
-    while let Some(handle) = current_parent {
-        if let Some(tl::Node::Tag(parent_tag)) = handle.get(parser) {
+fn is_content_area_link(
+    handle: tl::NodeHandle,
+    parser: &tl::Parser<'_>,
+    parent_map: &HashMap<u32, tl::NodeHandle>,
+) -> bool {
+    let mut current = parent_map.get(&handle.get_inner()).copied();
+    while let Some(parent_handle) = current {
+        if let Some(tl::Node::Tag(parent_tag)) = parent_handle.get(parser) {
             let parent_name = parent_tag.name().as_utf8_str();
             match parent_name.as_ref() {
                 "nav" | "header" | "footer" | "aside" => return false,
@@ -592,7 +628,7 @@ fn is_content_area_link(tag: &tl::HTMLTag<'_>, parser: &tl::Parser<'_>) -> bool 
                     }
                 }
             }
-            current_parent = parent_tag.parent();
+            current = parent_map.get(&parent_handle.get_inner()).copied();
         } else {
             break;
         }
@@ -603,11 +639,7 @@ fn is_content_area_link(tag: &tl::HTMLTag<'_>, parser: &tl::Parser<'_>) -> bool 
 }
 
 /// Heuristics detecting pagination hyperlinks.
-fn is_pagination_link(
-    rel: &[String],
-    anchor_text: &str,
-    attrs: &tl::Attributes<'_>,
-) -> bool {
+fn is_pagination_link(rel: &[String], anchor_text: &str, attrs: &tl::Attributes<'_>) -> bool {
     // 1. Rel attribute check: rel="next" or rel="prev"
     if rel.contains(&"next".to_string()) || rel.contains(&"prev".to_string()) {
         return true;
@@ -615,9 +647,13 @@ fn is_pagination_link(
 
     // 2. Class / ID check
     for attr_name in &["class", "id", "aria-label"] {
-        if let Some(val_bytes) = attrs.get(attr_name).flatten() {
+        if let Some(val_bytes) = attrs.get(*attr_name).flatten() {
             let val = val_bytes.as_utf8_str().to_ascii_lowercase();
-            if val.contains("pagination") || val.contains("pager") || val.contains("next-page") || val.contains("prev-page") {
+            if val.contains("pagination")
+                || val.contains("pager")
+                || val.contains("next-page")
+                || val.contains("prev-page")
+            {
                 return true;
             }
         }
@@ -627,20 +663,35 @@ fn is_pagination_link(
     let text_lower = anchor_text.trim().to_ascii_lowercase();
     matches!(
         text_lower.as_str(),
-        "next" | "previous" | "prev" | "next page" | "previous page" | "older" | "newer" | "»" | "«" | ">" | "<"
+        "next"
+            | "previous"
+            | "prev"
+            | "next page"
+            | "previous page"
+            | "older"
+            | "newer"
+            | "»"
+            | "«"
+            | ">"
+            | "<"
     )
 }
 
 /// Extracts surrounding contextual text from parent container.
-fn extract_surrounding_context(tag: &tl::HTMLTag<'_>, parser: &tl::Parser<'_>) -> Option<String> {
-    if let Some(parent_handle) = tag.parent() {
+fn extract_surrounding_context(
+    handle: tl::NodeHandle,
+    parser: &tl::Parser<'_>,
+    parent_map: &HashMap<u32, tl::NodeHandle>,
+) -> Option<String> {
+    if let Some(parent_handle) = parent_map.get(&handle.get_inner()) {
         if let Some(tl::Node::Tag(parent_tag)) = parent_handle.get(parser) {
             let mut buf = String::new();
             collect_tag_text(parent_tag, parser, &mut buf);
             let normalized = buf.split_whitespace().collect::<Vec<_>>().join(" ");
             if !normalized.is_empty() {
                 if normalized.chars().count() > MAX_CONTEXT_SNIPPET_LEN {
-                    let truncated: String = normalized.chars().take(MAX_CONTEXT_SNIPPET_LEN).collect();
+                    let truncated: String =
+                        normalized.chars().take(MAX_CONTEXT_SNIPPET_LEN).collect();
                     return Some(format!("{truncated}..."));
                 }
                 return Some(normalized);
@@ -668,3 +719,14 @@ fn collect_tag_text(tag: &tl::HTMLTag<'_>, parser: &tl::Parser<'_>, buf: &mut St
     }
 }
 
+/// Evaluates the priority tier of a discovered internal hyperlink for crawling order.
+#[inline]
+fn link_priority_tier(link: &DiscoveredInternalLink) -> u8 {
+    if link.is_content_link && !link.is_pagination {
+        0
+    } else if link.is_pagination {
+        1
+    } else {
+        2
+    }
+}

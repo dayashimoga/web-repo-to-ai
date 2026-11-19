@@ -38,8 +38,11 @@ pub use browser::{
 };
 pub use compression::{BodyLimits, BoundedDecompressor, ContentEncoding};
 pub use crawler::{
-    DiscoveredInternalLink, InternalLinkDiscoverer, InternalLinkDiscoveryConfig,
-    PageLinkDiscoveryReport, DEFAULT_MAX_LINKS_PER_PAGE, MAX_CONTEXT_SNIPPET_LEN,
+    CrawlBudgetStats, CrawlDecision, CrawlRejectionReason, CrawlRestrictions,
+    CrawlRestrictionsEvaluator, CrawlScope, DiscoveredInternalLink, InternalLinkDiscoverer,
+    InternalLinkDiscoveryConfig, PageLinkDiscoveryReport, QueryParamPolicy,
+    ABSOLUTE_MAX_CRAWL_DEPTH, DEFAULT_MAX_CRAWL_DEPTH, DEFAULT_MAX_CRAWL_PAGES,
+    DEFAULT_MAX_LINKS_PER_PAGE, MAX_CONTEXT_SNIPPET_LEN,
 };
 pub use dedup::{
     CanonicalResolution, CanonicalSource, CanonicalUrlResolver, DedupOptions,

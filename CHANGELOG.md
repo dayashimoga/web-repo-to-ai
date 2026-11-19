@@ -6,6 +6,28 @@
 
 ## [Unreleased] — Stage 8: Large Repositories, Batch and Crawling
 
+### 2026-11-19 — Phase 8.2: Website Crawling (`8.2.3`)
+
+#### Added
+- **`[8.2.3]` Crawl-Depth and Domain Restrictions Engine in `crates/web-extractor`:**
+  - Implemented boundary configuration and domain models in `crates/web-extractor/src/crawler/restrictions.rs`:
+    - `CrawlScope`: `ExactHost`, `Subdomains`, `PathPrefix`, and `DomainAllowlist(Vec<String>)`.
+    - `QueryParamPolicy`: `StripAll`, `AllowList(HashSet<String>)`, `BlockList(HashSet<String>)`, and `AllowAll`.
+    - `CrawlRestrictions`: configurable `max_depth`, `max_pages`, `max_pages_per_depth`, `max_pages_per_host`, `include_patterns`, `exclude_patterns`, `exclude_extensions`, `query_policy`, `enforce_same_port`, `enforce_same_scheme`, and `ssrf_policy`.
+    - `CrawlRejectionReason`: strongly-typed classification for depth exceeded, external host, subdomain disallowed, path prefix mismatch, pattern exclusions, include pattern non-match, asset extensions, scheme/port violations, budget exhaustion, and SSRF security defense.
+    - `CrawlDecision`: `Allowed { url, depth }` or `Rejected { url, reason }`.
+    - `CrawlBudgetStats`: runtime accounting for total crawled pages, remaining quotas, and per-depth/per-host distribution.
+  - Implemented `CrawlRestrictionsEvaluator`:
+    - Glob-to-regex translation supporting recursive wildcards (`**`), single-segment wildcards (`*`), character wildcards (`?`), and prefix/suffix matching, with support for explicit `regex:` prefixes.
+    - Domain boundary scoping against seed host, subdomains, path prefixes, and wildcard allowlists (`*.partner.org`).
+    - Minimum seen depth tracking for discovered URLs.
+    - Quota and session budget enforcement: total page ceilings, per-depth limits, and per-host limits.
+    - Query parameter filtering and normalization according to `QueryParamPolicy`.
+    - Zero-Trust SSRF defense integration via `ValidatedUrl`.
+  - Re-exported restrictions types in `crates/web-extractor/src/crawler/mod.rs` and `crates/web-extractor/src/lib.rs`.
+  - Authored 14 integration test suites in `crates/web-extractor/tests/crawl_restrictions_test.rs` validating depth limits, exact host scope, subdomain scope, path prefix scope, custom allowlists, path include patterns, path exclude patterns, query parameter policies, asset extension blocking, scheme/port enforcement, page budget exhaustion, per-depth/per-host quotas, SSRF defense, and minimum depth deduplication.
+  - 100% passing quality gates: 185 web-extractor tests passed, zero clippy warnings, zero fmt diffs, cargo deny passed, and 5/5 check-all gates passed.
+
 ### 2026-11-19 — Phase 8.2: Website Crawling (`8.2.2`)
 
 #### Added
