@@ -6,12 +6,14 @@
 
 pub mod artifacts;
 pub mod cache;
+pub mod git_cache;
 pub mod github;
 pub mod http_cache;
 pub mod jobs;
 
 pub use artifacts::*;
 pub use cache::*;
+pub use git_cache::*;
 pub use github::*;
 pub use http_cache::*;
 pub use jobs::*;
@@ -29,6 +31,8 @@ pub const EXPECTED_TABLES: &[&str] = &[
     "batch_jobs",
     "batch_items",
     "http_validators",
+    "git_commit_cache",
+    "git_blob_cache",
 ];
 
 /// Expected indexes defined in the schema.
@@ -49,6 +53,10 @@ pub const EXPECTED_INDEXES: &[&str] = &[
     "idx_http_validators_blake3",
     "idx_http_validators_last_checked",
     "idx_http_validators_expires",
+    "idx_git_commit_cache_repo",
+    "idx_git_commit_cache_last_accessed",
+    "idx_git_blob_cache_blake3",
+    "idx_git_blob_cache_last_accessed",
 ];
 
 /// Splits raw SQL DDL script into discrete executable SQL statements,

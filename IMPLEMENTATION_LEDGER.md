@@ -7680,16 +7680,96 @@
 
 ---
 
+#### Subphase `8.3.2` — Git commit/blob caching in crates/storage and crates/github-extractor
+- **Unique ID:** `8.3.2`
+- **Objective:** Implement content-addressed Git blob caching, commit metadata persistence, incremental tree diffing, and cache-aware blob fetching across `crates/storage` and `crates/github-extractor`. Ensure repeat conversions of unchanged files bypass network roundtrips entirely, while modified or newly added files are fetched incrementally with $O(N)$ efficiency.
+- **Scope:** `crates/storage/migrations/20261119000003_git_cache.sql`, `crates/storage/src/schema/git_cache.rs`, `crates/storage/src/schema/ddl.sql`, `crates/storage/src/schema/mod.rs`, `crates/storage/src/git_cache.rs`, `crates/storage/src/lib.rs`, `crates/storage/tests/git_cache_storage_test.rs`, `crates/github-extractor/src/cache.rs`, `crates/github-extractor/src/client.rs`, `crates/github-extractor/src/lib.rs`, `crates/github-extractor/tests/git_cache_incremental_test.rs`.
+- **Prerequisites:** `8.3.1` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/storage/migrations/20261119000003_git_cache.sql`
+  - `crates/storage/src/schema/git_cache.rs`
+  - `crates/storage/src/schema/ddl.sql`
+  - `crates/storage/src/schema/mod.rs`
+  - `crates/storage/src/git_cache.rs`
+  - `crates/storage/src/lib.rs`
+  - `crates/storage/tests/git_cache_storage_test.rs`
+  - `crates/github-extractor/src/cache.rs`
+  - `crates/github-extractor/src/client.rs`
+  - `crates/github-extractor/src/lib.rs`
+  - `crates/github-extractor/tests/git_cache_incremental_test.rs`
+  - `scripts/check-all.ps1`
+  - `Cargo.toml`
+- **Implementation Tasks:**
+  1. Author PostgreSQL relational schema migration `crates/storage/migrations/20261119000003_git_cache.sql`:
+     - Table `git_commit_cache`: composite primary key `(owner, repo, commit_sha)`, `tree_sha`, `parent_shas`, `author_name`, `author_email`, `committed_at`, `message`, `total_files`, `total_bytes`, `created_at`, `last_accessed_at`.
+     - Table `git_blob_cache`: primary key `blob_sha` (Git Object SHA-1), `byte_size`, `blake3_hex`, `encoding`, `raw_bytes`, `storage_key`, `created_at`, `last_accessed_at`.
+     - Indexes on `last_accessed_at` and `blake3_hex`.
+     - Synchronize `crates/storage/src/schema/ddl.sql` and `crates/storage/src/schema/mod.rs` (`EXPECTED_TABLES`, `EXPECTED_INDEXES`).
+  2. Implement entity models in `crates/storage/src/schema/git_cache.rs`:
+     - `GitCommitCacheRow`: builder methods and field validation (owner, repo, 40-character hex commit_sha and tree_sha).
+     - `GitBlobCacheRow`: builder methods, validation (40-char blob_sha, optional 64-char blake3_hex, payload byte size check).
+  3. Implement repository abstraction in `crates/storage/src/git_cache.rs`:
+     - Trait `GitCacheRepository`: `get_commit`, `upsert_commit`, `touch_commit`, `delete_commit`, `get_blob`, `get_blobs_batch`, `upsert_blob`, `touch_blob`, `delete_blob`, `prune_stale_commits`, `prune_stale_blobs`.
+     - Implement `InMemoryGitCacheRepository` with `Arc<RwLock<HashMap<...>>>` for concurrent unit tests and embedded executions.
+     - Implement `PostgresGitCacheRepository` with `sqlx::PgPool`, parameterized queries, batch chunking, and index pruning.
+  4. Implement incremental caching module in `crates/github-extractor/src/cache.rs`:
+     - `TreeIncrementalDiff`: categorizes tree changes between commits into `added_files`, `modified_files`, `unchanged_blobs`, and `deleted_files`.
+     - Trait `GitCacheStore`: async blob and tree caching abstraction.
+     - `InMemoryGitCacheStore`: thread-safe in-memory cache store.
+     - `IncrementalExtractionStats`: tracking metrics for `total_candidates`, `cache_hits`, `network_fetches`, `cache_hit_ratio`, `bytes_saved_from_cache`, and `bytes_fetched_from_network`.
+     - `IncrementalBlobExtractor`: fetches uncached blobs concurrently while streaming cached blobs directly from storage.
+  5. Extend `GitHubApiClient` in `crates/github-extractor/src/client.rs`:
+     - `fetch_pinned_tree_incremental`: checks cache for existing tree and falls back to network with tree caching.
+     - `extract_source_files_incremental`: utilizes `IncrementalBlobExtractor` to bypass network fetches for existing blobs.
+  6. Re-export types in `crates/storage/src/lib.rs` and `crates/github-extractor/src/lib.rs`.
+  7. Author integration test suites:
+     - `crates/storage/tests/git_cache_storage_test.rs`: 5 tests covering schema synchronization, row validations, commit/blob CRUD, batch lookups, and stale entry pruning.
+     - `crates/github-extractor/tests/git_cache_incremental_test.rs`: 4 tests covering tree diffing, cache store operations, cold/warm cache performance, and binary/non-utf8 handling.
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-storage --test git_cache_storage_test`
+  - `cargo test -p web-repo-to-ai-github-extractor --test git_cache_incremental_test`
+  - `cargo test -p web-repo-to-ai-storage`
+  - `cargo test -p web-repo-to-ai-github-extractor`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell -ExecutionPolicy Bypass -File scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - Relational schema migration and DDL catalogs include `git_commit_cache` and `git_blob_cache` with all required indexes.
+  - Entity models enforce cryptographic 40-character Git SHA invariants and correct timestamps.
+  - `GitCacheRepository` provides zero-mock, verified CRUD and batch operations across both in-memory and PostgreSQL targets.
+  - `TreeIncrementalDiff` accurately classifies added, modified, unchanged, and deleted entries across commit trees.
+  - `IncrementalBlobExtractor` achieves 100% cache hit reuse for unchanged blob SHAs and records accurate byte-savings metrics.
+  - 100% test pass rate across storage (80/80) and github-extractor (175/175) crates, zero clippy warnings, zero formatting diffs, cargo deny clean, and all 5 check-all gates pass.
+- **Risk Analysis:**
+  - Risk: Corrupted blob contents in storage could lead to silent data corruption during AI conversions.
+  - Mitigation: Content-addressed Git SHA-1 hashing validates payload integrity; batch lookups verify blob lengths and SHAs.
+- **Rollback Plan:**
+  - Revert Subphase 8.3.2 additions via Git reset to commit `b04099d`.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-storage --test git_cache_storage_test`: 5 passed; 0 failed.
+  - `cargo test -p web-repo-to-ai-github-extractor --test git_cache_incremental_test`: 4 passed; 0 failed.
+  - `cargo test -p web-repo-to-ai-storage`: 80 passed; 0 failed (57 lib, 2 batch, 5 git_cache, 5 http_cache, 11 token_storage).
+  - `cargo test -p web-repo-to-ai-github-extractor`: 175 passed; 0 failed (30 lib, 10 app_manifest, 10 architecture_context, 9 auth_recovery, 12 auth, 4 git_cache_incremental, 7 live_extraction, 10 oauth, 9 rate_limit, 8 fallback, 7 recovery, 21 target, 9 leakage, 10 refresh, 5 truncation, 11 unauthorized, 1 doctest).
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings across all workspace crates and targets.
+  - `cargo fmt --all -- --check`: formatting clean across workspace.
+  - `cargo deny check`: advisories ok, bans ok, licenses ok, sources ok.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures) across Bootstrap/Governance, Workflows, Rust Workspace, Frontend Web (17 files, 213 passing vitest tests), and Resource Budget (Podman storage 0 B / 30 GB, 0%).
+- **Git Commit Reference:** `7ea6e48`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 8 — Large Repositories, Batch and Crawling)
 
 #### Phase 8.3 — Incremental processing
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `8.3.2` | Git commit/blob caching | `8.3.1` (`ACCEPTED`) | `crates/storage/*`, `crates/github-extractor/*` | `NOT_STARTED` |
+| `8.3.3` | Content-addressed storage | `8.3.2` (`ACCEPTED`) | `crates/storage/*` | `NOT_STARTED` |
 
 ---
 
 ## STAGES 8 – 11 QUEUED LEDGER SUMMARY
 
-All subsequent subphases for **Stage 8** (`8.3.2`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.
+All subsequent subphases for **Stage 8** (`8.3.3`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.

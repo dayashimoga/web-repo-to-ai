@@ -6,6 +6,25 @@
 
 ## [Unreleased] — Stage 8: Large Repositories, Batch and Crawling
 
+### 2026-11-19 — Phase 8.3: Incremental Processing (`8.3.2`)
+
+#### Added
+- **`[8.3.2]` Git Commit & Blob Caching with Incremental Extractor in `crates/storage` and `crates/github-extractor`:**
+  - Implemented relational Git commit and blob persistence in `crates/storage`:
+    - PostgreSQL migration `crates/storage/migrations/20261119000003_git_cache.sql` creating tables `git_commit_cache` (`(owner, repo, commit_sha)` PK, `tree_sha`, `parent_shas`, `author_name`, `author_email`, `committed_at`, `message`, `total_files`, `total_bytes`, `created_at`, `last_accessed_at`) and `git_blob_cache` (`blob_sha` PK, `byte_size`, `blake3_hex`, `encoding`, `raw_bytes`, `storage_key`, `created_at`, `last_accessed_at`) with performance indexes.
+    - Synchronized `crates/storage/src/schema/ddl.sql` and `crates/storage/src/schema/mod.rs` (`EXPECTED_TABLES`, `EXPECTED_INDEXES`).
+    - Implemented entity models `GitCommitCacheRow` and `GitBlobCacheRow` in `crates/storage/src/schema/git_cache.rs` with fluent builder methods and cryptographic 40-character hex validation.
+    - Implemented `GitCacheRepository` trait in `crates/storage/src/git_cache.rs` with `InMemoryGitCacheRepository` (in-memory concurrent test double) and `PostgresGitCacheRepository` (production SQLx implementation supporting upserts, batch lookups, touch on reuse, and stale record pruning).
+  - Implemented incremental extraction and cache store in `crates/github-extractor`:
+    - `TreeIncrementalDiff` in `crates/github-extractor/src/cache.rs` categorizing tree entries into `added_files`, `modified_files`, `unchanged_blobs`, and `deleted_files`.
+    - `GitCacheStore` trait and `InMemoryGitCacheStore` concurrent cache engine.
+    - `IncrementalExtractionStats` metrics tracking candidates, cache hits, network fetches, hit ratio, and bytes saved.
+    - `IncrementalBlobExtractor` orchestrating parallel cache lookup and fetch-on-miss execution.
+    - Extended `GitHubApiClient` in `crates/github-extractor/src/client.rs` with `fetch_pinned_tree_incremental` and `extract_source_files_incremental`.
+  - Re-exported cache types in `crates/storage/src/lib.rs` and `crates/github-extractor/src/lib.rs`.
+  - Authored 5 integration tests in `crates/storage/tests/git_cache_storage_test.rs` and 4 integration tests in `crates/github-extractor/tests/git_cache_incremental_test.rs`.
+  - 100% passing quality gates: 80 storage tests passed, 175 github-extractor tests passed, zero clippy warnings, zero fmt diffs, cargo deny clean, and 5/5 check-all gates passed.
+
 ### 2026-11-19 — Phase 8.3: Incremental Processing (`8.3.1`)
 
 #### Added

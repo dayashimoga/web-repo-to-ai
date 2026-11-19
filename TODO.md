@@ -244,7 +244,7 @@
 
 ### Phase 8.3 — Incremental processing
 - [x] **[8.3.1]** HTTP validators in crates/storage and crates/web-extractor *(Completed 2026-11-19, Etag parsing/matching per RFC 7232 weak/strong rules, RFC 7231 IMF-fixdate/RFC 850/asctime parsing and formatting, HttpCacheControl directive parser and freshness evaluator, HttpValidator model with conditional headers If-None-Match and If-Modified-Since, FetchOutcome enum, WebFetcher::fetch_conditional intercepting HTTP 304 Not Modified before redirect processing, PostgreSQL migration 20261119000002_http_validators.sql, HttpValidatorRow entity, HttpCacheRepository trait with InMemoryHttpCacheRepository and PostgresHttpCacheRepository, 7 new integration tests in http_validators_test, 5 new integration tests in http_cache_storage_test, 206 web-extractor tests, 75 storage tests, 100% passing quality gates)*
-- [ ] **[8.3.2]** Git commit/blob caching
+- [x] **[8.3.2]** Git commit/blob caching *(Completed 2026-11-19, Git commit and blob persistence schemas, 20261119000003_git_cache.sql, GitCommitCacheRow and GitBlobCacheRow entities, GitCacheRepository trait with InMemoryGitCacheRepository and PostgresGitCacheRepository, TreeIncrementalDiff classification, GitCacheStore trait, InMemoryGitCacheStore, IncrementalExtractionStats metrics, IncrementalBlobExtractor parallel cache-aware blob fetching, GitHubApiClient incremental tree and source extraction, 5 new integration tests in git_cache_storage_test, 4 new integration tests in git_cache_incremental_test, 80 storage tests, 175 github-extractor tests, 100% passing quality gates)*
 - [ ] **[8.3.3]** Content-addressed storage
 - [ ] **[8.3.4]** Changed-file processing
 

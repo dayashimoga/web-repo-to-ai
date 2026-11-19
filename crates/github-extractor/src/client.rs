@@ -16,6 +16,7 @@ use tracing::{debug, info, warn};
 use crate::accounting::{FileAccountingAuditor, FileAccountingBalanceSheet};
 use crate::app_manifest::GitHubAppPermissions;
 use crate::architecture::RepoArchitectureContext;
+use crate::cache::{GitCacheStore, IncrementalBlobExtractor, IncrementalExtractionStats};
 use crate::classification::{ClassifiedFile, TreeClassificationReport};
 use crate::code_review::{CodeReviewPackage, CodeReviewPackageConfig};
 use crate::commit::{
@@ -861,6 +862,40 @@ impl GitHubApiClient {
         Ok(tree_res)
     }
 
+    /// Fetches a Git tree for an immutable `PinnedRevision`, checking [`GitCacheStore`] first.
+    ///
+    /// Returns a tuple containing the `GitTreeResponse` and a boolean flag indicating whether
+    /// the tree was served from cache (`true`) or acquired via the GitHub Git Trees API (`false`).
+    ///
+    /// # Errors
+    /// Returns `GitHubExtractorError` if network retrieval or deserialization fails.
+    pub async fn fetch_pinned_tree_incremental(
+        &self,
+        pinned: &PinnedRevision,
+        recursive: bool,
+        cache: Option<&dyn GitCacheStore>,
+    ) -> Result<(GitTreeResponse, bool), GitHubExtractorError> {
+        let target = pinned.target();
+        if let Some(c) = cache {
+            if let Ok(Some(cached_tree)) = c
+                .get_cached_tree(&target.owner, &target.repo, pinned.commit_sha())
+                .await
+            {
+                return Ok((cached_tree, true));
+            }
+        }
+
+        let tree = self.fetch_pinned_tree(pinned, recursive).await?;
+
+        if let Some(c) = cache {
+            let _ = c
+                .store_cached_tree(&target.owner, &target.repo, pinned.commit_sha(), &tree)
+                .await;
+        }
+
+        Ok((tree, false))
+    }
+
     /// Downloads a repository snapshot archive (tarball or zipball) for a specified ref or commit SHA.
     ///
     /// Requests `GET /repos/{owner}/{repo}/{archive_format}/{git_ref}`, following redirects
@@ -1274,6 +1309,27 @@ impl GitHubApiClient {
 
         report.duration = start.elapsed();
         report
+    }
+
+    /// Incrementally extracts and verifies source code files leveraging a [`GitCacheStore`].
+    ///
+    /// Blobs present in the cache bypass network requests entirely. Blobs missing from cache
+    /// are concurrently downloaded, verified, and placed into the cache store.
+    pub async fn extract_source_files_incremental(
+        &self,
+        target: &GitHubTarget,
+        files: &[ClassifiedFile],
+        config: &SourceExtractionConfig,
+        cache: &dyn GitCacheStore,
+    ) -> (SourceExtractionReport, IncrementalExtractionStats) {
+        let client = self.clone();
+        let target_clone = target.clone();
+        IncrementalBlobExtractor::extract_with_fetcher(target, files, config, cache, move |sha| {
+            let client = client.clone();
+            let target = target_clone.clone();
+            async move { client.get_blob(&target, &sha).await }
+        })
+        .await
     }
 
     /// Fetches and verifies a single classified documentation file, producing an `ExtractedDocFile`.

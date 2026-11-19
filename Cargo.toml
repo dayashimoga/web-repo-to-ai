@@ -98,3 +98,12 @@ blake3 = "1.5"
 
 # Database & persistence
 sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "postgres", "chrono", "uuid", "json", "macros", "migrate"] }
+
+[profile.dev]
+debug = 1
+split-debuginfo = "unpacked"
+
+[profile.test]
+debug = 1
+split-debuginfo = "unpacked"
+

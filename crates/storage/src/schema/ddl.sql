@@ -280,3 +280,37 @@ COMMENT ON COLUMN http_validators.cache_control IS 'Raw Cache-Control header str
 COMMENT ON COLUMN http_validators.expires_at IS 'Calculated expiration timestamp based on max-age or Expires header';
 COMMENT ON COLUMN http_validators.created_at IS 'Timestamp when this URL validator was first registered';
 COMMENT ON COLUMN http_validators.last_checked_at IS 'Timestamp when this URL validator was most recently validated or accessed';
+
+-- 8. GIT CACHE TABLES: Repository commit metadata, tree manifests, and content-addressed Git blobs
+CREATE TABLE IF NOT EXISTS git_commit_cache (
+    owner TEXT NOT NULL CHECK (length(owner) > 0),
+    repo TEXT NOT NULL CHECK (length(repo) > 0),
+    commit_sha TEXT NOT NULL CHECK (length(commit_sha) >= 7 AND length(commit_sha) <= 64),
+    tree_sha TEXT NOT NULL CHECK (length(tree_sha) >= 7 AND length(tree_sha) <= 64),
+    tree_entries_json TEXT,
+    total_files INTEGER NOT NULL CHECK (total_files >= 0),
+    total_bytes BIGINT NOT NULL CHECK (total_bytes >= 0),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_accessed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (owner, repo, commit_sha)
+);
+
+CREATE INDEX IF NOT EXISTS idx_git_commit_cache_repo ON git_commit_cache (owner, repo);
+CREATE INDEX IF NOT EXISTS idx_git_commit_cache_last_accessed ON git_commit_cache (last_accessed_at);
+
+CREATE TABLE IF NOT EXISTS git_blob_cache (
+    blob_sha TEXT PRIMARY KEY CHECK (length(blob_sha) >= 7 AND length(blob_sha) <= 64),
+    blake3_hex TEXT NOT NULL CHECK (length(blake3_hex) = 64),
+    storage_key TEXT NOT NULL CHECK (length(storage_key) > 0),
+    byte_size BIGINT NOT NULL CHECK (byte_size >= 0),
+    is_binary BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_accessed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_git_blob_cache_blake3 ON git_blob_cache (blake3_hex);
+CREATE INDEX IF NOT EXISTS idx_git_blob_cache_last_accessed ON git_blob_cache (last_accessed_at);
+
+COMMENT ON TABLE git_commit_cache IS 'Cached Git commit revisions, root tree SHAs, and serialized tree manifests';
+COMMENT ON TABLE git_blob_cache IS 'Content-addressed Git blob cache mapping Git SHA-1 hashes to storage keys and BLAKE3 digests';
+
