@@ -19,8 +19,8 @@
 | **STAGE 5** | Public GitHub Repository Extraction | Complete public GitHub repo conversion with 100% file completeness accounting | `5.1` – `5.5` | 20 (`5.1.1` – `5.5.4`) | `COMPLETED` / `ACCEPTED` |
 | **STAGE 6** | Private GitHub Repositories | Secure read-only GitHub App integration, encrypted tokens, and tenant isolation | `6.1` – `6.4` | 16 (`6.1.1` – `6.4.4`) | `COMPLETED` / `ACCEPTED` |
 | **STAGE 7** | AI Context & Token Optimization | Structural normalization, deduplication, exact/estimated tokenizers, and context profiles | `7.1` – `7.4` | 16 (`7.1.1` – `7.4.4`) | `COMPLETED` / `ACCEPTED` |
-| **STAGE 8** | Large Repositories, Batch & Crawling | Multi-URL batching, bounded crawling, content-addressed caching, and streaming scale | `8.1` – `8.4` | 16 (`8.1.1` – `8.4.4`) | `IN_PROGRESS` |
-| **STAGE 9** | Developer & AI Agent Integrations | Authenticated REST API, Rust CLI, MCP server, and browser extension foundation | `9.1` – `9.4` | 16 (`9.1.1` – `9.4.4`) | `NOT_STARTED` |
+| **STAGE 8** | Large Repositories, Batch & Crawling | Multi-URL batching, bounded crawling, content-addressed caching, and streaming scale | `8.1` – `8.4` | 16 (`8.1.1` – `8.4.4`) | `COMPLETED` / `ACCEPTED` |
+| **STAGE 9** | Developer & AI Agent Integrations | Authenticated REST API, Rust CLI, MCP server, and browser extension foundation | `9.1` – `9.4` | 16 (`9.1.1` – `9.4.4`) | `IN_PROGRESS` |
 | **STAGE 10** | Advanced Documents & Content | Modular PDF extraction, Tesseract OCR, structured docs, RAG chunks, and optional AI adapters | `10.1` – `10.5` | 20 (`10.1.1` – `10.5.4`) | `NOT_STARTED` |
 | **STAGE 11** | Production Certification | Comprehensive security, performance, reliability, SBOM, and production release certification | `11.1` – `11.4` | 17 (`11.1.1` – `11.4.5`) | `NOT_STARTED` |
 
@@ -91,14 +91,14 @@
 - **Phase 7.3 — Context profiles:** `7.3.1` General AI (`ACCEPTED`) | `7.3.2` Code review (`ACCEPTED`) | `7.3.3` Security review (`ACCEPTED`) | `7.3.4` Debugging & documentation (`ACCEPTED` — **PHASE 7.3 CERTIFIED**)
 - **Phase 7.4 — Quality validation:** `7.4.1` Preservation metrics (`ACCEPTED`) | `7.4.2` Compression reporting (`ACCEPTED`) | `7.4.3` Exclusion explanations (`ACCEPTED`) | `7.4.4` Golden comparison tests (`ACCEPTED` — **PHASE 7.4 & STAGE 7 CERTIFIED**)
 
-### STAGE 8 — LARGE REPOSITORIES, BATCH AND CRAWLING (`IN_PROGRESS`)
+### STAGE 8 — LARGE REPOSITORIES, BATCH AND CRAWLING (`COMPLETED` / `ACCEPTED` — **STAGE 8 CERTIFIED**)
 - **Phase 8.1 — Batch URLs:** `8.1.1` Multi-URL submission (`ACCEPTED`) | `8.1.2` Bounded parallel execution (`ACCEPTED`) | `8.1.3` Individual result tracking (`ACCEPTED`) | `8.1.4` Batch export (`ACCEPTED` — **PHASE 8.1 CERTIFIED**)
 - **Phase 8.2 — Website crawling:** `8.2.1` Sitemap discovery (`ACCEPTED`) | `8.2.2` Internal link discovery (`ACCEPTED`) | `8.2.3` Crawl-depth & domain restrictions (`ACCEPTED`) | `8.2.4` Duplicate & loop prevention (`ACCEPTED` — **PHASE 8.2 CERTIFIED**)
 - **Phase 8.3 — Incremental processing:** `8.3.1` HTTP validators (`ACCEPTED`) | `8.3.2` Git commit/blob caching (`ACCEPTED`) | `8.3.3` Content-addressed storage (`ACCEPTED`) | `8.3.4` Changed-file processing (`ACCEPTED` — **PHASE 8.3 CERTIFIED**)
-- **Phase 8.4 — Scalability:** `8.4.1` Adaptive concurrency (`ACCEPTED`) | `8.4.2` Backpressure (`ACCEPTED`) | `8.4.3` Streaming large exports (`ACCEPTED`) | `8.4.4` Resumable processing (`NEXT`)
+- **Phase 8.4 — Scalability:** `8.4.1` Adaptive concurrency (`ACCEPTED`) | `8.4.2` Backpressure (`ACCEPTED`) | `8.4.3` Streaming large exports (`ACCEPTED`) | `8.4.4` Resumable processing (`ACCEPTED` — **PHASE 8.4 & STAGE 8 CERTIFIED**)
 
-### STAGE 9 — DEVELOPER AND AI AGENT INTEGRATIONS
-- **Phase 9.1 — REST API:** `9.1.1` API documentation | `9.1.2` Authentication & authorization | `9.1.3` Rate limits | `9.1.4` API integration tests
+### STAGE 9 — DEVELOPER AND AI AGENT INTEGRATIONS (`IN_PROGRESS`)
+- **Phase 9.1 — REST API:** `9.1.1` API documentation (`NEXT`) | `9.1.2` Authentication & authorization | `9.1.3` Rate limits | `9.1.4` API integration tests
 - **Phase 9.2 — CLI:** `9.2.1` URL conversion commands | `9.2.2` Repository conversion commands | `9.2.3` Configuration | `9.2.4` Download & verification
 - **Phase 9.3 — MCP:** `9.3.1` MCP server | `9.3.2` Conversion tools | `9.3.3` Resource retrieval | `9.3.4` Security & protocol testing
 - **Phase 9.4 — Browser integration:** `9.4.1` Browser extension foundation | `9.4.2` Current-page conversion | `9.4.3` Result handoff | `9.4.4` Extension security

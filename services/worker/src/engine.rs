@@ -484,6 +484,107 @@ impl WorkerEngine {
         Ok(summary)
     }
 
+    /// Executes a batch of tasks with durable checkpointing and automatic resumption support.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CoreError`] if the engine is shutting down or if execution fails.
+    #[allow(clippy::too_many_arguments)]
+    #[instrument(skip(self, tasks, processor, checkpoint_store, progress_tx), fields(batch_id = %batch_id, items = tasks.len()))]
+    pub async fn execute_resumable_batch<T, R, F, Fut>(
+        &self,
+        batch_id: BatchId,
+        tasks: Vec<BatchItemTask<T>>,
+        parallelism_override: Option<usize>,
+        resumable_config: web_repo_to_ai_job_engine::resumable::ResumableConfig,
+        checkpoint_store: std::sync::Arc<dyn web_repo_to_ai_job_engine::resumable::CheckpointStore>,
+        processor: F,
+        progress_tx: Option<mpsc::Sender<BatchProgressUpdate>>,
+    ) -> Result<
+        (
+            BatchExecutionSummary<R>,
+            web_repo_to_ai_job_engine::resumable::ResumableStats,
+        ),
+        CoreError,
+    >
+    where
+        T: Clone + Send + Sync + 'static,
+        R: serde::Serialize + for<'de> serde::Deserialize<'de> + Send + Sync + Clone + 'static,
+        F: Fn(BatchItemTask<T>) -> Fut + Send + Sync + Clone + 'static,
+        Fut: Future<Output = Result<R, String>> + Send + 'static,
+    {
+        if self.is_shutting_down() {
+            return Err(CoreError::Validation {
+                field: "shutdown".to_string(),
+                reason: "Worker daemon is shutting down; batch rejected".to_string(),
+            });
+        }
+
+        let parallelism = parallelism_override
+            .unwrap_or(self.config.default_batch_parallelism)
+            .min(self.config.max_concurrent_jobs);
+
+        let lease_secs = u64::from(self.config.lease_duration_seconds);
+        let batch_config =
+            web_repo_to_ai_job_engine::config::BatchExecutionConfig::with_parallelism(parallelism)
+                .map(|c| {
+                    c.with_batch_timeout(std::time::Duration::from_secs(lease_secs * 2))
+                        .with_item_timeout(std::time::Duration::from_secs(lease_secs))
+                })
+                .map_err(|e| CoreError::Validation {
+                    field: "batch_config".to_string(),
+                    reason: e.to_string(),
+                })?;
+
+        let executor = web_repo_to_ai_job_engine::resumable::ResumableParallelExecutor::new(
+            batch_config,
+            resumable_config,
+            checkpoint_store,
+        )
+        .map_err(|e| CoreError::Validation {
+            field: "resumable_executor".to_string(),
+            reason: e.to_string(),
+        })?;
+
+        let start = Instant::now();
+        let (summary, stats) = executor
+            .execute_resumable(
+                batch_id,
+                tasks,
+                processor,
+                progress_tx,
+                Some(self.shutdown_token.clone()),
+            )
+            .await
+            .map_err(|e| CoreError::JobEngine(e.to_string()))?;
+
+        self.metrics.record_batch_completed();
+        self.metrics.record_item_outcome(
+            summary.succeeded_count,
+            summary.failed_count,
+            summary.timed_out_count,
+            summary.cancelled_count,
+        );
+        self.metrics.record_resumable_stats(
+            stats.is_resumed,
+            stats.checkpoints_saved,
+            stats.items_reused,
+        );
+
+        info!(
+            batch_id = %batch_id,
+            is_resumed = stats.is_resumed,
+            items_reused = stats.items_reused,
+            checkpoints_saved = stats.checkpoints_saved,
+            total_items = summary.total_items,
+            succeeded = summary.succeeded_count,
+            duration_ms = start.elapsed().as_millis(),
+            "Worker engine resumable batch execution finished"
+        );
+
+        Ok((summary, stats))
+    }
+
     /// Runs the worker background daemon loop until a shutdown signal is observed.
     pub async fn run_daemon(&self) {
         info!(

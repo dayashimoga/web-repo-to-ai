@@ -8093,16 +8093,83 @@
 
 ---
 
-### Upcoming Subphase (Stage 8 — Large Repositories, Batch and Crawling)
-
-#### Phase 8.4 — Scalability
-
-| Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
-| :--- | :--- | :--- | :--- | :--- |
-| `8.4.4` | Resumable processing | `8.4.3` (`ACCEPTED`) | `crates/job-engine/*`, `services/worker/*`, `crates/storage/*` | `NOT_STARTED` |
+#### Subphase `8.4.4` — Resumable processing in crates/job-engine & services/worker
+- **Unique ID:** `8.4.4`
+- **Objective:** Design and implement durable state checkpointing and automatic resumption support (`JobCheckpoint`, `CheckpointStore`, `InMemoryCheckpointStore`, `ResumableParallelExecutor`) with BLAKE3 cryptographic checksum validation, partitioned execution plans that skip completed items upon resumption, configurable checkpoint intervals, cooperative shutdown draining, and worker execution telemetry in `services/worker::WorkerEngine`.
+- **Scope:** `crates/job-engine/Cargo.toml`, `crates/job-engine/src/error.rs`, `crates/job-engine/src/resumable.rs`, `crates/job-engine/src/lib.rs`, `crates/job-engine/tests/resumable_processing_test.rs`, `services/worker/src/metrics.rs`, `services/worker/src/engine.rs`, `services/worker/tests/worker_resumable_test.rs`.
+- **Prerequisites:** Subphase `8.4.3` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/job-engine/Cargo.toml`
+  - `crates/job-engine/src/error.rs`
+  - `crates/job-engine/src/resumable.rs`
+  - `crates/job-engine/src/lib.rs`
+  - `crates/job-engine/tests/resumable_processing_test.rs`
+  - `services/worker/src/metrics.rs`
+  - `services/worker/src/engine.rs`
+  - `services/worker/tests/worker_resumable_test.rs`
+- **Implementation Tasks:**
+  1. Add `blake3 = { workspace = true }` dependency to `crates/job-engine/Cargo.toml`.
+  2. Extend `crates/job-engine/src/error.rs`:
+     - Add `JobEngineError::CheckpointCorrupted { job_id, reason }` and `JobEngineError::CheckpointStorageError { job_id, reason }`.
+  3. Implement `crates/job-engine/src/resumable.rs`:
+     - `CheckpointItemResult`: individual item outcome representation with item index, job ID, URL, status, execution duration, optional error message, and JSON serialized value.
+     - `JobCheckpoint`: serializable checkpoint model tracking completed and failed indices, item results, with BLAKE3 cryptographic integrity validation (`compute_checksum`, `verify_checksum`), and completion checks (`is_fully_finished`, `remaining_count`).
+     - `ResumableConfig`: configurable checkpoint frequency (`checkpoint_interval_items`), maximum resumption attempts, automatic cleanup toggle (`delete_checkpoint_on_complete`), and load checksum verification.
+     - `CheckpointStore`: asynchronous persistence abstraction (`save_checkpoint`, `load_checkpoint`, `delete_checkpoint`) with `Send + Sync + std::fmt::Debug` bounds.
+     - `InMemoryCheckpointStore`: thread-safe in-memory store for unit tests, test suites, and ephemeral worker nodes.
+     - `ResumableExecutionPlan`: partitions submitted batch tasks into `already_completed_indices` vs `pending_tasks`, skipping completed items upon resumption.
+     - `ResumableStats`: runtime telemetry tracking `is_resumed`, `items_reused`, `items_executed`, and `checkpoints_saved`.
+     - `ResumableParallelExecutor`: concurrency-bounded parallel executor orchestrating loading prior checkpoints, partitioning work, periodically persisting state checkpoints, updating progress, and aggregating merged batch results.
+  4. Extend public re-exports in `crates/job-engine/src/lib.rs`.
+  5. Extend `services/worker/src/metrics.rs`:
+     - Add atomic counters for `resumed_jobs_count`, `checkpoints_saved_count`, and `items_reused_from_checkpoint` (`record_resumable_stats`).
+  6. Extend `services/worker/src/engine.rs`:
+     - Implement `WorkerEngine::execute_resumable_batch` managing resumption lifecycle, partition execution, periodic checkpointing, and worker telemetry recording.
+  7. Author integration tests:
+     - `crates/job-engine/tests/resumable_processing_test.rs`: 6 integration tests validating fresh execution with checkpoint creation, resumption skipping completed items, BLAKE3 checksum corruption detection and rejection, configurable interval flushing, checkpoint cleanup on completion, and progress updates.
+     - `services/worker/tests/worker_resumable_test.rs`: integration test validating worker resumable batch execution, telemetry recording, and state reuse.
+  8. Formally certify completion of **Phase 8.4: Scalability** across all 4 subphases (`8.4.1` – `8.4.4` all `ACCEPTED`).
+  9. Formally certify completion of **Stage 8: Large Repositories, Batch and Crawling** across all 16 subphases (`8.1.1` through `8.4.4` all `ACCEPTED`).
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-job-engine`
+  - `cargo test -p web-repo-to-ai-worker`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell -ExecutionPolicy Bypass -File scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - Resumed batch runs skip already-completed items without re-executing them.
+  - Checkpoints verify BLAKE3 checksum integrity and reject tampered state with `CheckpointCorrupted`.
+  - Checkpoint store trait allows clean pluggability of storage backends.
+  - Worker metrics record resumed jobs, checkpoints saved, and items reused.
+  - 100% test pass rate across job engine (37/37) and worker (21/21), zero clippy warnings, zero formatting diffs, cargo deny clean, and all 5 check-all gates pass.
+- **Risk Analysis:**
+  - Risk: Checkpoint deserialization error or stale state leading to silent item duplication or dropping.
+  - Mitigation: BLAKE3 cryptographic hash of serialized item results ensures data integrity; items are tracked by unique `item_index` and terminal state.
+- **Rollback Plan:**
+  - Revert Subphase 8.4.4 additions via Git reset to commit `7b6fae6`.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-job-engine`: 37 passed; 0 failed.
+  - `cargo test -p web-repo-to-ai-worker`: 21 passed; 0 failed.
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings across all targets.
+  - `cargo fmt --all -- --check`: formatting clean across workspace.
+  - `cargo deny check`: advisories ok, bans ok, licenses ok, sources ok.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures) across Bootstrap/Governance, Workflows, Rust Workspace (545 tests passed), Frontend Web (17 files, 213 passing vitest tests), and Resource Budget (Podman storage 0 B / 30 GB, 0%).
+- **Git Commit Reference:** `09b8189`
+- **Status:** `ACCEPTED`
 
 ---
 
-## STAGES 8 – 11 QUEUED LEDGER SUMMARY
+### Upcoming Subphase (Stage 9 — Developer and AI Agent Integrations)
 
-All subsequent subphases for **Stage 8** (`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.
+#### Phase 9.1 — REST API
+
+| Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| `9.1.1` | OpenAPI 3.1 & JSON Schema specifications in docs/API.md & services/api | `8.4.4` (`ACCEPTED`) | `docs/API.md`, `services/api/*` | `NOT_STARTED` |
+
+---
+
+## STAGES 9 – 11 QUEUED LEDGER SUMMARY
+
+All subsequent subphases for **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.

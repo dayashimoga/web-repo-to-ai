@@ -82,20 +82,20 @@
   - `7.3` Context profiles (`7.3.1` [ACCEPTED], `7.3.2` [ACCEPTED], `7.3.3` [ACCEPTED], `7.3.4` [ACCEPTED] — **PHASE 7.3 CERTIFIED**)
   - `7.4` Quality validation (`7.4.1` [ACCEPTED], `7.4.2` [ACCEPTED], `7.4.3` [ACCEPTED], `7.4.4` [ACCEPTED] — **PHASE 7.4 & STAGE 7 CERTIFIED**)
 
-### STAGE 8 — LARGE REPOSITORIES, BATCH AND CRAWLING
+### STAGE 8 — LARGE REPOSITORIES, BATCH AND CRAWLING (`COMPLETED` / `ACCEPTED` — **STAGE 8 CERTIFIED**)
 - **Deliverable:** Bounded parallel batch URL processing, website crawling, and content-addressed incremental caching.
 - **Stage Acceptance Gate:** Reliable batch and large-source processing within bounded memory and CPU resources.
 - **Phases:**
   - `8.1` Batch URLs (`8.1.1` [ACCEPTED], `8.1.2` [ACCEPTED], `8.1.3` [ACCEPTED], `8.1.4` [ACCEPTED — PHASE 8.1 CERTIFIED])
   - `8.2` Website crawling (`8.2.1`–`8.2.4` [ACCEPTED — PHASE 8.2 CERTIFIED])
   - `8.3` Incremental processing (`8.3.1`–`8.3.4` [ACCEPTED — PHASE 8.3 CERTIFIED])
-  - `8.4` Scalability (`8.4.1` [ACCEPTED], `8.4.2` [ACCEPTED], `8.4.3` [ACCEPTED], `8.4.4` [NEXT])
+  - `8.4` Scalability (`8.4.1` [ACCEPTED], `8.4.2` [ACCEPTED], `8.4.3` [ACCEPTED], `8.4.4` [ACCEPTED — PHASE 8.4 & STAGE 8 CERTIFIED])
 
-### STAGE 9 — DEVELOPER AND AI AGENT INTEGRATIONS
+### STAGE 9 — DEVELOPER AND AI AGENT INTEGRATIONS (`IN_PROGRESS`)
 - **Deliverable:** Reusable developer-facing conversion platform (REST API, CLI, MCP server, browser extension foundation).
 - **Stage Acceptance Gate:** Functioning integrations powered by the same production Rust extraction engine.
 - **Phases:**
-  - `9.1` REST API (`9.1.1` – `9.1.4`)
+  - `9.1` REST API (`9.1.1` [NEXT] – `9.1.4`)
   - `9.2` CLI (`9.2.1` – `9.2.4`)
   - `9.3` MCP (`9.3.1` – `9.3.4`)
   - `9.4` Browser integration (`9.4.1` – `9.4.4`)

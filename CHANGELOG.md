@@ -4,7 +4,35 @@
 
 ---
 
-## [Unreleased] — Stage 8: Large Repositories, Batch and Crawling
+## [Unreleased] — Stage 9: Developer and AI Agent Integrations
+
+### 2026-11-19 — Phase 8.4: Scalability (`8.4.4`) & Stage 8 Formal Certification
+
+#### Added
+- **`[8.4.4]` Durable State Checkpointing & Automatic Resumption in `crates/job-engine` and `services/worker`:**
+  - Implemented durable resumable batch processing subsystem in `crates/job-engine/src/resumable.rs`:
+    - `CheckpointItemResult`: individual item outcome representation with item index, job ID, URL, status, execution duration, optional error message, and JSON serialized value.
+    - `JobCheckpoint`: serializable checkpoint model tracking completed and failed indices, item results, with BLAKE3 cryptographic integrity validation (`compute_checksum`, `verify_checksum`), and completion checks (`is_fully_finished`, `remaining_count`).
+    - `ResumableConfig`: configurable checkpoint frequency (`checkpoint_interval_items`), maximum resumption attempts, automatic cleanup toggle (`delete_checkpoint_on_complete`), and load checksum verification.
+    - `CheckpointStore`: asynchronous persistence abstraction (`save_checkpoint`, `load_checkpoint`, `delete_checkpoint`) with `Send + Sync + std::fmt::Debug` bounds.
+    - `InMemoryCheckpointStore`: thread-safe in-memory store for unit tests, test suites, and ephemeral worker nodes.
+    - `ResumableExecutionPlan`: partitions submitted batch tasks into `already_completed_indices` vs `pending_tasks`, skipping completed items upon resumption.
+    - `ResumableStats`: runtime telemetry tracking `is_resumed`, `items_reused`, `items_executed`, and `checkpoints_saved`.
+    - `ResumableParallelExecutor`: concurrency-bounded parallel executor orchestrating loading prior checkpoints, partitioning work, periodically persisting state checkpoints, updating progress, and aggregating merged batch results.
+  - Added strongly-typed errors in `crates/job-engine/src/error.rs`:
+    - `JobEngineError::CheckpointCorrupted`: cryptographic validation error raised when checkpoint checksum mismatch or tamper is detected.
+    - `JobEngineError::CheckpointStorageError`: raised on underlying checkpoint persistence failures.
+  - Added blake3 workspace dependency to `crates/job-engine/Cargo.toml`.
+  - Extended public re-exports in `crates/job-engine/src/lib.rs`.
+  - Extended worker service in `services/worker`:
+    - `WorkerServiceMetrics` & `WorkerMetricsSnapshot`: added atomic counters for `resumed_jobs_count`, `checkpoints_saved_count`, and `items_reused_from_checkpoint` (`record_resumable_stats`).
+    - `WorkerEngine::execute_resumable_batch`: managed batch executor integrating checkpoint loading, partial execution, periodic state flushing, and worker metrics recording.
+  - Comprehensive integration test suites:
+    - `crates/job-engine/tests/resumable_processing_test.rs`: 6 integration tests validating fresh execution with checkpoint creation, resumption skipping completed items, BLAKE3 checksum corruption detection and rejection, configurable interval flushing, checkpoint cleanup on completion, and progress updates.
+    - `services/worker/tests/worker_resumable_test.rs`: integration test validating worker resumable batch execution, telemetry recording, and state reuse.
+  - 100% passing quality gates: 37 job-engine tests, 21 worker tests, 545 workspace tests, zero clippy warnings, zero fmt diffs, cargo deny clean, and 5/5 check-all gates passed.
+- **Stage 8 Formal Certification:**
+  - Formally certified **Stage 8: Large Repositories, Batch and Crawling** across all 4 phases and 16 subphases (`8.1.1` – `8.4.4` all `ACCEPTED`).
 
 ### 2026-11-19 — Phase 8.4: Scalability (`8.4.3`)
 

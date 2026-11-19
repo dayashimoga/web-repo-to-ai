@@ -17,6 +17,7 @@ pub mod executor;
 pub mod incremental;
 pub mod models;
 pub mod pool;
+pub mod resumable;
 
 // Re-export primary types for ergonomic crate-level access
 pub use adaptive::{
@@ -49,6 +50,11 @@ pub use models::{
 pub use pool::{
     WorkerPool, WorkerPoolConfig, WorkerPoolMetrics, DEFAULT_MAX_WORKER_CONCURRENCY,
     DEFAULT_SHUTDOWN_TIMEOUT_SECONDS,
+};
+pub use resumable::{
+    CheckpointItemResult, CheckpointStore, InMemoryCheckpointStore, JobCheckpoint, ResumableConfig,
+    ResumableExecutionPlan, ResumableParallelExecutor, ResumableStats,
+    DEFAULT_CHECKPOINT_INTERVAL_ITEMS, DEFAULT_MAX_RESUMPTION_ATTEMPTS,
 };
 
 /// Returns the unique crate identifier name.

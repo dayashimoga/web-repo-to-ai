@@ -29,6 +29,9 @@ pub struct WorkerServiceMetrics {
     current_queue_depth: Arc<AtomicUsize>,
     streaming_bytes_exported: Arc<AtomicUsize>,
     streaming_exports_completed: Arc<AtomicUsize>,
+    resumed_jobs_count: Arc<AtomicUsize>,
+    checkpoints_saved_count: Arc<AtomicUsize>,
+    items_reused_from_checkpoint: Arc<AtomicUsize>,
 }
 
 /// Serializable snapshot of worker metrics.
@@ -72,6 +75,12 @@ pub struct WorkerMetricsSnapshot {
     pub streaming_bytes_exported: usize,
     /// Total streaming export packages completed.
     pub streaming_exports_completed: usize,
+    /// Total jobs resumed from durable checkpoints.
+    pub resumed_jobs_count: usize,
+    /// Total durable checkpoints persisted during executions.
+    pub checkpoints_saved_count: usize,
+    /// Total items skipped and reused directly from checkpoints.
+    pub items_reused_from_checkpoint: usize,
 }
 
 impl WorkerServiceMetrics {
@@ -165,6 +174,22 @@ impl WorkerServiceMetrics {
             .fetch_add(1, Ordering::Relaxed);
     }
 
+    /// Records resumable execution metrics.
+    pub fn record_resumable_stats(
+        &self,
+        resumed: bool,
+        checkpoints_saved: usize,
+        items_reused: usize,
+    ) {
+        if resumed {
+            self.resumed_jobs_count.fetch_add(1, Ordering::Relaxed);
+        }
+        self.checkpoints_saved_count
+            .fetch_add(checkpoints_saved, Ordering::Relaxed);
+        self.items_reused_from_checkpoint
+            .fetch_add(items_reused, Ordering::Relaxed);
+    }
+
     /// Produces an immutable metrics snapshot.
     #[must_use]
     pub fn snapshot(&self) -> WorkerMetricsSnapshot {
@@ -188,6 +213,9 @@ impl WorkerServiceMetrics {
             current_queue_depth: self.current_queue_depth.load(Ordering::Relaxed),
             streaming_bytes_exported: self.streaming_bytes_exported.load(Ordering::Relaxed),
             streaming_exports_completed: self.streaming_exports_completed.load(Ordering::Relaxed),
+            resumed_jobs_count: self.resumed_jobs_count.load(Ordering::Relaxed),
+            checkpoints_saved_count: self.checkpoints_saved_count.load(Ordering::Relaxed),
+            items_reused_from_checkpoint: self.items_reused_from_checkpoint.load(Ordering::Relaxed),
         }
     }
 }
@@ -205,6 +233,7 @@ mod tests {
         metrics.record_adaptive_stats(3, 1, 1, 6);
         metrics.record_backpressure_stats(2, 0, 8);
         metrics.record_streaming_export(4096);
+        metrics.record_resumable_stats(true, 3, 2);
         metrics.update_active_workers(3);
 
         let snap = metrics.snapshot();
@@ -227,5 +256,8 @@ mod tests {
         assert_eq!(snap.current_queue_depth, 8);
         assert_eq!(snap.streaming_bytes_exported, 4096);
         assert_eq!(snap.streaming_exports_completed, 1);
+        assert_eq!(snap.resumed_jobs_count, 1);
+        assert_eq!(snap.checkpoints_saved_count, 3);
+        assert_eq!(snap.items_reused_from_checkpoint, 2);
     }
 }

@@ -80,4 +80,22 @@ pub enum JobEngineError {
         /// Duration in milliseconds waited.
         duration_ms: u64,
     },
+
+    /// Checkpoint state is corrupted, tampered, or invalid.
+    #[error("Checkpoint corrupted for job '{job_id}': {reason}")]
+    CheckpointCorrupted {
+        /// Associated job identifier.
+        job_id: String,
+        /// Detail of corruption or checksum failure.
+        reason: String,
+    },
+
+    /// Checkpoint storage operation failed.
+    #[error("Checkpoint storage operation failed for job '{job_id}': {reason}")]
+    CheckpointStorageError {
+        /// Associated job identifier.
+        job_id: String,
+        /// Detail of failure.
+        reason: String,
+    },
 }
