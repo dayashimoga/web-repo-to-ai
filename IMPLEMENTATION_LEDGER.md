@@ -8226,13 +8226,88 @@
 
 ---
 
+#### Subphase `9.1.2` — Authentication & authorization (API key / Bearer token validation and tenant isolation)
+- **Unique ID:** `9.1.2`
+- **Objective:** Implement cryptographic API key generation (`ring::rand::SystemRandom`, `wr_live_<64_hex_chars>`), BLAKE3 key hashing, `ApiKeyRecord` persistence (`ApiKeyRepository`, `InMemoryApiKeyRepository`, `PostgresApiKeyRepository`), SQL migration (`api_keys` table), `AuthCaller` and `RequireAuth` Axum extractors, API key management route handlers (`POST /api/v1/auth/keys`, `GET /api/v1/auth/keys`, `DELETE /api/v1/auth/keys/:key_id`), permission scope verification (`read`, `write`, `admin`), cross-tenant isolation enforcement (anti-enumeration with RFC 7807 404 responses), OpenAPI schemas and path definitions in `docs/openapi.json` and `docs/openapi.yaml`, technical documentation in `docs/API.md`, and integration test suites.
+- **Scope:** `crates/core/src/auth.rs`, `crates/core/src/error.rs`, `crates/core/src/lib.rs`, `crates/storage/src/api_key.rs`, `crates/storage/migrations/20261119000005_api_keys.sql`, `crates/storage/tests/api_key_storage_test.rs`, `services/api/src/extractors/auth.rs`, `services/api/src/routes/auth_keys.rs`, `services/api/src/dto/auth_keys.rs`, `services/api/src/state.rs`, `services/api/src/routes/mod.rs`, `services/api/tests/auth_middleware_test.rs`, `services/api/tests/openapi_test.rs`, `docs/openapi.json`, `docs/openapi.yaml`, `docs/API.md`.
+- **Prerequisites:** `9.1.1` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/core/Cargo.toml`
+  - `crates/core/src/auth.rs`
+  - `crates/core/src/error.rs`
+  - `crates/core/src/lib.rs`
+  - `crates/storage/src/api_key.rs`
+  - `crates/storage/src/lib.rs`
+  - `crates/storage/migrations/20261119000005_api_keys.sql`
+  - `crates/storage/tests/api_key_storage_test.rs`
+  - `services/api/Cargo.toml`
+  - `services/api/src/extractors/auth.rs`
+  - `services/api/src/extractors/mod.rs`
+  - `services/api/src/routes/auth_keys.rs`
+  - `services/api/src/routes/mod.rs`
+  - `services/api/src/dto/auth_keys.rs`
+  - `services/api/src/dto/mod.rs`
+  - `services/api/src/state.rs`
+  - `services/api/src/lib.rs`
+  - `services/api/tests/auth_middleware_test.rs`
+  - `services/api/tests/openapi_test.rs`
+  - `docs/openapi.json`
+  - `docs/openapi.yaml`
+  - `docs/API.md`
+- **Implementation Tasks:**
+  1. Define `ApiKeyScope` (`Read`, `Write`, `Admin`), `ApiKeyRecord`, `GeneratedApiKey`, and `AuthenticatedCaller` with scope check and tenant ownership enforcement methods in `crates/core/src/auth.rs`.
+  2. Implement `ApiKeyRepository` trait, `InMemoryApiKeyRepository` (dual index `id` + `key_hash`), and `PostgresApiKeyRepository` (runtime query builders with bind) in `crates/storage/src/api_key.rs` and migration `20261119000005_api_keys.sql`.
+  3. Wire `api_key_storage: Arc<dyn ApiKeyRepository>` into `AppState` in `services/api/src/state.rs`.
+  4. Implement `AuthCaller` (optional) and `RequireAuth` (mandatory) Axum extractors in `services/api/src/extractors/auth.rs` parsing `Authorization: Bearer <token>` (with BLAKE3 hash lookup and async usage tracking) and `X-Session-ID`.
+  5. Implement API key management routes (`POST /api/v1/auth/keys`, `GET /api/v1/auth/keys`, `DELETE /api/v1/auth/keys/:key_id`) with DTOs in `services/api/src/dto/auth_keys.rs` and handlers in `services/api/src/routes/auth_keys.rs`.
+  6. Register routes in `services/api/src/routes/mod.rs` and advertise in `root_handler`.
+  7. Add OpenAPI 3.1.0 path specifications and schemas (`CreateApiKeyRequest`, `CreateApiKeyResponse`, `ApiKeySummaryResponse`, `ListApiKeysResponse`, `RevokeApiKeyResponse`) to `docs/openapi.json` and `docs/openapi.yaml`.
+  8. Document API Key architecture and endpoints in `docs/API.md`.
+  9. Author automated integration tests in `services/api/tests/auth_middleware_test.rs` verifying unauthenticated rejection, malformed header handling, lifecycle creation/listing/revocation, Admin scope requirements, and cross-tenant isolation.
+  10. Author integration tests in `crates/storage/tests/api_key_storage_test.rs` and update route coverage in `services/api/tests/openapi_test.rs`.
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-core`
+  - `cargo test -p web-repo-to-ai-storage --test api_key_storage_test`
+  - `cargo test -p web-repo-to-ai-api --test auth_middleware_test`
+  - `cargo test -p web-repo-to-ai-api --test openapi_test`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell -ExecutionPolicy Bypass -File scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - `POST /api/v1/auth/keys` generates high-entropy `wr_live_...` API keys with caller-specified scopes and expiration.
+  - Plaintext keys are never stored in databases or logs; only constant-time BLAKE3 digests are retained.
+  - Revoked or expired API keys are rejected with RFC 7807 `401 Unauthorized`.
+  - Non-admin API keys attempting key management operations are rejected with RFC 7807 `403 Forbidden`.
+  - Cross-tenant access and deletion attempts return RFC 7807 `404 Not Found` preventing tenant enumeration.
+  - 100% route coverage verified by `openapi_test.rs`.
+  - 100% test pass rate across storage tests, api tests (95/95), and workspace tests (558/558), zero clippy warnings, zero fmt diffs, cargo deny clean, and 5/5 check-all gates pass.
+- **Risk Analysis:**
+  - Risk: Plaintext key leakage via logging, errors, or persistent storage.
+  - Mitigation: Plaintext key exists solely in ephemeral memory during generation response; BLAKE3 one-way hash stored for constant-time indexing; `ApiKeyRecord` and `ApiKeySummaryResponse` strictly exclude plaintext token.
+- **Rollback Plan:**
+  - Revert Subphase 9.1.2 additions via Git reset to commit `4379cf6`.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-storage --test api_key_storage_test`: 2 passed; 0 failed.
+  - `cargo test -p web-repo-to-ai-api --test auth_middleware_test`: 5 passed; 0 failed.
+  - `cargo test -p web-repo-to-ai-api --test openapi_test`: 6 passed; 0 failed (100% route coverage across all 25 platform routes and 29 schemas).
+  - `cargo test -p web-repo-to-ai-api`: 95 passed; 0 failed (83 lib unit, 1 main unit, 5 auth integration, 6 openapi integration).
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings across all targets.
+  - `cargo fmt --all -- --check`: formatting clean across workspace.
+  - `cargo deny check`: advisories ok, bans ok, licenses ok, sources ok.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures) across Bootstrap/Governance, Workflows, Rust Workspace (558 tests passed), Frontend Web (17 files, 213 passing vitest tests), and Resource Budget (Podman storage 0 B / 30 GB, 0%).
+- **Git Commit Reference:** `b604acb`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 9 — Developer and AI Agent Integrations)
 
 #### Phase 9.1 — REST API
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `9.1.2` | Authentication & authorization (API key / Bearer token validation and tenant isolation) | `9.1.1` (`ACCEPTED`) | `services/api/*`, `crates/core/*`, `crates/storage/*` | `NOT_STARTED` |
+| `9.1.3` | Rate limits (Token bucket / Sliding window rate limiting and 429 Retry-After) | `9.1.2` (`ACCEPTED`) | `services/api/*`, `crates/core/*`, `crates/storage/*` | `NOT_STARTED` |
 
 ---
 

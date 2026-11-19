@@ -13,6 +13,7 @@
 
 #![warn(missing_docs)]
 
+pub mod api_key;
 pub mod backend;
 pub mod batch;
 pub mod cas;
@@ -30,6 +31,7 @@ pub mod state_machine;
 pub mod token_storage;
 pub mod validation;
 
+pub use api_key::*;
 pub use backend::*;
 pub use batch::*;
 pub use cas::*;

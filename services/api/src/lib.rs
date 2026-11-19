@@ -15,13 +15,14 @@ pub mod server;
 pub mod state;
 
 pub use dto::{
-    classify_source_url, ArtifactPathParams, CreateJobRequest, DetectSourcesRequest,
-    DetectSourcesResponse, DetectedSource, JobPathParams, JobResponse, JobStatus, ListJobsQuery,
-    PaginatedResponse, SourceClassification, VALID_EXPORT_FORMATS, VALID_SORT_ORDERS,
-    VALID_STATUS_FILTERS,
+    classify_source_url, ApiKeyPathParams, ApiKeySummaryResponse, ArtifactPathParams,
+    CreateApiKeyRequest, CreateApiKeyResponse, CreateJobRequest, DetectSourcesRequest,
+    DetectSourcesResponse, DetectedSource, JobPathParams, JobResponse, JobStatus,
+    ListApiKeysResponse, ListJobsQuery, PaginatedResponse, RevokeApiKeyResponse,
+    SourceClassification, VALID_EXPORT_FORMATS, VALID_SORT_ORDERS, VALID_STATUS_FILTERS,
 };
 pub use error::*;
-pub use extractors::{ValidatedJson, ValidatedPath, ValidatedQuery};
+pub use extractors::{AuthCaller, RequireAuth, ValidatedJson, ValidatedPath, ValidatedQuery};
 pub use server::{build_app, run_server};
 pub use state::AppState;
 

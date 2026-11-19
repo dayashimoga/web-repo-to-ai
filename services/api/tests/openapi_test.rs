@@ -182,6 +182,8 @@ async fn test_openapi_route_coverage() {
         "/auth/github/installations",
         "/auth/github/installations/{installation_id}",
         "/auth/github/webhook",
+        "/auth/keys",
+        "/auth/keys/{key_id}",
     ];
 
     for path in &required_paths {
@@ -237,6 +239,11 @@ async fn test_openapi_schemas_presence_and_validity() {
         "InstallationSummaryResponse",
         "RevokeInstallationResponse",
         "WebhookReceiptResponse",
+        "CreateApiKeyRequest",
+        "CreateApiKeyResponse",
+        "ApiKeySummaryResponse",
+        "ListApiKeysResponse",
+        "RevokeApiKeyResponse",
     ];
 
     for schema_name in &required_schemas {

@@ -9,6 +9,7 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
+pub mod auth;
 pub mod config;
 pub mod crypto;
 pub mod error;
@@ -16,6 +17,7 @@ pub mod id;
 pub mod traits;
 
 // Re-exports for clean ergonomic use
+pub use auth::{ApiKeyRecord, ApiKeyScope, AuthenticatedCaller, GeneratedApiKey, API_KEY_PREFIX};
 pub use config::{
     AppConfig, DatabaseConfig, Environment, ExtractionConfig, OptimizationConfig, SecurityConfig,
     ServerConfig, StorageBackend, StorageConfig,

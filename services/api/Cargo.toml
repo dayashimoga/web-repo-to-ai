@@ -41,3 +41,4 @@ http-body-util = { workspace = true }
 url = { workspace = true }
 chrono = { workspace = true }
 uuid = { workspace = true, features = ["v4", "serde"] }
+blake3 = { workspace = true }

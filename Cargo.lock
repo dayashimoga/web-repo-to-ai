@@ -2479,6 +2479,7 @@ name = "web-repo-to-ai-api"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "blake3",
  "chrono",
  "futures",
  "http-body-util",
@@ -2557,6 +2558,7 @@ dependencies = [
 name = "web-repo-to-ai-core"
 version = "0.1.0"
 dependencies = [
+ "blake3",
  "chrono",
  "ring",
  "serde",

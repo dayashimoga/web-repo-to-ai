@@ -6,6 +6,37 @@
 
 ## [Unreleased] — Stage 9: Developer and AI Agent Integrations
 
+### 2026-11-19 — Phase 9.1: REST API (`9.1.2`)
+
+#### Added
+- **`[9.1.2]` Authentication & Authorization (API Key / Bearer Token Validation and Tenant Isolation) in `services/api`, `crates/core`, and `crates/storage`:**
+  - Implemented core auth models and identity principal in `crates/core/src/auth.rs`:
+    - `ApiKeyScope`: granular permission capabilities (`Read`, `Write`, `Admin`) with parsing and `FromStr` implementations.
+    - `ApiKeyRecord`: metadata representation with BLAKE3 `key_hash`, scopes, expiry, revocation, and usage tracking.
+    - `GeneratedApiKey`: cryptographically secure API key generation using `ring::rand::SystemRandom` producing `wr_live_<64_hex_chars>` plaintext tokens with BLAKE3 hashing.
+    - `AuthenticatedCaller`: resolved principal identity (`Session`, `ApiKey`, `Anonymous`) with methods for tenant resolution (`tenant_id`), authentication requirement (`require_authenticated`), scope verification (`require_scope`), and cross-tenant anti-enumeration protection (`enforce_tenant_ownership`).
+  - Added HTTP 401 and 403 error variants in `crates/core/src/error.rs`:
+    - `CoreError::Unauthorized` and `CoreError::Forbidden`.
+    - `ErrorCode::Unauthorized` (401) and `ErrorCode::Forbidden` (403).
+  - Implemented persistent storage in `crates/storage/src/api_key.rs` and SQL migration `crates/storage/migrations/20261119000005_api_keys.sql`:
+    - `ApiKeyRepository` trait defining async CRUD operations (`save_key`, `find_by_hash`, `find_by_id`, `list_by_tenant`, `revoke_key`, `record_usage`).
+    - `InMemoryApiKeyRepository`: thread-safe in-memory store with dual indexing (`id` and `key_hash`).
+    - `PostgresApiKeyRepository`: async SQLx repository using runtime query builders with bound parameters.
+    - 2 unit and integration tests in `crates/storage/tests/api_key_storage_test.rs`.
+  - Wired API key storage into `AppState` in `services/api/src/state.rs`.
+  - Implemented Axum extractors in `services/api/src/extractors/auth.rs`:
+    - `AuthCaller`: optional authentication extractor resolving `AuthenticatedCaller` from `Authorization: Bearer <token>`, `Authorization: ApiKey <token>`, or `X-Session-ID`, performing constant-time BLAKE3 hash lookup and asynchronous usage tracking.
+    - `RequireAuth`: mandatory authentication extractor rejecting unauthenticated callers with RFC 7807 401 Unauthorized problem responses.
+  - Implemented API key management route handlers and DTOs in `services/api/src/routes/auth_keys.rs` and `services/api/src/dto/auth_keys.rs`:
+    - `POST /api/v1/auth/keys`: generates a new API key for the caller's tenant with Admin scope enforcement.
+    - `GET /api/v1/auth/keys`: lists caller tenant's active keys (metadata only).
+    - `DELETE /api/v1/auth/keys/:key_id`: revokes an API key with strict tenant boundary isolation.
+  - Registered `/auth/keys` and `/auth/keys/:key_id` in `services/api/src/routes/mod.rs` and advertised in `root_handler` (`GET /`).
+  - Updated OpenAPI specifications in `docs/openapi.json` and `docs/openapi.yaml` with path definitions and schemas (`CreateApiKeyRequest`, `CreateApiKeyResponse`, `ApiKeySummaryResponse`, `ListApiKeysResponse`, `RevokeApiKeyResponse`).
+  - Expanded `docs/API.md` with Section 10 documenting API key architecture, invariants, and endpoints.
+  - Authored 5 integration tests in `services/api/tests/auth_middleware_test.rs` covering unauthenticated rejection, malformed headers, full lifecycle, admin scope enforcement, and tenant isolation.
+  - 100% passing quality gates: 95 API tests (including 5 auth tests and 6 openapi tests with 100% route coverage), 558 workspace tests, zero clippy warnings, zero fmt diffs, cargo deny clean, and 5/5 check-all gates passed.
+
 ### 2026-11-19 — Phase 9.1: REST API (`9.1.1`)
 
 #### Added

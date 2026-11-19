@@ -4,6 +4,7 @@
 //! and RFC 7807 fallback handlers.
 
 pub mod auth_github;
+pub mod auth_keys;
 pub mod batch;
 pub mod health;
 pub mod jobs;
@@ -37,6 +38,7 @@ async fn root_handler(State(_state): State<AppState>) -> impl IntoResponse {
             "sources_detect": "/api/v1/sources/detect",
             "jobs": "/api/v1/jobs",
             "jobs_batch": "/api/v1/jobs/batch",
+            "auth_keys": "/api/v1/auth/keys",
             "auth_github_installations": "/api/v1/auth/github/installations",
             "auth_github_webhook": "/api/v1/auth/github/webhook",
         }
@@ -113,6 +115,14 @@ pub fn create_router(state: AppState) -> Router {
         .route(
             "/auth/github/webhook",
             post(auth_github::github_webhook_handler),
+        )
+        .route(
+            "/auth/keys",
+            post(auth_keys::create_api_key_handler).get(auth_keys::list_api_keys_handler),
+        )
+        .route(
+            "/auth/keys/:key_id",
+            delete(auth_keys::revoke_api_key_handler),
         );
 
     Router::new()

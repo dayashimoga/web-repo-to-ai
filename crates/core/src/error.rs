@@ -16,6 +16,10 @@ pub enum ErrorCode {
     UnsupportedUrlScheme,
     /// Target address resolved to a blocked loopback, private, or link-local IP.
     SsrfAddressBlocked,
+    /// Authentication credentials missing, invalid, or expired.
+    Unauthorized,
+    /// Caller is authenticated but lacks required authorization scope or tenant ownership.
+    Forbidden,
     /// Access to private GitHub repository is unauthorized or token expired.
     UnauthorizedGithubRepo,
     /// Requested job, document, or artifact was not found.
@@ -48,6 +52,8 @@ impl ErrorCode {
             Self::InvalidRequestSchema => "INVALID_REQUEST_SCHEMA",
             Self::UnsupportedUrlScheme => "UNSUPPORTED_URL_SCHEME",
             Self::SsrfAddressBlocked => "SSRF_ADDRESS_BLOCKED",
+            Self::Unauthorized => "UNAUTHORIZED",
+            Self::Forbidden => "FORBIDDEN",
             Self::UnauthorizedGithubRepo => "UNAUTHORIZED_GITHUB_REPO",
             Self::ResourceNotFound => "RESOURCE_NOT_FOUND",
             Self::MethodNotAllowed => "METHOD_NOT_ALLOWED",
@@ -67,8 +73,8 @@ impl ErrorCode {
     pub const fn http_status(&self) -> u16 {
         match self {
             Self::InvalidRequestSchema | Self::UnsupportedUrlScheme | Self::ValidationError => 400,
-            Self::UnauthorizedGithubRepo => 401,
-            Self::SsrfAddressBlocked => 403,
+            Self::Unauthorized | Self::UnauthorizedGithubRepo => 401,
+            Self::Forbidden | Self::SsrfAddressBlocked => 403,
             Self::ResourceNotFound => 404,
             Self::MethodNotAllowed => 405,
             Self::PayloadTooLarge => 413,
@@ -128,6 +134,14 @@ pub enum CoreError {
     /// Unsupported URL scheme.
     #[error("Unsupported URL scheme: {0}")]
     UnsupportedUrlScheme(String),
+
+    /// Authentication credentials missing, invalid, or expired.
+    #[error("Unauthorized: {0}")]
+    Unauthorized(String),
+
+    /// Caller lacks permission or scope to access resource.
+    #[error("Forbidden: {0}")]
+    Forbidden(String),
 
     /// Target resource was not found.
     #[error("Resource '{resource_type}' with identifier '{id}' was not found")]
@@ -209,6 +223,8 @@ impl CoreError {
             Self::InvalidRequestSchema(_) => ErrorCode::InvalidRequestSchema,
             Self::Validation { .. } => ErrorCode::ValidationError,
             Self::Security(_) | Self::SsrfBlocked { .. } => ErrorCode::SsrfAddressBlocked,
+            Self::Unauthorized(_) => ErrorCode::Unauthorized,
+            Self::Forbidden(_) => ErrorCode::Forbidden,
             Self::UnsupportedUrlScheme(_) => ErrorCode::UnsupportedUrlScheme,
             Self::NotFound { .. } => ErrorCode::ResourceNotFound,
             Self::MethodNotAllowed { .. } => ErrorCode::MethodNotAllowed,

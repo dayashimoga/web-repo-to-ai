@@ -1,11 +1,17 @@
 //! Data Transfer Objects (DTOs) and request/response models.
 
+pub mod auth_keys;
 pub mod batch;
 pub mod github;
 pub mod jobs;
 pub mod params;
 pub mod query;
 pub mod sources;
+
+pub use auth_keys::{
+    ApiKeyPathParams, ApiKeySummaryResponse, CreateApiKeyRequest, CreateApiKeyResponse,
+    ListApiKeysResponse, RevokeApiKeyResponse,
+};
 
 pub use batch::{
     BatchArtifactItemDescriptor, BatchArtifactPathParams, BatchArtifactsResponse,

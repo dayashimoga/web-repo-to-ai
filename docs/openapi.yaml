@@ -29,6 +29,8 @@ tags:
     description: Multi-URL parallel batch processing, status, cancellation, and export
   - name: GitHub App
     description: GitHub App OAuth installations, repository authorization, and webhooks
+  - name: Authentication
+    description: API key generation, listing, and revocation with tenant isolation
 paths:
   /health:
     get:
@@ -770,6 +772,118 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ApiProblemEnvelope'
+  /auth/keys:
+    post:
+      tags:
+        - Authentication
+      summary: Create API key
+      description: Generates a new cryptographically secure API key for the caller's tenant. Requires Admin scope (implicit for session callers). Returns the plaintext key once.
+      operationId: createApiKey
+      security:
+        - SessionAuth: []
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateApiKeyRequest'
+      responses:
+        '201':
+          description: API key created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateApiKeyResponse'
+        '400':
+          description: Invalid key name, scope, or expiration
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ApiProblemEnvelope'
+        '401':
+          description: Unauthenticated caller
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ApiProblemEnvelope'
+        '403':
+          description: Insufficient scope (Admin required)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ApiProblemEnvelope'
+    get:
+      tags:
+        - Authentication
+      summary: List API keys
+      description: Lists all active and revoked API keys belonging to the caller's tenant. Secret keys and hashes are never exposed.
+      operationId: listApiKeys
+      security:
+        - SessionAuth: []
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of API key metadata records
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListApiKeysResponse'
+        '401':
+          description: Unauthenticated caller
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ApiProblemEnvelope'
+        '403':
+          description: Insufficient scope (Admin required)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ApiProblemEnvelope'
+  /auth/keys/{key_id}:
+    delete:
+      tags:
+        - Authentication
+      summary: Revoke API key
+      description: Revokes an API key by ID. Enforces tenant boundary isolation.
+      operationId: revokeApiKey
+      security:
+        - SessionAuth: []
+        - BearerAuth: []
+      parameters:
+        - name: key_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique UUID of the API key to revoke
+      responses:
+        '200':
+          description: API key successfully revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RevokeApiKeyResponse'
+        '401':
+          description: Unauthenticated caller
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ApiProblemEnvelope'
+        '403':
+          description: Insufficient scope (Admin required)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ApiProblemEnvelope'
+        '404':
+          description: API key not found or owned by a different tenant
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ApiProblemEnvelope'
 components:
   schemas:
     ApiProblemEnvelope:
@@ -1278,6 +1392,128 @@ components:
         event:
           type: string
         delivery_id:
+          type: string
+    CreateApiKeyRequest:
+      type: object
+      required:
+        - name
+        - scopes
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: CI/CD Agent
+        scopes:
+          type: array
+          items:
+            type: string
+            enum: [read, write, admin]
+          example: [read, write]
+        expires_in_days:
+          type: integer
+          minimum: 1
+          maximum: 365
+          example: 30
+    CreateApiKeyResponse:
+      type: object
+      required:
+        - id
+        - tenant_id
+        - name
+        - key
+        - key_prefix
+        - scopes
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        key:
+          type: string
+          example: wr_live_0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+        key_prefix:
+          type: string
+          example: wr_live_01234567...
+        scopes:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+    ApiKeySummaryResponse:
+      type: object
+      required:
+        - id
+        - tenant_id
+        - name
+        - key_prefix
+        - scopes
+        - created_at
+        - is_active
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        key_prefix:
+          type: string
+        scopes:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        last_used_at:
+          type: string
+          format: date-time
+          nullable: true
+        is_active:
+          type: boolean
+    ListApiKeysResponse:
+      type: object
+      required:
+        - keys
+        - total
+      properties:
+        keys:
+          type: array
+          items:
+            $ref: '#/components/schemas/ApiKeySummaryResponse'
+        total:
+          type: integer
+    RevokeApiKeyResponse:
+      type: object
+      required:
+        - id
+        - revoked
+        - message
+      properties:
+        id:
+          type: string
+          format: uuid
+        revoked:
+          type: boolean
+        message:
           type: string
   securitySchemes:
     SessionAuth:

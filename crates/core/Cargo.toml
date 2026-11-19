@@ -18,3 +18,4 @@ serde_json = { workspace = true }
 thiserror = { workspace = true }
 uuid = { workspace = true, features = ["v4", "v7", "serde", "std", "rng"] }
 ring = { version = "0.17", default-features = false }
+blake3 = { workspace = true }

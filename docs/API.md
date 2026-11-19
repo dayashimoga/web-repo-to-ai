@@ -446,7 +446,82 @@ Batch processing allows submitting up to 100 URLs for bounded concurrent executi
 
 ---
 
-## 10. Export Formats & Artifact Specifications
+## 10. API Key Authentication & Tenant Authorization
+
+The platform supports programmatic access via strongly-typed, cryptographically secure API keys and browser sessions with strict tenant boundary isolation.
+
+### 10.1 Key Architecture & Cryptographic Invariants
+- **Key Format:** `wr_live_<64_hex_chars>` (256 bits of high-entropy OS randomness generated via `ring::rand::SystemRandom`).
+- **Zero Plaintext Persistence:** Plaintext keys are shown only once upon generation. The database and logs only store constant-time searchable BLAKE3 digests (`key_hash`).
+- **Permission Scopes:**
+  - `read`: View jobs, list batches, query sitemaps, inspect preview, download artifacts.
+  - `write`: Submit conversion jobs, create batch jobs, cancel running jobs.
+  - `admin`: Generate and revoke API keys, manage credentials, inspect system telemetry.
+- **Tenant Isolation:** Every API key and session is bound to an immutable tenant UUID. Cross-tenant access attempts return RFC 7807 `404 Not Found` (rather than `403 Forbidden`) to prevent resource enumeration.
+
+### 10.2 Create API Key
+- **`POST /api/v1/auth/keys`**
+- **Headers:** `Authorization: Bearer <admin_token>` or `X-Session-ID: <session_uuid>`
+- **Request Body:**
+```json
+{
+  "name": "Production Agent 1",
+  "scopes": ["read", "write"],
+  "expires_in_days": 30
+}
+```
+- **Response `201 Created`:**
+```json
+{
+  "id": "019335c4-7c20-7000-8000-000000000010",
+  "tenant_id": "019335c4-7c20-7000-8000-000000000001",
+  "name": "Production Agent 1",
+  "key": "wr_live_a1b2c3d4e5f60123456789abcdef0123456789abcdef0123456789abcdef0123",
+  "key_prefix": "wr_live_a1b2c3d4...",
+  "scopes": ["read", "write"],
+  "created_at": "2026-11-19T10:00:00Z",
+  "expires_at": "2026-12-19T10:00:00Z"
+}
+```
+
+### 10.3 List API Keys
+- **`GET /api/v1/auth/keys`**
+- **Headers:** `Authorization: Bearer <admin_token>` or `X-Session-ID: <session_uuid>`
+- **Response `200 OK`:**
+```json
+{
+  "keys": [
+    {
+      "id": "019335c4-7c20-7000-8000-000000000010",
+      "tenant_id": "019335c4-7c20-7000-8000-000000000001",
+      "name": "Production Agent 1",
+      "key_prefix": "wr_live_a1b2c3d4...",
+      "scopes": ["read", "write"],
+      "created_at": "2026-11-19T10:00:00Z",
+      "expires_at": "2026-12-19T10:00:00Z",
+      "last_used_at": "2026-11-19T10:15:30Z",
+      "is_active": true
+    }
+  ],
+  "total": 1
+}
+```
+
+### 10.4 Revoke API Key
+- **`DELETE /api/v1/auth/keys/{key_id}`**
+- **Headers:** `Authorization: Bearer <admin_token>` or `X-Session-ID: <session_uuid>`
+- **Response `200 OK`:**
+```json
+{
+  "id": "019335c4-7c20-7000-8000-000000000010",
+  "revoked": true,
+  "message": "API key successfully revoked"
+}
+```
+
+---
+
+## 11. Export Formats & Artifact Specifications
 
 | Format Code | MIME Type | Target LLM Use Case | Internal Invariants |
 | :--- | :--- | :--- | :--- |
