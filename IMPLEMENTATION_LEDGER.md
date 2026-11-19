@@ -7760,16 +7760,71 @@
 
 ---
 
+#### Subphase `8.3.3` — Content-addressed storage in crates/storage
+- **Unique ID:** `8.3.3`
+- **Objective:** Establish the Content-Addressed Storage (CAS) subsystem in `crates/storage` providing content-addressed blob deduplication, dual cryptographic validation (BLAKE3 and SHA-256), sharded directory partitioning (`blobs/xx/<blake3>.bin`), atomic writes, on-read corruption detection, LRU storage quota enforcement, and zero-mock audit verification.
+- **Scope:** `crates/storage/src/cas.rs`, `crates/storage/src/lib.rs`, `crates/storage/src/schema/cache.rs`, `crates/storage/src/schema/ddl.sql`, `crates/storage/src/schema/mod.rs`, `crates/storage/migrations/20261119000004_cas_index.sql`, `crates/storage/tests/cas_storage_test.rs`.
+- **Prerequisites:** `8.3.2` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/storage/migrations/20261119000004_cas_index.sql`
+  - `crates/storage/src/cas.rs`
+  - `crates/storage/src/lib.rs`
+  - `crates/storage/src/schema/cache.rs`
+  - `crates/storage/src/schema/ddl.sql`
+  - `crates/storage/src/schema/mod.rs`
+  - `crates/storage/tests/cas_storage_test.rs`
+- **Implementation Tasks:**
+  1. Author PostgreSQL relational schema migration `crates/storage/migrations/20261119000004_cas_index.sql` adding index `idx_content_cache_blake3` on table `content_cache_index`.
+  2. Synchronize `crates/storage/src/schema/ddl.sql` and `crates/storage/src/schema/mod.rs` (`EXPECTED_INDEXES`).
+  3. Extend `ContentCacheIndexRow` in `crates/storage/src/schema/cache.rs` with `with_last_accessed_at` and `formatted_byte_size`.
+  4. Implement `crates/storage/src/cas.rs`:
+     - Domain models: `CasWriteOutcome`, `CasIntegrityOutcome`, `CasPruneReport`, `CasAuditReport`, `CasStats`.
+     - Repository trait `ContentCacheIndexRepository` with `InMemoryContentCacheIndexRepository` and `PostgresContentCacheIndexRepository`.
+     - `ContentAddressedStorage` unified CAS trait.
+     - `CasEngine` coordinator implementation with BLAKE3 hashing, sharded storage key routing (`layout::blob_key`), deduplication detection, on-read integrity verification, batch operations, LRU pruning, full audit, and telemetry tracking.
+  5. Re-export CAS types and traits in `crates/storage/src/lib.rs`.
+  6. Author comprehensive integration tests in `crates/storage/tests/cas_storage_test.rs` covering CAS put/get, deduplication, custom key routing, batch queries, corruption detection, LRU pruning, and schema synchronization.
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-storage --test cas_storage_test`
+  - `cargo test -p web-repo-to-ai-storage`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell -ExecutionPolicy Bypass -File scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - `content_cache_index` includes `idx_content_cache_blake3` across DDL and schema catalogs.
+  - `ContentAddressedStorage` provides verified deduplication (skipping rewrite on identical content).
+  - Cryptographic corruption is detected on read with explicit error.
+  - LRU pruning enforces capacity ceiling by evicting oldest-accessed blobs.
+  - Full audit detects valid, missing, and corrupted blobs.
+  - 100% test pass rate across storage crate (87/87), zero clippy warnings, zero formatting diffs, cargo deny clean, and all 5 check-all gates pass.
+- **Risk Analysis:**
+  - Risk: Concurrently reading a blob while another process prunes it.
+  - Mitigation: Atomic writes and atomic existence checks; on-read digest verification ensures partial files are rejected.
+- **Rollback Plan:**
+  - Revert Subphase 8.3.3 additions via Git reset to commit `a0b418f`.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-storage --test cas_storage_test`: 7 passed; 0 failed.
+  - `cargo test -p web-repo-to-ai-storage`: 87 passed; 0 failed (57 lib, 2 batch, 7 cas, 5 git_cache, 5 http_cache, 11 token_storage).
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings across all workspace targets.
+  - `cargo fmt --all -- --check`: formatting clean across workspace.
+  - `cargo deny check`: advisories ok, bans ok, licenses ok, sources ok.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures) across Bootstrap/Governance, Workflows, Rust Workspace, Frontend Web (17 files, 213 passing vitest tests), and Resource Budget (Podman storage 0 B / 30 GB, 0%).
+- **Git Commit Reference:** `5d96400`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 8 — Large Repositories, Batch and Crawling)
 
 #### Phase 8.3 — Incremental processing
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `8.3.3` | Content-addressed storage | `8.3.2` (`ACCEPTED`) | `crates/storage/*` | `NOT_STARTED` |
+| `8.3.4` | Changed-file processing | `8.3.3` (`ACCEPTED`) | `crates/job-engine/*`, `services/worker/*` | `NOT_STARTED` |
 
 ---
 
 ## STAGES 8 – 11 QUEUED LEDGER SUMMARY
 
-All subsequent subphases for **Stage 8** (`8.3.3`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.
+All subsequent subphases for **Stage 8** (`8.3.4`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.

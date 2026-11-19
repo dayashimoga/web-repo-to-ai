@@ -46,6 +46,7 @@ pub const EXPECTED_INDEXES: &[&str] = &[
     "uq_github_installations_owner_gh_id",
     "idx_github_installations_owner",
     "idx_content_cache_last_accessed",
+    "idx_content_cache_blake3",
     "idx_job_state_transitions_job_id",
     "idx_batch_jobs_owner_session",
     "idx_batch_jobs_created_at",

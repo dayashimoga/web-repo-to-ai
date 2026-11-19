@@ -44,6 +44,32 @@ impl ContentCacheIndexRow {
         self.last_accessed_at = Utc::now();
     }
 
+    /// Sets an explicit `last_accessed_at` timestamp.
+    #[must_use]
+    pub fn with_last_accessed_at(mut self, timestamp: DateTime<Utc>) -> Self {
+        self.last_accessed_at = timestamp;
+        self
+    }
+
+    /// Returns human-readable formatted byte size (e.g., "1.23 KB", "4.56 MB").
+    #[must_use]
+    pub fn formatted_byte_size(&self) -> String {
+        let bytes = self.byte_size.max(0) as f64;
+        const KB: f64 = 1024.0;
+        const MB: f64 = KB * 1024.0;
+        const GB: f64 = MB * 1024.0;
+
+        if bytes >= GB {
+            format!("{:.2} GB", bytes / GB)
+        } else if bytes >= MB {
+            format!("{:.2} MB", bytes / MB)
+        } else if bytes >= KB {
+            format!("{:.2} KB", bytes / KB)
+        } else {
+            format!("{} B", self.byte_size)
+        }
+    }
+
     /// Validates table constraints and cryptographic hash lengths.
     pub fn validate(&self) -> Result<(), CoreError> {
         if self.cache_key.trim().is_empty() {

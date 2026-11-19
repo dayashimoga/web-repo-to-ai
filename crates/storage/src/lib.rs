@@ -15,6 +15,7 @@
 
 pub mod backend;
 pub mod batch;
+pub mod cas;
 pub mod checksum;
 pub mod database;
 pub mod git_cache;
@@ -31,6 +32,7 @@ pub mod validation;
 
 pub use backend::*;
 pub use batch::*;
+pub use cas::*;
 pub use checksum::*;
 pub use database::*;
 pub use git_cache::*;

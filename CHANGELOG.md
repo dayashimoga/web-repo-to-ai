@@ -6,6 +6,27 @@
 
 ## [Unreleased] — Stage 8: Large Repositories, Batch and Crawling
 
+### 2026-11-19 — Phase 8.3: Incremental Processing (`8.3.3`)
+
+#### Added
+- **`[8.3.3]` Content-Addressed Storage (CAS) Engine in `crates/storage`:**
+  - Implemented unified Content-Addressed Storage subsystem in `crates/storage/src/cas.rs`:
+    - `ContentAddressedStorage` trait defining `put`, `put_with_key`, `get`, `get_by_key`, `contains`, `contains_key`, `batch_contains`, `batch_get`, `delete`, `delete_by_key`, `verify_integrity`, `prune_lru`, `audit`, and `stats`.
+    - `CasEngine` coordinator combining `StorageBackend` (`DynStorage`) and `ContentCacheIndexRepository` with dual cryptographic hashing (BLAKE3 + SHA-256 via `ArtifactDigests`), two-tier sharded blob key routing (`blobs/xx/<blake3>.bin`), and deduplication detection.
+    - Zero-mock error handling on retrieval detecting cryptographic payload corruption against BLAKE3 content addresses.
+    - LRU storage quota management with `prune_lru` evicting oldest-accessed blobs down to a specified byte ceiling.
+    - Full storage audit with `audit` verifying presence and SHA-256/BLAKE3 integrity across all indexed entries.
+  - Implemented `ContentCacheIndexRepository` in `crates/storage/src/cas.rs`:
+    - `InMemoryContentCacheIndexRepository` thread-safe concurrent in-memory store.
+    - `PostgresContentCacheIndexRepository` production SQLx implementation for PostgreSQL.
+  - Relational schema index migration:
+    - Authored migration `crates/storage/migrations/20261119000004_cas_index.sql` adding `idx_content_cache_blake3` on table `content_cache_index`.
+    - Synchronized `crates/storage/src/schema/ddl.sql` and `crates/storage/src/schema/mod.rs` (`EXPECTED_INDEXES`).
+  - Extended entity `ContentCacheIndexRow` in `crates/storage/src/schema/cache.rs` with `with_last_accessed_at` and `formatted_byte_size`.
+  - Re-exported CAS types and traits in `crates/storage/src/lib.rs`.
+  - Authored 7 integration tests in `crates/storage/tests/cas_storage_test.rs`.
+  - 100% passing quality gates: 87 storage tests passed, zero clippy warnings, zero fmt diffs, cargo deny clean, and 5/5 check-all gates passed.
+
 ### 2026-11-19 — Phase 8.3: Incremental Processing (`8.3.2`)
 
 #### Added

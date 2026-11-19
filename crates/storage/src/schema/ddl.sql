@@ -130,6 +130,7 @@ CREATE TABLE IF NOT EXISTS content_cache_index (
 
 -- Indexes for content_cache_index table
 CREATE INDEX IF NOT EXISTS idx_content_cache_last_accessed ON content_cache_index (last_accessed_at);
+CREATE INDEX IF NOT EXISTS idx_content_cache_blake3 ON content_cache_index (blake3_hex);
 
 COMMENT ON TABLE content_cache_index IS 'Content-addressed cache index mapping blob signatures to storage keys';
 COMMENT ON COLUMN content_cache_index.cache_key IS 'Composite cache key (e.g., git commit blob SHA or URL validator)';
