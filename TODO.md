@@ -232,7 +232,7 @@
 
 ### Phase 8.1 — Batch URLs (`IN_PROGRESS`)
 - [x] **[8.1.1]** Multi-URL submission endpoint and payload validation in services/api *(Completed 2026-11-18, BatchId in crates/core, BatchItemRequest/CreateBatchJobRequest with bounds 1..=100 URLs and 1..=20 parallelism, context profiles validation, URL deduplication, BatchStatus/BatchItemStatus/BatchProgress models, POST /api/v1/jobs/batch returning HTTP 202 Accepted, GET /api/v1/jobs/batch/:batch_id returning RFC 7807 problem details, 11 API integration tests, 70 API crate tests, 705+ workspace tests, 100% passing quality gates)*
-- [ ] **[8.1.2]** Bounded parallel execution in services/worker
+- [x] **[8.1.2]** Bounded parallel execution in services/worker *(Completed 2026-11-19, JobEngineError, BatchExecutionConfig with bounded limits 1..=20, BatchItemTask, BatchItemStatusOutcome, BatchItemExecutionResult, BatchProgressUpdate, BatchExecutionSummary in crates/job-engine, BoundedParallelExecutor with Semaphore concurrency bounding, WorkerPool, WorkerServiceConfig, WorkerServiceMetrics, WorkerEngine in services/worker, daemon main with Ctrl-C graceful shutdown, 5 integration tests in bounded_parallel_worker_test, 15 job-engine tests, 15 worker tests, 735+ workspace tests, 100% passing quality gates)*
 - [ ] **[8.1.3]** Individual result tracking
 - [ ] **[8.1.4]** Batch export
 

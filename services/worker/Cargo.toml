@@ -27,5 +27,15 @@ web-repo-to-ai-exporters = { workspace = true }
 web-repo-to-ai-storage = { workspace = true }
 web-repo-to-ai-job-engine = { workspace = true }
 web-repo-to-ai-observability = { workspace = true }
-tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "signal", "sync", "time"] }
+tokio-util = { workspace = true }
+futures = { workspace = true }
 tracing = { workspace = true }
+serde = { workspace = true, features = ["derive", "std"] }
+serde_json = { workspace = true }
+chrono = { workspace = true, features = ["serde"] }
+uuid = { workspace = true, features = ["v4", "v7", "serde"] }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["full", "test-util"] }

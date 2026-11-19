@@ -6,6 +6,27 @@
 
 ## [Unreleased] — Stage 8: Large Repositories, Batch and Crawling
 
+### 2026-11-19 — Phase 8.1: Batch URLs (`8.1.2`)
+
+#### Added
+- **`[8.1.2]` Bounded Parallel Execution and Worker Concurrency Engine in `crates/job-engine` and `services/worker`:**
+  - Implemented core job engine error domain `JobEngineError` in `crates/job-engine/src/error.rs` covering concurrency violations, per-item timeouts, cooperative cancellation, task failures, and worker shutdown.
+  - Implemented `BatchExecutionConfig` in `crates/job-engine/src/config.rs` with bounds validation (`MIN_PARALLELISM = 1`, `MAX_PARALLELISM = 20`, `DEFAULT_PARALLELISM = 5`), per-item timeouts, cumulative batch timeouts, and abort-on-error controls.
+  - Implemented domain models in `crates/job-engine/src/models.rs`: `BatchItemTask`, `BatchItemStatusOutcome` (`Succeeded`, `Failed`, `TimedOut`, `Cancelled`), `BatchItemExecutionResult`, `BatchProgressUpdate` with percentage calculations, and `BatchExecutionSummary`.
+  - Implemented `BoundedParallelExecutor` in `crates/job-engine/src/executor.rs`:
+    - Enforces strict concurrency limits using `Arc<Semaphore>`.
+    - Tracks active and peak worker concurrency with lock-free `AtomicUsize` compare-and-swap loops.
+    - Isolates item failures so individual errors (e.g., 404, SSRF block, timeout) never crash or terminate the remaining batch items.
+    - Supports cooperative cancellation via `CancellationToken` and per-item timeouts via `tokio::time::timeout`.
+    - Preserves deterministic sequence ordering sorted by `item_index`.
+  - Implemented `WorkerPool` in `crates/job-engine/src/pool.rs` managing worker-level concurrency ceilings and lifecycle supervision.
+  - Implemented `WorkerServiceConfig`, `WorkerServiceMetrics`, and `WorkerEngine` in `services/worker`:
+    - `WorkerEngine::execute_batch` coordinates parallel execution and updates service-level telemetry metrics.
+    - `WorkerEngine::run_daemon` executes the background polling loop and handles graceful drain upon cancellation.
+    - Updated `services/worker/src/main.rs` daemon binary with tracing initialization and graceful `Ctrl-C` signal handling.
+  - Authored integration test suite in `services/worker/tests/bounded_parallel_worker_test.rs` (5 integration tests validating strict concurrency ceilings, resilient error isolation, per-batch parallelism overrides, realtime progress notifications, and cooperative shutdown draining).
+  - 100% passing quality gates: 15 job-engine tests passed, 15 worker tests passed, 735+ workspace tests passed, zero clippy warnings, zero fmt diffs, cargo deny passed, and 5/5 check-all gates passed.
+
 ### 2026-11-18 — Phase 8.1: Batch URLs (`8.1.1`)
 
 #### Added

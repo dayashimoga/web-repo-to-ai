@@ -1,6 +1,6 @@
 [package]
 name = "web-repo-to-ai-job-engine"
-description = "Durable PostgreSQL state machine, lease acquisition, and heartbeat crash recovery"
+description = "Durable job execution engine, bounded concurrency pools, and batch task orchestration"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -15,5 +15,14 @@ workspace = true
 web-repo-to-ai-core = { workspace = true }
 async-trait = { workspace = true }
 chrono = { workspace = true, features = ["serde"] }
-uuid = { workspace = true, features = ["v4", "serde"] }
+futures = { workspace = true }
+serde = { workspace = true, features = ["derive", "std"] }
+serde_json = { workspace = true }
 thiserror = { workspace = true }
+tokio = { workspace = true, features = ["sync", "time", "rt", "macros"] }
+tokio-util = { workspace = true }
+tracing = { workspace = true }
+uuid = { workspace = true, features = ["v4", "v7", "serde"] }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["full", "test-util"] }

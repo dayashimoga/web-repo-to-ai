@@ -7136,16 +7136,81 @@
 
 ---
 
+#### Subphase `8.1.2` — Bounded parallel execution in services/worker
+- **Unique ID:** `8.1.2`
+- **Objective:** Implement resource-bounded asynchronous parallel batch task execution, worker concurrency budgeting, cooperative cancellation, per-item timeouts, and resilient error isolation in `crates/job-engine` and `services/worker`.
+- **Scope:** `crates/job-engine`, `services/worker`, and tracking ledgers.
+- **Prerequisites:** `8.1.1` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/job-engine/Cargo.toml`
+  - `crates/job-engine/src/config.rs`
+  - `crates/job-engine/src/error.rs`
+  - `crates/job-engine/src/executor.rs`
+  - `crates/job-engine/src/models.rs`
+  - `crates/job-engine/src/pool.rs`
+  - `crates/job-engine/src/lib.rs`
+  - `services/worker/Cargo.toml`
+  - `services/worker/src/config.rs`
+  - `services/worker/src/engine.rs`
+  - `services/worker/src/metrics.rs`
+  - `services/worker/src/lib.rs`
+  - `services/worker/src/main.rs`
+  - `services/worker/tests/bounded_parallel_worker_test.rs`
+  - Tracking ledgers (`IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`)
+- **Implementation Tasks:**
+  1. Define strongly typed domain error taxonomy `JobEngineError` in `crates/job-engine/src/error.rs` covering concurrency violations, per-item timeouts, cooperative cancellation, task failures, and worker shutdown.
+  2. Implement `BatchExecutionConfig` in `crates/job-engine/src/config.rs` with bounds validation (`MIN_PARALLELISM = 1`, `MAX_PARALLELISM = 20`, `DEFAULT_PARALLELISM = 5`), per-item execution timeouts, and cumulative batch timeouts.
+  3. Implement task, outcome, progress, and summary models (`BatchItemTask`, `BatchItemStatusOutcome`, `BatchItemExecutionResult`, `BatchProgressUpdate`, `BatchExecutionSummary`) in `crates/job-engine/src/models.rs`.
+  4. Implement `BoundedParallelExecutor` in `crates/job-engine/src/executor.rs` using `Arc<Semaphore>` for strict concurrency bounding, atomic counters (`AtomicUsize`) for active and peak concurrency recording, `tokio::time::timeout` for per-item timeouts, cooperative `CancellationToken` monitoring, resilient error containment, and deterministic sequence ordering.
+  5. Implement `WorkerPool` in `crates/job-engine/src/pool.rs` managing worker-level concurrency ceilings and lifecycle supervision.
+  6. Implement `WorkerServiceConfig` in `services/worker/src/config.rs` with concurrency limits, leasing boundaries, and shutdown timeouts.
+  7. Implement `WorkerServiceMetrics` in `services/worker/src/metrics.rs` with thread-safe atomic telemetry.
+  8. Implement `WorkerEngine` in `services/worker/src/engine.rs` coordinating batch task dispatch, background polling, and graceful draining.
+  9. Update `services/worker/src/main.rs` daemon binary with tracing initialization and graceful `Ctrl-C` signal handling.
+  10. Author integration test suite in `services/worker/tests/bounded_parallel_worker_test.rs` verifying strict concurrency bounds, resilient error isolation, per-batch parallelism override, realtime progress notifications, and cooperative shutdown draining.
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-job-engine`
+  - `cargo test -p web-repo-to-ai-worker`
+  - `cargo test --workspace`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - Peak concurrent tasks strictly never exceed configured parallelism ceiling.
+  - Individual task failure (e.g., 404, SSRF block, timeout) does not crash or terminate the remaining batch items.
+  - Client sequence ordering is preserved across all batch results.
+  - Cooperative cancellation cleanly drains running tasks and rejects pending tasks without permit leaks.
+  - Realtime progress updates emit monotonically increasing finished items and accurate progress percentages.
+  - All 15 crate tests in `crates/job-engine` pass, all 15 tests in `services/worker` pass, all 735+ workspace tests pass, zero clippy warnings, zero fmt diffs, cargo deny passed, all monorepo gates pass (5/5).
+- **Risk Analysis:**
+  - Risk: Unbounded concurrency under high batch volume could exhaust worker memory or CPU on the 16 GB baseline.
+  - Mitigation: Strict two-tier concurrency gating: `WorkerPool` enforces a global worker ceiling (default 10, max 20), and `BoundedParallelExecutor` bounds per-batch concurrency via `Semaphore`.
+- **Rollback Plan:**
+  - Revert Subphase 8.1.2 additions via `git reset --hard HEAD~1` and restore Subphase 8.1.1 baseline.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-job-engine`: 15 tests passing (10 unit tests, 5 executor tests).
+  - `services/worker`: 15 tests passing (9 unit tests in `lib.rs`, 1 binary test in `main.rs`, 5 integration tests in `bounded_parallel_worker_test.rs`).
+  - Full workspace tests: 735+ tests passing across all crates and services with 0 failures.
+  - Workspace linter: `cargo clippy --workspace --all-targets -- -D warnings` clean with 0 warnings.
+  - Formatting: `cargo fmt --all -- --check` clean with 0 diffs.
+  - Dependency audit: `cargo deny check` passed (advisories ok, bans ok, licenses ok, sources ok).
+  - Monorepo gatekeeper: `powershell scripts/check-all.ps1` completed with `ALL GATES PASSED (0 failures)`.
+- **Git Commit Reference:** `2d3f1bd`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 8 — Large Repositories, Batch and Crawling)
 
 #### Phase 8.1 — Batch URLs
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `8.1.2` | Bounded parallel execution in services/worker | `8.1.1` (`ACCEPTED`) | `services/worker/*`, `crates/job-engine/*` | `NOT_STARTED` |
+| `8.1.3` | Individual result tracking in crates/storage and services/api | `8.1.2` (`ACCEPTED`) | `crates/storage/*`, `services/api/*` | `NOT_STARTED` |
 
 ---
 
 ## STAGES 8 – 11 QUEUED LEDGER SUMMARY
 
-All subsequent subphases for **Stage 8** (`8.1.2`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.
+All subsequent subphases for **Stage 8** (`8.1.3`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.
