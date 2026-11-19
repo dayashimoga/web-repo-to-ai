@@ -7605,16 +7605,91 @@
 
 ---
 
+### Phase 8.3 — Incremental processing
+
+#### Subphase `8.3.1` — HTTP validators in crates/storage and crates/web-extractor
+- **Unique ID:** `8.3.1`
+- **Objective:** Implement HTTP caching validators (`ETag`, `Last-Modified`, `Cache-Control`, and `Expires`) in `crates/web-extractor` with RFC 7231/RFC 7232 compliance, conditional request generation (`If-None-Match`, `If-Modified-Since`), HTTP 304 Not Modified evaluation, and persistent HTTP cache indexing in `crates/storage` with transactional PostgreSQL migration, entity models, and in-memory/Postgres repository implementations.
+- **Scope:** `crates/web-extractor/src/http/validator.rs`, `crates/web-extractor/src/http/fetcher.rs`, `crates/web-extractor/src/http/mod.rs`, `crates/web-extractor/src/lib.rs`, `crates/storage/migrations/20261119000002_http_validators.sql`, `crates/storage/src/schema/http_cache.rs`, `crates/storage/src/schema/ddl.sql`, `crates/storage/src/schema/mod.rs`, `crates/storage/src/http_cache.rs`, `crates/storage/src/lib.rs`, integration tests in both crates.
+- **Prerequisites:** `8.2.4` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/web-extractor/src/http/validator.rs`
+  - `crates/web-extractor/src/http/fetcher.rs`
+  - `crates/web-extractor/src/http/mod.rs`
+  - `crates/web-extractor/src/lib.rs`
+  - `crates/storage/migrations/20261119000002_http_validators.sql`
+  - `crates/storage/src/schema/http_cache.rs`
+  - `crates/storage/src/schema/ddl.sql`
+  - `crates/storage/src/schema/mod.rs`
+  - `crates/storage/src/http_cache.rs`
+  - `crates/storage/src/lib.rs`
+  - `crates/web-extractor/tests/http_validators_test.rs`
+  - `crates/storage/tests/http_cache_storage_test.rs`
+- **Implementation Tasks:**
+  1. Author `crates/web-extractor/src/http/validator.rs`:
+     - Implement `Etag` parsing and matching (strong vs weak validators per RFC 7232).
+     - Implement RFC 7231 IMF-fixdate parsing and formatting (`parse_http_date`, `format_http_date`).
+     - Implement `HttpCacheControl` directive parser (`max-age`, `no-cache`, `no-store`, `must-revalidate`, `public`, `private`, `immutable`) with freshness evaluation (`is_fresh`).
+     - Implement `HttpValidator` model with `from_headers`, `conditional_headers`, and freshness checks.
+     - Implement `FetchOutcome` (`Modified(FetchedResponse)` vs `NotModified`).
+  2. Enhance `WebFetcher` in `crates/web-extractor/src/http/fetcher.rs`:
+     - Implement `fetch_conditional(&self, target: &WebTarget, validator: Option<&HttpValidator>) -> Result<FetchOutcome, WebExtractorError>`.
+     - Inject `If-None-Match` and `If-Modified-Since` conditional headers when validators exist.
+     - Intercept `304 Not Modified` responses before redirect handling (avoiding `MissingLocationHeader` error) and return `FetchOutcome::NotModified` with updated validator metadata.
+  3. Create PostgreSQL migration `20261119000002_http_validators.sql` in `crates/storage/migrations`:
+     - Define `http_validators` relational table with `url` primary key, `etag`, `last_modified`, `blake3_hex`, `storage_key`, `byte_size`, `cache_control`, `expires_at`, `created_at`, `last_checked_at`.
+     - Add indexes on `blake3_hex`, `last_checked_at`, and `expires_at`.
+     - Update `crates/storage/src/schema/ddl.sql` and `crates/storage/src/schema/mod.rs` (`EXPECTED_TABLES`, `EXPECTED_INDEXES`).
+  4. Author entity model `crates/storage/src/schema/http_cache.rs` (`HttpValidatorRow`).
+  5. Author repository in `crates/storage/src/http_cache.rs`:
+     - Trait `HttpCacheRepository`: `get_validator`, `upsert_validator`, `touch_validator`, `delete_validator`, `prune_stale_validators`, `get_content_cache`, `upsert_content_cache`.
+     - Implement `InMemoryHttpCacheRepository` using `Arc<RwLock<...>>` for fast, zero-dependency testing and embedded execution.
+     - Implement `PostgresHttpCacheRepository` using `sqlx::PgPool` with transactional upserts and index queries.
+  6. Re-export types in `crates/web-extractor/src/lib.rs` and `crates/storage/src/lib.rs`.
+  7. Author integration tests:
+     - `crates/web-extractor/tests/http_validators_test.rs`: ETag parsing/matching, RFC 7231 dates, Cache-Control freshness, conditional header injection, 304 Not Modified handling with MockHttpTransport, 200 OK modified response.
+     - `crates/storage/tests/http_cache_storage_test.rs`: `HttpCacheRepository` CRUD, touch on 304, upsert on 200, deletion, pruning stale records, content cache integration.
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-web-extractor`
+  - `cargo test -p web-repo-to-ai-storage`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - `Etag` correctly parses strong and weak representations and performs RFC 7232 weak/strong comparisons.
+  - RFC 7231 date formatting and parsing roundtrips accurately.
+  - `HttpCacheControl` correctly parses all standard directives and calculates freshness against timestamps.
+  - `WebFetcher::fetch_conditional` injects `If-None-Match` and `If-Modified-Since` and handles `304 Not Modified` cleanly without attempting redirect traversal.
+  - `HttpCacheRepository` supports storing, retrieving, touching, and pruning HTTP validator records in both in-memory and PostgreSQL backends.
+  - 100% of tests pass across web-extractor and storage crates, workspace clippy is warning-free, formatting is clean, and monorepo quality gates pass.
+- **Risk Analysis:**
+  - Risk: Malformed `Cache-Control` or date headers from erratic origin servers cause panic or rejection.
+  - Mitigation: Permissive parsing with graceful fallbacks to `None` for invalid date strings or unrecognized directives.
+- **Rollback Plan:**
+  - Revert Subphase 8.3.1 additions via Git reset to commit `e29b43d`.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-web-extractor`: 206 passed; 0 failed (7 new integration tests in `tests/http_validators_test.rs`).
+  - `cargo test -p web-repo-to-ai-storage`: 75 passed; 0 failed (5 new integration tests in `tests/http_cache_storage_test.rs`).
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings across all crates.
+  - `cargo fmt --all -- --check`: formatting clean across workspace.
+  - `cargo deny check`: advisories ok, bans ok, licenses ok, sources ok.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures) across Bootstrap/Governance, Rust Workspace, Frontend Web (213 passing vitest tests), and Podman storage budget (5.27 GB / 30 GB, 17.6%).
+- **Git Commit Reference:** `18ba5d4`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 8 — Large Repositories, Batch and Crawling)
 
 #### Phase 8.3 — Incremental processing
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `8.3.1` | HTTP validators in crates/storage and crates/web-extractor | `8.2.4` (`ACCEPTED`) | `crates/storage/*`, `crates/web-extractor/*` | `NOT_STARTED` |
+| `8.3.2` | Git commit/blob caching | `8.3.1` (`ACCEPTED`) | `crates/storage/*`, `crates/github-extractor/*` | `NOT_STARTED` |
 
 ---
 
 ## STAGES 8 – 11 QUEUED LEDGER SUMMARY
 
-All subsequent subphases for **Stage 8** (`8.3.1`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.
+All subsequent subphases for **Stage 8** (`8.3.2`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.

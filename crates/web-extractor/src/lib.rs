@@ -67,10 +67,12 @@ pub use elements::{
 };
 pub use error::WebExtractorError;
 pub use http::{
-    BodyByteStream, FetchedResponse, HttpTransport, MockHttpTransport, MockResponse, RedirectHop,
+    format_http_date, parse_http_date, BodyByteStream, Etag, FetchOutcome, FetchedResponse,
+    HttpCacheControl, HttpTransport, HttpValidator, MockHttpTransport, MockResponse, RedirectHop,
     RedirectTracker, ReqwestTransport, TransportResponse, WebFetcher, DEFAULT_ACCEPT_ENCODING,
     DEFAULT_CHUNK_READ_TIMEOUT, DEFAULT_CONNECT_TIMEOUT, DEFAULT_MAX_BODY_BYTES,
     DEFAULT_MAX_REDIRECTS, DEFAULT_REQUEST_TIMEOUT, DEFAULT_TOTAL_TIMEOUT, DEFAULT_USER_AGENT,
+    HTTP_DATE_FMT,
 };
 pub use provenance::{
     BrowserDiagnostics, CapturedMetadata, ContentHashes, HttpProvenance, MetadataExtractor,

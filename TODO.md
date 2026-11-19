@@ -243,7 +243,7 @@
 - [x] **[8.2.4]** Duplicate & loop prevention *(Completed 2026-11-19, CrawlLoopDetector path repetition/cyclic patterns/excessive depth/query traps/redirect cycles, CrawlerUrlNormalizer canonicalization, CrawlFrontier min-heap priority queue with seen-depth re-enqueue, BLAKE3 exact content deduplication, SimHash near-duplicate detection, 14 integration tests in crawler_dedup_loop_test, 199 web-extractor tests, 100% passing quality gates — PHASE 8.2 CERTIFIED)*
 
 ### Phase 8.3 — Incremental processing
-- [ ] **[8.3.1]** HTTP validators
+- [x] **[8.3.1]** HTTP validators in crates/storage and crates/web-extractor *(Completed 2026-11-19, Etag parsing/matching per RFC 7232 weak/strong rules, RFC 7231 IMF-fixdate/RFC 850/asctime parsing and formatting, HttpCacheControl directive parser and freshness evaluator, HttpValidator model with conditional headers If-None-Match and If-Modified-Since, FetchOutcome enum, WebFetcher::fetch_conditional intercepting HTTP 304 Not Modified before redirect processing, PostgreSQL migration 20261119000002_http_validators.sql, HttpValidatorRow entity, HttpCacheRepository trait with InMemoryHttpCacheRepository and PostgresHttpCacheRepository, 7 new integration tests in http_validators_test, 5 new integration tests in http_cache_storage_test, 206 web-extractor tests, 75 storage tests, 100% passing quality gates)*
 - [ ] **[8.3.2]** Git commit/blob caching
 - [ ] **[8.3.3]** Content-addressed storage
 - [ ] **[8.3.4]** Changed-file processing

@@ -6,6 +6,7 @@ pub mod fetcher;
 pub mod redirect;
 pub mod response;
 pub mod transport;
+pub mod validator;
 
 pub use fetcher::{
     WebFetcher, DEFAULT_ACCEPT_ENCODING, DEFAULT_CHUNK_READ_TIMEOUT, DEFAULT_CONNECT_TIMEOUT,
@@ -17,4 +18,8 @@ pub use response::FetchedResponse;
 pub use transport::{
     BodyByteStream, HttpTransport, MockHttpTransport, MockResponse, ReqwestTransport,
     TransportResponse,
+};
+pub use validator::{
+    format_http_date, parse_http_date, Etag, FetchOutcome, HttpCacheControl, HttpValidator,
+    HTTP_DATE_FMT,
 };

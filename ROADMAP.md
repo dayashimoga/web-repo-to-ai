@@ -94,7 +94,7 @@
 ### STAGE 8 — LARGE REPOSITORIES, BATCH AND CRAWLING (`IN_PROGRESS`)
 - **Phase 8.1 — Batch URLs:** `8.1.1` Multi-URL submission (`ACCEPTED`) | `8.1.2` Bounded parallel execution (`ACCEPTED`) | `8.1.3` Individual result tracking (`ACCEPTED`) | `8.1.4` Batch export (`ACCEPTED` — **PHASE 8.1 CERTIFIED**)
 - **Phase 8.2 — Website crawling:** `8.2.1` Sitemap discovery (`ACCEPTED`) | `8.2.2` Internal link discovery (`ACCEPTED`) | `8.2.3` Crawl-depth & domain restrictions (`ACCEPTED`) | `8.2.4` Duplicate & loop prevention (`ACCEPTED` — **PHASE 8.2 CERTIFIED**)
-- **Phase 8.3 — Incremental processing:** `8.3.1` HTTP validators (`NEXT`) | `8.3.2` Git commit/blob caching | `8.3.3` Content-addressed storage | `8.3.4` Changed-file processing
+- **Phase 8.3 — Incremental processing:** `8.3.1` HTTP validators (`ACCEPTED`) | `8.3.2` Git commit/blob caching (`NEXT`) | `8.3.3` Content-addressed storage | `8.3.4` Changed-file processing
 - **Phase 8.4 — Scalability:** `8.4.1` Adaptive concurrency | `8.4.2` Backpressure | `8.4.3` Streaming large exports | `8.4.4` Resumable processing
 
 ### STAGE 9 — DEVELOPER AND AI AGENT INTEGRATIONS

@@ -6,6 +6,29 @@
 
 ## [Unreleased] — Stage 8: Large Repositories, Batch and Crawling
 
+### 2026-11-19 — Phase 8.3: Incremental Processing (`8.3.1`)
+
+#### Added
+- **`[8.3.1]` HTTP Validators and Incremental Cache Storage in `crates/web-extractor` and `crates/storage`:**
+  - Implemented RFC 7232 and RFC 7231 caching validators in `crates/web-extractor/src/http/validator.rs`:
+    - `Etag`: representation of strong and weak (`W/"..."`) HTTP entity tags with parsing (`from_header`), wire formatting (`wire_value`), and RFC 7232 weak (`weak_matches`) and strong (`strong_matches`) comparison semantics.
+    - `parse_http_date` and `format_http_date`: standard HTTP timestamp parsing (RFC 7231 IMF-fixdate, RFC 850, ANSI C `asctime`) and canonical RFC 7231 GMT generation.
+    - `HttpCacheControl`: directive parser supporting `max-age`, `s-maxage`, `no-cache`, `no-store`, `must-revalidate`, `proxy-revalidate`, `public`, `private`, and `immutable`, with TTL computation and freshness evaluation against reference timestamps.
+    - `HttpValidator`: unified validator container with `etag`, `last_modified`, `cache_control`, `content_type`, `canonical_url`, and `conditional_headers` generation (`If-None-Match`, `If-Modified-Since`).
+    - `FetchOutcome`: strongly typed result distinguishing `FetchOutcome::Modified(FetchedResponse)` from `FetchOutcome::NotModified { url, validator, status: 304 }`.
+  - Enhanced `WebFetcher` in `crates/web-extractor/src/http/fetcher.rs`:
+    - Added `fetch_conditional(&self, target: &WebTarget, validator: Option<&HttpValidator>) -> Result<FetchOutcome, WebExtractorError>`.
+    - Injects conditional request headers (`If-None-Match`, `If-Modified-Since`) when existing validators are present.
+    - Intercepts `HTTP 304 Not Modified` responses before redirect handling (preventing false missing location header errors on redirect-range status codes) and returns `FetchOutcome::NotModified` with updated validator metadata.
+  - Implemented relational HTTP validator persistence in `crates/storage`:
+    - Created PostgreSQL migration `crates/storage/migrations/20261119000002_http_validators.sql` defining table `http_validators` (`url` PK, `canonical_url`, `etag`, `last_modified`, `last_modified_timestamp`, `content_type`, `blake3_hex`, `storage_key`, `byte_size`, `cache_control`, `expires_at`, `created_at`, `last_checked_at`) with composite indexes on `blake3_hex`, `last_checked_at`, and `expires_at`.
+    - Synchronized `crates/storage/src/schema/ddl.sql` and `crates/storage/src/schema/mod.rs` (`EXPECTED_TABLES`, `EXPECTED_INDEXES`).
+    - Implemented `HttpValidatorRow` entity in `crates/storage/src/schema/http_cache.rs` with fluent builder methods.
+    - Implemented `HttpCacheRepository` trait in `crates/storage/src/http_cache.rs` with `InMemoryHttpCacheRepository` (in-memory concurrent test double) and `PostgresHttpCacheRepository` (production SQLx implementation supporting upserts, touch on 304, stale record pruning, and content cache index integration).
+  - Re-exported validator and storage types in `crates/web-extractor/src/lib.rs` and `crates/storage/src/lib.rs`.
+  - Authored 7 integration tests in `crates/web-extractor/tests/http_validators_test.rs` and 5 integration tests in `crates/storage/tests/http_cache_storage_test.rs`.
+  - 100% passing quality gates: 206 web-extractor tests passed, 75 storage tests passed, zero clippy warnings, zero fmt diffs, cargo deny clean, and 5/5 check-all gates passed.
+
 ### 2026-11-19 — Phase 8.2: Website Crawling (`8.2.4`)
 
 #### Added

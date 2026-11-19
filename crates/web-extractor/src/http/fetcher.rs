@@ -14,6 +14,7 @@ use web_repo_to_ai_url_security::{SecureDnsResolver, UrlSecurityPolicy};
 use super::redirect::RedirectTracker;
 use super::response::FetchedResponse;
 use super::transport::{HttpTransport, ReqwestTransport};
+use super::validator::{FetchOutcome, HttpValidator};
 use crate::compression::{BodyLimits, BoundedDecompressor, ContentEncoding};
 use crate::error::WebExtractorError;
 use crate::url::WebTarget;
@@ -178,21 +179,71 @@ impl WebFetcher {
     ///
     /// The entire operation is bounded by `total_timeout`.
     pub async fn fetch(&self, target: &WebTarget) -> Result<FetchedResponse, WebExtractorError> {
-        tokio::time::timeout(self.total_timeout, self.fetch_internal(target))
-            .await
-            .map_err(|_| WebExtractorError::Timeout {
-                details: format!(
-                    "Total fetch duration exceeded configured limit of {:?}",
-                    self.total_timeout
-                ),
-            })?
+        match self.fetch_conditional(target, None).await? {
+            FetchOutcome::Modified(resp) => Ok(resp),
+            FetchOutcome::NotModified {
+                url,
+                status,
+                headers,
+                validator,
+                fetched_at,
+            } => {
+                let etag = validator
+                    .as_ref()
+                    .and_then(|v| v.etag.as_ref().map(|e| e.raw.clone()));
+                let last_modified = validator.as_ref().and_then(|v| v.raw_last_modified.clone());
+                Ok(FetchedResponse {
+                    url: url.clone(),
+                    initial_url: url,
+                    status,
+                    status_text: "Not Modified".to_string(),
+                    headers,
+                    content_type: None,
+                    content_length: Some(0),
+                    content_encoding: None,
+                    raw_body_size: 0,
+                    etag,
+                    last_modified,
+                    redirect_history: Vec::new(),
+                    body: Vec::new(),
+                    pinned_ip: std::net::IpAddr::V4(std::net::Ipv4Addr::new(127, 0, 0, 1)),
+                    fetched_at,
+                })
+            }
+        }
     }
 
-    /// Internal execution loop for fetch operation.
-    async fn fetch_internal(
+    /// Executes an HTTP acquisition chain with optional conditional validation headers.
+    ///
+    /// If `validator` is provided with an ETag or Last-Modified timestamp,
+    /// `If-None-Match` and `If-Modified-Since` headers are transmitted.
+    ///
+    /// If the origin returns `304 Not Modified`, `FetchOutcome::NotModified` is returned
+    /// without downloading or decompressing content.
+    pub async fn fetch_conditional(
         &self,
         target: &WebTarget,
-    ) -> Result<FetchedResponse, WebExtractorError> {
+        validator: Option<&HttpValidator>,
+    ) -> Result<FetchOutcome, WebExtractorError> {
+        tokio::time::timeout(
+            self.total_timeout,
+            self.fetch_conditional_internal(target, validator),
+        )
+        .await
+        .map_err(|_| WebExtractorError::Timeout {
+            details: format!(
+                "Total fetch duration exceeded configured limit of {:?}",
+                self.total_timeout
+            ),
+        })?
+    }
+
+    /// Internal execution loop for conditional fetch operation.
+    async fn fetch_conditional_internal(
+        &self,
+        target: &WebTarget,
+        validator: Option<&HttpValidator>,
+    ) -> Result<FetchOutcome, WebExtractorError> {
         let mut current_url = target.url.clone();
         let mut redirect_tracker = RedirectTracker::new(self.max_redirects);
         redirect_tracker.record_initial(&current_url);
@@ -211,6 +262,15 @@ impl WebFetcher {
             req_headers.insert("accept-encoding".to_string(), self.accept_encoding.clone());
             req_headers.insert("host".to_string(), pinned_target.host().to_string());
 
+            // Inject conditional validation headers on initial request hop
+            if redirect_tracker.hop_count() == 0 {
+                if let Some(val) = validator {
+                    for (header_k, header_v) in val.conditional_headers() {
+                        req_headers.insert(header_k, header_v);
+                    }
+                }
+            }
+
             // Step 3: Execute HTTP request
             let mut transport_resp = self
                 .transport
@@ -219,7 +279,20 @@ impl WebFetcher {
 
             let status = transport_resp.status;
 
-            // Step 4: Check for redirect responses (300..=399)
+            // Step 4: Check for 304 Not Modified before handling general redirect range
+            if status == 304 {
+                let validator_meta =
+                    HttpValidator::from_headers(&transport_resp.headers, Utc::now());
+                return Ok(FetchOutcome::NotModified {
+                    url: current_url,
+                    status: 304,
+                    headers: transport_resp.headers,
+                    validator: Some(validator_meta),
+                    fetched_at: Utc::now(),
+                });
+            }
+
+            // Step 5: Check for redirect responses (300..=399)
             if (300..=399).contains(&status) {
                 let location =
                     transport_resp
@@ -244,7 +317,7 @@ impl WebFetcher {
                 continue;
             }
 
-            // Step 5: Terminal response
+            // Step 6: Terminal response
             // Early exit if declared Content-Length exceeds raw ceiling
             let declared_content_length = transport_resp
                 .headers
@@ -260,7 +333,7 @@ impl WebFetcher {
                 }
             }
 
-            // Step 6: Stream body chunks with chunk inactivity timeout
+            // Step 7: Stream body chunks with chunk inactivity timeout
             let mut accumulated_raw = Vec::new();
             loop {
                 let chunk_res = tokio::time::timeout(
@@ -297,7 +370,7 @@ impl WebFetcher {
                 }
             }
 
-            // Step 7: Validate Content-Length if declared and enforced
+            // Step 8: Validate Content-Length if declared and enforced
             if let Some(expected) = declared_content_length {
                 let actual = accumulated_raw.len() as u64;
                 if self.body_limits.enforce_content_length && actual != expected {
@@ -305,7 +378,7 @@ impl WebFetcher {
                 }
             }
 
-            // Step 8: Bounded decompression
+            // Step 9: Bounded decompression
             let content_encoding = transport_resp.headers.get("content-encoding").cloned();
             let raw_body_size = accumulated_raw.len();
 
@@ -330,7 +403,7 @@ impl WebFetcher {
             let etag = transport_resp.headers.get("etag").cloned();
             let last_modified = transport_resp.headers.get("last-modified").cloned();
 
-            return Ok(FetchedResponse {
+            return Ok(FetchOutcome::Modified(FetchedResponse {
                 url: current_url,
                 initial_url: target.url.clone(),
                 status,
@@ -346,7 +419,7 @@ impl WebFetcher {
                 body: decompressed_body,
                 pinned_ip: pinned_target.pinned_ip(),
                 fetched_at: Utc::now(),
-            });
+            }));
         }
     }
 }

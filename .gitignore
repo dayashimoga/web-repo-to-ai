@@ -30,7 +30,7 @@ credentials.json
 # Local Storage, Artifacts, Caches, and Databases
 data/
 artifacts/
-storage/
+/storage/
 /tmp/
 /cache/
 *.db

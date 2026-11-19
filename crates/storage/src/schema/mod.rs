@@ -7,11 +7,13 @@
 pub mod artifacts;
 pub mod cache;
 pub mod github;
+pub mod http_cache;
 pub mod jobs;
 
 pub use artifacts::*;
 pub use cache::*;
 pub use github::*;
+pub use http_cache::*;
 pub use jobs::*;
 
 /// Embedded production-grade PostgreSQL 16+ DDL script.
@@ -26,6 +28,7 @@ pub const EXPECTED_TABLES: &[&str] = &[
     "job_state_transitions",
     "batch_jobs",
     "batch_items",
+    "http_validators",
 ];
 
 /// Expected indexes defined in the schema.
@@ -43,6 +46,9 @@ pub const EXPECTED_INDEXES: &[&str] = &[
     "idx_batch_jobs_owner_session",
     "idx_batch_jobs_created_at",
     "idx_batch_items_job_id",
+    "idx_http_validators_blake3",
+    "idx_http_validators_last_checked",
+    "idx_http_validators_expires",
 ];
 
 /// Splits raw SQL DDL script into discrete executable SQL statements,
