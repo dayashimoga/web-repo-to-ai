@@ -6,6 +6,34 @@
 
 ## [Unreleased] — Stage 9: Developer and AI Agent Integrations
 
+### 2026-11-19 — Phase 9.3: MCP (`9.3.4` — PHASE 9.3 CERTIFIED)
+
+#### Added
+- **`[9.3.4]` Security & protocol testing in `crates/mcp`:**
+  - Extended JSON-RPC 2.0 protocol layer (`crates/mcp/src/protocol/jsonrpc.rs`):
+    - Added `RequestId::Null` variant for compliant JSON-RPC 2.0 error handling where request ID cannot be determined.
+    - Implemented full serialization (`null`), deserialization (`visit_none`, `visit_unit`), and string formatting for `RequestId::Null`.
+    - Added strict method name type validation (`is_string`) and params type validation (`is_object`, `is_array`, `is_null`) in `JsonRpcMessage::parse`.
+    - Preserved `RequestId::Null` on parsed requests when `"id": null` is explicitly present in JSON.
+  - Server runtime error response handling (`crates/mcp/src/server/service.rs`):
+    - Hardened `McpServer::run` event loop to intercept transport `ParseError` and `InvalidRequest` errors, returning standard `-32700 Parse error` and `-32600 Invalid request` responses with `id: null` without terminating the server loop.
+  - Generic stream transport (`crates/mcp/src/transport/stream.rs`):
+    - Implemented `StreamTransport<R, W>` for any asynchronous stream pair implementing `AsyncRead + AsyncWrite + Unpin + Send`.
+    - Enforced strict newline-delimited framing, blank line/whitespace keepalive skipping, and buffer flushing.
+    - Refactored `StdioTransport` (`crates/mcp/src/transport/stdio.rs`) to wrap `StreamTransport<tokio::io::Stdin, tokio::io::Stdout>`, eliminating duplicated framing logic.
+  - Resource security and traversal hardening (`crates/mcp/src/resources/file.rs`):
+    - Implemented zero-dependency URL percent-decoding in `FileResourceProvider` (`%2e%2e%2f` -> `../`).
+    - Added explicit null-byte injection detection (`\0`) returning access denied errors.
+    - Strictly enforced canonical root boundaries preventing parent traversal (`..`) across `file://` and `artifact://` schemes.
+  - Authored 6 comprehensive security and protocol integration tests (`crates/mcp/tests/security_protocol_test.rs`):
+    - `test_adversarial_jsonrpc_protocol_fuzzing`: Malformed JSON syntax, non-object JSON primitives, invalid JSON-RPC 2.0 envelopes, `RequestId::Null` serialization and roundtrip.
+    - `test_protocol_state_machine_and_lifecycle_enforcement`: Pre-initialization RPC rejection with `-32001`, ping allowed before initialization, invalid initialize parameters rejection with `-32602`, repeated initialization rejection, silent notification discarding.
+    - `test_resource_security_and_unauthorized_rejections`: Rejection of unauthorized schemes (`http://`, `https://`, `ftp://`, `ssh://`, `gopher://`); `FileResourceProvider` parent traversal, deep traversal, percent-encoded traversal, null-byte injection, and non-file rejection; `CdmResourceProvider` empty doc ID, missing doc ID, non-existent doc ID with `-32003`, subpath traversal, unsupported export formats, and missing section IDs.
+    - `test_conversion_tool_ssrf_and_adversarial_input_boundaries`: SSRF loopback, cloud metadata, private Class A/B/C networks, non-HTTP schemes in `convert_url`; subpath traversal rejection and non-existent targets in `convert_repo`; zero token budget and empty content in `optimize_context`; huge input strings and null bytes in `detect_source`.
+    - `test_stream_transport_framing_isolation_and_resilience`: In-memory duplex stream framing, whitespace skipping, `-32700` and `-32600` responses with `id: null`, immediate post-error recovery, rapid pipelined bursts, clean EOF termination.
+    - `test_server_concurrent_requests_and_thread_safety`: 20 concurrent asynchronous client tasks executing simultaneous mixed requests over shared client handle without error.
+  - Formally certified Phase 9.3 across all 4 subphases (`9.3.1` – `9.3.4`). All 39 MCP tests passing (1 unit, 38 integration), 656 workspace tests passing, zero clippy warnings, zero fmt diffs, cargo deny clean, and 100% passing quality gates (5/5).
+
 ### 2026-11-19 — Phase 9.3: MCP (`9.3.3`)
 
 #### Added

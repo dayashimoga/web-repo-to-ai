@@ -5,18 +5,15 @@
 //! for protocol messages and directing all diagnostic logging and traces to `stderr`.
 
 use async_trait::async_trait;
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader, Stdin, Stdout};
-use tokio::sync::Mutex;
-use tracing::{debug, error, trace};
 
 use crate::error::McpError;
 use crate::protocol::jsonrpc::{JsonRpcMessage, JsonRpcNotification, JsonRpcResponse};
+use crate::transport::stream::StreamTransport;
 use crate::transport::trait_def::Transport;
 
 /// Standard I/O transport for MCP desktop AI clients (Claude Desktop, Antigravity, Cursor).
 pub struct StdioTransport {
-    reader: Mutex<tokio::io::Lines<BufReader<Stdin>>>,
-    writer: Mutex<Stdout>,
+    inner: StreamTransport<tokio::io::Stdin, tokio::io::Stdout>,
 }
 
 impl StdioTransport {
@@ -25,10 +22,8 @@ impl StdioTransport {
     pub fn new() -> Self {
         let stdin = tokio::io::stdin();
         let stdout = tokio::io::stdout();
-        let reader = BufReader::new(stdin).lines();
         Self {
-            reader: Mutex::new(reader),
-            writer: Mutex::new(stdout),
+            inner: StreamTransport::new(stdin, stdout),
         }
     }
 
@@ -57,79 +52,14 @@ impl Default for StdioTransport {
 #[async_trait]
 impl Transport for StdioTransport {
     async fn read_message(&mut self) -> Result<Option<JsonRpcMessage>, McpError> {
-        let mut reader = self.reader.lock().await;
-
-        loop {
-            match reader.next_line().await {
-                Ok(Some(line)) => {
-                    let trimmed = line.trim();
-                    if trimmed.is_empty() {
-                        // Skip empty keepalive or blank lines
-                        continue;
-                    }
-
-                    trace!(target: "mcp::stdio", direction = "in", payload = %trimmed);
-                    match JsonRpcMessage::parse(trimmed) {
-                        Ok(msg) => return Ok(Some(msg)),
-                        Err(e) => {
-                            error!(target: "mcp::stdio", error = %e, raw = %trimmed, "Malformed incoming JSON-RPC message");
-                            return Err(e);
-                        }
-                    }
-                }
-                Ok(None) => {
-                    debug!(target: "mcp::stdio", "Standard input reached EOF");
-                    return Ok(None);
-                }
-                Err(e) => {
-                    error!(target: "mcp::stdio", error = %e, "Failed to read line from stdin");
-                    return Err(McpError::Io(e.to_string()));
-                }
-            }
-        }
+        self.inner.read_message().await
     }
 
     async fn send_response(&self, response: &JsonRpcResponse) -> Result<(), McpError> {
-        let json_str =
-            serde_json::to_string(response).map_err(|e| McpError::Serialization(e.to_string()))?;
-        trace!(target: "mcp::stdio", direction = "out", payload = %json_str);
-
-        let mut writer = self.writer.lock().await;
-        writer
-            .write_all(json_str.as_bytes())
-            .await
-            .map_err(|e| McpError::Io(e.to_string()))?;
-        writer
-            .write_all(b"\n")
-            .await
-            .map_err(|e| McpError::Io(e.to_string()))?;
-        writer
-            .flush()
-            .await
-            .map_err(|e| McpError::Io(e.to_string()))?;
-
-        Ok(())
+        self.inner.send_response(response).await
     }
 
     async fn send_notification(&self, notification: &JsonRpcNotification) -> Result<(), McpError> {
-        let json_str = serde_json::to_string(notification)
-            .map_err(|e| McpError::Serialization(e.to_string()))?;
-        trace!(target: "mcp::stdio", direction = "out", payload = %json_str);
-
-        let mut writer = self.writer.lock().await;
-        writer
-            .write_all(json_str.as_bytes())
-            .await
-            .map_err(|e| McpError::Io(e.to_string()))?;
-        writer
-            .write_all(b"\n")
-            .await
-            .map_err(|e| McpError::Io(e.to_string()))?;
-        writer
-            .flush()
-            .await
-            .map_err(|e| McpError::Io(e.to_string()))?;
-
-        Ok(())
+        self.inner.send_notification(notification).await
     }
 }

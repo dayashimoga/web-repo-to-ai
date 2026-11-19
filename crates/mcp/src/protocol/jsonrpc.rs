@@ -12,13 +12,15 @@ use crate::error::McpError;
 /// JSON-RPC 2.0 protocol version string.
 pub const JSONRPC_VERSION: &str = "2.0";
 
-/// JSON-RPC 2.0 Request ID, supporting integer or string identifiers.
+/// JSON-RPC 2.0 Request ID, supporting integer, string, or null identifiers.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum RequestId {
     /// Integer request identifier.
     Number(i64),
     /// String request identifier.
     String(String),
+    /// Null request identifier (used when request ID cannot be determined, per JSON-RPC 2.0).
+    Null,
 }
 
 impl fmt::Display for RequestId {
@@ -26,6 +28,7 @@ impl fmt::Display for RequestId {
         match self {
             Self::Number(n) => write!(f, "{n}"),
             Self::String(s) => write!(f, "{s}"),
+            Self::Null => write!(f, "null"),
         }
     }
 }
@@ -38,6 +41,7 @@ impl Serialize for RequestId {
         match self {
             Self::Number(n) => serializer.serialize_i64(*n),
             Self::String(s) => serializer.serialize_str(s),
+            Self::Null => serializer.serialize_none(),
         }
     }
 }
@@ -53,7 +57,21 @@ impl<'de> Deserialize<'de> for RequestId {
             type Value = RequestId;
 
             fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-                formatter.write_str("a string or an integer request id")
+                formatter.write_str("a string, integer, or null request id")
+            }
+
+            fn visit_none<E>(self) -> Result<RequestId, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(RequestId::Null)
+            }
+
+            fn visit_unit<E>(self) -> Result<RequestId, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(RequestId::Null)
             }
 
             fn visit_i64<E>(self, value: i64) -> Result<RequestId, E>
@@ -266,10 +284,31 @@ impl JsonRpcMessage {
             }
         }
 
+        // Validate method if present
+        if let Some(m) = obj.get("method") {
+            if !m.is_string() {
+                return Err(McpError::InvalidRequest(
+                    "Method name must be a string".to_string(),
+                ));
+            }
+        }
+
+        // Validate params if present (must be object, array, or null)
+        if let Some(p) = obj.get("params") {
+            if !p.is_object() && !p.is_array() && !p.is_null() {
+                return Err(McpError::InvalidRequest(
+                    "Params must be an object or array".to_string(),
+                ));
+            }
+        }
+
         // Determine variant
         if obj.contains_key("method") {
             if obj.contains_key("id") {
-                let req: JsonRpcRequest = serde_json::from_value(val)?;
+                let mut req: JsonRpcRequest = serde_json::from_value(val)?;
+                if req.id.is_none() {
+                    req.id = Some(RequestId::Null);
+                }
                 Ok(Self::Request(req))
             } else {
                 let notif: JsonRpcNotification = serde_json::from_value(val)?;

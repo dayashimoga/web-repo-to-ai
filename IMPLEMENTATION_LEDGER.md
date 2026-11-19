@@ -5538,4 +5538,55 @@
   - All 5 monorepo quality gates pass with 0 failures.
 - **Status:** `ACCEPTED`
 
+#### Subphase `9.3.4` — Security & protocol testing (Phase 9.3 Formal Certification)
+- **Unique ID:** `9.3.4`
+- **Objective:** Deliver comprehensive adversarial security testing, JSON-RPC 2.0 protocol fuzzing, server lifecycle state machine enforcement, defense-in-depth resource security, conversion tool SSRF and input boundary defenses, stream transport framing resilience and stream isolation, concurrent multi-client thread safety, and formal certification of Phase 9.3 ("MCP").
+- **Scope:** `crates/mcp/src/protocol/jsonrpc.rs`, `crates/mcp/src/server/service.rs`, `crates/mcp/src/server/dispatcher.rs`, `crates/mcp/src/resources/file.rs`, `crates/mcp/src/transport/stream.rs`, `crates/mcp/src/transport/stdio.rs`, `crates/mcp/src/transport/mod.rs`, `crates/mcp/src/lib.rs`, `crates/mcp/tests/security_protocol_test.rs`, and project ledgers.
+- **Prerequisites:** Subphase `9.3.3` (Resource retrieval) ACCEPTED.
+- **Files/Components Affected:**
+  - `crates/mcp/src/protocol/jsonrpc.rs`: Added `RequestId::Null` variant with full serialization (`null`), deserialization (`visit_none`, `visit_unit`), and string formatting; added strict method string type check and params object/array type check in `JsonRpcMessage::parse`; preserved `RequestId::Null` on parsed requests when `"id": null` is present in JSON.
+  - `crates/mcp/src/server/service.rs`: Hardened `McpServer::run` to catch transport `ParseError` and `InvalidRequest` errors, returning standard JSON-RPC 2.0 `-32700 Parse error` and `-32600 Invalid request` error responses with `id: null` without terminating the server loop.
+  - `crates/mcp/src/transport/stream.rs`: Created generic `StreamTransport<R, W>` supporting any `AsyncRead + AsyncWrite + Unpin + Send` stream pair, strict newline-delimited framing, blank line/whitespace keepalive skipping, and buffer flushing.
+  - `crates/mcp/src/transport/stdio.rs`: Refactored `StdioTransport` to wrap `StreamTransport<Stdin, Stdout>`, unifying streaming framing logic with zero code duplication.
+  - `crates/mcp/src/transport/mod.rs`: Re-exported `StreamTransport`.
+  - `crates/mcp/src/lib.rs`: Re-exported `StreamTransport`.
+  - `crates/mcp/src/resources/file.rs`: Hardened `FileResourceProvider::resolve_safe_path` with zero-dependency URL percent-decoding (`%2e%2e%2f` -> `../`) and null-byte injection detection (`\0`), strictly forbidding path traversal beyond canonical root boundaries.
+  - `crates/mcp/tests/security_protocol_test.rs`: 6 comprehensive integration tests.
+- **Implementation Tasks:**
+  1. Extended `RequestId` in `crates/mcp/src/protocol/jsonrpc.rs` with `RequestId::Null`, implementing `Display`, `Serialize`, and `Deserialize` (supporting `visit_none` and `visit_unit`).
+  2. Enhanced `JsonRpcMessage::parse` to strictly enforce that `method` must be a string and `params` must be an object, array, or null, returning `McpError::InvalidRequest` otherwise.
+  3. Preserved `Some(RequestId::Null)` in `JsonRpcMessage::parse` when `"id": null` is explicitly present in the request JSON object.
+  4. Hardened `McpServer::run` in `crates/mcp/src/server/service.rs` to transmit RFC-compliant `-32700 Parse error` and `-32600 Invalid request` responses with `id: null` on transport parse/syntax errors, ensuring the server remains alive and responsive.
+  5. Implemented `StreamTransport<R, W>` in `crates/mcp/src/transport/stream.rs` for arbitrary asynchronous byte stream pairs with newline-delimited JSON-RPC message framing.
+  6. Refactored `StdioTransport` in `crates/mcp/src/transport/stdio.rs` to wrap `StreamTransport<Stdin, Stdout>`.
+  7. Hardened `FileResourceProvider` in `crates/mcp/src/resources/file.rs` with URL percent-decoding and null-byte injection checks, defeating directory traversal bypass attempts.
+  8. Authored 6 comprehensive security and protocol integration tests in `crates/mcp/tests/security_protocol_test.rs`:
+     - `test_adversarial_jsonrpc_protocol_fuzzing`: malformed JSON strings, non-object primitives, invalid envelopes, and `RequestId::Null` roundtrip.
+     - `test_protocol_state_machine_and_lifecycle_enforcement`: pre-initialization RPC rejection with `-32001`, ping allowed before initialization, invalid initialize parameters rejection with `-32602`, repeated initialization rejection, silent notification discarding.
+     - `test_resource_security_and_unauthorized_rejections`: rejection of unauthorized schemes (`http://`, `https://`, `ftp://`, `ssh://`, `gopher://`); `FileResourceProvider` parent traversal, deep traversal, percent-encoded traversal, null-byte injection, and non-file rejection; `CdmResourceProvider` empty doc ID, missing doc ID, non-existent doc ID with `-32003`, subpath traversal, unsupported export formats, and missing section IDs.
+     - `test_conversion_tool_ssrf_and_adversarial_input_boundaries`: SSRF loopback, cloud metadata, private Class A/B/C networks, non-HTTP schemes in `convert_url`; subpath traversal rejection and non-existent targets in `convert_repo`; zero token budget and empty content in `optimize_context`; huge input strings and null bytes in `detect_source`.
+     - `test_stream_transport_framing_isolation_and_resilience`: in-memory duplex stream framing, whitespace skipping, `-32700` and `-32600` responses with `id: null`, immediate post-error recovery, rapid pipelined bursts, clean EOF termination.
+     - `test_server_concurrent_requests_and_thread_safety`: 20 concurrent asynchronous client tasks executing simultaneous mixed requests over shared client handle without error.
+  9. Formally certified Phase 9.3 ("MCP") across all 4 subphases (`9.3.1` – `9.3.4`).
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-mcp` (39 tests passing: 1 unit, 38 integration)
+  - `cargo test --workspace` (656 tests passing)
+  - `cargo clippy --workspace --all-targets -- -D warnings` (0 warnings, 0 errors)
+  - `cargo fmt --all -- --check` (100% clean formatting)
+  - `cargo deny check` (advisories ok, bans ok, licenses ok, sources ok)
+  - `powershell scripts/check-all.ps1` (5/5 quality gates passed)
+- **Acceptance Criteria:**
+  - Adversarial JSON-RPC protocol fuzzer validates parser robustness against malformed JSON, primitives, invalid envelopes, and null IDs.
+  - Server lifecycle state machine strictly enforces protocol initialization before operational RPC execution.
+  - Unauthorized and malicious resource requests (`file://`, `artifact://`, `cdm://`) are strictly rejected with zero leakage.
+  - Conversion tools enforce zero-trust boundary validation against SSRF, directory traversal, and extreme parameter values.
+  - Stream transport isolates JSON-RPC messages with newline framing and handles EOF cleanly.
+  - Multi-client concurrent execution operates thread-safely with zero race conditions.
+  - All 39 MCP tests and 656 workspace tests pass cleanly.
+  - Disk space constraint satisfied ($\ge 70$ GB free on `C:`).
+  - All 5 monorepo quality gates pass with 0 failures.
+  - Phase 9.3 is formally certified.
+- **Status:** `ACCEPTED`
+
+
 

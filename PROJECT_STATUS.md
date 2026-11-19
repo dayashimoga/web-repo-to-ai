@@ -4,10 +4,10 @@
 **Last Updated:** 2026-11-19  
 **Current Stage:** `STAGE 9 — DEVELOPER AND AI AGENT INTEGRATIONS` (`IN_PROGRESS`)  
 **Last Completed Stage:** `STAGE 8 — LARGE REPOSITORIES, BATCH AND CRAWLING` (`100% COMPLETED & FORMALLY CERTIFIED`)  
-**Last Completed Phase:** `Phase 9.2 — CLI` (`100% COMPLETED & FORMALLY CERTIFIED`)  
+**Last Completed Phase:** `Phase 9.3 — MCP` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Active Subphase:** `None`  
-**Last Completed Subphase:** `9.3.3 — Resource retrieval (crates/mcp: Model Context Protocol resource providers for converted documents, archives, and completeness reports)` (`ACCEPTED`)  
-**Next Upcoming Subphase:** `9.3.4 — Security & protocol testing (crates/mcp: Adversarial protocol fuzzer, unauthorized resource rejection, transport isolation, and Phase 9.3 formal certification)`
+**Last Completed Subphase:** `9.3.4 — Security & protocol testing (crates/mcp: Adversarial protocol fuzzer, unauthorized resource rejection, transport isolation, and Phase 9.3 formal certification)` (`ACCEPTED`)  
+**Next Upcoming Subphase:** `9.4.1 — Browser extension foundation (apps/extension: WebExtensions Manifest V3 scaffolding, background service worker, and popup UI)`
 
 ---
 
@@ -27,7 +27,7 @@ In Stage 9 ("Developer and AI Agent Integrations"):
   - Subphase `9.2.3` delivered configuration file discovery, parsing, and precedence merging alongside batch conversion in `crates/cli`. Implemented `config` command (`show`, `init`, `validate`, `path`) supporting TOML and JSON configuration formats, credential redaction (`mask_secret`), template generation, and strict precedence hierarchy (`CLI Flags > Environment Variables > Config File > Built-in Defaults`). Implemented `batch` command supporting newline-delimited input files (with `#` comment and blank line stripping), JSON array inputs, stdin (`-`), mixed targets (URLs, GitHub repositories, and local filesystem directories), bounded concurrency via `tokio::sync::Semaphore`, individual error tolerance (`--continue-on-error`), deterministic sanitized filename generation, and structured `BatchJsonEnvelope` summary reporting. Authored 13 new integration tests in `crates/cli/tests/config_command_test.rs` and `crates/cli/tests/batch_command_test.rs` (30 total in `crates/cli`, 600 across monorepo). Verified with zero clippy warnings, zero fmt diffs, cargo deny clean, and 100% passing quality gates (5/5).
   - Subphase `9.2.4` delivered CLI distribution, packaging, shell completions generation, artifact verification commands, and Phase 9.2 formal certification. Implemented `completions` subcommand via `clap_complete` supporting 5 major shells (`bash`, `zsh`, `fish`, `powershell`, `elvish`). Implemented `verify` subcommand supporting SHA-256 and BLAKE3 cryptographic hash checking, coreutils-style `checksums.sha256` manifest verification, `manifest.json` package inventory validation, `.zip` archive integrity and internal manifest/checksum validation, CDM JSON document structural schema validation (`--strict`), remote API job validation via `--job-id` and `--api-url`, and `--json` execution reporting (`VerifyJsonEnvelope`). Verified dual binary compilation (`web-repo-to-ai` and `web-repo-to-ai-cli`) under release profile optimization. Authored 18 new integration tests across `crates/cli/tests/completions_command_test.rs` (7 tests), `crates/cli/tests/verify_command_test.rs` (8 tests), and `crates/cli/tests/binary_alias_test.rs` (3 tests), reaching 48 CLI integration tests and 618 workspace tests. Formally certified Phase 9.2 across all 4 subphases with 100% quality gates passing (5/5).
 
-- Phase 9.3 ("MCP") is in progress:
+- Phase 9.3 ("MCP") is 100% complete across all 4 subphases and formally certified:
   - Subphase `9.3.1` delivered `crates/mcp` implementing the foundational Model Context Protocol server. Implemented the full JSON-RPC 2.0 protocol layer (`RequestId`, `JsonRpcRequest`, `JsonRpcResponse`, `JsonRpcNotification`, `JsonRpcError`, `JsonRpcMessage`) supporting integer and string IDs. Implemented official MCP specification types (version 2024-11-05: `ClientInfo`, `ServerInfo`, `ServerCapabilities`, `ClientCapabilities`, `InitializeParams`, `InitializeResult`, `Tool`, `CallToolParams`, `CallToolResult`, `Resource`, `ReadResourceParams`, `ReadResourceResult`, `Prompt`, `ListPromptsResult`, `LoggingLevel`). Implemented `Transport` trait with production newline-delimited `StdioTransport` (reserving stdout exclusively for JSON-RPC messages and routing all tracing to stderr) and duplex in-memory `ChannelTransport` for testing. Implemented strict server lifecycle state machine (`ServerLifecycleState`: `Uninitialized`, `Initializing`, `Initialized`, `ShuttingDown`, `Terminated`) enforcing protocol initialization before tool or resource access. Implemented thread-safe registries (`ServerRegistry`, `ToolHandler`, `FnToolHandler`, `ResourceHandler`, `FnResourceHandler`, `PromptHandler`), async request dispatcher (`McpDispatcher`), and fluent builder `McpServerBuilder`. Created standalone daemon binary `web-repo-to-ai-mcp` and integrated the `web-repo-to-ai mcp` subcommand in `crates/cli`. Authored 18 integration tests in `crates/mcp` across protocol serialization, lifecycle state transitions, transport I/O, and end-to-end dispatch execution. Verified with 18 MCP tests, 48 CLI tests, 636 workspace tests, zero clippy warnings, zero fmt diffs, cargo deny clean, and 100% passing quality gates (5/5).
   - Subphase `9.3.2` delivered Model Context Protocol conversion tools in `crates/mcp`:
     - Implemented `convert_url` tool (`ConvertUrlHandler`) exposing universal webpage and documentation extraction with SSRF and DNS-rebinding security defenses via `UrlSecurityPolicy` and `SecureDnsResolver`, semantic article extraction via `ArticleExtractor`, Canonical Context Document (CDM) assembly, optional line-level normalization, token budget optimization via `ContextBudgetOptimizer`, and 8 export formats (`markdown`, `txt`, `json`, `html`, `jsonl`, `zip`, `manifest`, `checksums`).
@@ -47,6 +47,20 @@ In Stage 9 ("Developer and AI Agent Integrations"):
     - Integrated automatic document capture across conversion tools (`convert_url`, `convert_repo`), wiring conversion outputs directly into `McpDocumentStore` for subsequent resource retrieval.
     - Added fluent builder methods `with_document_store()`, `with_default_resources()`, and `with_defaults()` on `McpServerBuilder`.
     - Authored 6 new integration tests in `crates/mcp/tests/resources_test.rs` covering template discovery, concrete resource enumeration, 10 CDM output formats, missing document and section error handling, filesystem path traversal defenses, and an end-to-end tool conversion-to-resource pipeline. Total MCP tests expanded to 33; monorepo workspace tests expanded to 650 passing tests.
+  - Subphase `9.3.4` delivered adversarial security fuzzing, protocol state machine enforcement, unauthorized resource rejection, transport isolation, and formal certification of Phase 9.3:
+    - Extended JSON-RPC 2.0 layer in `crates/mcp/src/protocol/jsonrpc.rs` with `RequestId::Null` support, RFC-compliant error mapping, strict method type checking (`is_string`), and parameter payload type enforcement (`is_object`, `is_array`, or `is_null`).
+    - Hardened `McpServer::run` in `crates/mcp/src/server/service.rs` to intercept transport parse and invalid request errors, returning compliant JSON-RPC 2.0 `-32700 Parse error` and `-32600 Invalid request` responses with `id: null` without server termination.
+    - Added generic `StreamTransport<R, W>` in `crates/mcp/src/transport/stream.rs` supporting any `AsyncRead + AsyncWrite` byte stream pair with strict newline-delimited framing, blank line filtering, and flush synchronization.
+    - Refactored `StdioTransport` in `crates/mcp/src/transport/stdio.rs` to wrap `StreamTransport<Stdin, Stdout>`, establishing uniform framing and zero-code duplication.
+    - Hardened `FileResourceProvider` in `crates/mcp/src/resources/file.rs` with zero-dependency URL percent-decoding (`%2e%2e%2f` -> `../`) and null-byte injection detection (`\0`), strictly forbidding path traversal beyond canonical root boundaries.
+    - Authored 6 comprehensive security and protocol integration tests in `crates/mcp/tests/security_protocol_test.rs` covering:
+      1. Adversarial protocol fuzzing (malformed JSON, primitive JSON payloads, missing/invalid version envelopes, null ID roundtrip).
+      2. Server lifecycle state machine enforcement (pre-initialization operational RPC rejection with `-32001`, uninitialized ping allowance, invalid initialize params rejection with `-32602`, repeated initialization defense, silent notification discarding).
+      3. Resource security & unauthorized rejection (rejection of unauthorized schemes `http://`, `https://`, `ftp://`, `ssh://`, `gopher://`; `FileResourceProvider` parent traversal, deep traversal, percent-encoded traversal, null-byte injection, and non-file rejection; `CdmResourceProvider` empty doc ID, missing doc ID, non-existent doc ID with `-32003`, subpath traversal, unsupported export formats, and missing section IDs).
+      4. Conversion tool input validation & SSRF defense (blocking loopback IPv4/IPv6, cloud metadata, private Class A/B/C networks, non-HTTP schemes in `convert_url`; subpath traversal rejection and non-existent targets in `convert_repo`; zero token budget and empty content in `optimize_context`; huge strings and null bytes in `detect_source`).
+      5. Stream transport framing resilience & stream isolation (filtering blank lines, returning `-32700` and `-32600` with `id: null`, immediate post-error recovery, rapid pipelined bursts, clean EOF termination).
+      6. Multi-client concurrent execution & thread safety (20 concurrent tasks executing simultaneous `ping`, `tools/list`, `resources/list`, and `tools/call` over shared client handle without race conditions or error).
+    - Verified all 39 MCP tests passing (1 unit, 38 integration), all 656 workspace tests passing, zero clippy warnings, zero fmt diffs, cargo deny clean, and 100% passing quality gates (5/5). Formally certified Phase 9.3.
 
 ---
 
@@ -54,12 +68,12 @@ In Stage 9 ("Developer and AI Agent Integrations"):
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 155 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1`, `9.1.2`, `9.1.3`, `9.1.4`, `9.2.1`, `9.2.2`, `9.2.3`, `9.2.4`, `9.3.1`, `9.3.2`, `9.3.3` |
+| `ACCEPTED` | 156 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1`, `9.3.2`, `9.3.3`, `9.3.4` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 41 | `9.3.4` – `11.4.5` |
+| `NOT_STARTED` | 40 | `9.4.1` – `11.4.5` |
 | **Total** | **196** | `Stage 0` – `Stage 11` |
 
 ---

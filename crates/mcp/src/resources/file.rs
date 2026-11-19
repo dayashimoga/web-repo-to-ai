@@ -49,19 +49,26 @@ impl FileResourceProvider {
             )));
         };
 
+        let decoded_path = percent_decode(raw_path);
+        if decoded_path.contains('\0') {
+            return Err(McpError::ResourceError(
+                "Access denied: null byte in path forbidden".to_string(),
+            ));
+        }
+
         // Trim leading slashes for Windows / Unix normalization
-        let trimmed_path = raw_path.trim_start_matches('/');
+        let trimmed_path = decoded_path.trim_start_matches('/');
         let target_path = self.allowed_root.join(trimmed_path);
 
         let canonical_target = target_path.canonicalize().map_err(|e| {
-            McpError::ResourceError(format!("Cannot resolve file '{raw_path}': {e}"))
+            McpError::ResourceError(format!("Cannot resolve file '{decoded_path}': {e}"))
         })?;
 
         // Strict boundary defense: target must be inside allowed_root
         if !canonical_target.starts_with(&self.allowed_root) {
             error!(
                 target: "mcp::resources::file",
-                path = %raw_path,
+                path = %decoded_path,
                 root = %self.allowed_root.display(),
                 "Path traversal rejected"
             );
@@ -72,7 +79,7 @@ impl FileResourceProvider {
 
         if !canonical_target.is_file() {
             return Err(McpError::ResourceError(format!(
-                "Target '{raw_path}' is not a regular file"
+                "Target '{decoded_path}' is not a regular file"
             )));
         }
 
@@ -95,6 +102,26 @@ impl FileResourceProvider {
             _ => "application/octet-stream",
         }
     }
+}
+
+fn percent_decode(input: &str) -> String {
+    let mut result = Vec::with_capacity(input.len());
+    let bytes = input.as_bytes();
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'%' && i + 2 < bytes.len() {
+            if let Ok(hex_str) = std::str::from_utf8(&bytes[i + 1..i + 3]) {
+                if let Ok(byte) = u8::from_str_radix(hex_str, 16) {
+                    result.push(byte);
+                    i += 3;
+                    continue;
+                }
+            }
+        }
+        result.push(bytes[i]);
+        i += 1;
+    }
+    String::from_utf8_lossy(&result).into_owned()
 }
 
 #[async_trait]

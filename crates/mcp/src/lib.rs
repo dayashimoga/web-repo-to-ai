@@ -43,4 +43,4 @@ pub use tools::{
     ConvertUrlHandler, ConvertUrlParams, DetectSourceHandler, DetectSourceParams,
     OptimizeContextHandler, OptimizeContextParams,
 };
-pub use transport::{ChannelTransport, StdioTransport, Transport};
+pub use transport::{ChannelTransport, StdioTransport, StreamTransport, Transport};

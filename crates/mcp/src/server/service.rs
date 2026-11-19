@@ -7,8 +7,8 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::{debug, error, info};
 
-use crate::error::McpError;
-use crate::protocol::jsonrpc::JsonRpcMessage;
+use crate::error::{jsonrpc_codes, McpError};
+use crate::protocol::jsonrpc::{JsonRpcError, JsonRpcMessage, JsonRpcResponse, RequestId};
 use crate::protocol::types::{Prompt, Resource, ServerInfo, Tool};
 use crate::resources::McpDocumentStore;
 use crate::server::dispatcher::McpDispatcher;
@@ -77,6 +77,23 @@ impl McpServer {
                 }
                 Err(e) => {
                     error!(target: "mcp::server", error = %e, "Transport decode error in event loop");
+                    // On protocol parse or invalid request errors, reply with compliant JSON-RPC 2.0 error
+                    let err_resp = match &e {
+                        McpError::ParseError(msg) => Some(JsonRpcResponse::error(
+                            RequestId::Null,
+                            JsonRpcError::new(jsonrpc_codes::PARSE_ERROR, msg, None),
+                        )),
+                        McpError::InvalidRequest(msg) => Some(JsonRpcResponse::error(
+                            RequestId::Null,
+                            JsonRpcError::new(jsonrpc_codes::INVALID_REQUEST, msg, None),
+                        )),
+                        _ => None,
+                    };
+                    if let Some(resp) = err_resp {
+                        if let Err(send_err) = transport.send_response(&resp).await {
+                            error!(target: "mcp::server", error = %send_err, "Failed to send protocol error response");
+                        }
+                    }
                     // On fatal I/O errors, break loop
                     if matches!(e, McpError::Io(_)) {
                         return Err(e);
