@@ -162,8 +162,13 @@ pub enum CoreError {
     },
 
     /// Rate limit or concurrency permit exhausted.
-    #[error("Rate limit exceeded: {0}")]
-    RateLimitExceeded(String),
+    #[error("Rate limit exceeded: {message}. Retry after {retry_after_seconds}s")]
+    RateLimitExceeded {
+        /// Number of seconds client should wait before retrying.
+        retry_after_seconds: u64,
+        /// Descriptive message.
+        message: String,
+    },
 
     /// Payload or repository size exceeds limit.
     #[error(
@@ -228,7 +233,7 @@ impl CoreError {
             Self::UnsupportedUrlScheme(_) => ErrorCode::UnsupportedUrlScheme,
             Self::NotFound { .. } => ErrorCode::ResourceNotFound,
             Self::MethodNotAllowed { .. } => ErrorCode::MethodNotAllowed,
-            Self::RateLimitExceeded(_) => ErrorCode::RateLimitExceeded,
+            Self::RateLimitExceeded { .. } => ErrorCode::RateLimitExceeded,
             Self::PayloadTooLarge { .. } => ErrorCode::PayloadTooLarge,
             Self::Timeout { .. } => ErrorCode::ExtractionTimeout,
             Self::UnauthorizedGithub(_) => ErrorCode::UnauthorizedGithubRepo,
@@ -277,6 +282,13 @@ impl CoreError {
             Self::MethodNotAllowed { method, path } => Some(serde_json::json!({
                 "method": method,
                 "path": path,
+            })),
+            Self::RateLimitExceeded {
+                retry_after_seconds,
+                message,
+            } => Some(serde_json::json!({
+                "retry_after_seconds": retry_after_seconds,
+                "message": message,
             })),
             _ => None,
         };

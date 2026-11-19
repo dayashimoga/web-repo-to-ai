@@ -9,7 +9,9 @@ use tower_http::limit::RequestBodyLimitLayer;
 use tracing::info;
 use web_repo_to_ai_core::{AppConfig, CoreError, Result};
 
-use crate::middleware::{build_cors_layer, build_timeout_layer, trace_id_middleware};
+use crate::middleware::{
+    build_cors_layer, build_timeout_layer, rate_limit_middleware, trace_id_middleware,
+};
 use crate::routes::create_router;
 use crate::state::AppState;
 
@@ -20,6 +22,10 @@ pub fn build_app(state: AppState) -> Router {
     let body_limit = RequestBodyLimitLayer::new(10 * 1024 * 1024);
 
     create_router(state.clone())
+        .layer(axum_mw::from_fn_with_state(
+            state.clone(),
+            rate_limit_middleware,
+        ))
         .layer(axum_mw::from_fn_with_state(state, trace_id_middleware))
         .layer(cors)
         .layer(timeout)

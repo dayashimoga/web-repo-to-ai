@@ -8,6 +8,7 @@ use std::fmt;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use web_repo_to_ai_core::crypto::EncryptionKey;
+use web_repo_to_ai_core::rate_limit::{InMemoryTieredRateLimiter, RateLimiter};
 use web_repo_to_ai_core::AppConfig;
 use web_repo_to_ai_github_extractor::callback::InMemoryWebhookDeliveryTracker;
 use web_repo_to_ai_github_extractor::client::GitHubApiClient;
@@ -35,6 +36,8 @@ pub struct AppState {
     pub batch_storage: Arc<dyn BatchRepository>,
     /// API key storage repository for authentication and tenant authorization.
     pub api_key_storage: Arc<dyn ApiKeyRepository>,
+    /// Token bucket and sliding window rate limiter.
+    pub rate_limiter: Arc<dyn RateLimiter>,
     /// GitHub API client for upstream token revocation and interactions.
     pub github_client: Arc<GitHubApiClient>,
     /// Webhook delivery GUID tracker preventing replay attacks.
@@ -69,6 +72,7 @@ impl AppState {
         let token_storage = Arc::new(InMemoryTokenStorage::new(key));
         let batch_storage = Arc::new(InMemoryBatchRepository::new());
         let api_key_storage = Arc::new(InMemoryApiKeyRepository::new());
+        let rate_limiter = Arc::new(InMemoryTieredRateLimiter::new(config.rate_limit.clone()));
         let github_client = Arc::new(GitHubApiClient::new());
         let webhook_tracker = Arc::new(Mutex::new(InMemoryWebhookDeliveryTracker::default()));
         let webhook_secret = std::env::var("GITHUB_APP_WEBHOOK_SECRET").ok();
@@ -81,6 +85,7 @@ impl AppState {
             token_storage,
             batch_storage,
             api_key_storage,
+            rate_limiter,
             github_client,
             webhook_tracker,
             webhook_secret,
@@ -134,6 +139,13 @@ impl AppState {
     #[must_use]
     pub fn with_api_key_storage(mut self, api_key_storage: Arc<dyn ApiKeyRepository>) -> Self {
         self.api_key_storage = api_key_storage;
+        self
+    }
+
+    /// Configures a custom rate limiter instance.
+    #[must_use]
+    pub fn with_rate_limiter(mut self, rate_limiter: Arc<dyn RateLimiter>) -> Self {
+        self.rate_limiter = rate_limiter;
         self
     }
 

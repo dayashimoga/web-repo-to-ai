@@ -257,6 +257,36 @@ impl Default for OptimizationConfig {
     }
 }
 
+/// API rate limiting configuration (Token bucket / Sliding window).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RateLimitConfig {
+    /// Whether rate limiting is enabled globally (default: true).
+    pub enabled: bool,
+    /// Default requests per minute allowed for authenticated tenants / API keys (default: 120).
+    pub requests_per_minute: u32,
+    /// Burst capacity in token bucket for authenticated clients (default: 30).
+    pub burst_capacity: u32,
+    /// Rate limit for unauthenticated anonymous IP clients in requests per minute (default: 60).
+    pub anonymous_requests_per_minute: u32,
+    /// Burst capacity for anonymous clients (default: 20).
+    pub anonymous_burst_capacity: u32,
+    /// Sliding window duration in seconds (default: 60).
+    pub window_seconds: u64,
+}
+
+impl Default for RateLimitConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            requests_per_minute: 120,
+            burst_capacity: 30,
+            anonymous_requests_per_minute: 60,
+            anonymous_burst_capacity: 20,
+            window_seconds: 60,
+        }
+    }
+}
+
 /// Comprehensive root application configuration.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct AppConfig {
@@ -274,6 +304,8 @@ pub struct AppConfig {
     pub extraction: ExtractionConfig,
     /// AI context and token budgeting configuration.
     pub optimization: OptimizationConfig,
+    /// API rate limiting configuration.
+    pub rate_limit: RateLimitConfig,
 }
 
 impl AppConfig {
@@ -381,6 +413,27 @@ impl AppConfig {
         }
         if let Ok(val) = std::env::var("MAX_TOKEN_BUDGET") {
             config.optimization.max_token_budget = parse_env("MAX_TOKEN_BUDGET", &val)?;
+        }
+
+        // Rate Limiting
+        if let Ok(val) = std::env::var("RATE_LIMIT_ENABLED") {
+            config.rate_limit.enabled = parse_env("RATE_LIMIT_ENABLED", &val)?;
+        }
+        if let Ok(val) = std::env::var("RATE_LIMIT_RPM") {
+            config.rate_limit.requests_per_minute = parse_env("RATE_LIMIT_RPM", &val)?;
+        }
+        if let Ok(val) = std::env::var("RATE_LIMIT_BURST") {
+            config.rate_limit.burst_capacity = parse_env("RATE_LIMIT_BURST", &val)?;
+        }
+        if let Ok(val) = std::env::var("RATE_LIMIT_ANON_RPM") {
+            config.rate_limit.anonymous_requests_per_minute =
+                parse_env("RATE_LIMIT_ANON_RPM", &val)?;
+        }
+        if let Ok(val) = std::env::var("RATE_LIMIT_ANON_BURST") {
+            config.rate_limit.anonymous_burst_capacity = parse_env("RATE_LIMIT_ANON_BURST", &val)?;
+        }
+        if let Ok(val) = std::env::var("RATE_LIMIT_WINDOW_SECS") {
+            config.rate_limit.window_seconds = parse_env("RATE_LIMIT_WINDOW_SECS", &val)?;
         }
 
         config.validate()?;

@@ -6,6 +6,40 @@
 
 ## [Unreleased] — Stage 9: Developer and AI Agent Integrations
 
+### 2026-11-19 — Phase 9.1: REST API (`9.1.3`)
+
+#### Added
+- **`[9.1.3]` Rate limits (Token bucket / Sliding window rate limiting and 429 Retry-After) in `crates/core`, `crates/storage`, and `services/api`:**
+  - Implemented core rate limiting models and algorithms in `crates/core/src/rate_limit.rs`:
+    - `RateLimitDecision`: outcome enum (`Allowed { limit, remaining, reset_seconds }`, `Exceeded { limit, retry_after_seconds, reset_seconds }`).
+    - `RateLimitTier`: client categorization (`Authenticated`, `Anonymous`, `Admin`).
+    - `TokenBucket`: continuous sub-second fractional replenishment algorithm with burst limit capacity and precise retry-after time calculation.
+    - `SlidingWindowCounter`: weighted boundary tracking across continuous time windows.
+    - `RateLimiter` trait: abstract contract for checking, resetting, and pruning client buckets.
+    - `InMemoryTieredRateLimiter`: thread-safe in-memory rate limiter with idle bucket eviction (300s TTL) for bounded memory safety (Rule 02).
+  - Enhanced error and configuration models in `crates/core`:
+    - Added `CoreError::RateLimitExceeded { retry_after_seconds, message }` mapping to `ErrorCode::RateLimitExceeded` (HTTP 429) and structured details in `ApiProblemEnvelope`.
+    - Added `RateLimitConfig` struct to `AppConfig` with environment variable overrides (`RATE_LIMIT_ENABLED`, `RATE_LIMIT_RPM`, `RATE_LIMIT_BURST`, `RATE_LIMIT_ANON_RPM`, `RATE_LIMIT_ANON_BURST`, `RATE_LIMIT_WINDOW_SECS`).
+  - Added PostgreSQL rate limiting schema and repository in `crates/storage`:
+    - Migration `20261119000006_rate_limits.sql`: `rate_limit_counters` table with composite key `(client_key, window_bucket)` and expiration index.
+    - `RateLimitStore` trait and implementations: `InMemoryRateLimitStore` and `PostgresRateLimitStore`.
+  - Wired rate limiting middleware in `services/api`:
+    - Added `rate_limiter: Arc<dyn RateLimiter>` to `AppState`.
+    - Implemented `rate_limit_middleware` in `services/api/src/middleware.rs`: client key attribution (token hash, session ID, or client IP), tiered ceilings (120 RPM / 30 burst for authenticated callers vs 60 RPM / 20 burst for anonymous callers, 10,000 for admins), standard response header injection (`X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`), and HTTP 429 response with `Retry-After` header.
+    - Configured strict path exemptions for system probes and docs (`/`, `/docs`, `/api/v1/health`, `/api/v1/ready`, `/api/v1/metrics`, `/api/v1/openapi.*`, `/api/v1/docs`, and CORS preflights).
+    - Wired `rate_limit_middleware` into the Axum router pipeline in `services/api/src/server.rs`.
+  - Updated API specifications and documentation:
+    - Added `TooManyRequests` 429 response schema and `X-RateLimit-*` / `Retry-After` header definitions to `docs/openapi.json` and `docs/openapi.yaml` across 19 operational endpoints.
+    - Added Section 12 ("Rate Limiting & Throttling Architecture") to `docs/API.md`.
+  - Authored comprehensive integration tests in `services/api/tests/rate_limit_test.rs`:
+    - `test_rate_limit_headers_injected_on_allowed_requests`
+    - `test_burst_exhaustion_triggers_429_with_retry_after`
+    - `test_exempt_endpoints_never_throttled`
+    - `test_client_ip_isolation`
+    - `test_authenticated_caller_tiered_quota_and_isolation`
+    - `test_rate_limiting_disabled_allows_unbounded_requests`
+  - 100% passing quality gates: 101 API tests, 564 workspace tests, zero clippy warnings, zero fmt diffs, cargo deny clean, and 5/5 check-all gates passed.
+
 ### 2026-11-19 — Phase 9.1: REST API (`9.1.2`)
 
 #### Added

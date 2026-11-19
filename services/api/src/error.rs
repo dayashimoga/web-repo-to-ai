@@ -51,6 +51,18 @@ impl IntoResponse for ApiProblem {
             HeaderValue::from_static(PROBLEM_JSON_CONTENT_TYPE),
         );
 
+        if let CoreError::RateLimitExceeded {
+            retry_after_seconds,
+            ..
+        } = self.error
+        {
+            if let Ok(val) = HeaderValue::from_str(&retry_after_seconds.to_string()) {
+                response
+                    .headers_mut()
+                    .insert(axum::http::header::RETRY_AFTER, val);
+            }
+        }
+
         if let Some(req_id) = self.request_id {
             if let Ok(val) = HeaderValue::from_str(&req_id.to_string()) {
                 response

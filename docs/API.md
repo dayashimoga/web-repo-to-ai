@@ -532,3 +532,90 @@ The platform supports programmatic access via strongly-typed, cryptographically 
 | `jsonl` | `application/x-ndjson` | Fine-tuning, vector database ingestion | One line-delimited JSON document per CDM section |
 | `zip` | `application/zip` | Multi-file archive with checksums & manifest | Safe path traversal (anti-zip-slip), `checksums.sha256`, `manifest.json` |
 | `manifest` | `application/json` | Verification & provenance tracking | 100% file completeness audit, SHA-256 & BLAKE3 digests |
+
+---
+
+## 12. Rate Limiting & Throttling Architecture
+
+To protect infrastructure, ensure multi-tenant fair allocation, and mitigate abusive denial-of-service traffic, `web-repo-to-ai` enforces dual-tier rate limiting across all operational REST API endpoints.
+
+### 12.1 Algorithms & In-Memory Engine
+1. **Token Bucket Algorithm:**
+   - Every client maintains an independent token bucket with a configured `burst_capacity` and steady-state replenishment rate (`requests_per_minute`).
+   - Tokens replenish continuously with sub-second microsecond resolution ($r = \text{rpm} / 60.0$ tokens/sec).
+   - Once the bucket drops below request cost ($cost = 1$), subsequent requests are immediately rejected with HTTP `429 Too Many Requests` without executing backend pipelines.
+2. **Sliding Window Counter:**
+   - For aggregate tenant accounting and persistent PostgreSQL tracking (`rate_limit_counters`), requests are bucketed across continuous time windows with linear interpolation across boundary edges.
+3. **Automatic Stale Bucket Pruning:**
+   - In-memory buckets undergo periodic eviction of entries idle for $> 300$ seconds, guaranteeing strictly bounded memory consumption (Rule 02).
+
+### 12.2 Differentiated Client Tiers & Default Quotas
+
+| Client Tier | Identification Mechanism | Default Quota (RPM) | Default Burst Capacity | Scope & Use Case |
+| :--- | :--- | :--- | :--- | :--- |
+| **Authenticated Tenant** | `Authorization: Bearer wr_live_...` or `X-Session-ID` | 120 req/min | 30 tokens | Normal API key programmatic access and active web UI sessions |
+| **Anonymous IP** | `X-Forwarded-For` / `X-Real-IP` client IP address | 60 req/min | 20 tokens | Unauthenticated discovery, sitemap inspection, single-URL trials |
+| **Admin Principal** | API key with `admin` scope | 10,000 req/min | 10,000 tokens | Cluster maintenance, automated smoke tests, operational orchestration |
+
+#### Rate Limit Exemptions
+System health checks, documentation routes, and preflight CORS exchanges do not consume client tokens and are strictly exempt from rate limiting:
+- `GET /` (Service Descriptor)
+- `GET /docs` and `GET /api/v1/docs` (Interactive Swagger/Redoc UI)
+- `GET /api/v1/health` (Liveness probe)
+- `GET /api/v1/ready` (Subsystem readiness probe)
+- `GET /api/v1/metrics` (Prometheus telemetry scraping)
+- `GET /api/v1/openapi.json` & `GET /api/v1/openapi.yaml` (Machine-readable schemas)
+- `OPTIONS *` (CORS preflight validation)
+
+### 12.3 Standard Rate Limit Headers
+
+Every operational API response includes standard HTTP rate limit headers allowing clients to monitor quota exhaustion in real time:
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-RateLimit-Limit: 30
+X-RateLimit-Remaining: 29
+X-RateLimit-Reset: 1
+X-Request-Id: 019335c4-7c20-7000-8000-000000000001
+Traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+```
+
+- **`X-RateLimit-Limit`:** Maximum requests permitted in the active bucket / window.
+- **`X-RateLimit-Remaining`:** Available tokens remaining for immediate consumption.
+- **`X-RateLimit-Reset`:** Integer seconds until client quota is fully replenished to maximum capacity.
+- **`Retry-After`:** Mandatory integer seconds client must sleep before retrying (present only on HTTP `429`).
+
+### 12.4 Throttling Error Response (`429 Too Many Requests`)
+
+When a client exhausts their token bucket, the server immediately halts request processing and returns an RFC 7807 compliant problem details response:
+
+```http
+HTTP/1.1 429 Too Many Requests
+Content-Type: application/problem+json
+Retry-After: 3
+X-RateLimit-Limit: 20
+X-RateLimit-Remaining: 0
+X-RateLimit-Reset: 3
+X-Request-Id: 019335c4-7c20-7000-8000-000000000099
+
+{
+  "error": {
+    "code": "RATE_LIMIT_EXCEEDED",
+    "message": "Rate limit exceeded: Rate limit exceeded. Quota resets in 3 seconds (retry after 3 seconds).",
+    "details": {
+      "retry_after_seconds": 3,
+      "message": "Rate limit exceeded. Quota resets in 3 seconds (retry after 3 seconds)."
+    },
+    "request_id": "019335c4-7c20-7000-8000-000000000099"
+  }
+}
+```
+
+### 12.5 Client Implementation & Retry Recommendations
+Programmatic clients (SDKs, CLI, AI agents) should adhere to the following best practices:
+1. **Respect `Retry-After`:** Never retry immediately upon receiving a `429`; extract the `Retry-After` header value and wait at least that duration.
+2. **Exponential Backoff with Full Jitter:** When implementing automated retry loops, combine `Retry-After` with random jitter:
+   $$t_{\text{wait}} = \max(\text{Retry-After}, 2^{\text{attempt}} \times \text{base\_delay}) + \text{random}(0, 0.5)$$
+3. **Reuse Connections & API Keys:** Ensure API keys are included in `Authorization: Bearer <key>` to benefit from higher authenticated tier ceilings (120 req/min vs 60 req/min for anonymous callers).
+

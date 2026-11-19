@@ -2,40 +2,38 @@ openapi: 3.1.0
 info:
   title: web-repo-to-ai REST API
   version: 0.1.0
-  description: >-
-    Universal URL & GitHub Repository to AI-Ready Content Converter API.
-    High-performance, streaming-capable engine for transforming web articles,
-    documentation sites, public and private GitHub repositories into standardized
-    Markdown, TXT, JSON, HTML, JSONL, and structured ZIP archives optimized for LLM
-    context windows.
+  description: Universal URL & GitHub Repository to AI-Ready Content Converter API.
+    High-performance, streaming-capable engine for transforming web articles, documentation
+    sites, public and private GitHub repositories into standardized Markdown, TXT,
+    JSON, HTML, JSONL, and structured ZIP archives optimized for LLM context windows.
   license:
     name: MIT OR Apache-2.0
   contact:
     name: web-repo-to-ai Engineering Team
     url: https://github.com/dayashimoga/web-repo-to-ai
 servers:
-  - url: /api/v1
-    description: Default v1 API prefix
+- url: /api/v1
+  description: Default v1 API prefix
 tags:
-  - name: System
-    description: Liveness, readiness, and telemetry probes
-  - name: Documentation
-    description: OpenAPI specification and interactive API reference
-  - name: Sources
-    description: URL pre-validation, SSRF checks, and source classification
-  - name: Jobs
-    description: Single-source conversion lifecycle, status, preview, and artifacts
-  - name: Batch Jobs
-    description: Multi-URL parallel batch processing, status, cancellation, and export
-  - name: GitHub App
-    description: GitHub App OAuth installations, repository authorization, and webhooks
-  - name: Authentication
-    description: API key generation, listing, and revocation with tenant isolation
+- name: System
+  description: Liveness, readiness, and telemetry probes
+- name: Documentation
+  description: OpenAPI specification and interactive API reference
+- name: Sources
+  description: URL pre-validation, SSRF checks, and source classification
+- name: Jobs
+  description: Single-source conversion lifecycle, status, preview, and artifacts
+- name: Batch Jobs
+  description: Multi-URL parallel batch processing, status, cancellation, and export
+- name: GitHub App
+  description: GitHub App OAuth installations, repository authorization, and webhooks
+- name: Authentication
+  description: API key generation, listing, and revocation with tenant isolation
 paths:
   /health:
     get:
       tags:
-        - System
+      - System
       summary: Liveness probe
       description: Checks if the API process is alive and receiving traffic.
       operationId: getHealth
@@ -49,9 +47,10 @@ paths:
   /ready:
     get:
       tags:
-        - System
+      - System
       summary: Readiness probe
-      description: Checks if underlying persistence (PostgreSQL) and artifact storage are available.
+      description: Checks if underlying persistence (PostgreSQL) and artifact storage
+        are available.
       operationId: getReadiness
       responses:
         '200':
@@ -69,9 +68,10 @@ paths:
   /metrics:
     get:
       tags:
-        - System
+      - System
       summary: Prometheus metrics exposition
-      description: Exposes standard Prometheus metrics for latency, request counts, queue depths, and errors.
+      description: Exposes standard Prometheus metrics for latency, request counts,
+        queue depths, and errors.
       operationId: getMetrics
       responses:
         '200':
@@ -83,7 +83,7 @@ paths:
   /openapi.json:
     get:
       tags:
-        - Documentation
+      - Documentation
       summary: OpenAPI 3.1 specification (JSON)
       description: Returns the complete OpenAPI 3.1.0 specification as JSON.
       operationId: getOpenApiJson
@@ -97,7 +97,7 @@ paths:
   /openapi.yaml:
     get:
       tags:
-        - Documentation
+      - Documentation
       summary: OpenAPI 3.1 specification (YAML)
       description: Returns the complete OpenAPI 3.1.0 specification as YAML.
       operationId: getOpenApiYaml
@@ -111,7 +111,7 @@ paths:
   /docs:
     get:
       tags:
-        - Documentation
+      - Documentation
       summary: Interactive API reference documentation
       description: Renders a modern, interactive API documentation interface.
       operationId: getInteractiveDocs
@@ -125,9 +125,10 @@ paths:
   /sources/detect:
     post:
       tags:
-        - Sources
+      - Sources
       summary: Detect and classify source URLs
-      description: Validates input URLs against SSRF policies and classifies each source.
+      description: Validates input URLs against SSRF policies and classifies each
+        source (e.g. WebPage, PublicGitHub, PrivateGitHub).
       operationId: detectSources
       requestBody:
         required: true
@@ -148,12 +149,16 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ApiProblemEnvelope'
+        '429':
+          ? ''
+          : '#/components/responses/TooManyRequests'
   /jobs:
     post:
       tags:
-        - Jobs
+      - Jobs
       summary: Create conversion job
-      description: Submits a new single-source conversion job with context optimization parameters.
+      description: Submits a new single-source conversion job with context optimization
+        parameters.
       operationId: createJob
       requestBody:
         required: true
@@ -180,45 +185,56 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ApiProblemEnvelope'
+        '429':
+          ? ''
+          : '#/components/responses/TooManyRequests'
     get:
       tags:
-        - Jobs
+      - Jobs
       summary: List conversion jobs
-      description: Lists conversion jobs associated with the current session with optional status filtering and pagination.
+      description: Lists conversion jobs associated with the current session with
+        optional status filtering and pagination.
       operationId: listJobs
       parameters:
-        - name: page
-          in: query
-          required: false
-          schema:
-            type: integer
-            default: 1
-            minimum: 1
-          description: Page index (1-based)
-        - name: limit
-          in: query
-          required: false
-          schema:
-            type: integer
-            default: 20
-            minimum: 1
-            maximum: 100
-          description: Maximum number of items per page
-        - name: status
-          in: query
-          required: false
-          schema:
-            type: string
-            enum: [queued, running, completed, failed, cancelled]
-          description: Filter by job execution status
-        - name: sort
-          in: query
-          required: false
-          schema:
-            type: string
-            enum: ['created_at:desc', 'created_at:asc']
-            default: 'created_at:desc'
-          description: Sorting order
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 1
+          minimum: 1
+        description: Page index (1-based)
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 20
+          minimum: 1
+          maximum: 100
+        description: Maximum number of items per page
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - queued
+          - running
+          - completed
+          - failed
+          - cancelled
+        description: Filter by job execution status
+      - name: sort
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - created_at:desc
+          - created_at:asc
+          default: created_at:desc
+        description: Sorting order
       responses:
         '200':
           description: Paginated list of conversion jobs
@@ -232,21 +248,25 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ApiProblemEnvelope'
+        '429':
+          ? ''
+          : '#/components/responses/TooManyRequests'
   /jobs/{job_id}:
     get:
       tags:
-        - Jobs
+      - Jobs
       summary: Get conversion job details
-      description: Retrieves the status, file completeness, token metrics, and generated artifacts for a job.
+      description: Retrieves the status, file completeness, token metrics, and generated
+        artifacts for a job.
       operationId: getJob
       parameters:
-        - name: job_id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-          description: Unique UUID of the conversion job
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Unique UUID of the conversion job
       responses:
         '200':
           description: Job details
@@ -260,38 +280,48 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ApiProblemEnvelope'
+        '429':
+          ? ''
+          : '#/components/responses/TooManyRequests'
   /jobs/{job_id}/preview:
     get:
       tags:
-        - Jobs
+      - Jobs
       summary: Preview converted content
-      description: Returns a syntax-highlighted, paginated content preview and repository file tree.
+      description: Returns a syntax-highlighted, paginated content preview and repository
+        file tree.
       operationId: getJobPreview
       parameters:
-        - name: job_id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-          description: Unique UUID of the conversion job
-        - name: format
-          in: query
-          required: false
-          schema:
-            type: string
-            enum: [markdown, txt, json, html, jsonl, tree]
-            default: markdown
-          description: Target preview format
-        - name: max_lines
-          in: query
-          required: false
-          schema:
-            type: integer
-            default: 200
-            minimum: 1
-            maximum: 5000
-          description: Maximum lines of preview content to return
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Unique UUID of the conversion job
+      - name: format
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - markdown
+          - txt
+          - json
+          - html
+          - jsonl
+          - tree
+          default: markdown
+        description: Target preview format
+      - name: max_lines
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 200
+          minimum: 1
+          maximum: 5000
+        description: Maximum lines of preview content to return
       responses:
         '200':
           description: Preview content and metadata
@@ -305,21 +335,25 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ApiProblemEnvelope'
+        '429':
+          ? ''
+          : '#/components/responses/TooManyRequests'
   /jobs/{job_id}/events:
     get:
       tags:
-        - Jobs
+      - Jobs
       summary: Real-time job events SSE stream
-      description: Establishes a Server-Sent Events (SSE) stream emitting pipeline phase transitions.
+      description: Establishes a Server-Sent Events (SSE) stream emitting pipeline
+        phase transitions, file discoveries, token statistics, and completion events.
       operationId: getJobEvents
       parameters:
-        - name: job_id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-          description: Unique UUID of the conversion job
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Unique UUID of the conversion job
       responses:
         '200':
           description: Real-time event stream
@@ -333,21 +367,24 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ApiProblemEnvelope'
+        '429':
+          ? ''
+          : '#/components/responses/TooManyRequests'
   /jobs/{job_id}/stream:
     get:
       tags:
-        - Jobs
+      - Jobs
       summary: Real-time job events SSE stream (alias)
       description: Alternative endpoint alias for `/jobs/{job_id}/events`.
       operationId: getJobEventsStreamAlias
       parameters:
-        - name: job_id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-          description: Unique UUID of the conversion job
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Unique UUID of the conversion job
       responses:
         '200':
           description: Real-time event stream
@@ -355,31 +392,43 @@ paths:
             text/event-stream:
               schema:
                 type: string
+        '429':
+          ? ''
+          : '#/components/responses/TooManyRequests'
   /jobs/{job_id}/artifacts/{format}:
     get:
       tags:
-        - Jobs
+      - Jobs
       summary: Stream download converted artifact
-      description: Streams the generated artifact package in the requested format.
+      description: Streams the generated artifact package in the requested format
+        (`markdown`, `txt`, `json`, `html`, `jsonl`, `zip`, `manifest`).
       operationId: getJobArtifact
       parameters:
-        - name: job_id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-          description: Unique UUID of the conversion job
-        - name: format
-          in: path
-          required: true
-          schema:
-            type: string
-            enum: [markdown, txt, json, html, jsonl, zip, manifest]
-          description: Format of the generated artifact
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Unique UUID of the conversion job
+      - name: format
+        in: path
+        required: true
+        schema:
+          type: string
+          enum:
+          - markdown
+          - txt
+          - json
+          - html
+          - jsonl
+          - zip
+          - manifest
+        description: Format of the generated artifact
       responses:
         '200':
-          description: Artifact payload stream with Content-Disposition header and SHA-256 validation digest
+          description: Artifact payload stream with Content-Disposition header and
+            SHA-256 validation digest
           headers:
             Content-Disposition:
               schema:
@@ -413,12 +462,16 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ApiProblemEnvelope'
+        '429':
+          ? ''
+          : '#/components/responses/TooManyRequests'
   /jobs/batch:
     post:
       tags:
-        - Batch Jobs
+      - Batch Jobs
       summary: Submit multi-URL batch conversion job
-      description: Submits up to 100 URLs for bounded concurrent execution with deduplication and context profile application.
+      description: Submits up to 100 URLs for bounded concurrent execution with deduplication
+        and context profile application.
       operationId: createBatchJob
       requestBody:
         required: true
@@ -439,28 +492,31 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ApiProblemEnvelope'
+        '429':
+          ? ''
+          : '#/components/responses/TooManyRequests'
     get:
       tags:
-        - Batch Jobs
+      - Batch Jobs
       summary: List batch jobs
       description: Lists multi-URL batch jobs with status and progress indicators.
       operationId: listBatches
       parameters:
-        - name: page
-          in: query
-          required: false
-          schema:
-            type: integer
-            default: 1
-            minimum: 1
-        - name: limit
-          in: query
-          required: false
-          schema:
-            type: integer
-            default: 20
-            minimum: 1
-            maximum: 100
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 1
+          minimum: 1
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 20
+          minimum: 1
+          maximum: 100
       responses:
         '200':
           description: List of batch jobs
@@ -468,20 +524,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListBatchesResponse'
+        '429':
+          ? ''
+          : '#/components/responses/TooManyRequests'
   /jobs/batch/{batch_id}:
     get:
       tags:
-        - Batch Jobs
+      - Batch Jobs
       summary: Get batch job status
-      description: Retrieves the aggregated execution progress and counters for a batch conversion job.
+      description: Retrieves the aggregated execution progress and counters for a
+        batch conversion job.
       operationId: getBatchJob
       parameters:
-        - name: batch_id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+      - name: batch_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
       responses:
         '200':
           description: Batch job status and progress
@@ -495,19 +555,22 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ApiProblemEnvelope'
+        '429':
+          ? ''
+          : '#/components/responses/TooManyRequests'
     delete:
       tags:
-        - Batch Jobs
+      - Batch Jobs
       summary: Cancel batch job
       description: Cancels an in-flight or queued batch job, stopping unfinished items.
       operationId: cancelBatchJob
       parameters:
-        - name: batch_id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+      - name: batch_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
       responses:
         '200':
           description: Batch job cancelled
@@ -521,20 +584,23 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ApiProblemEnvelope'
+        '429':
+          ? ''
+          : '#/components/responses/TooManyRequests'
   /jobs/batch/{batch_id}/cancel:
     post:
       tags:
-        - Batch Jobs
+      - Batch Jobs
       summary: Cancel batch job (POST alias)
       description: Cancels an in-flight or queued batch job via POST.
       operationId: cancelBatchJobPost
       parameters:
-        - name: batch_id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+      - name: batch_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
       responses:
         '200':
           description: Batch job cancelled
@@ -542,20 +608,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BatchJobResponse'
+        '429':
+          ? ''
+          : '#/components/responses/TooManyRequests'
   /jobs/batch/{batch_id}/items:
     get:
       tags:
-        - Batch Jobs
+      - Batch Jobs
       summary: List batch items
-      description: Retrieves the item-by-item status, duration, and error reports for all items in a batch.
+      description: Retrieves the item-by-item status, duration, and error reports
+        for all items in a batch.
       operationId: getBatchItems
       parameters:
-        - name: batch_id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+      - name: batch_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
       responses:
         '200':
           description: List of batch items and results
@@ -569,26 +639,30 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ApiProblemEnvelope'
+        '429':
+          ? ''
+          : '#/components/responses/TooManyRequests'
   /jobs/batch/{batch_id}/items/{item_index}:
     get:
       tags:
-        - Batch Jobs
+      - Batch Jobs
       summary: Get individual batch item result
-      description: Retrieves detailed execution outcome and error message for a specific batch item index.
+      description: Retrieves detailed execution outcome and error message for a specific
+        batch item index.
       operationId: getBatchItem
       parameters:
-        - name: batch_id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: item_index
-          in: path
-          required: true
-          schema:
-            type: integer
-            minimum: 0
+      - name: batch_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: item_index
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 0
       responses:
         '200':
           description: Individual batch item result
@@ -602,26 +676,35 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ApiProblemEnvelope'
+        '429':
+          ? ''
+          : '#/components/responses/TooManyRequests'
   /jobs/batch/{batch_id}/export/{format}:
     get:
       tags:
-        - Batch Jobs
+      - Batch Jobs
       summary: Export consolidated batch artifacts
-      description: Downloads consolidated multi-item output in the specified format (`zip`, `markdown`, `jsonl`, `txt`, `json`).
+      description: Downloads consolidated multi-item output in the specified format
+        (`zip`, `markdown`, `jsonl`, `txt`, `json`).
       operationId: exportBatch
       parameters:
-        - name: batch_id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: format
-          in: path
-          required: true
-          schema:
-            type: string
-            enum: [zip, markdown, jsonl, txt, json]
+      - name: batch_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: format
+        in: path
+        required: true
+        schema:
+          type: string
+          enum:
+          - zip
+          - markdown
+          - jsonl
+          - txt
+          - json
       responses:
         '200':
           description: Export stream
@@ -648,20 +731,24 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ApiProblemEnvelope'
+        '429':
+          ? ''
+          : '#/components/responses/TooManyRequests'
   /jobs/batch/{batch_id}/artifacts:
     get:
       tags:
-        - Batch Jobs
+      - Batch Jobs
       summary: List batch download artifacts
-      description: Lists all available downloadable artifacts, file sizes, and cryptographic checksums for a batch.
+      description: Lists all available downloadable artifacts, file sizes, and cryptographic
+        checksums for a batch.
       operationId: listBatchArtifacts
       parameters:
-        - name: batch_id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+      - name: batch_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
       responses:
         '200':
           description: Batch artifacts listing
@@ -675,20 +762,24 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ApiProblemEnvelope'
+        '429':
+          ? ''
+          : '#/components/responses/TooManyRequests'
   /auth/github/installations:
     get:
       tags:
-        - GitHub App
+      - GitHub App
       summary: List authorized GitHub App installations
-      description: Lists GitHub App installations accessible to the authenticated session.
+      description: Lists GitHub App installations accessible to the authenticated
+        session with granted scopes and repository permissions.
       operationId: listGithubInstallations
       parameters:
-        - name: X-Session-ID
-          in: header
-          required: true
-          schema:
-            type: string
-          description: User session identifier
+      - name: X-Session-ID
+        in: header
+        required: true
+        schema:
+          type: string
+        description: User session identifier
       responses:
         '200':
           description: Authorized installations list
@@ -702,24 +793,27 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ApiProblemEnvelope'
+        '429':
+          ? ''
+          : '#/components/responses/TooManyRequests'
   /auth/github/installations/{installation_id}:
     delete:
       tags:
-        - GitHub App
+      - GitHub App
       summary: Revoke GitHub App installation
       description: Revokes and deletes stored GitHub installation tokens for the session.
       operationId: revokeGithubInstallation
       parameters:
-        - name: installation_id
-          in: path
-          required: true
-          schema:
-            type: integer
-        - name: X-Session-ID
-          in: header
-          required: true
-          schema:
-            type: string
+      - name: installation_id
+        in: path
+        required: true
+        schema:
+          type: integer
+      - name: X-Session-ID
+        in: header
+        required: true
+        schema:
+          type: string
       responses:
         '200':
           description: Installation revoked successfully
@@ -733,32 +827,36 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ApiProblemEnvelope'
+        '429':
+          ? ''
+          : '#/components/responses/TooManyRequests'
   /auth/github/webhook:
     post:
       tags:
-        - GitHub App
+      - GitHub App
       summary: GitHub App webhook receiver
-      description: Receives signed webhook events from GitHub with HMAC-SHA256 signature verification.
+      description: Receives signed webhook events from GitHub (`installation`, `installation_repositories`)
+        with HMAC-SHA256 signature verification.
       operationId: githubWebhook
       parameters:
-        - name: X-GitHub-Event
-          in: header
-          required: true
-          schema:
-            type: string
-          description: GitHub webhook event type
-        - name: X-Hub-Signature-256
-          in: header
-          required: true
-          schema:
-            type: string
-          description: HMAC-SHA256 webhook signature
-        - name: X-GitHub-Delivery
-          in: header
-          required: true
-          schema:
-            type: string
-          description: Unique delivery UUID
+      - name: X-GitHub-Event
+        in: header
+        required: true
+        schema:
+          type: string
+        description: GitHub webhook event type
+      - name: X-Hub-Signature-256
+        in: header
+        required: true
+        schema:
+          type: string
+        description: HMAC-SHA256 webhook signature
+      - name: X-GitHub-Delivery
+        in: header
+        required: true
+        schema:
+          type: string
+        description: Unique delivery UUID
       responses:
         '200':
           description: Webhook acknowledged and processed
@@ -772,16 +870,21 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ApiProblemEnvelope'
+        '429':
+          ? ''
+          : '#/components/responses/TooManyRequests'
   /auth/keys:
     post:
       tags:
-        - Authentication
+      - Authentication
       summary: Create API key
-      description: Generates a new cryptographically secure API key for the caller's tenant. Requires Admin scope (implicit for session callers). Returns the plaintext key once.
+      description: Generates a new cryptographically secure API key for the caller's
+        tenant. Requires Admin scope (implicit for session callers). Returns the plaintext
+        key once.
       operationId: createApiKey
       security:
-        - SessionAuth: []
-        - BearerAuth: []
+      - SessionAuth: []
+      - BearerAuth: []
       requestBody:
         required: true
         content:
@@ -813,15 +916,19 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ApiProblemEnvelope'
+        '429':
+          ? ''
+          : '#/components/responses/TooManyRequests'
     get:
       tags:
-        - Authentication
+      - Authentication
       summary: List API keys
-      description: Lists all active and revoked API keys belonging to the caller's tenant. Secret keys and hashes are never exposed.
+      description: Lists all active and revoked API keys belonging to the caller's
+        tenant. Secret keys and hashes are never exposed.
       operationId: listApiKeys
       security:
-        - SessionAuth: []
-        - BearerAuth: []
+      - SessionAuth: []
+      - BearerAuth: []
       responses:
         '200':
           description: List of API key metadata records
@@ -841,24 +948,27 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ApiProblemEnvelope'
+        '429':
+          ? ''
+          : '#/components/responses/TooManyRequests'
   /auth/keys/{key_id}:
     delete:
       tags:
-        - Authentication
+      - Authentication
       summary: Revoke API key
       description: Revokes an API key by ID. Enforces tenant boundary isolation.
       operationId: revokeApiKey
       security:
-        - SessionAuth: []
-        - BearerAuth: []
+      - SessionAuth: []
+      - BearerAuth: []
       parameters:
-        - name: key_id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-          description: Unique UUID of the API key to revoke
+      - name: key_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Unique UUID of the API key to revoke
       responses:
         '200':
           description: API key successfully revoked
@@ -884,20 +994,23 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ApiProblemEnvelope'
+        '429':
+          ? ''
+          : '#/components/responses/TooManyRequests'
 components:
   schemas:
     ApiProblemEnvelope:
       type: object
       required:
-        - error
+      - error
       properties:
         error:
           $ref: '#/components/schemas/ApiErrorDetail'
     ApiErrorDetail:
       type: object
       required:
-        - code
-        - message
+      - code
+      - message
       properties:
         code:
           type: string
@@ -915,9 +1028,9 @@ components:
     HealthResponse:
       type: object
       required:
-        - status
-        - service
-        - version
+      - status
+      - service
+      - version
       properties:
         status:
           type: string
@@ -934,9 +1047,9 @@ components:
     ReadinessResponse:
       type: object
       required:
-        - status
-        - database
-        - storage
+      - status
+      - database
+      - storage
       properties:
         status:
           type: string
@@ -950,7 +1063,7 @@ components:
     DetectSourcesRequest:
       type: object
       required:
-        - urls
+      - urls
       properties:
         urls:
           type: array
@@ -960,12 +1073,12 @@ components:
             type: string
             format: uri
           example:
-            - https://github.com/tokio-rs/tokio
-            - https://docs.rs/axum
+          - https://github.com/tokio-rs/tokio
+          - https://docs.rs/axum
     DetectSourcesResponse:
       type: object
       required:
-        - sources
+      - sources
       properties:
         sources:
           type: array
@@ -974,15 +1087,19 @@ components:
     DetectedSource:
       type: object
       required:
-        - url
-        - classification
-        - valid
+      - url
+      - classification
+      - valid
       properties:
         url:
           type: string
         classification:
           type: string
-          enum: [webpage, public_github, private_github, batch]
+          enum:
+          - webpage
+          - public_github
+          - private_github
+          - batch
         repo_owner:
           type: string
           nullable: true
@@ -1003,7 +1120,7 @@ components:
     CreateJobRequest:
       type: object
       required:
-        - sources
+      - sources
       properties:
         sources:
           type: array
@@ -1011,7 +1128,7 @@ components:
           items:
             type: string
           example:
-            - https://github.com/rust-lang/rust
+          - https://github.com/rust-lang/rust
         git_ref:
           type: string
           nullable: true
@@ -1035,7 +1152,13 @@ components:
           type: array
           items:
             type: string
-            enum: [markdown, txt, json, html, jsonl, zip]
+            enum:
+            - markdown
+            - txt
+            - json
+            - html
+            - jsonl
+            - zip
           nullable: true
         deduplicate_exact:
           type: boolean
@@ -1052,19 +1175,26 @@ components:
     JobResponse:
       type: object
       required:
-        - id
-        - status
-        - created_at
+      - id
+      - status
+      - created_at
       properties:
         id:
           type: string
           format: uuid
         status:
           type: string
-          enum: [queued, running, completed, failed, cancelled]
+          enum:
+          - queued
+          - running
+          - completed
+          - failed
+          - cancelled
         source_type:
           type: string
-          enum: [webpage, github]
+          enum:
+          - webpage
+          - github
         created_at:
           type: string
           format: date-time
@@ -1093,11 +1223,11 @@ components:
     PaginatedJobsResponse:
       type: object
       required:
-        - items
-        - total
-        - page
-        - limit
-        - total_pages
+      - items
+      - total
+      - page
+      - limit
+      - total_pages
       properties:
         items:
           type: array
@@ -1114,12 +1244,12 @@ components:
     JobPreviewResponse:
       type: object
       required:
-        - job_id
-        - format
-        - content
-        - truncated
-        - total_lines
-        - rendered_lines
+      - job_id
+      - format
+      - content
+      - truncated
+      - total_lines
+      - rendered_lines
       properties:
         job_id:
           type: string
@@ -1141,9 +1271,9 @@ components:
     PreviewFileItem:
       type: object
       required:
-        - path
-        - size_bytes
-        - classification
+      - path
+      - size_bytes
+      - classification
       properties:
         path:
           type: string
@@ -1154,7 +1284,7 @@ components:
     CreateBatchJobRequest:
       type: object
       required:
-        - urls
+      - urls
       properties:
         urls:
           type: array
@@ -1163,8 +1293,8 @@ components:
           items:
             type: string
           example:
-            - https://example.com/doc1
-            - https://example.com/doc2
+          - https://example.com/doc1
+          - https://example.com/doc2
         max_parallelism:
           type: integer
           nullable: true
@@ -1174,7 +1304,11 @@ components:
         context_profile:
           type: string
           nullable: true
-          enum: [general, code_review, security_audit, documentation]
+          enum:
+          - general
+          - code_review
+          - security_audit
+          - documentation
         token_budget:
           type: integer
           nullable: true
@@ -1191,11 +1325,11 @@ components:
     CreateBatchJobResponse:
       type: object
       required:
-        - batch_id
-        - total_items
-        - max_parallelism
-        - status
-        - created_at
+      - batch_id
+      - total_items
+      - max_parallelism
+      - status
+      - created_at
       properties:
         batch_id:
           type: string
@@ -1206,22 +1340,27 @@ components:
           type: integer
         status:
           type: string
-          enum: [queued, running, completed, failed, cancelled]
+          enum:
+          - queued
+          - running
+          - completed
+          - failed
+          - cancelled
         created_at:
           type: string
           format: date-time
     BatchJobResponse:
       type: object
       required:
-        - batch_id
-        - total_items
-        - succeeded_count
-        - failed_count
-        - timed_out_count
-        - cancelled_count
-        - status
-        - progress
-        - created_at
+      - batch_id
+      - total_items
+      - succeeded_count
+      - failed_count
+      - timed_out_count
+      - cancelled_count
+      - status
+      - progress
+      - created_at
       properties:
         batch_id:
           type: string
@@ -1250,10 +1389,10 @@ components:
     BatchProgress:
       type: object
       required:
-        - percentage
-        - completed_items
-        - total_items
-        - current_stage
+      - percentage
+      - completed_items
+      - total_items
+      - current_stage
       properties:
         percentage:
           type: number
@@ -1268,8 +1407,8 @@ components:
     ListBatchesResponse:
       type: object
       required:
-        - batches
-        - total
+      - batches
+      - total
       properties:
         batches:
           type: array
@@ -1280,9 +1419,9 @@ components:
     BatchItemsListResponse:
       type: object
       required:
-        - batch_id
-        - total_items
-        - items
+      - batch_id
+      - total_items
+      - items
       properties:
         batch_id:
           type: string
@@ -1296,11 +1435,11 @@ components:
     BatchSummaryItem:
       type: object
       required:
-        - item_index
-        - job_id
-        - url
-        - status
-        - duration_ms
+      - item_index
+      - job_id
+      - url
+      - status
+      - duration_ms
       properties:
         item_index:
           type: integer
@@ -1319,8 +1458,8 @@ components:
     BatchArtifactsResponse:
       type: object
       required:
-        - batch_id
-        - artifacts
+      - batch_id
+      - artifacts
       properties:
         batch_id:
           type: string
@@ -1332,11 +1471,11 @@ components:
     BatchArtifactItemDescriptor:
       type: object
       required:
-        - format
-        - filename
-        - size_bytes
-        - sha256_checksum
-        - download_url
+      - format
+      - filename
+      - size_bytes
+      - sha256_checksum
+      - download_url
       properties:
         format:
           type: string
@@ -1351,16 +1490,16 @@ components:
     InstallationSummaryResponse:
       type: object
       required:
-        - installations
+      - installations
       properties:
         installations:
           type: array
           items:
             type: object
             required:
-              - installation_id
-              - account_login
-              - account_type
+            - installation_id
+            - account_login
+            - account_type
             properties:
               installation_id:
                 type: integer
@@ -1373,8 +1512,8 @@ components:
     RevokeInstallationResponse:
       type: object
       required:
-        - revoked
-        - installation_id
+      - revoked
+      - installation_id
       properties:
         revoked:
           type: boolean
@@ -1383,9 +1522,9 @@ components:
     WebhookReceiptResponse:
       type: object
       required:
-        - status
-        - event
-        - delivery_id
+      - status
+      - event
+      - delivery_id
       properties:
         status:
           type: string
@@ -1396,8 +1535,8 @@ components:
     CreateApiKeyRequest:
       type: object
       required:
-        - name
-        - scopes
+      - name
+      - scopes
       properties:
         name:
           type: string
@@ -1408,8 +1547,13 @@ components:
           type: array
           items:
             type: string
-            enum: [read, write, admin]
-          example: [read, write]
+            enum:
+            - read
+            - write
+            - admin
+          example:
+          - read
+          - write
         expires_in_days:
           type: integer
           minimum: 1
@@ -1418,13 +1562,13 @@ components:
     CreateApiKeyResponse:
       type: object
       required:
-        - id
-        - tenant_id
-        - name
-        - key
-        - key_prefix
-        - scopes
-        - created_at
+      - id
+      - tenant_id
+      - name
+      - key
+      - key_prefix
+      - scopes
+      - created_at
       properties:
         id:
           type: string
@@ -1454,13 +1598,13 @@ components:
     ApiKeySummaryResponse:
       type: object
       required:
-        - id
-        - tenant_id
-        - name
-        - key_prefix
-        - scopes
-        - created_at
-        - is_active
+      - id
+      - tenant_id
+      - name
+      - key_prefix
+      - scopes
+      - created_at
+      - is_active
       properties:
         id:
           type: string
@@ -1492,8 +1636,8 @@ components:
     ListApiKeysResponse:
       type: object
       required:
-        - keys
-        - total
+      - keys
+      - total
       properties:
         keys:
           type: array
@@ -1504,9 +1648,9 @@ components:
     RevokeApiKeyResponse:
       type: object
       required:
-        - id
-        - revoked
-        - message
+      - id
+      - revoked
+      - message
       properties:
         id:
           type: string
@@ -1530,3 +1674,44 @@ components:
       in: header
       name: X-Hub-Signature-256
       description: HMAC-SHA256 signature generated by GitHub App webhooks.
+  headers:
+    X-RateLimit-Limit:
+      description: Maximum requests allowed within the rate limiting window or token
+        bucket burst capacity
+      schema:
+        type: integer
+    X-RateLimit-Remaining:
+      description: Remaining request quota available in the bucket
+      schema:
+        type: integer
+    X-RateLimit-Reset:
+      description: Number of seconds until rate limit quota is fully restored
+      schema:
+        type: integer
+    Retry-After:
+      description: Mandatory number of seconds client must wait before retrying the
+        request
+      schema:
+        type: integer
+  responses:
+    TooManyRequests:
+      description: Rate limit exceeded. Client has exhausted allowable requests in
+        the current window.
+      headers:
+        Retry-After:
+          ? ''
+          : '#/components/headers/Retry-After'
+        X-RateLimit-Limit:
+          ? ''
+          : '#/components/headers/X-RateLimit-Limit'
+        X-RateLimit-Remaining:
+          ? ''
+          : '#/components/headers/X-RateLimit-Remaining'
+        X-RateLimit-Reset:
+          ? ''
+          : '#/components/headers/X-RateLimit-Reset'
+      content:
+        application/problem+json:
+          schema:
+            ? ''
+            : '#/components/schemas/ApiProblemEnvelope'

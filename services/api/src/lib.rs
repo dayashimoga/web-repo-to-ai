@@ -23,6 +23,10 @@ pub use dto::{
 };
 pub use error::*;
 pub use extractors::{AuthCaller, RequireAuth, ValidatedJson, ValidatedPath, ValidatedQuery};
+pub use middleware::{
+    rate_limit_middleware, trace_id_middleware, HEADER_RATELIMIT_LIMIT, HEADER_RATELIMIT_REMAINING,
+    HEADER_RATELIMIT_RESET, HEADER_REQUEST_ID, HEADER_TRACEPARENT,
+};
 pub use server::{build_app, run_server};
 pub use state::AppState;
 

@@ -14,19 +14,24 @@ pub mod config;
 pub mod crypto;
 pub mod error;
 pub mod id;
+pub mod rate_limit;
 pub mod traits;
 
 // Re-exports for clean ergonomic use
 pub use auth::{ApiKeyRecord, ApiKeyScope, AuthenticatedCaller, GeneratedApiKey, API_KEY_PREFIX};
 pub use config::{
-    AppConfig, DatabaseConfig, Environment, ExtractionConfig, OptimizationConfig, SecurityConfig,
-    ServerConfig, StorageBackend, StorageConfig,
+    AppConfig, DatabaseConfig, Environment, ExtractionConfig, OptimizationConfig, RateLimitConfig,
+    SecurityConfig, ServerConfig, StorageBackend, StorageConfig,
 };
 pub use crypto::{
     build_token_aad, decrypt_token, encrypt_token, Aes256GcmEngine, EncryptedPayload, EncryptionKey,
 };
 pub use error::{ApiError, ApiErrorEnvelope, CoreError, ErrorCode, Result};
 pub use id::{ArtifactId, BatchId, DocumentId, JobId, RequestId, TenantId};
+pub use rate_limit::{
+    InMemoryTieredRateLimiter, RateLimitDecision, RateLimitTier, RateLimiter, SlidingWindowCounter,
+    TokenBucket,
+};
 pub use traits::{Clock, Identifiable, SystemClock, Validatable};
 
 /// Returns the semantic crate version.
