@@ -5400,3 +5400,83 @@
   - All 5 monorepo quality gates pass with 0 failures.
 - **Status:** `ACCEPTED`
 
+---
+
+#### Subphase `9.3.2` — Conversion tools
+- **Unique ID:** `9.3.2`
+- **Objective:** Expose universal webpage and GitHub repository conversion as registered Model Context Protocol (MCP) tools with token budgeting, schema validation, SSRF defenses, directory traversal prevention, and multi-format content payloads.
+- **Scope:** `crates/mcp/src/tools/` (`convert_url.rs`, `convert_repo.rs`, `detect_source.rs`, `optimize_context.rs`, `export.rs`, `mod.rs`), `crates/mcp/Cargo.toml`, `crates/mcp/src/lib.rs`, `crates/mcp/src/server/service.rs`, `crates/mcp/src/bin/main.rs`, `crates/cli/src/commands/mcp.rs`, and integration test suite `crates/mcp/tests/tools_test.rs`.
+- **Prerequisites:** Subphase `9.3.1` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/mcp/Cargo.toml`
+  - `crates/mcp/src/lib.rs`
+  - `crates/mcp/src/server/service.rs`
+  - `crates/mcp/src/bin/main.rs`
+  - `crates/cli/src/commands/mcp.rs`
+  - `crates/mcp/src/tools/mod.rs`
+  - `crates/mcp/src/tools/export.rs`
+  - `crates/mcp/src/tools/convert_url.rs`
+  - `crates/mcp/src/tools/convert_repo.rs`
+  - `crates/mcp/src/tools/detect_source.rs`
+  - `crates/mcp/src/tools/optimize_context.rs`
+  - `crates/mcp/tests/tools_test.rs`
+  - `PROJECT_STATUS.md`
+  - `TODO.md`
+  - `CHANGELOG.md`
+  - `ROADMAP.md`
+  - `docs/ROADMAP.md`
+  - `IMPLEMENTATION_LEDGER.md`
+- **Implementation Highlights:**
+  1. Implemented `convert_url` tool (`ConvertUrlHandler`) in `crates/mcp/src/tools/convert_url.rs`:
+     - Parses and validates target URL using `UrlSecurityPolicy` (default zero-trust policy blocking private/loopback/cloud-metadata IPs).
+     - Resolves DNS and pins IP addresses securely via `SecureDnsResolver` to defend against DNS rebinding and SSRF attacks.
+     - Fetches web content via `WebFetcher` with configurable timeouts and streaming body limits.
+     - Extracts boilerplate-free semantic article text and metadata via `ArticleExtractor`.
+     - Assembles Canonical Context Document (`CdmDocumentBuilder`) with `SectionKind::Prose`.
+     - Conditionally applies document normalization (`normalize_document`) and token budget optimization (`ContextBudgetOptimizer` and `ContextBudget::with_total_tokens`).
+     - Supports dependency injection for testing via `ConvertUrlHandler::with_deps(custom_transport, custom_resolver)`.
+  2. Implemented `convert_repo` tool (`ConvertRepoHandler`) in `crates/mcp/src/tools/convert_repo.rs`:
+     - Validates and sanitizes optional subpaths using `validate_and_sanitize_subpath` to prevent directory traversal attacks (rejecting `..` and null bytes).
+     - Dispatches between local filesystem directories and remote GitHub repositories.
+     - Local filesystem scanner traverses directory trees recursively, filters standard ignore directories (`.git`, `target`, `node_modules`, `dist`, `build`), skips binary content, classifies files using `FileClassifier`, detects syntax language using `detect_language`, and builds CDM code sections (`SectionKind::CodeFile`).
+     - GitHub extractor integrates with `GitHubApiClient` (`get_repo_metadata`, `resolve_commit_sha`, `get_tree`, `classify_tree`, `get_blob`), filters extractable text blobs, detects languages, and constructs CDM document with revision info (`RevisionInfo` with Git commit SHA and branch).
+     - Applies optional normalization and token budget optimization.
+  3. Implemented `detect_source` tool (`DetectSourceHandler`) in `crates/mcp/src/tools/detect_source.rs`:
+     - Inspects input paths and URLs, classifying them into `local_directory`, `github_repository`, `web_documentation`, `web_article`, `file_resource`, `generic_web`, or `unknown`.
+     - Returns structured JSON metadata with canonical URLs, owner/repo coordinates, branch refs, and domains.
+  4. Implemented `optimize_context` tool (`OptimizeContextHandler`) in `crates/mcp/src/tools/optimize_context.rs`:
+     - Counts tokens using target model tokenizers (`TargetModel::from_name` supporting GPT-4o, Claude 3.5 Sonnet, Gemini 1.5 Pro, Llama 3, Mistral).
+     - Returns content untouched if within budget ceiling (`truncated: false`, `tokensPruned: 0`).
+     - Prunes line-level content when exceeding budget ceiling, reporting exact initial and pruned token counts (`truncated: true`).
+  5. Implemented `export_cdm_to_string` helper in `crates/mcp/src/tools/export.rs`:
+     - Unifies multi-format string export across `markdown`, `txt`, `json`, `html`, `jsonl`, `manifest`, `checksums`, and `zip`.
+  6. Registered default conversion tools via `register_default_tools` and added `.with_default_tools()` method to `McpServerBuilder`.
+  7. Integrated `.with_default_tools()` into `web-repo-to-ai-mcp` daemon binary and `web-repo-to-ai mcp` CLI command.
+  8. Authored 8 comprehensive integration tests in `crates/mcp/tests/tools_test.rs`:
+     - `test_default_tools_registration_and_list`: verified all 4 tools register with valid JSON schemas.
+     - `test_detect_source_tool`: verified local directory, GitHub repository, documentation URL, and unknown classification.
+     - `test_optimize_context_tool`: verified within-budget pass-through and exceeding-budget pruning with metrics.
+     - `test_convert_url_ssrf_defense_rejection`: verified loopback, cloud metadata, and invalid scheme rejections.
+     - `test_convert_url_mock_fetch_and_multi_format_exports`: verified HTML article extraction and multi-format exports (Markdown, JSON, text, HTML, manifest, checksums, ZIP).
+     - `test_convert_repo_path_traversal_rejection`: verified `../../etc` directory traversal rejection.
+     - `test_convert_repo_local_directory_extraction`: verified local directory recursive scanning, subpath filtering, and multi-format export.
+     - `test_dispatcher_tools_call_end_to_end`: verified full MCP handshake and tool call dispatch over `ChannelTransport`.
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-mcp` (26 tests passing)
+  - `cargo test --workspace` (644 tests passing)
+  - `cargo clippy --workspace --all-targets -- -D warnings` (0 warnings, 0 errors)
+  - `cargo fmt --all -- --check` (100% clean formatting)
+  - `cargo deny check` (advisories ok, bans ok, licenses ok, sources ok)
+  - `powershell scripts/check-all.ps1` (5/5 gates passed)
+- **Acceptance Criteria:**
+  - All 4 conversion tools (`convert_url`, `convert_repo`, `detect_source`, `optimize_context`) registered and callable over MCP protocol.
+  - Zero-mock policy enforced: real SSRF validation, real HTML article extraction, real CDM builder, real tokenizer counting, and real multi-format exporters.
+  - SSRF loopback, link-local, and cloud metadata access rejected with informative errors.
+  - Subpath directory traversal attacks rejected with validation errors.
+  - Context budget optimization enforces token ceilings.
+  - All 26 MCP tests and 644 workspace tests pass cleanly.
+  - Disk space constraint satisfied ($\ge 70$ GB free on `C:`).
+  - All 5 monorepo quality gates pass with 0 failures.
+- **Status:** `ACCEPTED`
+
+

@@ -97,7 +97,7 @@
 - **Phases:**
   - `9.1` REST API (`9.1.1` [ACCEPTED], `9.1.2` [ACCEPTED], `9.1.3` [ACCEPTED], `9.1.4` [ACCEPTED] — **PHASE 9.1 CERTIFIED**)
   - `9.2` CLI (`9.2.1` [ACCEPTED], `9.2.2` [ACCEPTED], `9.2.3` [ACCEPTED], `9.2.4` [ACCEPTED] — **PHASE 9.2 CERTIFIED**)
-  - `9.3` MCP (`9.3.1` [ACCEPTED], `9.3.2` – `9.3.4`)
+  - `9.3` MCP (`9.3.1` [ACCEPTED], `9.3.2` [ACCEPTED], `9.3.3` – `9.3.4`)
   - `9.4` Browser integration (`9.4.1` – `9.4.4`)
 
 ### STAGE 10 — ADVANCED DOCUMENTS AND CONTENT

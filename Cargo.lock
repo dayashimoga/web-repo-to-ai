@@ -2733,8 +2733,10 @@ name = "web-repo-to-ai-mcp"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "chrono",
  "clap",
  "futures",
+ "reqwest",
  "serde",
  "serde_json",
  "thiserror 1.0.69",
@@ -2742,9 +2744,18 @@ dependencies = [
  "tokio-util",
  "tracing",
  "tracing-subscriber",
+ "url",
  "uuid",
  "web-repo-to-ai-cdm",
+ "web-repo-to-ai-context-optimizer",
  "web-repo-to-ai-core",
+ "web-repo-to-ai-deduplication",
+ "web-repo-to-ai-exporters",
+ "web-repo-to-ai-github-extractor",
+ "web-repo-to-ai-normalizer",
+ "web-repo-to-ai-tokenizer",
+ "web-repo-to-ai-url-security",
+ "web-repo-to-ai-web-extractor",
 ]
 
 [[package]]

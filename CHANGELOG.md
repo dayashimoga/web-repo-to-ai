@@ -6,6 +6,20 @@
 
 ## [Unreleased] — Stage 9: Developer and AI Agent Integrations
 
+### 2026-11-19 — Phase 9.3: MCP (`9.3.2`)
+
+#### Added
+- **`[9.3.2]` Conversion tools in `crates/mcp`:**
+  - Implemented Model Context Protocol conversion tools module (`crates/mcp/src/tools/`):
+    - `convert_url` (`crates/mcp/src/tools/convert_url.rs`): Exposes universal webpage and documentation extraction to MCP clients with zero-trust SSRF and DNS-rebinding security defenses via `UrlSecurityPolicy` and `SecureDnsResolver`, semantic article extraction via `ArticleExtractor`, Canonical Context Document (CDM) assembly, optional line-level normalization, token budget optimization via `ContextBudgetOptimizer`, and 8 export formats (`markdown`, `txt`, `json`, `html`, `jsonl`, `zip`, `manifest`, `checksums`).
+    - `convert_repo` (`crates/mcp/src/tools/convert_repo.rs`): Converts GitHub repositories (via REST API client) and local filesystem directories into structured CDM context with syntax language detection, standard directory and vendor exclusion, subpath filtering with path traversal defenses, model token budgeting, and multi-format exports.
+    - `detect_source` (`crates/mcp/src/tools/detect_source.rs`): Inspects input strings to detect source archetypes (`github_repository`, `web_documentation`, `web_article`, `file_resource`, `generic_web`, `local_directory`, or `unknown`) with structured JSON classification metadata.
+    - `optimize_context` (`crates/mcp/src/tools/optimize_context.rs`): Provides standalone model-specific token counting and intelligent budget pruning across model architectures (`gpt-4o`, `claude-3-5-sonnet`, `gemini-1-5-pro`).
+    - `export_cdm_to_string` helper (`crates/mcp/src/tools/export.rs`): Serializes CDM documents into Markdown, plaintext, JSON, HTML, JSONL, package manifests, and BSD/GNU coreutils checksums.
+  - Registered default conversion tools via `McpServerBuilder::with_default_tools()`, wired into both the `web-repo-to-ai-mcp` daemon binary and the `web-repo-to-ai mcp` CLI subcommand.
+  - Authored 8 new integration tests in `crates/mcp/tests/tools_test.rs` covering schema introspection, SSRF defenses, path traversal defenses, mock HTTP article extraction, local directory conversion, model token optimization, and end-to-end channel dispatch.
+  - Total crate tests in `crates/mcp` expanded to 26; monorepo workspace tests expanded to 644 passing tests.
+
 ### 2026-11-19 — Phase 9.3: MCP (`9.3.1`)
 
 #### Added

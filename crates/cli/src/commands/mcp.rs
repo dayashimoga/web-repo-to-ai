@@ -18,6 +18,7 @@ pub async fn execute_mcp(args: &McpArgs) -> Result<i32, CliError> {
             "Universal URL & GitHub Repository to AI-Ready Context Converter. \
              Converts live webpages and GitHub repositories into optimized context for LLMs.",
         )
+        .with_default_tools()
         .build();
 
     let transport = StdioTransport::new();

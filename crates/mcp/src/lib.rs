@@ -13,6 +13,7 @@
 pub mod error;
 pub mod protocol;
 pub mod server;
+pub mod tools;
 pub mod transport;
 
 pub use error::{jsonrpc_codes, McpError};
@@ -26,5 +27,10 @@ pub use protocol::{
 pub use server::{
     FnResourceHandler, FnToolHandler, McpDispatcher, McpServer, McpServerBuilder, PromptHandler,
     ResourceHandler, ServerLifecycleState, ServerRegistry, ServerState, ToolHandler,
+};
+pub use tools::{
+    detect_source_tool, optimize_context_tool, register_default_tools, repo_tool, url_tool,
+    ConvertRepoHandler, ConvertRepoParams, ConvertUrlHandler, ConvertUrlParams,
+    DetectSourceHandler, DetectSourceParams, OptimizeContextHandler, OptimizeContextParams,
 };
 pub use transport::{ChannelTransport, StdioTransport, Transport};

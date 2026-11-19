@@ -139,6 +139,13 @@ impl McpServerBuilder {
         self
     }
 
+    /// Automatically registers all default conversion tools (`convert_url`, `convert_repo`, `detect_source`, `optimize_context`).
+    #[must_use]
+    pub fn with_default_tools(mut self) -> Self {
+        crate::tools::register_default_tools(&mut self.registry);
+        self
+    }
+
     /// Registers a tool with its execution handler.
     #[must_use]
     pub fn register_tool(mut self, tool: Tool, handler: Arc<dyn ToolHandler>) -> Self {

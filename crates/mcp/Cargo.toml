@@ -22,11 +22,22 @@ workspace = true
 [dependencies]
 web-repo-to-ai-core = { workspace = true }
 web-repo-to-ai-cdm = { workspace = true }
+web-repo-to-ai-url-security = { workspace = true }
+web-repo-to-ai-web-extractor = { workspace = true }
+web-repo-to-ai-github-extractor = { workspace = true }
+web-repo-to-ai-normalizer = { workspace = true }
+web-repo-to-ai-deduplication = { workspace = true }
+web-repo-to-ai-tokenizer = { workspace = true }
+web-repo-to-ai-context-optimizer = { workspace = true }
+web-repo-to-ai-exporters = { workspace = true }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "io-std", "io-util", "sync", "time"] }
 tokio-util = { workspace = true, features = ["codec"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
+url = { workspace = true }
+reqwest = { workspace = true, features = ["json"] }
+chrono = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["env-filter", "fmt"] }
 async-trait = { workspace = true }

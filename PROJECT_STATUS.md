@@ -5,9 +5,9 @@
 **Current Stage:** `STAGE 9 — DEVELOPER AND AI AGENT INTEGRATIONS` (`IN_PROGRESS`)  
 **Last Completed Stage:** `STAGE 8 — LARGE REPOSITORIES, BATCH AND CRAWLING` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Last Completed Phase:** `Phase 9.2 — CLI` (`100% COMPLETED & FORMALLY CERTIFIED`)  
-**Active Subphase:** `None (Awaiting confirmation for Subphase 9.3.2)`  
-**Last Completed Subphase:** `9.3.1 — MCP server foundation (crates/mcp: Model Context Protocol stdio transport, JSON-RPC 2.0 dispatch, and protocol lifecycle)` (`ACCEPTED`)  
-**Next Upcoming Subphase:** `9.3.2 — Conversion tools (crates/mcp: MCP tools for URL and repository conversion with context budget optimization)`
+**Active Subphase:** `None (awaiting user confirmation to proceed to Subphase 9.3.3)`  
+**Last Completed Subphase:** `9.3.2 — Conversion tools (crates/mcp: Model Context Protocol tools for universal URL and repository conversion with context budget optimization)` (`ACCEPTED`)  
+**Next Upcoming Subphase:** `9.3.3 — Resource retrieval (crates/mcp: Model Context Protocol resource providers for converted documents, archives, and completeness reports)`
 
 ---
 
@@ -29,6 +29,14 @@ In Stage 9 ("Developer and AI Agent Integrations"):
 
 - Phase 9.3 ("MCP") is in progress:
   - Subphase `9.3.1` delivered `crates/mcp` implementing the foundational Model Context Protocol server. Implemented the full JSON-RPC 2.0 protocol layer (`RequestId`, `JsonRpcRequest`, `JsonRpcResponse`, `JsonRpcNotification`, `JsonRpcError`, `JsonRpcMessage`) supporting integer and string IDs. Implemented official MCP specification types (version 2024-11-05: `ClientInfo`, `ServerInfo`, `ServerCapabilities`, `ClientCapabilities`, `InitializeParams`, `InitializeResult`, `Tool`, `CallToolParams`, `CallToolResult`, `Resource`, `ReadResourceParams`, `ReadResourceResult`, `Prompt`, `ListPromptsResult`, `LoggingLevel`). Implemented `Transport` trait with production newline-delimited `StdioTransport` (reserving stdout exclusively for JSON-RPC messages and routing all tracing to stderr) and duplex in-memory `ChannelTransport` for testing. Implemented strict server lifecycle state machine (`ServerLifecycleState`: `Uninitialized`, `Initializing`, `Initialized`, `ShuttingDown`, `Terminated`) enforcing protocol initialization before tool or resource access. Implemented thread-safe registries (`ServerRegistry`, `ToolHandler`, `FnToolHandler`, `ResourceHandler`, `FnResourceHandler`, `PromptHandler`), async request dispatcher (`McpDispatcher`), and fluent builder `McpServerBuilder`. Created standalone daemon binary `web-repo-to-ai-mcp` and integrated the `web-repo-to-ai mcp` subcommand in `crates/cli`. Authored 18 integration tests in `crates/mcp` across protocol serialization, lifecycle state transitions, transport I/O, and end-to-end dispatch execution. Verified with 18 MCP tests, 48 CLI tests, 636 workspace tests, zero clippy warnings, zero fmt diffs, cargo deny clean, and 100% passing quality gates (5/5).
+  - Subphase `9.3.2` delivered Model Context Protocol conversion tools in `crates/mcp`:
+    - Implemented `convert_url` tool (`ConvertUrlHandler`) exposing universal webpage and documentation extraction with SSRF and DNS-rebinding security defenses via `UrlSecurityPolicy` and `SecureDnsResolver`, semantic article extraction via `ArticleExtractor`, Canonical Context Document (CDM) assembly, optional line-level normalization, token budget optimization via `ContextBudgetOptimizer`, and 8 export formats (`markdown`, `txt`, `json`, `html`, `jsonl`, `zip`, `manifest`, `checksums`).
+    - Implemented `convert_repo` tool (`ConvertRepoHandler`) converting GitHub repositories (via REST API) and local filesystem directories into structured CDM context with syntax language detection, standard directory and vendor exclusion, subpath filtering with path traversal defenses, model token budgeting, and multi-format exports.
+    - Implemented `detect_source` tool (`DetectSourceHandler`) inspecting input strings to detect source archetypes (`github_repository`, `web_documentation`, `web_article`, `file_resource`, `generic_web`, `local_directory`, or `unknown`) with structured JSON classification metadata.
+    - Implemented `optimize_context` tool (`OptimizeContextHandler`) providing standalone token counting and intelligent budget pruning across model architectures (`gpt-4o`, `claude-3-5-sonnet`, `gemini-1-5-pro`).
+    - Implemented `export_cdm_to_string` helper in `crates/mcp/src/tools/export.rs` serializing CDM documents to Markdown, plaintext, JSON, HTML, JSONL, package manifests, and BSD/GNU coreutils checksums.
+    - Registered default conversion tools via `McpServerBuilder::with_default_tools()`, exposed across both `web-repo-to-ai-mcp` daemon and `web-repo-to-ai mcp` CLI subcommand.
+    - Authored 8 new integration tests in `crates/mcp/tests/tools_test.rs` covering schema introspection, SSRF defenses, path traversal defenses, mock HTTP article extraction, local directory conversion, model token optimization, and end-to-end channel dispatch. Verified with 26 MCP tests, 644 workspace tests, zero clippy warnings, zero fmt diffs, cargo deny clean, and 100% passing quality gates (5/5).
 
 ---
 
@@ -36,12 +44,12 @@ In Stage 9 ("Developer and AI Agent Integrations"):
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 153 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1`, `9.1.2`, `9.1.3`, `9.1.4`, `9.2.1`, `9.2.2`, `9.2.3`, `9.2.4`, `9.3.1` |
+| `ACCEPTED` | 154 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1`, `9.1.2`, `9.1.3`, `9.1.4`, `9.2.1`, `9.2.2`, `9.2.3`, `9.2.4`, `9.3.1`, `9.3.2` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 43 | `9.3.2` – `11.4.5` |
+| `NOT_STARTED` | 42 | `9.3.3` – `11.4.5` |
 | **Total** | **196** | `Stage 0` – `Stage 11` |
 
 ---
