@@ -51,6 +51,8 @@ pub enum Commands {
     Verify(VerifyArgs),
     /// Generate shell completion scripts for supported shells
     Completions(CompletionsArgs),
+    /// Run Model Context Protocol (MCP) server over standard I/O (stdio)
+    Mcp(McpArgs),
 }
 
 /// Supported output artifact formats.
@@ -385,4 +387,12 @@ pub struct VerifyArgs {
     /// Strict CDM structural validation for JSON and Markdown artifacts
     #[arg(long, default_value_t = false)]
     pub strict: bool,
+}
+
+/// Arguments for the `mcp` subcommand.
+#[derive(Debug, Clone, Args, PartialEq, Eq)]
+pub struct McpArgs {
+    /// Override the reported MCP server name
+    #[arg(long, default_value = "web-repo-to-ai-mcp")]
+    pub name: String,
 }

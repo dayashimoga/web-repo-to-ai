@@ -35,6 +35,7 @@ web-repo-to-ai-tokenizer = { workspace = true }
 web-repo-to-ai-context-optimizer = { workspace = true }
 web-repo-to-ai-exporters = { workspace = true }
 web-repo-to-ai-observability = { workspace = true }
+web-repo-to-ai-mcp = { workspace = true }
 clap = { workspace = true }
 clap_complete = { workspace = true }
 sha2 = { workspace = true }

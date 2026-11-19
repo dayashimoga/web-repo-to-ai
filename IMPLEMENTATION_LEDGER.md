@@ -5335,3 +5335,68 @@
   - Disk space constraint satisfied ($\ge 70$ GB free on `C:`).
   - All 5 monorepo quality gates pass with 0 failures.
 - **Status:** `ACCEPTED`
+
+#### Subphase `9.3.1` — MCP server foundation in crates/mcp
+- **Unique ID:** `9.3.1`
+- **Objective:** Deliver the foundational Model Context Protocol (MCP) server crate (`crates/mcp`), implementing JSON-RPC 2.0 framing and serialization, official MCP 2024-11-05 data structures, stdio and in-memory channel transports, server lifecycle state machine, extensible tool and resource registries, async request dispatching, standalone binary (`web-repo-to-ai-mcp`), and CLI subcommand integration.
+- **Scope:** `crates/mcp`, `crates/cli`, `Cargo.toml`.
+- **Prerequisites:** Phase `9.2` Certified.
+- **Files/Components Affected:**
+  - `Cargo.toml`
+  - `Cargo.lock`
+  - `crates/mcp/Cargo.toml`
+  - `crates/mcp/src/lib.rs`
+  - `crates/mcp/src/error.rs`
+  - `crates/mcp/src/protocol/mod.rs`
+  - `crates/mcp/src/protocol/jsonrpc.rs`
+  - `crates/mcp/src/protocol/types.rs`
+  - `crates/mcp/src/transport/mod.rs`
+  - `crates/mcp/src/transport/trait.rs`
+  - `crates/mcp/src/transport/channel.rs`
+  - `crates/mcp/src/transport/stdio.rs`
+  - `crates/mcp/src/server/mod.rs`
+  - `crates/mcp/src/server/state.rs`
+  - `crates/mcp/src/server/registry.rs`
+  - `crates/mcp/src/server/dispatcher.rs`
+  - `crates/mcp/src/server/service.rs`
+  - `crates/mcp/src/bin/main.rs`
+  - `crates/mcp/tests/protocol_test.rs`
+  - `crates/mcp/tests/server_lifecycle_test.rs`
+  - `crates/mcp/tests/stdio_transport_test.rs`
+  - `crates/mcp/tests/dispatch_integration_test.rs`
+  - `crates/cli/Cargo.toml`
+  - `crates/cli/src/args.rs`
+  - `crates/cli/src/commands/mod.rs`
+  - `crates/cli/src/commands/mcp.rs`
+  - `crates/cli/src/lib.rs`
+  - `crates/cli/tests/binary_alias_test.rs`
+- **Implementation Highlights:**
+  1. Created new workspace crate `crates/mcp` (`web-repo-to-ai-mcp`) and registered it in root `Cargo.toml`.
+  2. Implemented `crates/mcp/src/protocol/jsonrpc.rs` with `RequestId` (`Number` and `String`), `JsonRpcRequest`, `JsonRpcResponse`, `JsonRpcNotification`, `JsonRpcError` with standard JSON-RPC 2.0 codes, and `JsonRpcMessage` parser.
+  3. Implemented MCP 2024-11-05 protocol types in `crates/mcp/src/protocol/types.rs` (`ClientInfo`, `ServerInfo`, `ServerCapabilities`, `ClientCapabilities`, `InitializeParams`, `InitializeResult`, `Tool`, `CallToolParams`, `CallToolResult`, `Resource`, `ReadResourceParams`, `ReadResourceResult`, `Prompt`, `ListPromptsResult`, `LoggingLevel`).
+  4. Implemented `Transport` trait in `crates/mcp/src/transport/trait.rs`, `ChannelTransport` in `channel.rs` (in-memory duplex communication via `tokio::sync::mpsc`), and `StdioTransport` in `stdio.rs` with line-delimited stdout framing and isolated `stderr` tracing initialization (`init_stdio_tracing`) ensuring clean JSON-RPC traffic.
+  5. Implemented `ServerLifecycleState` state machine in `crates/mcp/src/server/state.rs` strictly validating transitions (`Uninitialized` -> `Initializing` -> `Initialized` -> `ShuttingDown` -> `Terminated`) and guarding tool/resource endpoints against uninitialized access.
+  6. Implemented extensible registries (`ServerRegistry`, `ToolHandler`, `FnToolHandler`, `ResourceHandler`, `FnResourceHandler`, `PromptHandler`) supporting async closures for tool execution and resource reading.
+  7. Implemented `McpDispatcher` in `crates/mcp/src/server/dispatcher.rs` handling `initialize`, `ping`, `tools/list`, `tools/call`, `resources/list`, `resources/read`, `prompts/list`, `logging/setLevel`, and `notifications/cancelled`.
+  8. Implemented `McpServerBuilder` fluent configuration API and `McpServer` runtime event loop in `crates/mcp/src/server/service.rs`.
+  9. Created executable binary `web-repo-to-ai-mcp` in `crates/mcp/src/bin/main.rs`.
+  10. Integrated MCP into `crates/cli` via `web-repo-to-ai mcp` command in `crates/cli/src/commands/mcp.rs`.
+  11. Authored 18 integration tests across `protocol_test.rs` (10 tests), `server_lifecycle_test.rs` (4 tests), `stdio_transport_test.rs` (3 tests), and `dispatch_integration_test.rs` (1 test).
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-mcp` (18 tests passing)
+  - `cargo test -p web-repo-to-ai-cli` (48 tests passing)
+  - `cargo test --workspace` (636 tests passing)
+  - `cargo clippy --workspace --all-targets -- -D warnings` (0 warnings, 0 errors)
+  - `cargo fmt --all -- --check` (100% clean formatting)
+  - `cargo deny check` (advisories ok, bans ok, licenses ok, sources ok)
+  - `powershell scripts/check-all.ps1` (5/5 gates passed)
+- **Acceptance Criteria:**
+  - All 18 MCP integration tests pass cleanly.
+  - JSON-RPC 2.0 serialization, deserialization, and error codes match specification.
+  - MCP initialization handshake and state machine enforce proper lifecycle progression.
+  - Stdio transport routes protocol messages exclusively to stdout and tracing diagnostics to stderr.
+  - Standalone binary `web-repo-to-ai-mcp` and CLI subcommand `web-repo-to-ai mcp` compile and run.
+  - Disk space constraint satisfied ($\ge 70$ GB free on `C:`).
+  - All 5 monorepo quality gates pass with 0 failures.
+- **Status:** `ACCEPTED`
+

@@ -25,7 +25,15 @@ async fn test_primary_and_alias_binary_help() {
 
 #[tokio::test]
 async fn test_primary_and_alias_subcommand_dispatch() {
-    let subcommands = ["url", "repo", "config", "batch", "verify", "completions"];
+    let subcommands = [
+        "url",
+        "repo",
+        "config",
+        "batch",
+        "verify",
+        "completions",
+        "mcp",
+    ];
 
     for sc in &subcommands {
         let code_prim = run_cli_with_args(["web-repo-to-ai", sc, "--help"]).await;

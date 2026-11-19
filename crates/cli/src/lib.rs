@@ -19,14 +19,15 @@ use web_repo_to_ai_url_security::SecureDnsResolver;
 use web_repo_to_ai_web_extractor::http::HttpTransport;
 
 pub use args::{
-    BatchArgs, Cli, Commands, CompletionsArgs, ConfigAction, ConfigArgs, OutputFormat, RepoArgs,
-    ShellType, UrlArgs, VerifyArgs,
+    BatchArgs, Cli, Commands, CompletionsArgs, ConfigAction, ConfigArgs, McpArgs, OutputFormat,
+    RepoArgs, ShellType, UrlArgs, VerifyArgs,
 };
 pub use commands::batch::{
     execute_batch, execute_batch_with_options, BatchItemResult, BatchJsonEnvelope,
 };
 pub use commands::completions::execute_completions;
 pub use commands::config::execute_config;
+pub use commands::mcp::execute_mcp;
 pub use commands::repo::{execute_repo, execute_repo_with_client};
 pub use commands::url::{execute_url, execute_url_with_options, execute_url_with_transport};
 pub use commands::verify::{execute_verify, VerifyItemResult, VerifyJsonEnvelope};
@@ -156,5 +157,6 @@ async fn run_with_parsed(
         }
         Commands::Verify(verify_args) => execute_verify(&verify_args, &writer).await,
         Commands::Completions(completions_args) => execute_completions(&completions_args),
+        Commands::Mcp(mcp_args) => execute_mcp(&mcp_args).await,
     }
 }

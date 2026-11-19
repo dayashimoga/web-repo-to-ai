@@ -6,6 +6,43 @@
 
 ## [Unreleased] — Stage 9: Developer and AI Agent Integrations
 
+### 2026-11-19 — Phase 9.3: MCP (`9.3.1`)
+
+#### Added
+- **`[9.3.1]` MCP server foundation in `crates/mcp`:**
+  - Created library crate `crates/mcp` (`web-repo-to-ai-mcp`) and binary entry point `src/bin/main.rs`.
+  - Implemented full JSON-RPC 2.0 protocol layer in `crates/mcp/src/protocol/jsonrpc.rs`:
+    - `RequestId` enum supporting both integer (`Number(i64)`) and string (`String(String)`) identifiers with custom serde serialization and deserialization.
+    - `JsonRpcRequest`, `JsonRpcResponse`, `JsonRpcNotification`, and `JsonRpcError` with standard JSON-RPC 2.0 error codes (`PARSE_ERROR`, `INVALID_REQUEST`, `METHOD_NOT_FOUND`, `INVALID_PARAMS`, `INTERNAL_ERROR`).
+    - Unified `JsonRpcMessage` envelope with robust string parsing and version validation (`jsonrpc: "2.0"`).
+  - Implemented Model Context Protocol specification data structures in `crates/mcp/src/protocol/types.rs` (MCP 2024-11-05):
+    - `ClientInfo`, `ServerInfo`, `ServerCapabilities`, `ClientCapabilities`.
+    - `InitializeParams` and `InitializeResult` with camelCase wire serialization and AI instruction support.
+    - `Tool`, `CallToolParams`, `CallToolResult`, `ToolContent` (Text, Image, Resource).
+    - `Resource`, `ReadResourceParams`, `ReadResourceResult`, `ResourceContents`.
+    - `Prompt`, `PromptArgument`, `ListPromptsResult`.
+    - `LoggingLevel`, `SetLevelParams`, `LoggingMessageParams`, and `CancelledNotificationParams`.
+  - Implemented transport abstractions in `crates/mcp/src/transport/`:
+    - `Transport` async trait with `read_message`, `send_response`, and `send_notification`.
+    - `StdioTransport` operating over `stdin` and `stdout` with newline-delimited JSON-RPC framing and isolated stderr-only tracing initialization (`init_stdio_tracing`) ensuring zero stream pollution.
+    - `ChannelTransport` for in-memory bidirectional Tokio channel communication used in test suites.
+  - Implemented server lifecycle state machine in `crates/mcp/src/server/state.rs`:
+    - Enforced `Uninitialized` -> `Initializing` -> `Initialized` -> `ShuttingDown` -> `Terminated` progression.
+    - Guarded all tool, resource, and prompt operations against invocation prior to successful `initialize` handshake.
+  - Implemented extensible registries and request dispatcher in `crates/mcp/src/server/`:
+    - `ServerRegistry` with `ToolHandler`, `FnToolHandler`, `ResourceHandler`, `FnResourceHandler`, and `PromptHandler`.
+    - `McpDispatcher` routing `initialize`, `ping`, `tools/list`, `tools/call`, `resources/list`, `resources/read`, `prompts/list`, `logging/setLevel`, and notifications.
+    - `McpServerBuilder` fluent configuration API and `McpServer` async event loop runtime.
+  - Integrated MCP into `crates/cli`:
+    - Added `web-repo-to-ai mcp` subcommand executing `McpServer` daemon over stdio.
+    - Added standalone executable `web-repo-to-ai-mcp`.
+  - Authored 18 integration tests across 4 test suites:
+    - `crates/mcp/tests/protocol_test.rs` (10 tests: request id, request parsing, notifications, responses, errors, parse rejection, initialize params, initialize result, tools, resources).
+    - `crates/mcp/tests/server_lifecycle_test.rs` (4 tests: uninitialized state rejection, ping, full lifecycle handshake, logging level).
+    - `crates/mcp/tests/stdio_transport_test.rs` (3 tests: bidirectional exchange, notifications, eof detection).
+    - `crates/mcp/tests/dispatch_integration_test.rs` (1 end-to-end dispatch integration test running background server with custom tool, resource, and prompt).
+  - Verified with 18 MCP tests, 48 CLI tests, 636 workspace tests, zero clippy warnings, zero fmt diffs, cargo deny clean, and 100% quality gate compliance (5/5).
+
 ### 2026-11-19 — Phase 9.2: CLI (`9.2.4` — Phase 9.2 Formal Certification)
 
 #### Added
