@@ -5680,5 +5680,55 @@
   - All 5 monorepo quality gates pass with 0 failures.
 - **Status:** `ACCEPTED`
 
+#### Subphase `9.4.3` — Result handoff
+- **Unique ID:** `9.4.3`
+- **Objective:** Implement one-click clipboard copy (raw content and structured AI prompt), multi-format file download, Web UI workspace deep-link navigation, and conversion history in `apps/extension`.
+- **Scope:** `apps/extension/src/handoff/*`, `apps/extension/src/storage/history.ts`, `apps/extension/src/types/*`, `apps/extension/manifest.json`, `apps/extension/src/background/index.ts`, `apps/extension/src/popup/*`, `apps/extension/tests/*`, and project tracking ledgers.
+- **Prerequisites:** Subphase `9.4.2` (Current-page conversion) ACCEPTED.
+- **Files/Components Affected:**
+  - `apps/extension/manifest.json`: Added `"downloads"` permission.
+  - `apps/extension/src/types/chrome.d.ts`: Extended with `chrome.downloads` namespace typings (`download(options)`).
+  - `apps/extension/src/types/index.ts`: Extended with `HistoryItem`, `CopyMode`, `CopyOptions`, and message types (`GET_HISTORY`, `SAVE_HISTORY_ITEM`, `CLEAR_HISTORY`, `COPY_TO_CLIPBOARD`, `DOWNLOAD_ARTIFACT`, `NAVIGATE_WORKSPACE`).
+  - `apps/extension/src/handoff/clipboard.ts`: Clipboard formatting (`formatContentForClipboard`) supporting raw text, AI prompt mode (`mode: "prompt"` with markdown fences and context instructions), markdown link citations, and dual-mode copying (`copyToClipboard`) with `document.execCommand('copy')` fallback.
+  - `apps/extension/src/handoff/download.ts`: Download dispatcher supporting 6 formats (`markdown`, `txt`, `json`, `html`, `jsonl`, `zip`), MIME/extension mapping, filename sanitization with consecutive dash collapsing, and `triggerFileDownload` using `chrome.downloads.download` with programmatic anchor fallback.
+  - `apps/extension/src/handoff/deeplink.ts`: Deep-link navigation (`buildWorkspaceUrl`, `buildPreviewUrl`, `buildPreFilledUrl`, `navigateToUrl`) opening workspace tabs via `chrome.tabs.create` or `window.open`.
+  - `apps/extension/src/storage/history.ts`: History persistence (`loadHistory`, `addHistoryItem` with deduplication and 20-item ceiling, `removeHistoryItem`, `clearHistory`) via `chrome.storage.local`.
+  - `apps/extension/src/background/index.ts`: Added automatic history logging upon conversion completion in `START_CONVERSION` and message routing for all handoff and history commands.
+  - `apps/extension/src/popup/`: Added "✨ Copy as AI Prompt" button, download dispatching, and collapsible "Recent Conversions" list (`#historyCard`, `#historyToggle`, `#historyList`) with one-click copy and deep-link navigation.
+  - `apps/extension/tests/handoff.test.ts`: 14 unit tests covering prompt formatting, clipboard fallback, filename sanitization, MIME types, and deep-link generation.
+  - `apps/extension/tests/history.test.ts`: 6 unit tests covering persistence, deduplication, 20-item max limit, item removal, and full clearing.
+  - `apps/extension/tests/popup.test.ts`: 9 unit tests covering AI prompt copy, download trigger, workspace navigation, and history rendering.
+- **Implementation Tasks:**
+  1. Extended Manifest V3 with `"downloads"` permission and typings.
+  2. Implemented clipboard formatting and dual-mode copy subsystem in `src/handoff/clipboard.ts`.
+  3. Implemented multi-format download dispatcher and filename sanitization in `src/handoff/download.ts`.
+  4. Implemented workspace deep-linking and URL generation in `src/handoff/deeplink.ts`.
+  5. Implemented conversion history persistence with deduplication and 20-item ceiling in `src/storage/history.ts`.
+  6. Updated background service worker with history persistence and message dispatching.
+  7. Transformed popup UI with AI Prompt copy, download button, and recent conversions section.
+  8. Authored 2 new test suites (`handoff.test.ts`, `history.test.ts`) and updated popup tests (86 tests total).
+  9. Verified full test pipeline, Vite build, TypeScript typecheck, and Prettier formatting.
+  10. Executed monorepo quality gate (`scripts/check-all.ps1`) with 100% passing results.
+- **Verification Commands:**
+  - `npm test` in `apps/extension` (86 unit tests passing)
+  - `npm run build` in `apps/extension` (Vite build successful in 199ms)
+  - `npm run typecheck` in `apps/extension` (tsc --noEmit clean)
+  - `npm run lint` in `apps/extension` (Prettier clean)
+  - `powershell scripts/check-all.ps1` (All 5 gates passed with 0 failures)
+- **Acceptance Criteria:**
+  - Clipboard copy supports both raw text and AI Prompt format with code fences and instructions.
+  - Fallback to `document.execCommand('copy')` succeeds when `navigator.clipboard` is restricted.
+  - Download dispatcher correctly maps MIME types and extensions for all 6 formats.
+  - Filename sanitization produces clean, collision-resistant filenames with short job IDs.
+  - Deep-linking correctly formats workspace URLs (`/workspace?job_id=...`).
+  - Conversion history correctly limits items to 20, deduplicates jobs, and persists via `chrome.storage.local`.
+  - Popup renders prompt copy, download, and recent conversions with interactive controls.
+  - Zero-mock policy enforced across all extension components.
+  - All 86 extension tests, 213 web tests, and 656 workspace tests pass cleanly.
+  - Disk space constraint satisfied ($\ge 70$ GB free on `C:`).
+  - All 5 monorepo quality gates pass with 0 failures.
+- **Status:** `ACCEPTED`
+
+
 
 

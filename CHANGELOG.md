@@ -6,6 +6,47 @@
 
 ## [Unreleased] — Stage 9: Developer and AI Agent Integrations
 
+### 2026-11-19 — Phase 9.4: Browser integration (`9.4.3`)
+
+#### Added
+- **`[9.4.3]` Result handoff in `apps/extension`:**
+  - Clipboard handoff subsystem (`apps/extension/src/handoff/clipboard.ts`):
+    - `formatContentForClipboard`: Supports raw text, structured AI Prompt (`mode: "prompt"`) wrapping source context in markdown code fences with LLM ingestion instructions, markdown link citations (`[title](url)`), and direct URL copying.
+    - `copyToClipboard`: Dual-mode clipboard dispatcher leveraging `navigator.clipboard.writeText` with automated fallback to `document.execCommand('copy')` in headless or permission-restricted environments.
+  - Download dispatcher subsystem (`apps/extension/src/handoff/download.ts`):
+    - `getMimeTypeForFormat` & `getExtensionForFormat`: MIME and extension mapping for all 6 core formats (`markdown`, `txt`, `json`, `html`, `jsonl`, `zip`).
+    - `sanitizeDownloadFilename`: Cleans URLs and page titles, replaces non-alphanumeric characters with hyphens, collapses consecutive hyphens, and attaches job short IDs.
+    - `triggerFileDownload`: Dual-mode file downloader using `chrome.downloads.download` with fallback to synthetic `<a>` link generation and click dispatching.
+  - Deep-link navigation subsystem (`apps/extension/src/handoff/deeplink.ts`):
+    - `buildWorkspaceUrl`: Generates direct workspace deep-links (`{baseUrl}/workspace?job_id={jobId}`).
+    - `buildPreviewUrl`: Generates direct artifact preview links (`{baseUrl}/jobs/{jobId}/preview`).
+    - `buildPreFilledUrl`: Generates pre-populated landing page URLs (`{baseUrl}/?url={encodedUrl}`).
+    - `navigateToUrl`: Opens target URLs via `chrome.tabs.create` or `window.open`.
+  - Conversion history storage (`apps/extension/src/storage/history.ts`):
+    - Strongly-typed `HistoryItem` schema capturing job ID, title, URL, timestamp, token count, file size, and export format.
+    - `loadHistory`, `addHistoryItem` (with duplicate replacement, 20-item ceiling, newest-first ordering), `removeHistoryItem`, and `clearHistory` backed by `chrome.storage.local`.
+  - Background service worker integration (`apps/extension/src/background/index.ts`):
+    - Automatically records completed conversions into history storage in `START_CONVERSION`.
+    - Implemented runtime message handlers for `GET_HISTORY`, `SAVE_HISTORY_ITEM`, `CLEAR_HISTORY`, `COPY_TO_CLIPBOARD`, `DOWNLOAD_ARTIFACT`, and `NAVIGATE_WORKSPACE`.
+  - Popup user interface enhancements (`apps/extension/src/popup/`):
+    - Added "✨ Copy as AI Prompt" button alongside "📋 Copy Raw Content".
+    - Added collapsible "Recent Conversions (<count>)" card (`#historyCard`, `#historyToggle`, `#historyList`) rendering past conversion summaries with one-click deep-link and copy actions.
+  - Manifest & typings updates:
+    - Added `"downloads"` permission to `apps/extension/manifest.json`.
+    - Extended `apps/extension/src/types/chrome.d.ts` with `chrome.downloads` namespace.
+    - Extended `apps/extension/src/types/index.ts` with handoff and history types and message variants.
+  - Comprehensive unit & integration tests (`apps/extension/tests/`):
+    - `tests/handoff.test.ts` (14 tests): Prompt formatting, markdown citations, clipboard copy fallback, filename sanitization, MIME/extension mapping, and deep-link URL building.
+    - `tests/history.test.ts` (6 tests): History loading, addition, deduplication, 20-item ceiling limit, item removal, and full history clearing.
+    - `tests/popup.test.ts` (9 tests): Prompt copy trigger, download button, workspace deep-linking, and recent conversion history list rendering.
+    - Total extension test suite expanded to 86 tests passing.
+  - Quality verification:
+    - 86 extension tests passing in 652ms.
+    - Vite extension build passing in 199ms.
+    - TypeScript strict typecheck (`tsc --noEmit`) clean with zero errors.
+    - Prettier code style clean across all extension source and test files.
+    - Monorepo quality gate (`scripts/check-all.ps1`) 100% passing across all 5 gates.
+
 ### 2026-11-19 — Phase 9.4: Browser integration (`9.4.2`)
 
 #### Added

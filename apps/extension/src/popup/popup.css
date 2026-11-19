@@ -431,6 +431,77 @@ select {
   text-decoration: underline;
 }
 
+/* History Section */
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px;
+  border-radius: 6px;
+  background-color: #0f172a;
+  border: 1px solid var(--border-color);
+  font-size: 11px;
+}
+
+.history-details {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin-right: 8px;
+}
+
+.history-title {
+  font-weight: 600;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.history-meta {
+  color: var(--text-muted);
+  font-size: 10px;
+  display: flex;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.history-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.history-btn {
+  background: none;
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  border-radius: 4px;
+  padding: 2px 6px;
+  cursor: pointer;
+  font-size: 10px;
+}
+
+.history-btn:hover {
+  background-color: var(--card-bg);
+  color: var(--text-main);
+}
+
+.history-empty {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 10px 0;
+}
+
 /* Spinner */
 .spinner {
   width: 14px;

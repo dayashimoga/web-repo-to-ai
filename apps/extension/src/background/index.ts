@@ -3,13 +3,17 @@
 import { ExtensionApiClient } from "../api/client";
 import { ConversionStateMachine } from "../conversion/state";
 import { captureActiveTabDOM } from "../dom/extractor";
+import { copyToClipboard } from "../handoff/clipboard";
+import { navigateToUrl } from "../handoff/deeplink";
 import { loadConfig, resetConfig, saveConfig } from "../storage/config";
+import { addHistoryItem, clearHistory, loadHistory } from "../storage/history";
 import {
   BackendStatus,
   DetectedArchetype,
   ExtensionConfig,
   ExtensionMessage,
   ExtensionResponse,
+  HistoryItem,
   SourceClassification,
   TabInfo,
 } from "../types/index";
@@ -356,6 +360,22 @@ export async function handleMessage(message: ExtensionMessage): Promise<Extensio
           apiClient: client,
         });
 
+        // Automatically record to history
+        try {
+          const tab = await getActiveTab();
+          await addHistoryItem({
+            jobId: result.jobId,
+            url: result.url,
+            title: tab?.title || result.url,
+            format: result.format,
+            tokenCount: result.tokenCount,
+            charCount: result.charCount,
+            downloadUrl: result.downloadUrl,
+          });
+        } catch (histErr) {
+          console.warn("Failed to auto-record conversion history item:", histErr);
+        }
+
         return {
           success: true,
           data: result,
@@ -367,6 +387,47 @@ export async function handleMessage(message: ExtensionMessage): Promise<Extensio
           success: true,
           data: globalConversionStateMachine.getState(),
         };
+      }
+
+      case "GET_HISTORY": {
+        const history = await loadHistory();
+        return { success: true, data: history };
+      }
+
+      case "SAVE_HISTORY_ITEM": {
+        const history = await addHistoryItem(message.item);
+        return { success: true, data: history };
+      }
+
+      case "CLEAR_HISTORY": {
+        await clearHistory();
+        return { success: true, data: [] };
+      }
+
+      case "COPY_TO_CLIPBOARD": {
+        const copied = await copyToClipboard(message.text);
+        return { success: true, data: { copied } };
+      }
+
+      case "DOWNLOAD_ARTIFACT": {
+        if (
+          typeof chrome !== "undefined" &&
+          chrome.downloads &&
+          typeof chrome.downloads.download === "function"
+        ) {
+          const downloadId = await chrome.downloads.download({
+            url: message.url,
+            filename: message.filename,
+            saveAs: false,
+          });
+          return { success: true, data: { downloadId } };
+        }
+        return { success: false, error: "chrome.downloads API not available" };
+      }
+
+      case "NAVIGATE_WORKSPACE": {
+        await navigateToUrl(message.url);
+        return { success: true, data: { navigated: true } };
       }
 
       default: {

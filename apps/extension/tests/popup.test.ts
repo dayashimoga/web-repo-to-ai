@@ -63,9 +63,19 @@ describe("Popup Controller (apps/extension)", () => {
       resChars: { textContent: "0" } as any,
       resFormat: { textContent: "" } as any,
       btnCopyResult: { textContent: "📋 Copy Content", addEventListener: vi.fn() } as any,
+      btnCopyPrompt: { textContent: "✨ Copy as AI Prompt", addEventListener: vi.fn() } as any,
       btnDownloadResult: { addEventListener: vi.fn() } as any,
       btnOpenInWorkspace: { addEventListener: vi.fn() } as any,
       btnResetConversion: { addEventListener: vi.fn() } as any,
+      historyCard: { style: { display: "block" } } as any,
+      historyToggle: { addEventListener: vi.fn() } as any,
+      historyCount: { textContent: "0" } as any,
+      historyArrow: { textContent: "▶" } as any,
+      historyList: {
+        style: { display: "none" },
+        innerHTML: "",
+        appendChild: vi.fn(),
+      } as any,
       linkOpenWorkspace: { addEventListener: vi.fn() } as any,
       apiVersion: { textContent: "" } as any,
     };
@@ -213,6 +223,14 @@ describe("Popup Controller (apps/extension)", () => {
       expect(elements.resultContainer.style.display).toBe("block");
       expect(elements.resFormat.textContent).toBe("MARKDOWN");
       expect(elements.conversionOptionsCard.style.display).toBe("none");
+    });
+  });
+
+  describe("refreshHistory", () => {
+    it("updates historyCount and renders empty message when no items exist", async () => {
+      await controller.refreshHistory();
+      expect(elements.historyCount.textContent).toBe("0");
+      expect(elements.historyList.innerHTML).toContain("No recent conversions yet");
     });
   });
 });

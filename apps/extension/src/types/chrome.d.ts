@@ -122,4 +122,15 @@ declare namespace chrome {
       injection: ScriptInjection<Args, Result>
     ): Promise<InjectionResult<Result>[]>;
   }
+
+  namespace downloads {
+    interface DownloadOptions {
+      url: string;
+      filename?: string;
+      conflictAction?: "uniquify" | "overwrite" | "prompt";
+      saveAs?: boolean;
+    }
+
+    function download(options: DownloadOptions): Promise<number>;
+  }
 }

@@ -6,8 +6,8 @@
 **Last Completed Stage:** `STAGE 8 — LARGE REPOSITORIES, BATCH AND CRAWLING` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Last Completed Phase:** `Phase 9.3 — MCP` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Active Subphase:** `None`  
-**Last Completed Subphase:** `9.4.2 — Current-page conversion (apps/extension: Active tab DOM and URL capture, extraction dispatch, and conversion state machine)` (`ACCEPTED`)  
-**Next Upcoming Subphase:** `9.4.3 — Result handoff (apps/extension: One-click clipboard copy, multi-format file download, and Web UI workspace deep-link navigation)`
+**Last Completed Subphase:** `9.4.3 — Result handoff (apps/extension: One-click clipboard copy, multi-format file download, and Web UI workspace deep-link navigation)` (`ACCEPTED`)  
+**Next Upcoming Subphase:** `9.4.4 — Extension security (apps/extension: Strict CSP enforcement, host permission boundaries, secret redaction, and Phase 9.4 formal certification)`
 
 ---
 
@@ -77,6 +77,13 @@ In Stage 9 ("Developer and AI Agent Integrations"):
     - Background Service Worker Integration: Updated `src/background/index.ts` adding `CAPTURE_DOM`, full `START_CONVERSION` pipeline execution with live API submission, and `GET_CONVERSION_STATUS` state inspection.
     - Popup Interface Transformation: Enhanced `src/popup/` (`index.html`, `popup.css`, `popup.ts`) with animated progress bar, real-time phase updates ("Capturing page...", "Processing & optimizing...", "Downloading converted document..."), completed result card displaying token counts, file size, format badges, and action buttons (Copy, Download, Open Web UI, Convert another).
     - Quality & Verification: Authored 3 new test suites (`tests/dom.test.ts`, `tests/client.test.ts`, `tests/state.test.ts`) and updated `tests/background.test.ts` and `tests/popup.test.ts`. Verified with 65 extension tests, 213 web tests, 656 Rust tests, zero clippy warnings, zero fmt diffs, cargo-deny clean, and 100% passing quality gates (5/5).
+  - Subphase `9.4.3` delivered result handoff, clipboard dispatch, multi-format file download, web workspace deep-linking, and conversion history in `apps/extension`:
+    - Clipboard Dispatch Subsystem: Implemented `src/handoff/clipboard.ts` supporting raw content copy, AI Prompt formatting (`mode: "prompt"`) wrapping source context with AI system/user instructions and markdown code fences, markdown link citation formatting, and URL extraction. Added robust clipboard fallback via `document.execCommand('copy')` when `navigator.clipboard` is restricted or unavailable.
+    - Download Dispatcher Subsystem: Implemented `src/handoff/download.ts` supporting all 6 export formats (`markdown`, `txt`, `json`, `html`, `jsonl`, `zip`) with corresponding MIME types and extensions. Added filename sanitization collapsing special characters and consecutive dashes with job short IDs. Implemented file download trigger using `chrome.downloads.download` with programmatic `<a>` element fallback.
+    - Deep-Link Navigation Subsystem: Implemented `src/handoff/deeplink.ts` generating deep-links to the web workspace (`/workspace?job_id=...`), artifact preview (`/jobs/.../preview`), and landing page source pre-fill (`/?url=...`), opening tabs via `chrome.tabs.create` or `window.open`.
+    - Conversion History Persistence: Implemented `src/storage/history.ts` storing conversion records (`HistoryItem`) with deduplication, ceiling limit (20 items), newest-first sorting, item removal, and full history clearing using `chrome.storage.local`.
+    - Background Service Worker & Popup Integration: Enhanced `src/background/index.ts` with automatic history recording upon conversion completion and message routing for `GET_HISTORY`, `SAVE_HISTORY_ITEM`, `CLEAR_HISTORY`, `COPY_TO_CLIPBOARD`, `DOWNLOAD_ARTIFACT`, and `NAVIGATE_WORKSPACE`. Transformed `src/popup/` adding "✨ Copy as AI Prompt" alongside "📋 Copy Raw Content", and a collapsible "Recent Conversions" section with one-click deep-link and copy actions.
+    - Quality & Verification: Authored 2 new test suites (`tests/handoff.test.ts`, `tests/history.test.ts`) and updated `tests/popup.test.ts`. Verified with 86 extension tests, 213 web tests, 656 Rust tests, Vite build (199ms), TypeScript typecheck clean, Prettier clean, zero cargo deny violations, and 100% passing quality gates (5/5).
 
 ---
 
@@ -84,12 +91,12 @@ In Stage 9 ("Developer and AI Agent Integrations"):
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 158 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1`, `9.4.2` |
+| `ACCEPTED` | 159 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.3` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 38 | `9.4.3` – `11.4.5` |
+| `NOT_STARTED` | 37 | `9.4.4` – `11.4.5` |
 | **Total** | **196** | `Stage 0` – `Stage 11` |
 
 ---

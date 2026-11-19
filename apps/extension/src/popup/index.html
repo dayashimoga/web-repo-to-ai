@@ -96,10 +96,13 @@
     </div>
     <div class="result-actions">
       <button id="btnCopyResult" class="btn-action" type="button">
-        📋 Copy Content
+        📋 Copy Raw Content
+      </button>
+      <button id="btnCopyPrompt" class="btn-action" type="button">
+        ✨ Copy as AI Prompt
       </button>
       <button id="btnDownloadResult" class="btn-action" type="button">
-        ⬇️ Download
+        ⬇️ Download File
       </button>
       <button id="btnOpenInWorkspace" class="btn-action btn-highlight" type="button">
         🔗 Open Web UI
@@ -108,6 +111,17 @@
     <button id="btnResetConversion" class="btn-link" type="button">
       Convert another
     </button>
+  </section>
+
+  <!-- Recent Conversions Section -->
+  <section class="card" id="historyCard">
+    <div class="card-title" id="historyToggle" style="cursor: pointer;">
+      <span>Recent Conversions (<span id="historyCount">0</span>)</span>
+      <span id="historyArrow">▶</span>
+    </div>
+    <div id="historyList" class="history-list" style="display: none;">
+      <div class="history-empty" id="historyEmpty">No recent conversions yet</div>
+    </div>
   </section>
 
   <!-- Footer Links -->

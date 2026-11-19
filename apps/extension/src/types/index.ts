@@ -101,6 +101,26 @@ export interface ConversionProgress {
   result?: ConversionResult;
 }
 
+export interface HistoryItem {
+  id: string;
+  jobId: string;
+  url: string;
+  title: string;
+  format: OutputFormat;
+  tokenCount: number;
+  charCount: number;
+  timestamp: string;
+  downloadUrl?: string;
+}
+
+export type CopyMode = "raw" | "prompt" | "markdown_link" | "url_only";
+
+export interface CopyOptions {
+  mode?: CopyMode;
+  promptTemplate?: string;
+  customPrefix?: string;
+}
+
 export type ExtensionMessage =
   | { type: "PING" }
   | { type: "CHECK_BACKEND_STATUS"; apiUrl?: string; apiKey?: string }
@@ -119,7 +139,13 @@ export type ExtensionMessage =
       sendDomSnapshot?: boolean;
       tabId?: number;
     }
-  | { type: "GET_CONVERSION_STATUS"; jobId?: string };
+  | { type: "GET_CONVERSION_STATUS"; jobId?: string }
+  | { type: "GET_HISTORY" }
+  | { type: "SAVE_HISTORY_ITEM"; item: HistoryItem }
+  | { type: "CLEAR_HISTORY" }
+  | { type: "COPY_TO_CLIPBOARD"; text: string }
+  | { type: "DOWNLOAD_ARTIFACT"; url: string; filename: string }
+  | { type: "NAVIGATE_WORKSPACE"; url: string };
 
 export interface ResponseSuccess<T = unknown> {
   success: true;

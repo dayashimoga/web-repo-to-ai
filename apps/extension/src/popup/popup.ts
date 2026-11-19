@@ -1,5 +1,8 @@
 // Popup controller for web-repo-to-ai browser extension
 
+import { copyToClipboard, formatContentForClipboard } from "../handoff/clipboard";
+import { buildWorkspaceUrl, navigateToUrl } from "../handoff/deeplink";
+import { sanitizeDownloadFilename, triggerFileDownload } from "../handoff/download";
 import {
   BackendStatus,
   ConversionProgress,
@@ -7,6 +10,7 @@ import {
   DEFAULT_CONFIG,
   ExtensionConfig,
   ExtensionResponse,
+  HistoryItem,
   OutputFormat,
   SourceClassification,
   TabInfo,
@@ -35,9 +39,15 @@ export interface PopupElements {
   resChars: HTMLSpanElement;
   resFormat: HTMLSpanElement;
   btnCopyResult: HTMLButtonElement;
+  btnCopyPrompt: HTMLButtonElement;
   btnDownloadResult: HTMLButtonElement;
   btnOpenInWorkspace: HTMLButtonElement;
   btnResetConversion: HTMLButtonElement;
+  historyCard: HTMLElement;
+  historyToggle: HTMLElement;
+  historyCount: HTMLSpanElement;
+  historyArrow: HTMLSpanElement;
+  historyList: HTMLDivElement;
   linkOpenWorkspace: HTMLAnchorElement;
   apiVersion: HTMLSpanElement;
 }
@@ -72,9 +82,15 @@ export function getPopupElements(): PopupElements | null {
     resChars: el<HTMLSpanElement>("resChars"),
     resFormat: el<HTMLSpanElement>("resFormat"),
     btnCopyResult: el<HTMLButtonElement>("btnCopyResult"),
+    btnCopyPrompt: el<HTMLButtonElement>("btnCopyPrompt"),
     btnDownloadResult: el<HTMLButtonElement>("btnDownloadResult"),
     btnOpenInWorkspace: el<HTMLButtonElement>("btnOpenInWorkspace"),
     btnResetConversion: el<HTMLButtonElement>("btnResetConversion"),
+    historyCard: el<HTMLElement>("historyCard"),
+    historyToggle: el<HTMLElement>("historyToggle"),
+    historyCount: el<HTMLSpanElement>("historyCount"),
+    historyArrow: el<HTMLSpanElement>("historyArrow"),
+    historyList: el<HTMLDivElement>("historyList"),
     linkOpenWorkspace: el<HTMLAnchorElement>("linkOpenWorkspace"),
     apiVersion: el<HTMLSpanElement>("apiVersion"),
   };
@@ -110,6 +126,7 @@ export class PopupController {
   private selectedBudget: number | null = 32000;
   private isConverting = false;
   private lastResult: ConversionResult | null = null;
+  private historyOpen = false;
 
   constructor(elements: PopupElements) {
     this.elements = elements;
@@ -118,6 +135,7 @@ export class PopupController {
   public async init(): Promise<void> {
     this.bindEvents();
     await this.loadInitialState();
+    await this.refreshHistory();
   }
 
   private bindEvents(): void {
@@ -134,11 +152,7 @@ export class PopupController {
     this.elements.linkOpenWorkspace.addEventListener("click", (e) => {
       e.preventDefault();
       const targetUrl = this.currentConfig.apiUrl || "http://localhost:3000";
-      if (typeof chrome !== "undefined" && chrome.tabs && chrome.tabs.create) {
-        chrome.tabs.create({ url: targetUrl });
-      } else if (typeof window !== "undefined") {
-        window.open(targetUrl, "_blank");
-      }
+      navigateToUrl(targetUrl);
     });
 
     // Budget chip clicks
@@ -157,48 +171,71 @@ export class PopupController {
       this.handleConvert();
     });
 
-    // Copy result content
+    // Copy raw content
     this.elements.btnCopyResult.addEventListener("click", async () => {
       if (this.lastResult?.content) {
-        try {
-          if (typeof navigator !== "undefined" && navigator.clipboard) {
-            await navigator.clipboard.writeText(this.lastResult.content);
-          }
-          this.elements.btnCopyResult.textContent = "✓ Copied!";
+        const success = await copyToClipboard(this.lastResult.content);
+        if (success) {
+          const original = this.elements.btnCopyResult.textContent;
+          this.elements.btnCopyResult.textContent = "✓ Copied Raw!";
           setTimeout(() => {
-            this.elements.btnCopyResult.textContent = "📋 Copy Content";
+            this.elements.btnCopyResult.textContent = original;
           }, 2000);
-        } catch {
-          this.elements.btnCopyResult.textContent = "Failed to copy";
+        }
+      }
+    });
+
+    // Copy formatted AI prompt
+    this.elements.btnCopyPrompt.addEventListener("click", async () => {
+      if (this.lastResult?.content) {
+        const promptText = formatContentForClipboard(
+          this.lastResult.content,
+          this.lastResult.url,
+          this.currentTab?.title || "Webpage Document",
+          this.lastResult.format,
+          { mode: "prompt" }
+        );
+        const success = await copyToClipboard(promptText);
+        if (success) {
+          const original = this.elements.btnCopyPrompt.textContent;
+          this.elements.btnCopyPrompt.textContent = "✨ Prompt Copied!";
+          setTimeout(() => {
+            this.elements.btnCopyPrompt.textContent = original;
+          }, 2000);
         }
       }
     });
 
     // Download result file
-    this.elements.btnDownloadResult.addEventListener("click", () => {
+    this.elements.btnDownloadResult.addEventListener("click", async () => {
       if (this.lastResult) {
-        this.triggerFileDownload(
-          this.lastResult.content,
-          `converted-${this.lastResult.jobId.slice(0, 8)}.${this.getFileExtension(this.lastResult.format)}`
+        const filename = sanitizeDownloadFilename(
+          this.currentTab?.title || this.lastResult.url,
+          this.lastResult.jobId,
+          this.lastResult.format
         );
+        await triggerFileDownload(this.lastResult.content, filename, this.lastResult.format);
       }
     });
 
     // Open in Web UI Workspace
     this.elements.btnOpenInWorkspace.addEventListener("click", () => {
       if (this.lastResult) {
-        const workspaceUrl = `${this.currentConfig.apiUrl}/workspace?job_id=${encodeURIComponent(this.lastResult.jobId)}`;
-        if (typeof chrome !== "undefined" && chrome.tabs && chrome.tabs.create) {
-          chrome.tabs.create({ url: workspaceUrl });
-        } else if (typeof window !== "undefined") {
-          window.open(workspaceUrl, "_blank");
-        }
+        const workspaceUrl = buildWorkspaceUrl(this.currentConfig.apiUrl, this.lastResult.jobId);
+        navigateToUrl(workspaceUrl);
       }
     });
 
     // Reset conversion view to convert another
     this.elements.btnResetConversion.addEventListener("click", () => {
       this.resetToIdle();
+    });
+
+    // Toggle history section
+    this.elements.historyToggle.addEventListener("click", () => {
+      this.historyOpen = !this.historyOpen;
+      this.elements.historyList.style.display = this.historyOpen ? "flex" : "none";
+      this.elements.historyArrow.textContent = this.historyOpen ? "▼" : "▶";
     });
   }
 
@@ -321,6 +358,8 @@ export class PopupController {
     this.elements.resTokens.textContent = result.tokenCount.toLocaleString();
     this.elements.resChars.textContent = this.formatBytes(result.charCount);
     this.elements.resFormat.textContent = result.format.toUpperCase();
+
+    this.refreshHistory();
   }
 
   public resetToIdle(): void {
@@ -334,6 +373,61 @@ export class PopupController {
     this.elements.btnConvertText.textContent = "Convert Current Tab";
     this.elements.statusMessage.className = "status-message";
     this.elements.statusMessage.textContent = "";
+  }
+
+  public async refreshHistory(): Promise<void> {
+    const res = await sendBackgroundMessage<HistoryItem[]>({ type: "GET_HISTORY" });
+    const items = res.success && Array.isArray(res.data) ? res.data : [];
+
+    this.elements.historyCount.textContent = String(items.length);
+
+    if (items.length === 0) {
+      this.elements.historyList.innerHTML = `<div class="history-empty">No recent conversions yet</div>`;
+      return;
+    }
+
+    if (typeof document === "undefined") {
+      return;
+    }
+
+    this.elements.historyList.innerHTML = "";
+    for (const item of items.slice(0, 5)) {
+      const itemEl = document.createElement("div");
+      itemEl.className = "history-item";
+
+      const detailsEl = document.createElement("div");
+      detailsEl.className = "history-details";
+
+      const titleEl = document.createElement("div");
+      titleEl.className = "history-title";
+      titleEl.textContent = item.title || item.url;
+      titleEl.title = item.url;
+
+      const metaEl = document.createElement("div");
+      metaEl.className = "history-meta";
+      metaEl.textContent = `${item.format.toUpperCase()} • ${item.tokenCount.toLocaleString()} tokens`;
+
+      detailsEl.appendChild(titleEl);
+      detailsEl.appendChild(metaEl);
+
+      const actionsEl = document.createElement("div");
+      actionsEl.className = "history-actions";
+
+      const btnWorkspace = document.createElement("button");
+      btnWorkspace.className = "history-btn";
+      btnWorkspace.textContent = "Open";
+      btnWorkspace.title = "Open in web workspace";
+      btnWorkspace.addEventListener("click", () => {
+        const url = buildWorkspaceUrl(this.currentConfig.apiUrl, item.jobId);
+        navigateToUrl(url);
+      });
+
+      actionsEl.appendChild(btnWorkspace);
+      itemEl.appendChild(detailsEl);
+      itemEl.appendChild(actionsEl);
+
+      this.elements.historyList.appendChild(itemEl);
+    }
   }
 
   public async handleConvert(): Promise<void> {
@@ -389,38 +483,6 @@ export class PopupController {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  }
-
-  private getFileExtension(format: OutputFormat): string {
-    switch (format) {
-      case "markdown":
-        return "md";
-      case "txt":
-        return "txt";
-      case "json":
-        return "json";
-      case "html":
-        return "html";
-      case "jsonl":
-        return "jsonl";
-      case "zip":
-        return "zip";
-      default:
-        return "txt";
-    }
-  }
-
-  private triggerFileDownload(content: string, filename: string): void {
-    if (typeof document === "undefined" || typeof Blob === "undefined") return;
-    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
   }
 }
 
