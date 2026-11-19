@@ -5,10 +5,10 @@
 **Current Stage:** `STAGE 9 — DEVELOPER AND AI AGENT INTEGRATIONS` (`IN_PROGRESS`)  
 **Last Completed Stage:** `STAGE 8 — LARGE REPOSITORIES, BATCH AND CRAWLING` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Last Completed Phase:** `Phase 8.4 — Scalability` (`100% COMPLETED & FORMALLY CERTIFIED`)  
-**Active Subphase:** `None (Awaiting confirmation for Subphase 9.2.2)`  
-**Last Completed Subphase:** `9.2.1 — URL conversion commands (crates/cli: web URL conversion with format selection, token budget, and streaming progress)` (`ACCEPTED`)  
+**Active Subphase:** `None (Awaiting confirmation for Subphase 9.2.3)`  
+**Last Completed Subphase:** `9.2.2 — Repository conversion commands (crates/cli: GitHub repository and local filesystem directory conversion commands)` (`ACCEPTED`)  
 **Last Completed Phase:** `Phase 9.1 — REST API` (`100% COMPLETED`)  
-**Next Upcoming Subphase:** `9.2.2 — Repository conversion commands (crates/cli: GitHub repository and directory conversion commands)`
+**Next Upcoming Subphase:** `9.2.3 — Batch conversion and input file processing (crates/cli: batch conversion from input file, glob patterns, and directory scanning)`
 
 ---
 
@@ -24,6 +24,7 @@ In Stage 9 ("Developer and AI Agent Integrations"):
   - Subphase `9.1.4` delivered comprehensive end-to-end API integration tests in `services/api/tests/api_integration_test.rs` exercising single-job lifecycle (`POST /jobs`), CDM seeding and preview generation (`GET /jobs/:id/preview`), SSE real-time event streaming (`GET /jobs/:id/events` and `/stream`), streaming multi-format artifact downloads (`GET /jobs/:id/artifacts/:format` across markdown, txt, json, html, jsonl, zip, manifest, checksums), multi-URL parallel batch processing (`POST /jobs/batch`, `GET /jobs/batch/:id`, `GET /jobs/batch/:id/items`, `/items/:idx`), batch multi-format export and artifact listing, batch cancellation, source detection and classification (`POST /sources/detect`), telemetry and health probes (`/health`, `/ready`, `/metrics`, `/`), tenant boundary anti-enumeration isolation, and RFC 7807 validation error fidelity. Verified with 107 API tests, 570 workspace tests, zero clippy warnings, zero fmt diffs, cargo deny clean, and 100% passing quality gates (5/5).
 - Phase 9.2 ("CLI") is in progress:
   - Subphase `9.2.1` delivered `crates/cli` implementing the `url` conversion command with dual-mode execution (local headless pipeline using `WebFetcher`, `ArticleExtractor`, `CdmDocumentBuilder`, `DocumentNormalizer`, `ContextBudgetOptimizer`, and `Multi-Format Exporters`; remote API client mode via `--api-url`), strict Unix stdout/stderr channel separation, deterministic exit codes (0: success, 1: validation error, 2: security/SSRF/network error, 3: extraction failure, 4: token budget exceeded), 8 multi-format targets (`markdown`, `txt`, `json`, `html`, `jsonl`, `zip`, `manifest`, `checksums`), `--json` execution envelope, token budgeting and `--no-optimize` flags, and 8 integration tests covering argument validation, SSRF loopback/private/metadata blocking, local multi-format conversion, token budgeting, and JSON metadata envelopes. Verified with 8 CLI tests, 578 workspace tests, zero clippy warnings, zero fmt diffs, cargo deny clean, and 100% passing quality gates (5/5).
+  - Subphase `9.2.2` delivered repository conversion commands in `crates/cli` (`web-repo-to-ai repo <owner/repo|url|dir>`) supporting local filesystem recursive directory extraction (with standard ignore patterns, binary sniffing, and syntax language detection) and GitHub REST API ingestion (via `get_repo_metadata`, `resolve_commit_sha`, `get_tree`, `classify_tree`, and `extract_source_files`), subpath filtering and directory traversal prevention (exit code 2), token budget optimization via `ContextBudgetOptimizer` and `--no-optimize` flag, 8 export formats, `--json` execution envelopes, remote API client dispatch via `--api-url`, and 9 comprehensive integration tests (`crates/cli/tests/repo_command_test.rs`). Verified with 17 CLI tests, 587 workspace tests, zero clippy warnings, zero fmt diffs, cargo deny clean, and 100% passing quality gates (5/5).
 
 ---
 
@@ -31,12 +32,12 @@ In Stage 9 ("Developer and AI Agent Integrations"):
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 149 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1`, `9.1.2`, `9.1.3`, `9.1.4`, `9.2.1` |
+| `ACCEPTED` | 150 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1`, `9.1.2`, `9.1.3`, `9.1.4`, `9.2.1`, `9.2.2` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 47 | `9.2.2` – `11.4.5` |
+| `NOT_STARTED` | 46 | `9.2.3` – `11.4.5` |
 | **Total** | **196** | `Stage 0` – `Stage 11` |
 
 ---

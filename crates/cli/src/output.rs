@@ -4,6 +4,15 @@ use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::{self, Write};
 use std::path::Path;
+use web_repo_to_ai_cdm::model::CdmDocument;
+use web_repo_to_ai_exporters::{
+    build_manifest, export_html, export_json, export_jsonl, export_manifest, export_markdown,
+    export_plain_text, export_zip_package, generate_checksums_manifest, ChecksumEntry, HtmlOptions,
+    JsonExportOptions, JsonlOptions, MarkdownOptions, PlainTextOptions, ZipPackageOptions,
+};
+
+use crate::args::OutputFormat;
+use crate::error::CliError;
 
 /// Structured JSON execution metadata envelope.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -109,5 +118,44 @@ impl OutputWriter {
         let serialized = serde_json::to_string_pretty(envelope).map_err(io::Error::other)?;
         println!("{serialized}");
         Ok(())
+    }
+}
+
+/// Formats and serializes a CDM document into requested output format bytes.
+///
+/// # Errors
+///
+/// Returns [`CliError`] if exporter serialization fails.
+pub fn export_artifact(
+    doc: &CdmDocument,
+    format: OutputFormat,
+) -> std::result::Result<Vec<u8>, CliError> {
+    match format {
+        OutputFormat::Markdown => export_markdown(doc, &MarkdownOptions::default())
+            .map(String::into_bytes)
+            .map_err(CliError::from),
+        OutputFormat::Txt => export_plain_text(doc, &PlainTextOptions::default())
+            .map(String::into_bytes)
+            .map_err(CliError::from),
+        OutputFormat::Json => export_json(doc, &JsonExportOptions::canonical())
+            .map(String::into_bytes)
+            .map_err(CliError::from),
+        OutputFormat::Html => export_html(doc, &HtmlOptions::default())
+            .map(|(s, _)| s.into_bytes())
+            .map_err(CliError::from),
+        OutputFormat::Jsonl => export_jsonl(doc, &JsonlOptions::default())
+            .map(|(s, _)| s.into_bytes())
+            .map_err(CliError::from),
+        OutputFormat::Zip => export_zip_package(doc, &ZipPackageOptions::complete())
+            .map(|(b, _)| b)
+            .map_err(CliError::from),
+        OutputFormat::Manifest => export_manifest(&build_manifest(doc, vec![]), true)
+            .map(String::into_bytes)
+            .map_err(CliError::from),
+        OutputFormat::Checksums => {
+            let md = export_markdown(doc, &MarkdownOptions::default()).map_err(CliError::from)?;
+            let entry = ChecksumEntry::from_sha256_bytes("document.md", md.as_bytes());
+            Ok(generate_checksums_manifest(&[entry]).into_bytes())
+        }
     }
 }

@@ -28,6 +28,7 @@ web-repo-to-ai-core = { workspace = true }
 web-repo-to-ai-cdm = { workspace = true }
 web-repo-to-ai-url-security = { workspace = true }
 web-repo-to-ai-web-extractor = { workspace = true }
+web-repo-to-ai-github-extractor = { workspace = true }
 web-repo-to-ai-normalizer = { workspace = true }
 web-repo-to-ai-deduplication = { workspace = true }
 web-repo-to-ai-tokenizer = { workspace = true }
@@ -43,3 +44,6 @@ reqwest = { workspace = true, features = ["json"] }
 chrono = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["env-filter", "fmt"] }
+
+[dev-dependencies]
+axum = { workspace = true }

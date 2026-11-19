@@ -5,16 +5,11 @@ use std::time::{Duration, Instant};
 
 use web_repo_to_ai_cdm::builder::{CdmDocumentBuilder, CdmSectionBuilder};
 use web_repo_to_ai_cdm::metadata::DocumentMetadata as CdmDocumentMetadata;
-use web_repo_to_ai_cdm::model::{CdmDocument, SourceIdentity, SourceType};
+use web_repo_to_ai_cdm::model::{SourceIdentity, SourceType};
 use web_repo_to_ai_cdm::section::SectionKind;
 use web_repo_to_ai_context_optimizer::budget::ContextBudget;
 use web_repo_to_ai_context_optimizer::optimizer::{
     BudgetOptimizationConfig, ContextBudgetOptimizer,
-};
-use web_repo_to_ai_exporters::{
-    build_manifest, export_html, export_json, export_jsonl, export_manifest, export_markdown,
-    export_plain_text, export_zip_package, generate_checksums_manifest, ChecksumEntry, HtmlOptions,
-    JsonExportOptions, JsonlOptions, MarkdownOptions, PlainTextOptions, ZipPackageOptions,
 };
 use web_repo_to_ai_normalizer::config::NormalizationConfig;
 use web_repo_to_ai_normalizer::normalize_document;
@@ -26,9 +21,9 @@ use web_repo_to_ai_web_extractor::dom::DomParser;
 use web_repo_to_ai_web_extractor::http::{HttpTransport, WebFetcher};
 use web_repo_to_ai_web_extractor::url::WebTarget;
 
-use crate::args::{OutputFormat, UrlArgs};
+use crate::args::UrlArgs;
 use crate::error::CliError;
-use crate::output::{CliJsonEnvelope, OutputWriter};
+use crate::output::{export_artifact, CliJsonEnvelope, OutputWriter};
 
 /// Executes the `url` command with standard transports.
 ///
@@ -414,40 +409,6 @@ fn fallback_dom_extract(
         Err(CliError::Extraction(
             "No extractable content found in web page".to_string(),
         ))
-    }
-}
-
-fn export_artifact(
-    doc: &CdmDocument,
-    format: OutputFormat,
-) -> std::result::Result<Vec<u8>, CliError> {
-    match format {
-        OutputFormat::Markdown => export_markdown(doc, &MarkdownOptions::default())
-            .map(String::into_bytes)
-            .map_err(CliError::from),
-        OutputFormat::Txt => export_plain_text(doc, &PlainTextOptions::default())
-            .map(String::into_bytes)
-            .map_err(CliError::from),
-        OutputFormat::Json => export_json(doc, &JsonExportOptions::canonical())
-            .map(String::into_bytes)
-            .map_err(CliError::from),
-        OutputFormat::Html => export_html(doc, &HtmlOptions::default())
-            .map(|(s, _)| s.into_bytes())
-            .map_err(CliError::from),
-        OutputFormat::Jsonl => export_jsonl(doc, &JsonlOptions::default())
-            .map(|(s, _)| s.into_bytes())
-            .map_err(CliError::from),
-        OutputFormat::Zip => export_zip_package(doc, &ZipPackageOptions::complete())
-            .map(|(b, _)| b)
-            .map_err(CliError::from),
-        OutputFormat::Manifest => export_manifest(&build_manifest(doc, vec![]), true)
-            .map(String::into_bytes)
-            .map_err(CliError::from),
-        OutputFormat::Checksums => {
-            let md = export_markdown(doc, &MarkdownOptions::default()).map_err(CliError::from)?;
-            let entry = ChecksumEntry::from_sha256_bytes("document.md", md.as_bytes());
-            Ok(generate_checksums_manifest(&[entry]).into_bytes())
-        }
     }
 }
 

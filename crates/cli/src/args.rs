@@ -40,6 +40,9 @@ pub struct Cli {
 pub enum Commands {
     /// Convert a single web documentation or article URL into AI-ready format
     Url(UrlArgs),
+    /// Convert a GitHub repository or local directory into AI-ready format
+    #[command(alias = "repository")]
+    Repo(RepoArgs),
 }
 
 /// Supported output artifact formats.
@@ -135,6 +138,58 @@ pub struct UrlArgs {
     /// Custom HTTP User-Agent header string
     #[arg(long, value_name = "UA")]
     pub user_agent: Option<String>,
+
+    /// Remote web-repo-to-ai API base URL (e.g. http://localhost:8080)
+    #[arg(long, env = "WEB_REPO_TO_AI_API_URL", value_name = "URL")]
+    pub api_url: Option<String>,
+
+    /// Remote API key for authentication
+    #[arg(long, env = "WEB_REPO_TO_AI_API_KEY", value_name = "KEY")]
+    pub api_key: Option<String>,
+}
+
+/// Arguments for the `repo` subcommand.
+#[derive(Args, Debug, Clone)]
+pub struct RepoArgs {
+    /// Target repository identifier (e.g. 'owner/repo', GitHub URL, or local filesystem directory)
+    #[arg(value_name = "REPO")]
+    pub repo: String,
+
+    /// Output file path, or '-' for stdout
+    #[arg(short, long, default_value = "-", value_name = "PATH")]
+    pub output: String,
+
+    /// Output artifact format
+    #[arg(short, long, value_enum, default_value_t = OutputFormat::Markdown)]
+    pub format: OutputFormat,
+
+    /// Target context token budget ceiling
+    #[arg(short, long, default_value_t = 160_000, value_name = "TOKENS")]
+    pub budget: usize,
+
+    /// Target model identifier for token counting
+    #[arg(short, long, default_value = "cl100k_base", value_name = "MODEL")]
+    pub model: String,
+
+    /// Git branch, tag, or commit reference to extract
+    #[arg(short, long, value_name = "REF")]
+    pub r#ref: Option<String>,
+
+    /// Subdirectory or subtree path within the repository
+    #[arg(short, long, value_name = "SUBPATH")]
+    pub subpath: Option<String>,
+
+    /// Disable context optimization (deduplication & compression)
+    #[arg(long)]
+    pub no_optimize: bool,
+
+    /// HTTP request timeout in seconds
+    #[arg(long, default_value_t = 60, value_name = "SECONDS")]
+    pub timeout: u64,
+
+    /// GitHub access token for private repositories or increased rate limits
+    #[arg(long, env = "GITHUB_TOKEN", value_name = "TOKEN")]
+    pub github_token: Option<String>,
 
     /// Remote web-repo-to-ai API base URL (e.g. http://localhost:8080)
     #[arg(long, env = "WEB_REPO_TO_AI_API_URL", value_name = "URL")]

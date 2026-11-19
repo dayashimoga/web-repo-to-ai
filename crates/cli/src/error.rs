@@ -3,6 +3,7 @@
 use std::fmt;
 use web_repo_to_ai_context_optimizer::ContextOptimizerError;
 use web_repo_to_ai_exporters::ExporterError;
+use web_repo_to_ai_github_extractor::GitHubExtractorError;
 use web_repo_to_ai_url_security::UrlSecurityError;
 use web_repo_to_ai_web_extractor::WebExtractorError;
 
@@ -125,6 +126,43 @@ impl From<WebExtractorError> for CliError {
             WebExtractorError::DecompressionBomb { .. } => Self::Security(err.to_string()),
             WebExtractorError::HtmlParseFailed(msg) => Self::Extraction(msg),
             WebExtractorError::ExtractionFailed { details } => Self::Extraction(details),
+            other => Self::Extraction(other.to_string()),
+        }
+    }
+}
+
+impl From<GitHubExtractorError> for CliError {
+    fn from(err: GitHubExtractorError) -> Self {
+        match err {
+            GitHubExtractorError::InvalidUrl(_)
+            | GitHubExtractorError::ReservedPath(_)
+            | GitHubExtractorError::UnsupportedHost(_)
+            | GitHubExtractorError::EmbeddedCredentialsForbidden
+            | GitHubExtractorError::InvalidOwner { .. }
+            | GitHubExtractorError::InvalidRepository { .. }
+            | GitHubExtractorError::InvalidRef { .. } => Self::Validation(err.to_string()),
+
+            GitHubExtractorError::InvalidSubpath { path, reason } => {
+                if reason.contains("Directory traversal") || path.contains("..") {
+                    Self::Security(format!("Directory traversal blocked: {reason}"))
+                } else {
+                    Self::Validation(format!("Invalid subpath: {reason}"))
+                }
+            }
+
+            GitHubExtractorError::UrlSecurity(sec) => Self::from(sec),
+
+            GitHubExtractorError::BadCredentials { message }
+            | GitHubExtractorError::Forbidden { message } => Self::Security(message),
+
+            GitHubExtractorError::RateLimitExceeded { message, .. }
+            | GitHubExtractorError::RequestFailed(message) => Self::Network(message),
+
+            GitHubExtractorError::ResourceNotFound { message, .. }
+            | GitHubExtractorError::HttpError { message, .. }
+            | GitHubExtractorError::ArchiveError(message)
+            | GitHubExtractorError::BlobError { message, .. } => Self::Extraction(message),
+
             other => Self::Extraction(other.to_string()),
         }
     }

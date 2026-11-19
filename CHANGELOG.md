@@ -6,6 +6,32 @@
 
 ## [Unreleased] — Stage 9: Developer and AI Agent Integrations
 
+### 2026-11-19 — Phase 9.2: CLI (`9.2.2`)
+
+#### Added
+- **`[9.2.2]` Repository conversion commands in `crates/cli`:**
+  - Implemented `repo` subcommand (`RepoArgs`, aliased as `repository`) in `crates/cli/src/args.rs`:
+    - Positional target `repo` supporting local filesystem directories, GitHub URLs, or `owner/repo` shorthand.
+    - Flags for `-o, --output` (path or `-` for stdout), `-f, --format` (all 8 formats), `-b, --budget` (tokens ceiling), `-m, --model` (target model), `-r, --ref` (git branch/tag/commit), `-s, --subpath` (subdirectory filter), `--no-optimize`, `--timeout`, `--github-token` (or `GITHUB_TOKEN` env), `--api-url`, and `--api-key`.
+  - Implemented `commands/repo.rs` with dual-mode execution engines:
+    - **Local Directory Mode (`execute_local_directory`):** Recursive directory walking with standard ignore rules (`.git`, `target`, `node_modules`, `dist`, `.DS_Store`, `.idea`, `.vscode`, `venv`, `.env`, `coverage`, `build`), binary content sniffing (`is_binary_content`), language detection (`detect_language`), file size ceilings, deterministic relative-path section sorting, and CDM Document generation.
+    - **GitHub API Mode (`execute_github`):** Integration with `web-repo-to-ai-github-extractor`'s `GitHubApiClient` for metadata retrieval (`get_repo_metadata`), branch/ref resolution (`resolve_commit_sha`), recursive tree fetching (`get_tree`), tree classification (`FileClassifier::classify_tree`), and batch source file extraction (`extract_source_files`).
+    - **Remote API Mode (`execute_remote`):** Client mode dispatching conversion jobs to `POST /api/v1/jobs` with polling and artifact retrieval.
+  - Implemented strict subpath sanitization and directory traversal defense (`validate_and_sanitize_subpath`) mapping `..` sequences to security errors (deterministic exit code 2).
+  - Integrated token budget estimation and optimization using `ContextBudgetOptimizer` and target model heuristics, with `--no-optimize` override.
+  - Extracted shared `export_artifact` formatter in `crates/cli/src/output.rs` supporting all 8 formats (`markdown`, `txt`, `json`, `html`, `jsonl`, `zip`, `manifest`, `checksums`).
+  - Added 9 comprehensive integration tests in `crates/cli/tests/repo_command_test.rs`:
+    - `test_repo_cli_help_and_version`: Validates `repo --help` and `repository --help`.
+    - `test_repo_invalid_targets_and_validation_errors`: Validates missing arguments, invalid formats, and malformed target syntax trigger exit code 1.
+    - `test_repo_security_directory_traversal`: Validates `..` in subpath or repository target trigger exit code 2.
+    - `test_repo_local_directory_to_stdout`: Validates recursive directory ingestion to clean stdout with binary file skipping.
+    - `test_repo_local_directory_multi_format_outputs`: Validates all 8 output formats write non-empty, valid artifacts.
+    - `test_repo_local_directory_subpath_filter`: Validates `--subpath` filter limits extracted sections to targeted subdirectory.
+    - `test_repo_local_directory_budget_optimization`: Validates context budget optimizer enforcement and `--no-optimize` bypass.
+    - `test_repo_json_execution_envelope`: Validates `--json` execution envelope format.
+    - `test_repo_github_api_with_mock_server`: Validates end-to-end GitHub API client extraction using hermetic mock Axum server.
+  - Monorepo gates verified: 17 CLI tests, 587 workspace tests, zero clippy warnings, zero fmt diffs, cargo deny clean, and 5/5 check-all gates passed.
+
 ### 2026-11-19 — Phase 9.2: CLI (`9.2.1`)
 
 #### Added

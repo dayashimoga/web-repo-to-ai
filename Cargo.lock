@@ -2573,6 +2573,7 @@ dependencies = [
 name = "web-repo-to-ai-cli"
 version = "0.1.0"
 dependencies = [
+ "axum",
  "chrono",
  "clap",
  "reqwest",
@@ -2587,6 +2588,7 @@ dependencies = [
  "web-repo-to-ai-core",
  "web-repo-to-ai-deduplication",
  "web-repo-to-ai-exporters",
+ "web-repo-to-ai-github-extractor",
  "web-repo-to-ai-normalizer",
  "web-repo-to-ai-observability",
  "web-repo-to-ai-tokenizer",

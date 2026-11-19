@@ -13,13 +13,15 @@ pub mod output;
 
 use clap::Parser;
 use std::sync::Arc;
+use web_repo_to_ai_github_extractor::client::GitHubApiClient;
 use web_repo_to_ai_url_security::SecureDnsResolver;
 use web_repo_to_ai_web_extractor::http::HttpTransport;
 
-pub use args::{Cli, Commands, OutputFormat, UrlArgs};
+pub use args::{Cli, Commands, OutputFormat, RepoArgs, UrlArgs};
+pub use commands::repo::{execute_repo, execute_repo_with_client};
 pub use commands::url::{execute_url, execute_url_with_options, execute_url_with_transport};
 pub use error::{CliError, ExitCode};
-pub use output::{CliJsonEnvelope, OutputWriter};
+pub use output::{export_artifact, CliJsonEnvelope, OutputWriter};
 
 /// Runs the CLI application using command-line arguments from `std::env::args_os`.
 ///
@@ -28,7 +30,7 @@ pub use output::{CliJsonEnvelope, OutputWriter};
 /// Returns [`CliError`] on command failure, argument validation error, or I/O failure.
 pub async fn run_cli() -> Result<i32, CliError> {
     let cli = Cli::parse();
-    run_with_parsed(cli, None, None).await
+    run_with_parsed(cli, None, None, None).await
 }
 
 /// Runs the CLI application using custom command-line arguments (useful for programmatic invocation).
@@ -74,6 +76,24 @@ where
     I: IntoIterator<Item = T>,
     T: Into<std::ffi::OsString> + Clone,
 {
+    run_cli_with_args_and_clients(args, transport, resolver, None).await
+}
+
+/// Runs the CLI application using custom command-line arguments, optional transport, optional DNS resolver, and optional GitHub client.
+///
+/// # Errors
+///
+/// Returns [`CliError`] on argument parsing failure, validation error, or execution failure.
+pub async fn run_cli_with_args_and_clients<I, T>(
+    args: I,
+    transport: Option<Arc<dyn HttpTransport>>,
+    resolver: Option<SecureDnsResolver>,
+    github_client: Option<GitHubApiClient>,
+) -> Result<i32, CliError>
+where
+    I: IntoIterator<Item = T>,
+    T: Into<std::ffi::OsString> + Clone,
+{
     let cli = match Cli::try_parse_from(args) {
         Ok(c) => c,
         Err(e) => {
@@ -88,18 +108,22 @@ where
             return Err(CliError::Validation(msg));
         }
     };
-    run_with_parsed(cli, transport, resolver).await
+    run_with_parsed(cli, transport, resolver, github_client).await
 }
 
 async fn run_with_parsed(
     cli: Cli,
     transport: Option<Arc<dyn HttpTransport>>,
     resolver: Option<SecureDnsResolver>,
+    github_client: Option<GitHubApiClient>,
 ) -> Result<i32, CliError> {
     let writer = OutputWriter::new(cli.verbose, cli.quiet, cli.json);
     match cli.command {
         Commands::Url(url_args) => {
             execute_url_with_options(&url_args, &writer, transport, resolver).await
+        }
+        Commands::Repo(repo_args) => {
+            execute_repo_with_client(&repo_args, &writer, github_client).await
         }
     }
 }

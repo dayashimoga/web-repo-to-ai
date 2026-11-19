@@ -5182,3 +5182,49 @@
   - Unix channel separation is maintained.
   - Monorepo gates pass with 0 warnings and 0 failures.
 - **Status:** `ACCEPTED`
+
+---
+
+#### Subphase `9.2.2` — Repository conversion commands in crates/cli
+- **Unique ID:** `9.2.2`
+- **Objective:** Deliver the repository conversion command (`web-repo-to-ai repo <owner/repo|url|dir>`) in `crates/cli`, supporting local filesystem recursive directory extraction and GitHub REST API ingestion, subpath filtering, directory traversal prevention, token budget optimization, multi-format artifact generation, and structured JSON execution envelopes.
+- **Scope:** `crates/cli`, `Cargo.toml`.
+- **Prerequisites:** Subphase `9.2.1` Accepted.
+- **Files/Components Affected:**
+  - `crates/cli/Cargo.toml`
+  - `crates/cli/src/args.rs`
+  - `crates/cli/src/error.rs`
+  - `crates/cli/src/output.rs`
+  - `crates/cli/src/commands/mod.rs`
+  - `crates/cli/src/commands/url.rs`
+  - `crates/cli/src/commands/repo.rs`
+  - `crates/cli/src/lib.rs`
+  - `crates/cli/tests/repo_command_test.rs`
+- **Implementation Highlights:**
+  1. Added `RepoArgs` with options: positional `repo`, `-o, --output`, `-f, --format`, `-b, --budget`, `-m, --model`, `-r, --ref`, `-s, --subpath`, `--no-optimize`, `--timeout`, `--github-token`, `--api-url`, and `--api-key`.
+  2. Implemented `GitHubExtractorError` to `CliError` error mapping with deterministic exit codes (0: success, 1: validation error, 2: security/SSRF/traversal, 3: extraction error, 4: budget exceeded).
+  3. Extracted shared `export_artifact` in `crates/cli/src/output.rs` supporting all 8 formats (`markdown`, `txt`, `json`, `html`, `jsonl`, `zip`, `manifest`, `checksums`).
+  4. Implemented `execute_local_directory`: recursive directory traversal with standard ignore list (`.git`, `target`, `node_modules`, `dist`, `.DS_Store`, `.idea`, `.vscode`, `venv`, `.env`, `coverage`, `build`), binary content detection (`is_binary_content`), language detection (`detect_language`), file size checks, deterministic relative-path sorting, and CDM Document generation.
+  5. Implemented `execute_github`: integration with `GitHubApiClient` for repository metadata (`get_repo_metadata`), branch/ref resolution (`resolve_commit_sha`), recursive tree retrieval (`get_tree`), tree classification (`FileClassifier::classify_tree`), and batch source extraction (`extract_source_files`).
+  6. Implemented `execute_remote`: client mode dispatch to remote API `POST /api/v1/jobs` with status polling and artifact download.
+  7. Strict directory traversal protection via `validate_and_sanitize_subpath` returning exit code 2.
+  8. Context token budget optimization using `ContextBudgetOptimizer` and target model token heuristics, bypassable via `--no-optimize`.
+  9. Structured JSON execution envelopes via `--json` flag.
+  10. Authored 9 integration tests in `crates/cli/tests/repo_command_test.rs` covering help flags, argument validation, directory traversal prevention, local directory extraction to stdout, local directory multi-format file outputs, subpath filtering, token budget optimization, JSON execution envelope, and GitHub API extraction via hermetic mock Axum server.
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-cli` (17 tests passing)
+  - `cargo test --workspace` (587 tests passing)
+  - `cargo clippy --workspace --all-targets -- -D warnings` (0 warnings, 0 errors)
+  - `cargo fmt --all -- --check` (100% clean formatting)
+  - `cargo deny check` (advisories ok, bans ok, licenses ok, sources ok)
+  - `powershell scripts/check-all.ps1` (5/5 gates passed)
+- **Acceptance Criteria:**
+  - All 17 CLI integration tests pass cleanly.
+  - Local directory conversion produces valid artifacts for all 8 formats.
+  - Subpath filtering isolates targeted subtrees.
+  - Directory traversal attempts via `..` in subpath or target return exit code 2.
+  - Mock GitHub API client tests pass cleanly.
+  - Zero mock policy (`09-no-mock-no-placeholder.md`) fully respected in production paths.
+  - Disk space constraint satisfied ($\ge 70$ GB free on `C:`).
+  - All monorepo gates pass with 0 failures.
+- **Status:** `ACCEPTED`
