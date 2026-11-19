@@ -6,6 +6,27 @@
 
 ## [Unreleased] — Stage 8: Large Repositories, Batch and Crawling
 
+### 2026-11-19 — Phase 8.4: Scalability (`8.4.1`)
+
+#### Added
+- **`[8.4.1]` Adaptive Concurrency Regulation & Domain Isolation in `crates/job-engine` and `services/worker`:**
+  - Implemented dynamic AIMD (Additive Increase, Multiplicative Decrease) concurrency controller in `crates/job-engine/src/adaptive.rs`:
+    - `AdaptiveConcurrencyConfig`: boundaries (`min_concurrency`, `max_concurrency`, `initial_concurrency`), dynamics (`increase_step`, `success_threshold`, `decrease_factor`, `cooldown_duration`), and optional `latency_sla`.
+    - `AdaptiveOutcome`: standard telemetry signals (`Success`, `RateLimited` for HTTP 429, `ServerOverloaded` for HTTP 503/504, `Timeout`, `ConnectionError`, `OtherFailure`) with automated classification via `AdaptiveOutcome::from_result`.
+    - `AdaptiveDecision`: decision outcomes (`Unchanged`, `Increased`, `Decreased`, `InCooldown`).
+    - `AdaptiveConcurrencyStats`: point-in-time statistics tracking limits, active permits, scale-ups, backoffs, and average latency.
+    - `AdaptivePermit`: RAII execution permit automatically releasing active permit counts and waking waiting tasks via `tokio::sync::Notify`.
+    - `AdaptiveConcurrencyController`: thread-safe coordinator managing permit allocation with cancellation support, outcome-based AIMD adjustments, and cooldown window enforcement.
+    - `DomainAdaptiveConcurrencyManager`: per-domain registry providing domain-isolated controllers so upstream rate limits on one domain do not constrain concurrency on separate healthy hosts.
+    - `AdaptiveParallelExecutor`: high-performance batch task runner executing tasks with dynamic concurrency permits and outcome telemetry.
+  - Extended worker daemon in `services/worker`:
+    - `WorkerServiceMetrics` & `WorkerMetricsSnapshot`: added atomic counters for `adaptive_scale_ups`, `adaptive_backoffs`, `adaptive_rate_limits`, and `current_adaptive_limit` (`record_adaptive_stats`).
+    - `WorkerEngine::execute_adaptive_batch`: integrated adaptive batch execution within worker daemon concurrency limits and progress dispatch.
+  - Comprehensive integration test suites:
+    - `crates/job-engine/tests/adaptive_concurrency_test.rs`: 6 tests validating configuration bounds, additive increase, multiplicative decrease, cooldown enforcement, domain isolation, and adaptive parallel execution.
+    - `services/worker/tests/worker_adaptive_test.rs`: integration test validating worker daemon adaptive batch execution and metrics recording.
+  - 100% passing quality gates: 25 job-engine tests, 17 worker tests, zero clippy warnings, zero fmt diffs, cargo deny clean, and 5/5 check-all gates passed.
+
 ### 2026-11-19 — Phase 8.3: Incremental Processing (`8.3.4`) & Phase 8.3 Formal Certification
 
 #### Added

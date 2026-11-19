@@ -9,6 +9,7 @@
 
 #![warn(missing_docs)]
 
+pub mod adaptive;
 pub mod config;
 pub mod error;
 pub mod executor;
@@ -17,6 +18,13 @@ pub mod models;
 pub mod pool;
 
 // Re-export primary types for ergonomic crate-level access
+pub use adaptive::{
+    AdaptiveConcurrencyConfig, AdaptiveConcurrencyController, AdaptiveConcurrencyStats,
+    AdaptiveDecision, AdaptiveOutcome, AdaptiveParallelExecutor, AdaptivePermit,
+    DomainAdaptiveConcurrencyManager, DEFAULT_COOLDOWN_DURATION, DEFAULT_DECREASE_FACTOR,
+    DEFAULT_INCREASE_STEP, DEFAULT_INITIAL_CONCURRENCY, DEFAULT_MAX_CONCURRENCY,
+    DEFAULT_MIN_CONCURRENCY, DEFAULT_SUCCESS_THRESHOLD,
+};
 pub use config::{
     BatchExecutionConfig, DEFAULT_BATCH_TIMEOUT_SECONDS, DEFAULT_ITEM_TIMEOUT_SECONDS,
     DEFAULT_PARALLELISM, MAX_PARALLELISM, MIN_PARALLELISM,

@@ -20,6 +20,10 @@ pub struct WorkerServiceMetrics {
     peak_concurrency: Arc<AtomicUsize>,
     incremental_items_reused: Arc<AtomicUsize>,
     incremental_bytes_saved: Arc<AtomicUsize>,
+    adaptive_scale_ups: Arc<AtomicUsize>,
+    adaptive_backoffs: Arc<AtomicUsize>,
+    adaptive_rate_limits: Arc<AtomicUsize>,
+    current_adaptive_limit: Arc<AtomicUsize>,
 }
 
 /// Serializable snapshot of worker metrics.
@@ -45,6 +49,14 @@ pub struct WorkerMetricsSnapshot {
     pub incremental_items_reused: usize,
     /// Total bytes saved through incremental reuse.
     pub incremental_bytes_saved: usize,
+    /// Total additive scale-ups under adaptive concurrency.
+    pub adaptive_scale_ups: usize,
+    /// Total multiplicative backoffs under adaptive concurrency.
+    pub adaptive_backoffs: usize,
+    /// Total rate limit signals observed under adaptive concurrency.
+    pub adaptive_rate_limits: usize,
+    /// Current dynamically allocated concurrency ceiling.
+    pub current_adaptive_limit: usize,
 }
 
 impl WorkerServiceMetrics {
@@ -102,6 +114,24 @@ impl WorkerServiceMetrics {
             .fetch_add(bytes_saved as usize, Ordering::Relaxed);
     }
 
+    /// Records adaptive concurrency events and dynamic limit.
+    pub fn record_adaptive_stats(
+        &self,
+        scale_ups: u64,
+        backoffs: u64,
+        rate_limits: u64,
+        current_limit: usize,
+    ) {
+        self.adaptive_scale_ups
+            .fetch_add(scale_ups as usize, Ordering::Relaxed);
+        self.adaptive_backoffs
+            .fetch_add(backoffs as usize, Ordering::Relaxed);
+        self.adaptive_rate_limits
+            .fetch_add(rate_limits as usize, Ordering::Relaxed);
+        self.current_adaptive_limit
+            .store(current_limit, Ordering::Relaxed);
+    }
+
     /// Produces an immutable metrics snapshot.
     #[must_use]
     pub fn snapshot(&self) -> WorkerMetricsSnapshot {
@@ -116,6 +146,10 @@ impl WorkerServiceMetrics {
             peak_concurrency: self.peak_concurrency.load(Ordering::Relaxed),
             incremental_items_reused: self.incremental_items_reused.load(Ordering::Relaxed),
             incremental_bytes_saved: self.incremental_bytes_saved.load(Ordering::Relaxed),
+            adaptive_scale_ups: self.adaptive_scale_ups.load(Ordering::Relaxed),
+            adaptive_backoffs: self.adaptive_backoffs.load(Ordering::Relaxed),
+            adaptive_rate_limits: self.adaptive_rate_limits.load(Ordering::Relaxed),
+            current_adaptive_limit: self.current_adaptive_limit.load(Ordering::Relaxed),
         }
     }
 }
@@ -130,6 +164,7 @@ mod tests {
         metrics.record_batch_completed();
         metrics.record_item_outcome(4, 1, 1, 0);
         metrics.record_incremental_reuse(5, 10240);
+        metrics.record_adaptive_stats(3, 1, 1, 6);
         metrics.update_active_workers(3);
 
         let snap = metrics.snapshot();
@@ -143,5 +178,9 @@ mod tests {
         assert_eq!(snap.peak_concurrency, 3);
         assert_eq!(snap.incremental_items_reused, 5);
         assert_eq!(snap.incremental_bytes_saved, 10240);
+        assert_eq!(snap.adaptive_scale_ups, 3);
+        assert_eq!(snap.adaptive_backoffs, 1);
+        assert_eq!(snap.adaptive_rate_limits, 1);
+        assert_eq!(snap.current_adaptive_limit, 6);
     }
 }

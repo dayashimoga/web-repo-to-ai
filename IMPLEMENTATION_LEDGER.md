@@ -7896,12 +7896,77 @@
 
 #### Phase 8.4 — Scalability
 
+#### Subphase `8.4.1` — Adaptive concurrency in crates/job-engine & services/worker
+- **Unique ID:** `8.4.1`
+- **Objective:** Implement dynamic Additive Increase / Multiplicative Decrease (AIMD) concurrency regulation, latency-aware throttling, domain-level rate limiting isolation (`DomainAdaptiveConcurrencyManager`), cooperative permit management (`AdaptivePermit`), and adaptive parallel batch execution (`AdaptiveParallelExecutor`, `WorkerEngine::execute_adaptive_batch`) in `crates/job-engine` and `services/worker`.
+- **Scope:** `crates/job-engine/src/adaptive.rs`, `crates/job-engine/src/lib.rs`, `crates/job-engine/tests/adaptive_concurrency_test.rs`, `services/worker/src/metrics.rs`, `services/worker/src/engine.rs`, `services/worker/tests/worker_adaptive_test.rs`.
+- **Prerequisites:** `8.3.4` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/job-engine/src/adaptive.rs`
+  - `crates/job-engine/src/lib.rs`
+  - `crates/job-engine/tests/adaptive_concurrency_test.rs`
+  - `services/worker/src/metrics.rs`
+  - `services/worker/src/engine.rs`
+  - `services/worker/tests/worker_adaptive_test.rs`
+- **Implementation Tasks:**
+  1. Author `crates/job-engine/src/adaptive.rs`:
+     - Define `AdaptiveConcurrencyConfig`: boundaries (`min_concurrency`, `max_concurrency`, `initial_concurrency`), dynamics (`increase_step`, `success_threshold`, `decrease_factor`, `cooldown_duration`), and optional `latency_sla`.
+     - Define `AdaptiveOutcome`: `Success { duration }`, `RateLimited { retry_after }` (HTTP 429), `ServerOverloaded` (HTTP 503/504), `Timeout`, `ConnectionError`, `OtherFailure`, with automatic classification helper `AdaptiveOutcome::from_result`.
+     - Define `AdaptiveDecision`: `Unchanged`, `Increased`, `Decreased`, `InCooldown`.
+     - Define `AdaptiveConcurrencyStats`: point-in-time metrics snapshot.
+     - Implement `AdaptivePermit`: RAII permit guard decrementing active permits and notifying waiters on drop.
+     - Implement `AdaptiveConcurrencyController`: thread-safe AIMD coordinator managing dynamic concurrency ceilings, permit acquisition with cancellation support, outcome-based limit adjustment, cooldown window enforcement, and telemetry tracking.
+     - Implement `DomainAdaptiveConcurrencyManager`: per-domain controller registry ensuring upstream throttling or rate limiting on one domain does not degrade concurrent processing on independent healthy domains.
+     - Implement `AdaptiveParallelExecutor`: high-performance batch task runner executing tasks with dynamic concurrency permits and outcome telemetry.
+  2. Extend `services/worker/src/metrics.rs`:
+     - Add atomic counters `adaptive_scale_ups`, `adaptive_backoffs`, `adaptive_rate_limits`, and `current_adaptive_limit` to `WorkerServiceMetrics` and `WorkerMetricsSnapshot`.
+     - Implement `record_adaptive_stats` telemetry recording method.
+  3. Extend `services/worker/src/engine.rs`:
+     - Implement `WorkerEngine::execute_adaptive_batch` coordinating adaptive concurrency batch execution within worker bounds and recording telemetry.
+  4. Author comprehensive integration tests:
+     - `crates/job-engine/tests/adaptive_concurrency_test.rs`: 6 integration tests validating config validation, additive increase, multiplicative decrease, cooldown enforcement, domain isolation, and adaptive parallel execution.
+     - `services/worker/tests/worker_adaptive_test.rs`: integration test validating worker daemon adaptive batch execution and metrics recording.
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-job-engine`
+  - `cargo test -p web-repo-to-ai-worker`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell -ExecutionPolicy Bypass -File scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - AIMD algorithm additively increases concurrency after sustained consecutive successes up to max bound.
+  - Multiplicative decrease immediately reduces concurrency upon rate limits (HTTP 429) or server overloads down to min bound.
+  - Cooldown duration suppresses premature scale-ups during stabilization windows.
+  - Domain isolation guarantees throttling on one origin does not constrain concurrency on separate hosts.
+  - Worker metrics record scale-ups, backoffs, rate limits, and dynamic concurrency ceilings.
+  - 100% test pass rate across job-engine (25/25) and worker (17/17), zero clippy warnings, zero formatting diffs, cargo deny clean, and all 5 check-all gates pass.
+- **Risk Analysis:**
+  - Risk: Rapid oscillation / thrashing between scale-up and backoff under jittery network latency.
+  - Mitigation: Consecutive success threshold (default 3) combined with cooldown timer suppresses scale-up oscillation.
+- **Rollback Plan:**
+  - Revert Subphase 8.4.1 additions via Git reset to commit `cb2b349`.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-job-engine`: 25 passed; 0 failed (15 unit, 6 adaptive, 4 incremental).
+  - `cargo test -p web-repo-to-ai-worker`: 17 passed; 0 failed (9 lib unit, 1 main unit, 5 bounded_parallel, 1 incremental, 1 adaptive).
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings across all workspace targets.
+  - `cargo fmt --all -- --check`: formatting clean across workspace.
+  - `cargo deny check`: advisories ok, bans ok, licenses ok, sources ok.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures) across Bootstrap/Governance, Workflows, Rust Workspace (531 tests passed), Frontend Web (17 files, 213 passing vitest tests), and Resource Budget (Podman storage 0 B / 30 GB, 0%).
+- **Git Commit Reference:** `e44918a`
+- **Status:** `ACCEPTED`
+
+---
+
+### Upcoming Subphase (Stage 8 — Large Repositories, Batch and Crawling)
+
+#### Phase 8.4 — Scalability
+
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `8.4.1` | Adaptive concurrency | `8.3.4` (`ACCEPTED`) | `crates/job-engine/*`, `services/worker/*` | `NOT_STARTED` |
+| `8.4.2` | Backpressure | `8.4.1` (`ACCEPTED`) | `crates/job-engine/*`, `services/worker/*` | `NOT_STARTED` |
 
 ---
 
 ## STAGES 8 – 11 QUEUED LEDGER SUMMARY
 
-All subsequent subphases for **Stage 8** (`8.4.1`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.
+All subsequent subphases for **Stage 8** (`8.4.2`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.

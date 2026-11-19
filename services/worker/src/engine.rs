@@ -12,6 +12,9 @@ use tokio_util::sync::CancellationToken;
 use tracing::{info, instrument};
 use web_repo_to_ai_core::error::CoreError;
 use web_repo_to_ai_core::id::BatchId;
+use web_repo_to_ai_job_engine::adaptive::{
+    AdaptiveConcurrencyConfig, AdaptiveConcurrencyController, AdaptiveParallelExecutor,
+};
 use web_repo_to_ai_job_engine::executor::BoundedParallelExecutor;
 use web_repo_to_ai_job_engine::incremental::{
     FileSignature, IncrementalCandidate, IncrementalExecutionReport, IncrementalJobCoordinator,
@@ -244,6 +247,109 @@ impl WorkerEngine {
         );
 
         Ok(report)
+    }
+
+    /// Executes a batch of conversion tasks using dynamic AIMD adaptive concurrency regulation.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CoreError::Execution`] if batch execution fails or is rejected during shutdown.
+    #[instrument(skip(self, tasks, adaptive_config, processor, progress_tx), fields(worker_id = %self.config.worker_id, total_items = tasks.len()))]
+    pub async fn execute_adaptive_batch<T, R, F, Fut>(
+        &self,
+        batch_id: BatchId,
+        tasks: Vec<BatchItemTask<T>>,
+        adaptive_config: Option<AdaptiveConcurrencyConfig>,
+        processor: F,
+        progress_tx: Option<mpsc::Sender<BatchProgressUpdate>>,
+    ) -> Result<BatchExecutionSummary<R>, CoreError>
+    where
+        T: Send + Sync + 'static,
+        R: Send + Sync + 'static,
+        F: Fn(BatchItemTask<T>) -> Fut + Send + Sync + Clone + 'static,
+        Fut: Future<Output = Result<R, String>> + Send + 'static,
+    {
+        if self.is_shutting_down() {
+            return Err(CoreError::JobEngine(
+                "Worker daemon is shutting down; operation rejected".to_string(),
+            ));
+        }
+
+        let total_items = tasks.len();
+        let start = Instant::now();
+
+        let config = match adaptive_config {
+            Some(cfg) => cfg,
+            None => AdaptiveConcurrencyConfig::new(
+                1,
+                self.config.max_concurrent_jobs,
+                self.config.default_batch_parallelism,
+            )
+            .map_err(|e| CoreError::Validation {
+                field: "adaptive_config".to_string(),
+                reason: e.to_string(),
+            })?,
+        };
+
+        let lease_secs = u64::from(self.config.lease_duration_seconds);
+        let batch_config =
+            web_repo_to_ai_job_engine::config::BatchExecutionConfig::with_parallelism(
+                config.max_concurrency,
+            )
+            .map(|c| {
+                c.with_batch_timeout(std::time::Duration::from_secs(lease_secs * 2))
+                    .with_item_timeout(std::time::Duration::from_secs(lease_secs))
+            })
+            .map_err(|e| CoreError::Validation {
+                field: "batch_config".to_string(),
+                reason: e.to_string(),
+            })?;
+
+        let controller = AdaptiveConcurrencyController::new(config)
+            .map_err(|e| CoreError::JobEngine(e.to_string()))?;
+
+        let executor = AdaptiveParallelExecutor::new(controller.clone(), batch_config);
+
+        let summary = executor
+            .execute_batch(
+                batch_id,
+                tasks,
+                processor,
+                progress_tx,
+                Some(self.shutdown_token()),
+            )
+            .await
+            .map_err(|e| CoreError::JobEngine(e.to_string()))?;
+
+        let stats = controller.stats();
+        self.metrics.record_batch_completed();
+        self.metrics.record_item_outcome(
+            summary.succeeded_count,
+            summary.failed_count,
+            summary.timed_out_count,
+            summary.cancelled_count,
+        );
+        self.metrics.record_adaptive_stats(
+            stats.total_scale_ups,
+            stats.total_backoffs,
+            stats.total_rate_limits,
+            stats.current_limit,
+        );
+        self.metrics.update_active_workers(summary.peak_concurrency);
+
+        info!(
+            %batch_id,
+            total_items,
+            succeeded = summary.succeeded_count,
+            failed = summary.failed_count,
+            final_limit = stats.current_limit,
+            scale_ups = stats.total_scale_ups,
+            backoffs = stats.total_backoffs,
+            duration_ms = start.elapsed().as_millis(),
+            "Worker engine adaptive batch execution finished"
+        );
+
+        Ok(summary)
     }
 
     /// Runs the worker background daemon loop until a shutdown signal is observed.
