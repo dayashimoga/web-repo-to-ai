@@ -63,7 +63,6 @@ header {
   height: 8px;
   border-radius: 50%;
   background-color: var(--warning);
-  title: "Checking backend...";
 }
 
 .status-dot.healthy {
@@ -132,12 +131,6 @@ header {
   margin-bottom: 8px;
 }
 
-.badge-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
 .badge {
   display: inline-flex;
   align-items: center;
@@ -197,8 +190,7 @@ header {
   color: var(--text-muted);
 }
 
-select,
-input[type="number"] {
+select {
   width: 100%;
   padding: 6px 10px;
   border-radius: 6px;
@@ -238,7 +230,34 @@ input[type="number"] {
   color: white;
 }
 
-/* Actions */
+/* Progress Bar */
+.progress-container {
+  margin-bottom: 12px;
+}
+
+.progress-bar-bg {
+  width: 100%;
+  height: 6px;
+  background-color: #1e293b;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #4f46e5, #06b6d4);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.progress-phase-text {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 6px;
+  text-align: center;
+}
+
+/* Primary Button */
 .btn-convert {
   width: 100%;
   padding: 10px 16px;
@@ -278,6 +297,120 @@ input[type="number"] {
 
 .status-message.success {
   color: var(--success);
+}
+
+/* Result Card */
+.result-card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.result-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.result-success-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: rgba(16, 185, 129, 0.2);
+  color: var(--success);
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.result-header h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.result-metrics {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.metric-item {
+  flex: 1;
+  background-color: #0f172a;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 8px 4px;
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-val {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.metric-lbl {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.result-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.btn-action {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+  background-color: #0f172a;
+  color: var(--text-main);
+  transition: all 0.15s ease;
+}
+
+.btn-action:hover {
+  background-color: #1e293b;
+  border-color: var(--primary);
+}
+
+.btn-highlight {
+  background-color: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+
+.btn-highlight:hover {
+  background-color: var(--primary-hover);
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.btn-link:hover {
+  color: var(--text-main);
 }
 
 .footer-links {

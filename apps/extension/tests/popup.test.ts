@@ -37,13 +37,16 @@ describe("Popup Controller (apps/extension)", () => {
     elements = {
       statusDot: { className: "", title: "" } as any,
       btnOpenOptions: { addEventListener: vi.fn() } as any,
+      pageSummaryCard: { style: { display: "block" } } as any,
       archetypeBadge: { textContent: "", className: "" } as any,
       tabTitle: { textContent: "", title: "" } as any,
       tabUrl: { textContent: "", title: "" } as any,
+      conversionOptionsCard: { style: { display: "block" } } as any,
       formatSelect: { value: "markdown" } as any,
       budgetChips: {
         querySelectorAll: vi.fn().mockReturnValue(chipMockList),
       } as any,
+      actionSection: { style: { display: "block" } } as any,
       btnConvert: {
         disabled: false,
         classList: { add: vi.fn(), remove: vi.fn() },
@@ -52,6 +55,17 @@ describe("Popup Controller (apps/extension)", () => {
       btnConvertText: { textContent: "" } as any,
       spinner: {} as any,
       statusMessage: { className: "", textContent: "" } as any,
+      progressContainer: { style: { display: "none" } } as any,
+      progressBar: { style: { width: "0%" } } as any,
+      progressPhaseText: { textContent: "" } as any,
+      resultContainer: { style: { display: "none" } } as any,
+      resTokens: { textContent: "0" } as any,
+      resChars: { textContent: "0" } as any,
+      resFormat: { textContent: "" } as any,
+      btnCopyResult: { textContent: "📋 Copy Content", addEventListener: vi.fn() } as any,
+      btnDownloadResult: { addEventListener: vi.fn() } as any,
+      btnOpenInWorkspace: { addEventListener: vi.fn() } as any,
+      btnResetConversion: { addEventListener: vi.fn() } as any,
       linkOpenWorkspace: { addEventListener: vi.fn() } as any,
       apiVersion: { textContent: "" } as any,
     };
@@ -100,6 +114,44 @@ describe("Popup Controller (apps/extension)", () => {
     });
   });
 
+  describe("updateProgress & showResult & resetToIdle", () => {
+    it("updates progress bar and phase text", () => {
+      controller.updateProgress({ pct: 60, phaseText: "Optimizing tokens..." });
+      expect(elements.progressContainer.style.display).toBe("block");
+      expect(elements.progressBar.style.width).toBe("60%");
+      expect(elements.progressPhaseText.textContent).toBe("Optimizing tokens...");
+    });
+
+    it("displays conversion result and hides form controls", () => {
+      controller.showResult({
+        jobId: "job-popup-1",
+        url: "https://github.com/rust-lang/rust",
+        format: "markdown",
+        content: "# Rust Readme",
+        tokenCount: 1540,
+        charCount: 6160,
+        durationMs: 850,
+        archetype: "github_repository",
+      });
+
+      expect(elements.resultContainer.style.display).toBe("block");
+      expect(elements.conversionOptionsCard.style.display).toBe("none");
+      expect(elements.actionSection.style.display).toBe("none");
+      expect(elements.resTokens.textContent).toBe("1,540");
+      expect(elements.resChars.textContent).toBe("6.0 KB");
+      expect(elements.resFormat.textContent).toBe("MARKDOWN");
+    });
+
+    it("resets back to idle state for another conversion", () => {
+      controller.resetToIdle();
+      expect(elements.resultContainer.style.display).toBe("none");
+      expect(elements.conversionOptionsCard.style.display).toBe("block");
+      expect(elements.actionSection.style.display).toBe("block");
+      expect(elements.btnConvert.disabled).toBe(false);
+      expect(elements.btnConvertText.textContent).toBe("Convert Current Tab");
+    });
+  });
+
   describe("loadInitialState", () => {
     it("loads configuration, tab information, and detects URL type", async () => {
       globalThis.fetch = vi.fn().mockResolvedValue({
@@ -119,16 +171,48 @@ describe("Popup Controller (apps/extension)", () => {
   });
 
   describe("handleConvert", () => {
-    it("executes conversion pipeline when valid tab is loaded", async () => {
-      // Setup initial state first
+    it("executes conversion pipeline and presents result view upon success", async () => {
+      // 1. Initial State
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        json: async () => ({ status: "healthy", version: "0.1.0" }),
+      });
       await controller.loadInitialState();
+
+      // 2. Conversion mock via fetch
+      globalThis.fetch = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 202,
+          json: async () => ({
+            job_id: "job-pop-success",
+            status: "queued",
+            sources: ["https://github.com/rust-lang/rust"],
+          }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            job_id: "job-pop-success",
+            status: "completed",
+          }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          text: async () => "# Converted Output Content",
+        });
 
       elements.formatSelect.value = "markdown";
       await controller.handleConvert();
 
-      expect(elements.statusMessage.className).toBe("status-message success");
-      expect(elements.statusMessage.textContent).toMatch(/Conversion initiated successfully/i);
-      expect(elements.btnConvertText.textContent).toBe("Converted!");
+      expect(elements.resultContainer.style.display).toBe("block");
+      expect(elements.resFormat.textContent).toBe("MARKDOWN");
+      expect(elements.conversionOptionsCard.style.display).toBe("none");
     });
   });
 });

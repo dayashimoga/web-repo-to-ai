@@ -199,7 +199,41 @@ describe("Background Service Worker (apps/extension)", () => {
       }
     });
 
-    it("handles START_CONVERSION with valid URL", async () => {
+    it("handles CAPTURE_DOM message", async () => {
+      const res = await handleMessage({ type: "CAPTURE_DOM" });
+      expect(res.success).toBe(true);
+      if (res.success) {
+        expect((res.data as any).capturedAt).toBeDefined();
+      }
+    });
+
+    it("handles START_CONVERSION with valid URL and returns ConversionResult", async () => {
+      // Mock fetch for createJob, poll, fetchArtifact
+      globalThis.fetch = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 202,
+          json: async () => ({
+            job_id: "job-bg-123",
+            status: "queued",
+            sources: ["https://github.com/rust-lang/rust"],
+          }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            job_id: "job-bg-123",
+            status: "completed",
+          }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          text: async () => "# Converted Rust Codebase",
+        });
+
       const convertRes = await handleMessage({
         type: "START_CONVERSION",
         url: "https://github.com/rust-lang/rust",
@@ -209,9 +243,17 @@ describe("Background Service Worker (apps/extension)", () => {
 
       expect(convertRes.success).toBe(true);
       if (convertRes.success) {
-        expect((convertRes.data as any).queued).toBe(true);
-        expect((convertRes.data as any).url).toBe("https://github.com/rust-lang/rust");
-        expect((convertRes.data as any).format).toBe("markdown");
+        const data = convertRes.data as any;
+        expect(data.jobId).toBe("job-bg-123");
+        expect(data.content).toBe("# Converted Rust Codebase");
+        expect(data.format).toBe("markdown");
+      }
+
+      // Check status query
+      const statusRes = await handleMessage({ type: "GET_CONVERSION_STATUS" });
+      expect(statusRes.success).toBe(true);
+      if (statusRes.success) {
+        expect((statusRes.data as any).stage).toBe("completed");
       }
     });
 

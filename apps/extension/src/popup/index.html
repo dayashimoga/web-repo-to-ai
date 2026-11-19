@@ -22,7 +22,7 @@
   </header>
 
   <!-- Active Page Card -->
-  <section class="card">
+  <section class="card" id="pageSummaryCard">
     <div class="card-title">
       <span>Current Page</span>
       <span id="archetypeBadge" class="badge badge-web">Webpage</span>
@@ -32,7 +32,7 @@
   </section>
 
   <!-- Conversion Options Card -->
-  <section class="card">
+  <section class="card" id="conversionOptionsCard">
     <div class="control-row">
       <label class="control-label" for="formatSelect">Output Format</label>
       <select id="formatSelect">
@@ -57,8 +57,16 @@
     </div>
   </section>
 
-  <!-- Action Section -->
-  <div>
+  <!-- Progress Bar Container -->
+  <div id="progressContainer" class="progress-container" style="display: none;">
+    <div class="progress-bar-bg">
+      <div id="progressBar" class="progress-bar" style="width: 0%;"></div>
+    </div>
+    <div id="progressPhaseText" class="progress-phase-text">Starting conversion...</div>
+  </div>
+
+  <!-- Primary Action Section -->
+  <div id="actionSection">
     <button id="btnConvert" class="btn-convert" type="button">
       <span class="spinner" id="spinner"></span>
       <span id="btnConvertText">Convert Current Tab</span>
@@ -66,7 +74,44 @@
     <div id="statusMessage" class="status-message"></div>
   </div>
 
-  <div class="footer-links">
+  <!-- Completed Result View -->
+  <section id="resultContainer" class="result-card" style="display: none;">
+    <div class="result-header">
+      <span class="result-success-icon">✓</span>
+      <h3>Conversion Complete</h3>
+    </div>
+    <div class="result-metrics">
+      <div class="metric-item">
+        <span class="metric-val" id="resTokens">0</span>
+        <span class="metric-lbl">Tokens</span>
+      </div>
+      <div class="metric-item">
+        <span class="metric-val" id="resChars">0 B</span>
+        <span class="metric-lbl">Size</span>
+      </div>
+      <div class="metric-item">
+        <span class="metric-val" id="resFormat">MD</span>
+        <span class="metric-lbl">Format</span>
+      </div>
+    </div>
+    <div class="result-actions">
+      <button id="btnCopyResult" class="btn-action" type="button">
+        📋 Copy Content
+      </button>
+      <button id="btnDownloadResult" class="btn-action" type="button">
+        ⬇️ Download
+      </button>
+      <button id="btnOpenInWorkspace" class="btn-action btn-highlight" type="button">
+        🔗 Open Web UI
+      </button>
+    </div>
+    <button id="btnResetConversion" class="btn-link" type="button">
+      Convert another
+    </button>
+  </section>
+
+  <!-- Footer Links -->
+  <div class="footer-links" id="footerLinks">
     <a href="#" id="linkOpenWorkspace">Open Web UI</a>
     <span id="apiVersion" style="color: var(--text-muted); font-size: 10px;">v0.1.0</span>
   </div>

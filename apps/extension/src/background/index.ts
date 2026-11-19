@@ -1,5 +1,8 @@
 // Background Service Worker for web-repo-to-ai Browser Extension (Manifest V3)
 
+import { ExtensionApiClient } from "../api/client";
+import { ConversionStateMachine } from "../conversion/state";
+import { captureActiveTabDOM } from "../dom/extractor";
 import { loadConfig, resetConfig, saveConfig } from "../storage/config";
 import {
   BackendStatus,
@@ -10,6 +13,8 @@ import {
   SourceClassification,
   TabInfo,
 } from "../types/index";
+
+export const globalConversionStateMachine = new ConversionStateMachine();
 
 /**
  * Classifies a URL into a source archetype using heuristics.
@@ -320,8 +325,14 @@ export async function handleMessage(message: ExtensionMessage): Promise<Extensio
         return { success: true, data: classification };
       }
 
+      case "CAPTURE_DOM": {
+        const tab = await getActiveTab();
+        const tabId = message.tabId !== undefined ? message.tabId : tab?.id;
+        const snapshot = await captureActiveTabDOM(tabId);
+        return { success: true, data: snapshot };
+      }
+
       case "START_CONVERSION": {
-        // Scaffolding for Subphase 9.4.2: validates parameters and returns queued job descriptor
         const classification = classifyUrl(message.url);
         if (!classification.isSupported) {
           return {
@@ -329,17 +340,32 @@ export async function handleMessage(message: ExtensionMessage): Promise<Extensio
             error: `URL is not supported for conversion: ${message.url}`,
           };
         }
+        const config = await loadConfig();
+        const client = new ExtensionApiClient({
+          baseUrl: config.apiUrl,
+          apiKey: config.apiKey,
+        });
+
+        const result = await globalConversionStateMachine.executeConversion({
+          url: message.url,
+          format: message.format,
+          tokenBudget: message.tokenBudget,
+          model: message.model,
+          sendDomSnapshot: message.sendDomSnapshot ?? config.sendDomSnapshot,
+          tabId: message.tabId,
+          apiClient: client,
+        });
+
         return {
           success: true,
-          data: {
-            queued: true,
-            url: message.url,
-            format: message.format,
-            tokenBudget: message.tokenBudget,
-            model: message.model,
-            archetype: classification.archetype,
-            timestamp: new Date().toISOString(),
-          },
+          data: result,
+        };
+      }
+
+      case "GET_CONVERSION_STATUS": {
+        return {
+          success: true,
+          data: globalConversionStateMachine.getState(),
         };
       }
 

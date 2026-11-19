@@ -2,8 +2,9 @@
 
 import {
   BackendStatus,
+  ConversionProgress,
+  ConversionResult,
   DEFAULT_CONFIG,
-  DetectedArchetype,
   ExtensionConfig,
   ExtensionResponse,
   OutputFormat,
@@ -14,15 +15,29 @@ import {
 export interface PopupElements {
   statusDot: HTMLDivElement;
   btnOpenOptions: HTMLButtonElement;
+  pageSummaryCard: HTMLElement;
   archetypeBadge: HTMLSpanElement;
   tabTitle: HTMLDivElement;
   tabUrl: HTMLDivElement;
+  conversionOptionsCard: HTMLElement;
   formatSelect: HTMLSelectElement;
   budgetChips: HTMLDivElement;
+  actionSection: HTMLElement;
   btnConvert: HTMLButtonElement;
   btnConvertText: HTMLSpanElement;
   spinner: HTMLSpanElement;
   statusMessage: HTMLDivElement;
+  progressContainer: HTMLDivElement;
+  progressBar: HTMLDivElement;
+  progressPhaseText: HTMLDivElement;
+  resultContainer: HTMLElement;
+  resTokens: HTMLSpanElement;
+  resChars: HTMLSpanElement;
+  resFormat: HTMLSpanElement;
+  btnCopyResult: HTMLButtonElement;
+  btnDownloadResult: HTMLButtonElement;
+  btnOpenInWorkspace: HTMLButtonElement;
+  btnResetConversion: HTMLButtonElement;
   linkOpenWorkspace: HTMLAnchorElement;
   apiVersion: HTMLSpanElement;
 }
@@ -37,15 +52,29 @@ export function getPopupElements(): PopupElements | null {
   return {
     statusDot: el<HTMLDivElement>("statusDot"),
     btnOpenOptions: el<HTMLButtonElement>("btnOpenOptions"),
+    pageSummaryCard: el<HTMLElement>("pageSummaryCard"),
     archetypeBadge: el<HTMLSpanElement>("archetypeBadge"),
     tabTitle: el<HTMLDivElement>("tabTitle"),
     tabUrl: el<HTMLDivElement>("tabUrl"),
+    conversionOptionsCard: el<HTMLElement>("conversionOptionsCard"),
     formatSelect: el<HTMLSelectElement>("formatSelect"),
     budgetChips: el<HTMLDivElement>("budgetChips"),
+    actionSection: el<HTMLElement>("actionSection"),
     btnConvert: el<HTMLButtonElement>("btnConvert"),
     btnConvertText: el<HTMLSpanElement>("btnConvertText"),
     spinner: el<HTMLSpanElement>("spinner"),
     statusMessage: el<HTMLDivElement>("statusMessage"),
+    progressContainer: el<HTMLDivElement>("progressContainer"),
+    progressBar: el<HTMLDivElement>("progressBar"),
+    progressPhaseText: el<HTMLDivElement>("progressPhaseText"),
+    resultContainer: el<HTMLElement>("resultContainer"),
+    resTokens: el<HTMLSpanElement>("resTokens"),
+    resChars: el<HTMLSpanElement>("resChars"),
+    resFormat: el<HTMLSpanElement>("resFormat"),
+    btnCopyResult: el<HTMLButtonElement>("btnCopyResult"),
+    btnDownloadResult: el<HTMLButtonElement>("btnDownloadResult"),
+    btnOpenInWorkspace: el<HTMLButtonElement>("btnOpenInWorkspace"),
+    btnResetConversion: el<HTMLButtonElement>("btnResetConversion"),
     linkOpenWorkspace: el<HTMLAnchorElement>("linkOpenWorkspace"),
     apiVersion: el<HTMLSpanElement>("apiVersion"),
   };
@@ -80,6 +109,7 @@ export class PopupController {
   private currentConfig: ExtensionConfig = { ...DEFAULT_CONFIG };
   private selectedBudget: number | null = 32000;
   private isConverting = false;
+  private lastResult: ConversionResult | null = null;
 
   constructor(elements: PopupElements) {
     this.elements = elements;
@@ -125,6 +155,50 @@ export class PopupController {
     // Convert button click
     this.elements.btnConvert.addEventListener("click", () => {
       this.handleConvert();
+    });
+
+    // Copy result content
+    this.elements.btnCopyResult.addEventListener("click", async () => {
+      if (this.lastResult?.content) {
+        try {
+          if (typeof navigator !== "undefined" && navigator.clipboard) {
+            await navigator.clipboard.writeText(this.lastResult.content);
+          }
+          this.elements.btnCopyResult.textContent = "✓ Copied!";
+          setTimeout(() => {
+            this.elements.btnCopyResult.textContent = "📋 Copy Content";
+          }, 2000);
+        } catch {
+          this.elements.btnCopyResult.textContent = "Failed to copy";
+        }
+      }
+    });
+
+    // Download result file
+    this.elements.btnDownloadResult.addEventListener("click", () => {
+      if (this.lastResult) {
+        this.triggerFileDownload(
+          this.lastResult.content,
+          `converted-${this.lastResult.jobId.slice(0, 8)}.${this.getFileExtension(this.lastResult.format)}`
+        );
+      }
+    });
+
+    // Open in Web UI Workspace
+    this.elements.btnOpenInWorkspace.addEventListener("click", () => {
+      if (this.lastResult) {
+        const workspaceUrl = `${this.currentConfig.apiUrl}/workspace?job_id=${encodeURIComponent(this.lastResult.jobId)}`;
+        if (typeof chrome !== "undefined" && chrome.tabs && chrome.tabs.create) {
+          chrome.tabs.create({ url: workspaceUrl });
+        } else if (typeof window !== "undefined") {
+          window.open(workspaceUrl, "_blank");
+        }
+      }
+    });
+
+    // Reset conversion view to convert another
+    this.elements.btnResetConversion.addEventListener("click", () => {
+      this.resetToIdle();
     });
   }
 
@@ -231,6 +305,37 @@ export class PopupController {
     }
   }
 
+  public updateProgress(progress: { pct: number; phaseText: string }): void {
+    this.elements.progressContainer.style.display = "block";
+    this.elements.progressBar.style.width = `${progress.pct}%`;
+    this.elements.progressPhaseText.textContent = progress.phaseText;
+  }
+
+  public showResult(result: ConversionResult): void {
+    this.lastResult = result;
+    this.elements.progressContainer.style.display = "none";
+    this.elements.conversionOptionsCard.style.display = "none";
+    this.elements.actionSection.style.display = "none";
+    this.elements.resultContainer.style.display = "block";
+
+    this.elements.resTokens.textContent = result.tokenCount.toLocaleString();
+    this.elements.resChars.textContent = this.formatBytes(result.charCount);
+    this.elements.resFormat.textContent = result.format.toUpperCase();
+  }
+
+  public resetToIdle(): void {
+    this.lastResult = null;
+    this.elements.resultContainer.style.display = "none";
+    this.elements.progressContainer.style.display = "none";
+    this.elements.conversionOptionsCard.style.display = "block";
+    this.elements.actionSection.style.display = "block";
+    this.elements.btnConvert.disabled = false;
+    this.elements.btnConvert.classList.remove("converting");
+    this.elements.btnConvertText.textContent = "Convert Current Tab";
+    this.elements.statusMessage.className = "status-message";
+    this.elements.statusMessage.textContent = "";
+  }
+
   public async handleConvert(): Promise<void> {
     if (!this.currentTab || !this.currentTab.url || this.isConverting) {
       return;
@@ -241,29 +346,35 @@ export class PopupController {
     this.elements.btnConvert.classList.add("converting");
     this.elements.btnConvertText.textContent = "Converting...";
     this.elements.statusMessage.className = "status-message";
-    this.elements.statusMessage.textContent = "Contacting web-repo-to-ai instance...";
+    this.elements.statusMessage.textContent = "";
+
+    this.updateProgress({ pct: 15, phaseText: "Initiating conversion..." });
 
     try {
       const format = this.elements.formatSelect.value as OutputFormat;
-      const res = await sendBackgroundMessage({
+      const res = await sendBackgroundMessage<ConversionResult>({
         type: "START_CONVERSION",
         url: this.currentTab.url,
         format,
         tokenBudget: this.selectedBudget,
         model: this.currentConfig.defaultTargetModel,
+        sendDomSnapshot: this.currentConfig.sendDomSnapshot,
+        tabId: this.currentTab.id,
       });
 
-      if (res.success) {
-        this.elements.statusMessage.className = "status-message success";
-        this.elements.statusMessage.textContent = "Conversion initiated successfully!";
-        this.elements.btnConvertText.textContent = "Converted!";
+      if (res.success && res.data) {
+        this.updateProgress({ pct: 100, phaseText: "Conversion complete!" });
+        this.showResult(res.data);
       } else {
+        const errorMsg = !res.success ? res.error : "Conversion failed without error output";
+        this.elements.progressContainer.style.display = "none";
         this.elements.statusMessage.className = "status-message error";
-        this.elements.statusMessage.textContent = `Conversion failed: ${res.error}`;
+        this.elements.statusMessage.textContent = `Conversion failed: ${errorMsg}`;
         this.elements.btnConvertText.textContent = "Retry Conversion";
         this.elements.btnConvert.disabled = false;
       }
     } catch (err: any) {
+      this.elements.progressContainer.style.display = "none";
       this.elements.statusMessage.className = "status-message error";
       this.elements.statusMessage.textContent = err.message || "Failed to initiate conversion";
       this.elements.btnConvertText.textContent = "Retry Conversion";
@@ -272,6 +383,44 @@ export class PopupController {
       this.isConverting = false;
       this.elements.btnConvert.classList.remove("converting");
     }
+  }
+
+  private formatBytes(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  private getFileExtension(format: OutputFormat): string {
+    switch (format) {
+      case "markdown":
+        return "md";
+      case "txt":
+        return "txt";
+      case "json":
+        return "json";
+      case "html":
+        return "html";
+      case "jsonl":
+        return "jsonl";
+      case "zip":
+        return "zip";
+      default:
+        return "txt";
+    }
+  }
+
+  private triggerFileDownload(content: string, filename: string): void {
+    if (typeof document === "undefined" || typeof Blob === "undefined") return;
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 }
 

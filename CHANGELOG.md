@@ -6,6 +6,41 @@
 
 ## [Unreleased] — Stage 9: Developer and AI Agent Integrations
 
+### 2026-11-19 — Phase 9.4: Browser integration (`9.4.2`)
+
+#### Added
+- **`[9.4.2]` Current-page conversion in `apps/extension`:**
+  - Active tab DOM and metadata extraction engine (`apps/extension/src/dom/extractor.ts`):
+    - `extractDOMFromDocument`: Extracts document title, canonical URL, meta description, author tags, heading structure (`h1`–`h6`), character count, and estimated tokens.
+    - `sanitizeDocumentContent`: Strips `<script>`, `<style>`, `<noscript>`, `<iframe>`, `<object>`, `<embed>`, `<svg>`, `<canvas>`, audio/video elements, template tags, hidden elements (`aria-hidden='true'`), and inline `on*` event handlers.
+    - `captureActiveTabDOM`: Leverages `chrome.scripting.executeScript` for cross-frame tab DOM inspection with graceful local DOM fallback for non-extension environments.
+  - Strongly-typed REST API client (`apps/extension/src/api/client.ts`):
+    - Implemented `ExtensionApiClient` supporting job creation (`createJob`), job state inspection (`getJobStatus`), polling with adaptive progress estimation (`pollJobUntilComplete`), and artifact retrieval (`fetchArtifact`).
+    - Handled Bearer token authentication headers, timeout limits, and RFC 7807 problem details error decoding.
+    - Added `executeFullConversion` orchestrating submission, polling, and downloading in a single call.
+  - Conversion state machine (`apps/extension/src/conversion/state.ts`):
+    - Implemented `ConversionStateMachine` coordinating 7 discrete lifecycle stages (`idle`, `capturing`, `submitting`, `processing`, `fetching_result`, `completed`, `error`).
+    - Supported state change event subscribers (`subscribe`), progress percentage scaling (0–100%), phase messaging, and error state transitions.
+  - Background service worker integration (`apps/extension/src/background/index.ts`):
+    - Added message handler for `CAPTURE_DOM` triggering active tab DOM inspection.
+    - Enhanced `START_CONVERSION` message handler to execute full conversion via `ConversionStateMachine` and `ExtensionApiClient`.
+    - Added `GET_CONVERSION_STATUS` message handler for querying current pipeline state.
+  - Action popup user interface transformation (`apps/extension/src/popup/`):
+    - Added animated progress bar (`#progressContainer`, `#progressBar`) and real-time phase description text.
+    - Built completed result view (`#resultContainer`) displaying token metrics (`resTokens`), formatted size (`resChars`), format badge (`resFormat`), and action buttons (`btnCopyResult`, `btnDownloadResult`, `btnOpenInWorkspace`, `btnResetConversion`).
+    - Implemented smooth transitions between configuration view, progress view, and result view.
+  - Comprehensive unit & integration tests (`apps/extension/tests/`):
+    - `tests/dom.test.ts` (4 tests): Content sanitization, metadata extraction, headings hierarchy, and scripting error fallback.
+    - `tests/client.test.ts` (7 tests): Job submission, 400 Bad Request problem details, status querying, artifact fetching, polling completion/failure, and full conversion.
+    - `tests/state.test.ts` (4 tests): State machine transitions, event listener notifications, error transitions, and reset.
+    - Updated `tests/background.test.ts` (20 tests) and `tests/popup.test.ts` (8 tests). Total extension tests expanded to 65 passing tests.
+  - Quality verification:
+    - 65 extension tests passing in 709ms.
+    - Vite multi-page extension build passing in 394ms.
+    - TypeScript strict typecheck (`tsc --noEmit`) clean with zero errors.
+    - Prettier code style clean across all extension source and test files.
+    - Monorepo quality gate (`scripts/check-all.ps1`) 100% passing across all 5 gates.
+
 ### 2026-11-19 — Phase 9.4: Browser integration (`9.4.1`)
 
 #### Added

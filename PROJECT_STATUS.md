@@ -6,8 +6,8 @@
 **Last Completed Stage:** `STAGE 8 — LARGE REPOSITORIES, BATCH AND CRAWLING` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Last Completed Phase:** `Phase 9.3 — MCP` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Active Subphase:** `None`  
-**Last Completed Subphase:** `9.4.1 — Browser extension foundation (apps/extension: WebExtensions Manifest V3 scaffolding, background service worker, options/storage configuration, and popup UI)` (`ACCEPTED`)  
-**Next Upcoming Subphase:** `9.4.2 — Current-page conversion (apps/extension: Active tab DOM and URL capture, extraction dispatch, and conversion state machine)`
+**Last Completed Subphase:** `9.4.2 — Current-page conversion (apps/extension: Active tab DOM and URL capture, extraction dispatch, and conversion state machine)` (`ACCEPTED`)  
+**Next Upcoming Subphase:** `9.4.3 — Result handoff (apps/extension: One-click clipboard copy, multi-format file download, and Web UI workspace deep-link navigation)`
 
 ---
 
@@ -70,6 +70,13 @@ In Stage 9 ("Developer and AI Agent Integrations"):
     - Options Page: Implemented `src/options/index.html`, `options.css`, and `options.ts` featuring backend connection configuration with live "Test Connection" status probe, API key visibility toggle, format and budget selectors, behavioral checkboxes, animated status toast notifications, and reset-to-defaults workflow.
     - Popup Interface: Implemented `src/popup/index.html`, `popup.css`, and `popup.ts` providing compact 380px toolbar interface featuring dynamic API connection status dot, active tab title and URL extraction, source archetype classification badge (`GitHub Repository`, `Documentation`, `Web Article`, `Webpage`, `Internal Browser Page`), export format picker, quick token budget chips (`8K`, `32K`, `64K`, `128K`, `Max`), "Convert Current Tab" state machine (idle -> converting spinner -> success/error), and web UI launcher.
     - Quality & Verification: Authored 4 comprehensive test suites across `tests/config.test.ts`, `tests/background.test.ts`, `tests/options.test.ts`, and `tests/popup.test.ts` backed by a high-fidelity Chrome MV3 mock (`tests/mocks/chrome.ts`). Integrated into monorepo quality gate (`scripts/check-all.ps1`). Verified with 46 extension unit tests, 213 frontend web tests, 656 workspace Rust tests, Vite build (153ms), TypeScript zero errors, Prettier formatting clean, zero cargo deny violations, and 100% passing quality gates (5/5).
+  - Subphase `9.4.2` delivered active tab DOM and URL capture, extraction dispatch, and conversion state machine in `apps/extension`:
+    - DOM Snapshot Engine: Implemented `src/dom/extractor.ts` providing in-page metadata extraction (`extractDOMFromDocument`), heading hierarchy discovery (`h1`–`h6`), character/token estimation, and content sanitization (`sanitizeDocumentContent`) stripping scripts, styles, iframes, SVGs, audio/video tags, and inline event handlers. Supported cross-frame execution via `chrome.scripting.executeScript` (`captureActiveTabDOM`) with graceful local fallback.
+    - REST API Client: Implemented strongly-typed `ExtensionApiClient` (`src/api/client.ts`) supporting job submission (`POST /api/v1/jobs`), status inspection (`GET /api/v1/jobs/{id}`), polling with adaptive progress estimation (`pollJobUntilComplete`), artifact downloading (`GET /api/v1/jobs/{id}/artifacts/{format}`), Bearer token authentication, and RFC 7807 problem details decoding.
+    - Conversion State Machine: Implemented `ConversionStateMachine` (`src/conversion/state.ts`) driving complete lifecycle stages (`idle`, `capturing`, `submitting`, `processing`, `fetching_result`, `completed`, `error`) with subscriber event dispatching, progress tracking, and error recovery.
+    - Background Service Worker Integration: Updated `src/background/index.ts` adding `CAPTURE_DOM`, full `START_CONVERSION` pipeline execution with live API submission, and `GET_CONVERSION_STATUS` state inspection.
+    - Popup Interface Transformation: Enhanced `src/popup/` (`index.html`, `popup.css`, `popup.ts`) with animated progress bar, real-time phase updates ("Capturing page...", "Processing & optimizing...", "Downloading converted document..."), completed result card displaying token counts, file size, format badges, and action buttons (Copy, Download, Open Web UI, Convert another).
+    - Quality & Verification: Authored 3 new test suites (`tests/dom.test.ts`, `tests/client.test.ts`, `tests/state.test.ts`) and updated `tests/background.test.ts` and `tests/popup.test.ts`. Verified with 65 extension tests, 213 web tests, 656 Rust tests, zero clippy warnings, zero fmt diffs, cargo-deny clean, and 100% passing quality gates (5/5).
 
 ---
 
@@ -77,12 +84,12 @@ In Stage 9 ("Developer and AI Agent Integrations"):
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 157 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` |
+| `ACCEPTED` | 158 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1`, `9.4.2` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 39 | `9.4.2` – `11.4.5` |
+| `NOT_STARTED` | 38 | `9.4.3` – `11.4.5` |
 | **Total** | **196** | `Stage 0` – `Stage 11` |
 
 ---

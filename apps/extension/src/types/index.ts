@@ -58,6 +58,49 @@ export interface TabInfo {
   favIconUrl?: string;
 }
 
+export interface PageHeading {
+  level: number;
+  text: string;
+}
+
+export interface PageSnapshot {
+  url: string;
+  title: string;
+  html: string;
+  textContent: string;
+  charCount: number;
+  estimatedTokens: number;
+  canonicalUrl?: string;
+  description?: string;
+  author?: string;
+  headings: PageHeading[];
+  capturedAt: string;
+}
+
+export type ConversionStage =
+  "idle" | "capturing" | "submitting" | "processing" | "fetching_result" | "completed" | "error";
+
+export interface ConversionResult {
+  jobId: string;
+  url: string;
+  format: OutputFormat;
+  content: string;
+  tokenCount: number;
+  charCount: number;
+  durationMs: number;
+  archetype: DetectedArchetype;
+  downloadUrl?: string;
+}
+
+export interface ConversionProgress {
+  stage: ConversionStage;
+  progressPct: number;
+  message: string;
+  jobId?: string;
+  error?: string;
+  result?: ConversionResult;
+}
+
 export type ExtensionMessage =
   | { type: "PING" }
   | { type: "CHECK_BACKEND_STATUS"; apiUrl?: string; apiKey?: string }
@@ -66,13 +109,17 @@ export type ExtensionMessage =
   | { type: "RESET_CONFIG" }
   | { type: "GET_ACTIVE_TAB" }
   | { type: "DETECT_URL_TYPE"; url: string }
+  | { type: "CAPTURE_DOM"; tabId?: number }
   | {
       type: "START_CONVERSION";
       url: string;
       format: OutputFormat;
       tokenBudget?: number | null;
       model?: TargetModel;
-    };
+      sendDomSnapshot?: boolean;
+      tabId?: number;
+    }
+  | { type: "GET_CONVERSION_STATUS"; jobId?: string };
 
 export interface ResponseSuccess<T = unknown> {
   success: true;

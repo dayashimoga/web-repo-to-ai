@@ -5637,5 +5637,48 @@
   - All 5 monorepo quality gates pass with 0 failures.
 - **Status:** `ACCEPTED`
 
+#### Subphase `9.4.2` — Current-page conversion
+- **Unique ID:** `9.4.2`
+- **Objective:** Implement active tab DOM and URL capture, extraction dispatch to the web-repo-to-ai backend REST API, and conversion state machine in `apps/extension`.
+- **Scope:** `apps/extension/src/dom/*`, `apps/extension/src/api/*`, `apps/extension/src/conversion/*`, `apps/extension/src/types/*`, `apps/extension/src/background/index.ts`, `apps/extension/src/popup/*`, `apps/extension/tests/*`, and project tracking ledgers.
+- **Prerequisites:** Subphase `9.4.1` (Browser extension foundation) ACCEPTED.
+- **Files/Components Affected:**
+  - `apps/extension/src/types/index.ts`: Extended with `PageSnapshot`, `PageHeading`, `ConversionStage`, `ConversionResult`, `ConversionProgress`, and new message types (`CAPTURE_DOM`, `GET_CONVERSION_STATUS`).
+  - `apps/extension/src/dom/extractor.ts`: Active tab DOM extraction engine (`extractDOMFromDocument`), heading discovery (`h1`–`h6`), metadata parsing (canonical URL, author, description), token estimation, and content sanitization (`sanitizeDocumentContent`) removing scripts, styles, iframes, SVGs, and inline event handlers; cross-frame execution via `chrome.scripting.executeScript` (`captureActiveTabDOM`).
+  - `apps/extension/src/api/client.ts`: Strongly-typed `ExtensionApiClient` supporting job creation (`POST /api/v1/jobs`), status inspection (`GET /api/v1/jobs/{id}`), polling with adaptive progress estimation (`pollJobUntilComplete`), artifact retrieval (`fetchArtifact`), Bearer token authentication, and RFC 7807 problem details decoding.
+  - `apps/extension/src/conversion/state.ts`: `ConversionStateMachine` coordinating 7 discrete lifecycle stages (`idle`, `capturing`, `submitting`, `processing`, `fetching_result`, `completed`, `error`) with subscriber event dispatching, progress tracking, and error recovery.
+  - `apps/extension/src/background/index.ts`: Enhanced message router handling `CAPTURE_DOM`, full `START_CONVERSION` pipeline execution with live API submission, and `GET_CONVERSION_STATUS` state inspection.
+  - `apps/extension/src/popup/`: Transformed popup UI (`index.html`, `popup.css`, `popup.ts`) with animated progress bar, real-time phase updates ("Capturing page...", "Processing & optimizing...", "Downloading converted document..."), and completed result card displaying token counts, file size, format badges, and action buttons.
+  - `apps/extension/tests/dom.test.ts`: 4 unit tests covering sanitization, metadata extraction, headings hierarchy, and scripting error fallback.
+  - `apps/extension/tests/client.test.ts`: 7 unit tests covering job submission, 400 Bad Request problem details, status querying, artifact fetching, polling completion/failure, and full conversion.
+  - `apps/extension/tests/state.test.ts`: 4 unit tests covering state machine transitions, event listener notifications, error transitions, and reset.
+  - `apps/extension/tests/background.test.ts`: Updated with `CAPTURE_DOM` and end-to-end `START_CONVERSION` tests (20 tests total).
+  - `apps/extension/tests/popup.test.ts`: Updated with `showResult`, `updateProgress`, `resetToIdle`, and full conversion tests (8 tests total).
+- **Implementation Tasks:**
+  1. Implemented DOM snapshot and metadata extraction engine in `src/dom/extractor.ts`.
+  2. Implemented strongly-typed REST API client in `src/api/client.ts`.
+  3. Implemented 7-stage conversion state machine in `src/conversion/state.ts`.
+  4. Updated background service worker in `src/background/index.ts` with live conversion orchestration.
+  5. Transformed popup UI in `src/popup/` with progress bar, phase text, result view, metrics badges, and action buttons.
+  6. Authored 3 new test suites (`dom.test.ts`, `client.test.ts`, `state.test.ts`) and updated existing suites (65 tests total).
+  7. Verified full test pipeline, Vite build, TypeScript typecheck, and Prettier formatting.
+  8. Executed monorepo quality gate (`scripts/check-all.ps1`) with 100% passing results.
+- **Verification Commands:**
+  - `npm test` in `apps/extension` (65 unit tests passing)
+  - `npm run build` in `apps/extension` (Vite build successful in 394ms)
+  - `npm run typecheck` in `apps/extension` (tsc --noEmit clean)
+  - `npm run lint` in `apps/extension` (Prettier clean)
+  - `powershell scripts/check-all.ps1` (All 5 gates passed with 0 failures)
+- **Acceptance Criteria:**
+  - Active tab DOM and URL capture extracts clean, sanitized content with metadata.
+  - API client communicates correctly with `/api/v1/jobs` endpoints.
+  - Conversion state machine coordinates lifecycle smoothly with progress feedback.
+  - Popup interface provides rich progress and completed result displays.
+  - Zero-mock policy enforced across all extension components.
+  - All 65 extension tests, 213 web tests, and 656 workspace tests pass cleanly.
+  - Disk space constraint satisfied ($\ge 70$ GB free on `C:`).
+  - All 5 monorepo quality gates pass with 0 failures.
+- **Status:** `ACCEPTED`
+
 
 
