@@ -89,7 +89,7 @@ tracing-subscriber = { version = "0.3", default-features = false }
 # Identity & time
 chrono = { version = "0.4", default-features = false }
 uuid = { version = "1.10", default-features = false }
-url = "2.5"
+url = { version = "2.5", features = ["serde"] }
 
 # Cryptography & hashing
 sha2 = "0.10"

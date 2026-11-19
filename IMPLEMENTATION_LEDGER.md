@@ -7351,12 +7351,85 @@
 
 #### Phase 8.2 — Website crawling
 
+### Subphase `8.2.1` — Sitemap discovery in crates/web-extractor
+- **Unique ID:** `8.2.1`
+- **Objective:** Implement comprehensive automated sitemap discovery, `robots.txt` directive parsing, well-known endpoint probing, multi-format sitemap extraction (XML `<urlset>`, `<sitemapindex>` recursion, RSS 2.0, Atom feeds, plain text), Gzip decompression (`.xml.gz`) with decompression-bomb protection, SSRF security validation, cross-domain filtering, and URL deduplication in `crates/web-extractor`.
+- **Prerequisites:** `8.1.4` (`ACCEPTED`)
+- **Primary Agent Roster:** `extraction-engineer`, `security-reviewer`, `qa-engineer`, `documentation-reviewer`
+- **Scope:**
+  - `Cargo.toml`
+  - `crates/web-extractor/src/error.rs`
+  - `crates/web-extractor/src/sitemap/mod.rs`
+  - `crates/web-extractor/src/sitemap/model.rs`
+  - `crates/web-extractor/src/sitemap/parser.rs`
+  - `crates/web-extractor/src/sitemap/robots.rs`
+  - `crates/web-extractor/src/sitemap/discovery.rs`
+  - `crates/web-extractor/src/lib.rs`
+  - `crates/web-extractor/tests/sitemap_discovery_test.rs`
+- **Implementation Tasks:**
+  1. Add `features = ["serde"]` to `url` in root `Cargo.toml` for seamless serialization of `Url`.
+  2. Add `WebExtractorError::Sitemap(String)` variant and `CoreError::Extraction` mapping in `crates/web-extractor/src/error.rs`.
+  3. Define strongly-typed sitemap domain models in `crates/web-extractor/src/sitemap/model.rs`: `ChangeFrequency` (`Always`, `Hourly`, `Daily`, `Weekly`, `Monthly`, `Yearly`, `Never`), `SitemapEntry`, `SitemapIndexEntry`, `SitemapType` (`UrlSet`, `SitemapIndex`, `PlainText`, `RssFeed`, `AtomFeed`), `ParsedSitemap`, `SitemapDiscoveryConfig`, and `DiscoveredSitemapReport`.
+  4. Implement resilient, zero-dependency streaming XML and plain-text parser in `crates/web-extractor/src/sitemap/parser.rs`:
+     - Gzip magic header detection and safe bounded decompression via `flate2::read::GzDecoder`.
+     - Lightweight XML tokenizer handling namespaces, comments, CDATA blocks, and XML entity decoding (`&amp;`, `&lt;`, `&gt;`, `&quot;`, `&apos;`, numeric entities).
+     - Multi-format date parsing supporting W3C Datetime, RFC 3339, RFC 2822, ISO 8601, and date-only strings.
+     - Extraction of `<loc>`, `<lastmod>`, `<changefreq>`, and `<priority>` for `<urlset>` and `<sitemapindex>`.
+     - RSS 2.0 (`<item><link>`) and Atom (`<entry><link>`) syndication feed ingestion.
+     - Plain-text sitemap parser handling one URL per line with comment stripping.
+  5. Implement `robots.txt` sitemap directive parser in `crates/web-extractor/src/sitemap/robots.rs` extracting declared `Sitemap:` URLs with comment stripping and relative resolution.
+  6. Implement `SitemapDiscoverer` in `crates/web-extractor/src/sitemap/discovery.rs`:
+     - Root URL origin resolution.
+     - Direct sitemap URL detection.
+     - `robots.txt` query and parsing.
+     - Well-known candidate path probing fallback (`/sitemap.xml`, `/sitemap_index.xml`, `/sitemap/sitemap.xml`, `/sitemap.xml.gz`, `/sitemap.txt`).
+     - Recursive sitemap index traversal bounded by `max_index_depth` and `max_child_sitemaps` with cycle / loop detection using `visited` URL sets.
+     - Host policy enforcement (`enforce_same_host` and `allow_subdomains`) to prevent rogue cross-domain URL injection.
+     - SSRF security validation via `crates/url-security`.
+     - Deterministic URL deduplication and priority-descending ordering bounded by `max_urls`.
+  7. Re-export sitemap module and types in `crates/web-extractor/src/lib.rs`.
+  8. Author 14 integration test suites in `crates/web-extractor/tests/sitemap_discovery_test.rs` validating standard urlsets, namespaces, gzipped sitemaps, sitemap index recursion, plain text, RSS/Atom feeds, robots.txt, well-known probing, cross-domain filtering, subdomain policies, and circular loops.
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-web-extractor`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - Standard `<urlset>` XML documents parse accurately with metadata and entity decoding.
+  - `<sitemapindex>` hierarchies expand child sitemaps with cycle loop protection.
+  - Compressed `.xml.gz` sitemaps decompress safely with decompression-bomb ceilings.
+  - Plain text sitemaps, RSS 2.0, and Atom feeds extract URLs with proper dates.
+  - `robots.txt` `Sitemap:` directives are extracted and normalized.
+  - Well-known sitemap endpoints are probed as fallback when robots.txt does not specify sitemaps.
+  - Cross-domain URLs from rogue sitemaps are dropped by default unless subdomains are explicitly allowed.
+  - 100% of web-extractor tests pass (157/157), workspace clippy is clean, zero fmt diffs, cargo deny clean, and all monorepo gates pass (5/5).
+- **Risk Analysis:**
+  - Risk: Circular sitemap index references or recursive sitemap links could cause infinite loops or resource exhaustion.
+  - Mitigation: Visited URL tracking via `HashSet<String>`, strict recursion depth limits (`max_index_depth = 3`), child sitemap ceilings (`max_child_sitemaps = 50`), and max total URL bounds (`max_urls = 50,000`).
+- **Rollback Plan:**
+  - Revert Subphase 8.2.1 additions via Git reset to commit `cf6595c`.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-web-extractor`: 157 tests passed (135 unit in `lib.rs`, 8 golden dataset, 14 sitemap discovery).
+  - `cargo clippy --workspace --all-targets -- -D warnings`: passed with 0 warnings.
+  - `cargo fmt --all -- --check`: verified clean formatting with 0 diffs.
+  - `cargo deny check`: passed (`advisories ok, bans ok, licenses ok, sources ok`).
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures) including 213 frontend vitest tests and 17.6% Podman storage footprint.
+- **Git Commit Reference:** `fa62d32`
+- **Status:** `ACCEPTED`
+
+---
+
+### Upcoming Subphase (Stage 8 — Large Repositories, Batch and Crawling)
+
+#### Phase 8.2 — Website crawling
+
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `8.2.1` | Sitemap discovery in crates/web-extractor | `8.1.4` (`ACCEPTED`) | `crates/web-extractor/*` | `NOT_STARTED` |
+| `8.2.2` | Internal link discovery in crates/web-extractor | `8.2.1` (`ACCEPTED`) | `crates/web-extractor/*` | `NOT_STARTED` |
 
 ---
 
 ## STAGES 8 – 11 QUEUED LEDGER SUMMARY
 
-All subsequent subphases for **Stage 8** (`8.2.1`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.
+All subsequent subphases for **Stage 8** (`8.2.2`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.

@@ -22,6 +22,7 @@ pub mod error;
 pub mod http;
 pub mod provenance;
 pub mod quality;
+pub mod sitemap;
 pub mod url;
 
 pub use article::{
@@ -67,6 +68,13 @@ pub use provenance::{
 pub use quality::{
     CompletenessLevel, ContentMetrics, DimensionScores, ExtractionQualityReport, ExtractionWarning,
     ExtractionWarningCategory, QualityScorer, QualityScorerOptions,
+};
+pub use sitemap::{
+    decode_xml_entities, is_gzipped, parse_datetime, parse_robots_txt, parse_sitemap,
+    strip_namespace, ChangeFrequency, DiscoveredSitemapReport, ParsedSitemap, SitemapDiscoverer,
+    SitemapDiscoveryConfig, SitemapEntry, SitemapIndexEntry, SitemapType,
+    DEFAULT_MAX_CHILD_SITEMAPS, DEFAULT_MAX_INDEX_DEPTH, DEFAULT_MAX_SITEMAP_URLS,
+    DEFAULT_SITEMAP_TIMEOUT, MAX_PERMISSIBLE_SITEMAP_URLS, WELL_KNOWN_SITEMAP_PATHS,
 };
 pub use url::{classify_url, WebPageType, WebTarget};
 

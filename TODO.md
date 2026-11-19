@@ -237,7 +237,7 @@
 - [x] **[8.1.4]** Batch export *(Completed 2026-11-19, BatchItemExportInput, BatchExportOptions, BatchExportManifest, BatchZipMetrics, consolidated Markdown/plain-text/JSONL/JSON exporters, streaming multi-item ZIP archive packaging with batch-manifest.json, batch-summary.md, consolidated.md, checksums.sha256, per-item folders and error files in crates/exporters/src/batch.rs, storage layout keys in crates/storage/src/local_fs.rs, REST download endpoints GET /api/v1/jobs/batch/:batch_id/export/:format and GET /api/v1/jobs/batch/:batch_id/artifacts in services/api, 8 API integration tests, 81 exporter tests, 84 API tests, 100% passing quality gates)*
 
 ### Phase 8.2 — Website crawling
-- [ ] **[8.2.1]** Sitemap discovery
+- [x] **[8.2.1]** Sitemap discovery *(Completed 2026-11-19, SitemapEntry, SitemapIndexEntry, SitemapType, ChangeFrequency, SitemapDiscoveryConfig, DiscoveredSitemapReport models in crates/web-extractor/src/sitemap/model.rs, streaming XML/RSS/Atom/plain-text parser with Gzip .xml.gz safe decompression in crates/web-extractor/src/sitemap/parser.rs, robots.txt sitemap directive parser in crates/web-extractor/src/sitemap/robots.rs, SitemapDiscoverer with robots.txt query, well-known path fallback probing, recursive sitemap index traversal, SSRF validation, and cross-domain filtering in crates/web-extractor/src/sitemap/discovery.rs, 14 integration tests in sitemap_discovery_test, 157 web-extractor tests, 100% passing quality gates)*
 - [ ] **[8.2.2]** Internal link discovery
 - [ ] **[8.2.3]** Crawl-depth & domain restrictions
 - [ ] **[8.2.4]** Duplicate & loop prevention

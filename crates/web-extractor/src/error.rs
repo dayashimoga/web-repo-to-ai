@@ -95,6 +95,8 @@ pub enum WebExtractorError {
     },
     /// Browser worker dynamic rendering or IPC failure.
     BrowserWorker(String),
+    /// Sitemap parsing or discovery failure.
+    Sitemap(String),
 }
 
 impl fmt::Display for WebExtractorError {
@@ -147,6 +149,7 @@ impl fmt::Display for WebExtractorError {
                 "Content-Length mismatch: expected {expected} bytes, received {actual} bytes"
             ),
             Self::BrowserWorker(details) => write!(f, "Browser worker error: {details}"),
+            Self::Sitemap(details) => write!(f, "Sitemap error: {details}"),
         }
     }
 }
@@ -237,6 +240,9 @@ impl From<WebExtractorError> for CoreError {
             }
             WebExtractorError::BrowserWorker(details) => {
                 CoreError::Extraction(format!("Browser worker error: {details}"))
+            }
+            WebExtractorError::Sitemap(details) => {
+                CoreError::Extraction(format!("Sitemap error: {details}"))
             }
         }
     }

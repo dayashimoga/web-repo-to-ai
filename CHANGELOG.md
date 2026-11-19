@@ -6,6 +6,38 @@
 
 ## [Unreleased] — Stage 8: Large Repositories, Batch and Crawling
 
+### 2026-11-19 — Phase 8.2: Website Crawling (`8.2.1`)
+
+#### Added
+- **`[8.2.1]` Automated Sitemap Discovery and Ingestion Engine in `crates/web-extractor`:**
+  - Added `features = ["serde"]` to workspace `url` dependency in root `Cargo.toml`.
+  - Added `WebExtractorError::Sitemap(String)` variant and `CoreError::Extraction` mapping in `crates/web-extractor/src/error.rs`.
+  - Implemented strongly-typed sitemap domain models in `crates/web-extractor/src/sitemap/model.rs`:
+    - `ChangeFrequency`: case-insensitive mapping for `Always`, `Hourly`, `Daily`, `Weekly`, `Monthly`, `Yearly`, `Never`.
+    - `SitemapEntry`: page URL, optional `last_modified`, `change_frequency`, `priority` (clamped 0.0..=1.0), and `source_sitemap`.
+    - `SitemapIndexEntry`: child sitemap reference URL and optional `last_modified`.
+    - `SitemapType`: `UrlSet`, `SitemapIndex`, `PlainText`, `RssFeed`, `AtomFeed`.
+    - `ParsedSitemap`, `SitemapDiscoveryConfig`, `DiscoveredSitemapReport`.
+  - Implemented high-performance, zero-external-dependency stream-like XML and plain-text parser in `crates/web-extractor/src/sitemap/parser.rs`:
+    - Gzip magic header detection (`0x1f 0x8b`) and bounded decompression via `flate2::read::GzDecoder` with 50 MB decompression-bomb limit.
+    - Lightweight XML tokenizer handling namespaces (`<sitemap:loc>`, `<xhtml:link>`), comments (`<!-- ... -->`), CDATA blocks, and standard XML character entity decoding (`&amp;`, `&lt;`, `&gt;`, `&quot;`, `&apos;`, numeric decimal and hexadecimal entities).
+    - Multi-format date parsing (W3C Datetime, RFC 3339, RFC 2822, ISO 8601, and date-only).
+    - Extraction of `<url>` elements from `<urlset>` and child sitemaps from `<sitemapindex>`.
+    - RSS 2.0 (`<item><link>`) and Atom (`<entry><link href="..."/>`) syndication feed parsing.
+    - Plain-text sitemap parser (one URL per line, comment stripping).
+  - Implemented `robots.txt` directive parser in `crates/web-extractor/src/sitemap/robots.rs` extracting declared `Sitemap:` URLs with comment stripping and relative resolution.
+  - Implemented `SitemapDiscoverer` in `crates/web-extractor/src/sitemap/discovery.rs`:
+    - Direct sitemap URL detection and root site origin resolution.
+    - `robots.txt` querying and directive extraction.
+    - Well-known candidate endpoint fallback probing (`/sitemap.xml`, `/sitemap_index.xml`, `/sitemap/sitemap.xml`, `/sitemap.xml.gz`, `/sitemap.txt`).
+    - Recursive sitemap index traversal bounded by `max_index_depth` and `max_child_sitemaps` with cycle / loop detection using `visited` URL sets.
+    - Host and domain boundary enforcement (`enforce_same_host` and `allow_subdomains`) to defend against rogue cross-domain URL injection.
+    - SSRF security validation via `crates/url-security`.
+    - Deterministic URL deduplication preserving highest priority and newest timestamp, bounded by `max_urls`.
+  - Re-exported sitemap module and types in `crates/web-extractor/src/lib.rs`.
+  - Authored integration test suite in `crates/web-extractor/tests/sitemap_discovery_test.rs` (14 tests covering urlsets, namespaces, gzipped sitemaps, sitemap index recursion, plain text, RSS/Atom feeds, robots.txt, well-known probing, cross-domain filtering, subdomain policies, and circular loops).
+  - 100% passing quality gates: 157 web-extractor tests passed, zero clippy warnings, zero fmt diffs, cargo deny passed, and 5/5 check-all gates passed.
+
 ### 2026-11-19 — Phase 8.1: Batch URLs (`8.1.4` — PHASE 8.1 FORMALLY CERTIFIED)
 
 #### Added
