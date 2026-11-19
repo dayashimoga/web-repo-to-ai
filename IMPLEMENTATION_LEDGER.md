@@ -7259,7 +7259,7 @@
   - `cargo fmt --all -- --check`: verified clean formatting with 0 diffs.
   - `cargo deny check`: passed (advisories ok, bans ok, licenses ok, sources ok).
   - `powershell scripts/check-all.ps1`: ALL GATES PASSED (0 failures) across all 5 monorepo gates.
-- **Git Commit Reference:** `2b07ed5`
+- **Git Commit Reference:** `dd1832d`
 - **Status:** `ACCEPTED`
 
 ---
