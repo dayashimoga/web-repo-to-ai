@@ -13,8 +13,8 @@ use web_repo_to_ai_github_extractor::callback::InMemoryWebhookDeliveryTracker;
 use web_repo_to_ai_github_extractor::client::GitHubApiClient;
 use web_repo_to_ai_observability::AppMetrics;
 use web_repo_to_ai_storage::{
-    create_storage_backend, DynStorage, InMemoryStorage, InMemoryTokenStorage,
-    TokenStorageRepository,
+    create_storage_backend, BatchRepository, DynStorage, InMemoryBatchRepository, InMemoryStorage,
+    InMemoryTokenStorage, TokenStorageRepository,
 };
 
 /// Centralized thread-safe application state shared across all HTTP request handlers.
@@ -30,6 +30,8 @@ pub struct AppState {
     pub storage: DynStorage,
     /// Credential storage repository for encrypted GitHub App tokens.
     pub token_storage: Arc<dyn TokenStorageRepository>,
+    /// Batch repository for multi-URL batch conversion tracking.
+    pub batch_storage: Arc<dyn BatchRepository>,
     /// GitHub API client for upstream token revocation and interactions.
     pub github_client: Arc<GitHubApiClient>,
     /// Webhook delivery GUID tracker preventing replay attacks.
@@ -62,6 +64,7 @@ impl AppState {
         let key =
             EncryptionKey::generate().unwrap_or_else(|_| EncryptionKey::from_bytes([0x42; 32]));
         let token_storage = Arc::new(InMemoryTokenStorage::new(key));
+        let batch_storage = Arc::new(InMemoryBatchRepository::new());
         let github_client = Arc::new(GitHubApiClient::new());
         let webhook_tracker = Arc::new(Mutex::new(InMemoryWebhookDeliveryTracker::default()));
         let webhook_secret = std::env::var("GITHUB_APP_WEBHOOK_SECRET").ok();
@@ -72,6 +75,7 @@ impl AppState {
             start_time: Utc::now(),
             storage,
             token_storage,
+            batch_storage,
             github_client,
             webhook_tracker,
             webhook_secret,
@@ -111,6 +115,13 @@ impl AppState {
     #[must_use]
     pub fn with_token_storage(mut self, token_storage: Arc<dyn TokenStorageRepository>) -> Self {
         self.token_storage = token_storage;
+        self
+    }
+
+    /// Configures a custom batch storage repository.
+    #[must_use]
+    pub fn with_batch_storage(mut self, batch_storage: Arc<dyn BatchRepository>) -> Self {
+        self.batch_storage = batch_storage;
         self
     }
 

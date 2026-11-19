@@ -14,6 +14,7 @@
 #![warn(missing_docs)]
 
 pub mod backend;
+pub mod batch;
 pub mod checksum;
 pub mod database;
 pub mod leasing;
@@ -27,6 +28,7 @@ pub mod token_storage;
 pub mod validation;
 
 pub use backend::*;
+pub use batch::*;
 pub use checksum::*;
 pub use database::*;
 pub use leasing::*;

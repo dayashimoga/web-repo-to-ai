@@ -6,6 +6,32 @@
 
 ## [Unreleased] — Stage 8: Large Repositories, Batch and Crawling
 
+### 2026-11-19 — Phase 8.1: Batch URLs (`8.1.3`)
+
+#### Added
+- **`[8.1.3]` Individual Result Tracking and Query Endpoints in `crates/storage` and `services/api`:**
+  - Implemented persistent relational entities and traits in `crates/storage/src/batch.rs`:
+    - `BatchJobStatus` (`Queued`, `Processing`, `Completed`, `PartialFailure`, `Failed`, `Cancelled`).
+    - `BatchItemStatusKind` (`Queued`, `Processing`, `Completed`, `Failed`, `TimedOut`, `Cancelled`).
+    - `BatchRecord` tracking total items, status, queued/processing/completed/failed counters, max parallelism, and timestamps.
+    - `BatchItemRecord` tracking sequence index, child job UUID, target URL, custom client ID, status, machine-readable error codes, error messages, and execution duration in milliseconds.
+    - `BatchRepository` async trait declaring batch header and item persistence, itemized status updates, single-item lookups by index or child job UUID, cancellation, and session-filtered pagination.
+    - `InMemoryBatchRepository`: thread-safe in-memory store automatically recalculating parent batch counters and advancing terminal status transitions.
+    - `PostgresBatchRepository`: full transactional PostgreSQL persistence using SQL CTEs for atomic parent metric recalculation and status synchronization.
+  - Authored migration `crates/storage/migrations/20261119000001_batch_jobs_and_items.sql` and updated production DDL script `crates/storage/src/schema/ddl.sql` with tables `batch_jobs` and `batch_items`, foreign keys with CASCADE deletion, and indexes on owner session, creation timestamp, and child job ID.
+  - Updated `crates/storage/src/schema/mod.rs` catalog validation to assert `batch_jobs`, `batch_items`, and all batch indexes.
+  - Authored integration test suite in `crates/storage/tests/batch_storage_test.rs` validating full lifecycle transitions, child job ID lookup, deterministic item ordering, cancellation, and session filtering.
+  - Wired `batch_storage: Arc<dyn BatchRepository>` into `AppState` in `services/api/src/state.rs`.
+  - Enhanced batch DTOs in `services/api/src/dto/batch.rs` with item-level error codes, error messages, execution duration, completion timestamps, `BatchItemPathParams`, `BatchItemsListResponse`, `BatchSummaryItem`, and `ListBatchesResponse`.
+  - Implemented REST route handlers in `services/api/src/routes/batch.rs` and wired routes in `services/api/src/routes/mod.rs`:
+    - `GET /api/v1/jobs/batch`: lists multi-URL batch conversion jobs with summary counts.
+    - `GET /api/v1/jobs/batch/:batch_id`: retrieves batch progress, status, and itemized summaries.
+    - `DELETE /api/v1/jobs/batch/:batch_id` & `POST /api/v1/jobs/batch/:batch_id/cancel`: cancels all remaining queued/processing items in the batch.
+    - `GET /api/v1/jobs/batch/:batch_id/items`: retrieves full itemized URL list.
+    - `GET /api/v1/jobs/batch/:batch_id/items/:item_index`: retrieves detailed status of a single item with execution duration and error details.
+  - Added 6 new integration tests in `services/api/src/lib.rs` covering lifecycle querying, item listing, single-item lookup, cancellation, batch listing, and simulated worker status updates with progress recalculation.
+  - 100% passing quality gates: 70 storage tests passed, 76 API tests passed, zero clippy warnings, zero fmt diffs, cargo deny passed, and 5/5 check-all gates passed.
+
 ### 2026-11-19 — Phase 8.1: Batch URLs (`8.1.2`)
 
 #### Added

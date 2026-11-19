@@ -120,6 +120,25 @@ mod tests {
                 .contains("CREATE TABLE IF NOT EXISTS content_cache_index"),
             "Initial migration must contain content_cache_index table definition"
         );
+
+        let batch_migration = migrations
+            .iter()
+            .find(|m| m.version == 20261119000001)
+            .expect("Migration 20261119000001 must be present");
+
+        assert_eq!(batch_migration.description, "batch jobs and items");
+        assert!(
+            batch_migration
+                .sql
+                .contains("CREATE TABLE IF NOT EXISTS batch_jobs"),
+            "Batch migration must contain batch_jobs table definition"
+        );
+        assert!(
+            batch_migration
+                .sql
+                .contains("CREATE TABLE IF NOT EXISTS batch_items"),
+            "Batch migration must contain batch_items table definition"
+        );
     }
 
     #[test]

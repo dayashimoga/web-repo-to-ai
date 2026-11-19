@@ -7196,7 +7196,70 @@
   - Formatting: `cargo fmt --all -- --check` clean with 0 diffs.
   - Dependency audit: `cargo deny check` passed (advisories ok, bans ok, licenses ok, sources ok).
   - Monorepo gatekeeper: `powershell scripts/check-all.ps1` completed with `ALL GATES PASSED (0 failures)`.
-- **Git Commit Reference:** `2d3f1bd`
+- **Git Commit Reference:** `d3afaae`
+- **Status:** `ACCEPTED`
+
+---
+
+### Subphase `8.1.3` — Individual result tracking in crates/storage and services/api
+- **Unique ID:** `8.1.3`
+- **Objective:** Implement multi-URL batch conversion state and itemized result tracking in `crates/storage` and `services/api`, including relational DDL tables (`batch_jobs`, `batch_items`), embedded migration `20261119000001_batch_jobs_and_items.sql`, repository abstractions (`BatchRepository`, `InMemoryBatchRepository`, `PostgresBatchRepository`), automatic parent batch counter recalculation and terminal state progression, and REST query endpoints for batch progress, itemized status lists, single-item status lookups, batch cancellation, and pagination.
+- **Prerequisites:** `8.1.2` (`ACCEPTED`)
+- **Primary Agent Roster:** `rust-backend-engineer`, `qa-engineer`, `security-reviewer`, `documentation-reviewer`
+- **Scope:**
+  - `crates/storage/src/batch.rs`
+  - `crates/storage/src/lib.rs`
+  - `crates/storage/src/schema/ddl.sql`
+  - `crates/storage/src/schema/mod.rs`
+  - `crates/storage/src/migrations/20261119000001_batch_jobs_and_items.sql`
+  - `crates/storage/src/migrations/mod.rs`
+  - `crates/storage/tests/batch_storage_test.rs`
+  - `services/api/src/state.rs`
+  - `services/api/src/dto/batch.rs`
+  - `services/api/src/dto/mod.rs`
+  - `services/api/src/routes/batch.rs`
+  - `services/api/src/routes/mod.rs`
+  - `services/api/src/lib.rs`
+  - Tracking ledgers (`IMPLEMENTATION_LEDGER.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`)
+- **Implementation Tasks:**
+  1. Define persistent models `BatchJobStatus`, `BatchItemStatusKind`, `BatchRecord`, and `BatchItemRecord` in `crates/storage/src/batch.rs`.
+  2. Implement `BatchRepository` async trait declaring `create_batch`, `get_batch`, `get_batch_items`, `get_batch_item`, `get_batch_item_by_job_id`, `update_item_status`, `cancel_batch`, and `list_batches`.
+  3. Implement thread-safe `InMemoryBatchRepository` with automatic parent counter recalculation and lifecycle state transitions (`Queued` -> `Processing` -> `Completed` / `PartialFailure` / `Failed` / `Cancelled`).
+  4. Implement `PostgresBatchRepository` with transactional integrity, foreign key cascading, and conditional parent counter recalculation SQL CTEs.
+  5. Author migration `20261119000001_batch_jobs_and_items.sql` and update embedded production DDL script in `crates/storage/src/schema/ddl.sql`.
+  6. Wire `batch` module into `crates/storage/src/lib.rs` and verify catalog validation in `crates/storage/src/schema/mod.rs`.
+  7. Author integration test suite in `crates/storage/tests/batch_storage_test.rs` covering lifecycle progression, child job ID lookup, deterministic item ordering, cancellation, and session filtering.
+  8. Integrate `Arc<dyn BatchRepository>` into `AppState` in `services/api/src/state.rs`.
+  9. Enhance batch DTOs in `services/api/src/dto/batch.rs` with item-level error codes, error messages, execution duration, completion timestamps, `BatchItemPathParams`, `BatchItemsListResponse`, `BatchSummaryItem`, and `ListBatchesResponse`.
+  10. Implement REST route handlers in `services/api/src/routes/batch.rs` (`GET /api/v1/jobs/batch`, `GET /api/v1/jobs/batch/:batch_id`, `DELETE /api/v1/jobs/batch/:batch_id`, `POST /api/v1/jobs/batch/:batch_id/cancel`, `GET /api/v1/jobs/batch/:batch_id/items`, `GET /api/v1/jobs/batch/:batch_id/items/:item_index`).
+  11. Register batch routes in `services/api/src/routes/mod.rs` and integrate unit/integration tests in `services/api/src/lib.rs`.
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-storage`
+  - `cargo test -p web-repo-to-ai-api`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - Batch job and item records persist accurately with correct initial counts (`queued_items = total_items`).
+  - Item status updates automatically trigger parent batch progress recalculations without permit or state leaks.
+  - Querying `GET /api/v1/jobs/batch/:batch_id` returns accurate quantitative progress percentages and status.
+  - Querying item lists and single items returns deterministic ordering and detailed error messages/durations.
+  - Batch cancellation transitions all remaining queued/processing items to `cancelled` and marks batch as `cancelled`.
+  - All 70 storage tests pass, all 76 api tests pass, all workspace clippy checks pass with 0 warnings, zero fmt diffs, cargo deny check clean, and all monorepo gates pass (5/5).
+- **Risk Analysis:**
+  - Risk: High batch volume item updates could introduce lock contention or stale parent counters.
+  - Mitigation: Atomically recalculate parent metrics in-memory via write locks and in PostgreSQL via atomic transactional CTE updates (`WITH counts AS ... UPDATE batch_jobs`).
+- **Rollback Plan:**
+  - Revert Subphase 8.1.3 additions via Git reset to commit `d3afaae`.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-storage`: 70 tests passed (57 unit, 2 batch storage integration, 11 token storage integration).
+  - `cargo test -p web-repo-to-ai-api`: 76 tests passed (75 unit/integration in `lib.rs`, 1 in `main.rs`).
+  - `cargo clippy --workspace --all-targets -- -D warnings`: passed with 0 warnings.
+  - `cargo fmt --all -- --check`: verified clean formatting with 0 diffs.
+  - `cargo deny check`: passed (advisories ok, bans ok, licenses ok, sources ok).
+  - `powershell scripts/check-all.ps1`: ALL GATES PASSED (0 failures) across all 5 monorepo gates.
+- **Git Commit Reference:** `2b07ed5`
 - **Status:** `ACCEPTED`
 
 ---
@@ -7207,10 +7270,10 @@
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `8.1.3` | Individual result tracking in crates/storage and services/api | `8.1.2` (`ACCEPTED`) | `crates/storage/*`, `services/api/*` | `NOT_STARTED` |
+| `8.1.4` | Batch export in crates/exporters and services/api | `8.1.3` (`ACCEPTED`) | `crates/exporters/*`, `services/api/*` | `NOT_STARTED` |
 
 ---
 
 ## STAGES 8 – 11 QUEUED LEDGER SUMMARY
 
-All subsequent subphases for **Stage 8** (`8.1.3`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.
+All subsequent subphases for **Stage 8** (`8.1.4`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.

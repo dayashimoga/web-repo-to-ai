@@ -55,8 +55,26 @@ pub fn create_router(state: AppState) -> Router {
         .route("/ready", get(health::readiness_handler))
         .route("/metrics", get(metrics::metrics_handler))
         .route("/sources/detect", post(sources::detect_sources_handler))
-        .route("/jobs/batch", post(batch::create_batch_job_handler))
-        .route("/jobs/batch/:batch_id", get(batch::get_batch_job_handler))
+        .route(
+            "/jobs/batch",
+            post(batch::create_batch_job_handler).get(batch::list_batches_handler),
+        )
+        .route(
+            "/jobs/batch/:batch_id",
+            get(batch::get_batch_job_handler).delete(batch::cancel_batch_handler),
+        )
+        .route(
+            "/jobs/batch/:batch_id/cancel",
+            post(batch::cancel_batch_handler),
+        )
+        .route(
+            "/jobs/batch/:batch_id/items",
+            get(batch::get_batch_items_handler),
+        )
+        .route(
+            "/jobs/batch/:batch_id/items/:item_index",
+            get(batch::get_batch_item_handler),
+        )
         .route(
             "/jobs",
             post(jobs::create_job_handler).get(jobs::list_jobs_handler),

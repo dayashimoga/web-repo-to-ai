@@ -33,12 +33,20 @@ mod tests {
     use http_body_util::BodyExt;
     use tower::ServiceExt;
     use web_repo_to_ai_core::AppConfig;
-    use web_repo_to_ai_storage::{StorageBackend, TokenStorageRepository};
+    use web_repo_to_ai_storage::{
+        batch::BatchItemStatusKind, StorageBackend, TokenStorageRepository,
+    };
 
     fn setup_test_app() -> axum::Router {
         let config = AppConfig::default();
         let state = AppState::new(config);
         build_app(state)
+    }
+
+    fn setup_test_app_and_state() -> (axum::Router, AppState) {
+        let config = AppConfig::default();
+        let state = AppState::new(config);
+        (build_app(state.clone()), state)
     }
 
     async fn body_to_string(body: Body) -> String {
@@ -718,6 +726,405 @@ mod tests {
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
         let body = body_to_string(response.into_body()).await;
         assert!(body.contains("VALIDATION_ERROR"));
+    }
+
+    #[tokio::test]
+    async fn test_batch_job_create_and_get_lifecycle() {
+        let (app, _state) = setup_test_app_and_state();
+        let payload = serde_json::json!({
+            "urls": [
+                "https://github.com/rust-lang/rust",
+                "https://example.com/docs"
+            ],
+            "name": "Integration Batch Lifecycle",
+            "max_parallelism": 3
+        });
+
+        // 1. Submit batch
+        let res1 = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/api/v1/jobs/batch")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(payload.to_string()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(res1.status(), StatusCode::ACCEPTED);
+        let body1 = body_to_string(res1.into_body()).await;
+        let v1: serde_json::Value = serde_json::from_str(&body1).unwrap();
+        let batch_id = v1["batch_id"].as_str().unwrap();
+
+        // 2. Query batch overview
+        let res2 = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::GET)
+                    .uri(format!("/api/v1/jobs/batch/{batch_id}"))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(res2.status(), StatusCode::OK);
+        let body2 = body_to_string(res2.into_body()).await;
+        let v2: serde_json::Value = serde_json::from_str(&body2).unwrap();
+        assert_eq!(v2["batch_id"], batch_id);
+        assert_eq!(v2["status"], "queued");
+        assert_eq!(v2["progress"]["total_items"], 2);
+        assert_eq!(v2["progress"]["queued_items"], 2);
+        assert_eq!(v2["progress"]["completed_items"], 0);
+        assert_eq!(v2["progress"]["percentage"], 0.0);
+        assert_eq!(v2["items"].as_array().unwrap().len(), 2);
+    }
+
+    #[tokio::test]
+    async fn test_batch_get_items_endpoint() {
+        let (app, _state) = setup_test_app_and_state();
+        let payload = serde_json::json!({
+            "urls": [
+                "https://example.com/item1",
+                "https://example.com/item2"
+            ]
+        });
+
+        let res1 = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/api/v1/jobs/batch")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(payload.to_string()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(res1.status(), StatusCode::ACCEPTED);
+        let v1: serde_json::Value =
+            serde_json::from_str(&body_to_string(res1.into_body()).await).unwrap();
+        let batch_id = v1["batch_id"].as_str().unwrap();
+
+        // Query all items
+        let res2 = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::GET)
+                    .uri(format!("/api/v1/jobs/batch/{batch_id}/items"))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(res2.status(), StatusCode::OK);
+        let v2: serde_json::Value =
+            serde_json::from_str(&body_to_string(res2.into_body()).await).unwrap();
+        assert_eq!(v2["total_items"], 2);
+        let items = v2["items"].as_array().unwrap();
+        assert_eq!(items.len(), 2);
+        assert_eq!(items[0]["item_index"], 0);
+        assert_eq!(items[0]["url"], "https://example.com/item1");
+        assert_eq!(items[1]["item_index"], 1);
+        assert_eq!(items[1]["url"], "https://example.com/item2");
+    }
+
+    #[tokio::test]
+    async fn test_batch_get_individual_item_endpoint() {
+        let (app, _state) = setup_test_app_and_state();
+        let payload = serde_json::json!({
+            "urls": [
+                "https://example.com/single-item"
+            ]
+        });
+
+        let res1 = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/api/v1/jobs/batch")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(payload.to_string()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(res1.status(), StatusCode::ACCEPTED);
+        let v1: serde_json::Value =
+            serde_json::from_str(&body_to_string(res1.into_body()).await).unwrap();
+        let batch_id = v1["batch_id"].as_str().unwrap();
+
+        // 1. Valid item index 0
+        let res2 = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::GET)
+                    .uri(format!("/api/v1/jobs/batch/{batch_id}/items/0"))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(res2.status(), StatusCode::OK);
+        let v2: serde_json::Value =
+            serde_json::from_str(&body_to_string(res2.into_body()).await).unwrap();
+        assert_eq!(v2["item_index"], 0);
+        assert_eq!(v2["url"], "https://example.com/single-item");
+        assert_eq!(v2["status"], "queued");
+
+        // 2. Out of bounds item index 99 -> 404
+        let res3 = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::GET)
+                    .uri(format!("/api/v1/jobs/batch/{batch_id}/items/99"))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(res3.status(), StatusCode::NOT_FOUND);
+        let body3 = body_to_string(res3.into_body()).await;
+        assert!(body3.contains("RESOURCE_NOT_FOUND"));
+        assert!(body3.contains("BatchItem"));
+    }
+
+    #[tokio::test]
+    async fn test_batch_cancellation_lifecycle() {
+        let (app, _state) = setup_test_app_and_state();
+        let payload = serde_json::json!({
+            "urls": [
+                "https://example.com/cancel-1",
+                "https://example.com/cancel-2"
+            ]
+        });
+
+        let res1 = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/api/v1/jobs/batch")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(payload.to_string()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        let v1: serde_json::Value =
+            serde_json::from_str(&body_to_string(res1.into_body()).await).unwrap();
+        let batch_id = v1["batch_id"].as_str().unwrap();
+
+        // Cancel via DELETE
+        let res2 = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::DELETE)
+                    .uri(format!("/api/v1/jobs/batch/{batch_id}"))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(res2.status(), StatusCode::OK);
+        let v2: serde_json::Value =
+            serde_json::from_str(&body_to_string(res2.into_body()).await).unwrap();
+        assert_eq!(v2["status"], "cancelled");
+
+        // Check that item statuses are cancelled
+        let res3 = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::GET)
+                    .uri(format!("/api/v1/jobs/batch/{batch_id}/items"))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        let v3: serde_json::Value =
+            serde_json::from_str(&body_to_string(res3.into_body()).await).unwrap();
+        let items = v3["items"].as_array().unwrap();
+        assert_eq!(items[0]["status"], "cancelled");
+        assert_eq!(items[1]["status"], "cancelled");
+    }
+
+    #[tokio::test]
+    async fn test_list_batches_endpoint() {
+        let (app, _state) = setup_test_app_and_state();
+        for i in 1..=2 {
+            let payload = serde_json::json!({
+                "urls": [format!("https://example.com/batch-list-{i}")],
+                "name": format!("Batch {i}")
+            });
+            let _ = app
+                .clone()
+                .oneshot(
+                    Request::builder()
+                        .method(Method::POST)
+                        .uri("/api/v1/jobs/batch")
+                        .header(header::CONTENT_TYPE, "application/json")
+                        .body(Body::from(payload.to_string()))
+                        .unwrap(),
+                )
+                .await
+                .unwrap();
+        }
+
+        let res = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::GET)
+                    .uri("/api/v1/jobs/batch")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(res.status(), StatusCode::OK);
+        let v: serde_json::Value =
+            serde_json::from_str(&body_to_string(res.into_body()).await).unwrap();
+        assert!(v["count"].as_u64().unwrap() >= 2);
+        assert!(v["batches"].as_array().unwrap().len() >= 2);
+    }
+
+    #[tokio::test]
+    async fn test_batch_item_status_update_and_progress_recalculation() {
+        let (app, state) = setup_test_app_and_state();
+        let payload = serde_json::json!({
+            "urls": [
+                "https://example.com/item-success",
+                "https://example.com/item-fail"
+            ]
+        });
+
+        let res1 = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/api/v1/jobs/batch")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(payload.to_string()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        let v1: serde_json::Value =
+            serde_json::from_str(&body_to_string(res1.into_body()).await).unwrap();
+        let batch_id_str = v1["batch_id"].as_str().unwrap();
+        let batch_id: web_repo_to_ai_core::BatchId = batch_id_str.parse().unwrap();
+
+        // Simulate worker updating item 0 to Completed
+        state
+            .batch_storage
+            .update_item_status(
+                batch_id,
+                0,
+                BatchItemStatusKind::Completed,
+                None,
+                None,
+                Some(150),
+            )
+            .await
+            .unwrap();
+
+        // Simulate worker updating item 1 to Failed
+        state
+            .batch_storage
+            .update_item_status(
+                batch_id,
+                1,
+                BatchItemStatusKind::Failed,
+                Some("EXTRACTION_FAILED".to_string()),
+                Some("Connection refused".to_string()),
+                Some(45),
+            )
+            .await
+            .unwrap();
+
+        // Query batch overview
+        let res2 = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::GET)
+                    .uri(format!("/api/v1/jobs/batch/{batch_id_str}"))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(res2.status(), StatusCode::OK);
+        let v2: serde_json::Value =
+            serde_json::from_str(&body_to_string(res2.into_body()).await).unwrap();
+        assert_eq!(v2["status"], "partial_failure");
+        assert_eq!(v2["progress"]["completed_items"], 1);
+        assert_eq!(v2["progress"]["failed_items"], 1);
+        assert_eq!(v2["progress"]["queued_items"], 0);
+        assert_eq!(v2["progress"]["processing_items"], 0);
+        assert_eq!(v2["progress"]["percentage"], 100.0);
+
+        // Query item 0 detail
+        let res_item0 = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::GET)
+                    .uri(format!("/api/v1/jobs/batch/{batch_id_str}/items/0"))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res_item0.status(), StatusCode::OK);
+        let v_item0: serde_json::Value =
+            serde_json::from_str(&body_to_string(res_item0.into_body()).await).unwrap();
+        assert_eq!(v_item0["status"], "completed");
+        assert_eq!(v_item0["duration_ms"], 150);
+
+        // Query item 1 detail
+        let res_item1 = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::GET)
+                    .uri(format!("/api/v1/jobs/batch/{batch_id_str}/items/1"))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res_item1.status(), StatusCode::OK);
+        let v_item1: serde_json::Value =
+            serde_json::from_str(&body_to_string(res_item1.into_body()).await).unwrap();
+        assert_eq!(v_item1["status"], "failed");
+        assert_eq!(v_item1["error_code"], "EXTRACTION_FAILED");
+        assert_eq!(v_item1["error_message"], "Connection refused");
+        assert_eq!(v_item1["duration_ms"], 45);
     }
 
     #[tokio::test]

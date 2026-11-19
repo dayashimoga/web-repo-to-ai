@@ -8,8 +8,9 @@ pub mod query;
 pub mod sources;
 
 pub use batch::{
-    BatchItemRequest, BatchItemStatus, BatchJobResponse, BatchPathParams, BatchProgress,
-    BatchStatus, CreateBatchJobRequest, CreateBatchJobResponse, DEFAULT_BATCH_PARALLELISM,
+    BatchItemPathParams, BatchItemRequest, BatchItemStatus, BatchItemsListResponse,
+    BatchJobResponse, BatchPathParams, BatchProgress, BatchStatus, BatchSummaryItem,
+    CreateBatchJobRequest, CreateBatchJobResponse, ListBatchesResponse, DEFAULT_BATCH_PARALLELISM,
     MAX_BATCH_PARALLELISM, MAX_BATCH_URLS, MIN_BATCH_URLS, VALID_CONTEXT_PROFILES,
 };
 pub use github::{

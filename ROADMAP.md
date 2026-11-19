@@ -92,7 +92,7 @@
 - **Phase 7.4 — Quality validation:** `7.4.1` Preservation metrics (`ACCEPTED`) | `7.4.2` Compression reporting (`ACCEPTED`) | `7.4.3` Exclusion explanations (`ACCEPTED`) | `7.4.4` Golden comparison tests (`ACCEPTED` — **PHASE 7.4 & STAGE 7 CERTIFIED**)
 
 ### STAGE 8 — LARGE REPOSITORIES, BATCH AND CRAWLING (`IN_PROGRESS`)
-- **Phase 8.1 — Batch URLs:** `8.1.1` Multi-URL submission (`ACCEPTED`) | `8.1.2` Bounded parallel execution (`ACCEPTED`) | `8.1.3` Individual result tracking (`NEXT`) | `8.1.4` Batch export
+- **Phase 8.1 — Batch URLs:** `8.1.1` Multi-URL submission (`ACCEPTED`) | `8.1.2` Bounded parallel execution (`ACCEPTED`) | `8.1.3` Individual result tracking (`ACCEPTED`) | `8.1.4` Batch export (`NEXT`)
 - **Phase 8.2 — Website crawling:** `8.2.1` Sitemap discovery | `8.2.2` Internal link discovery | `8.2.3` Crawl-depth & domain restrictions | `8.2.4` Duplicate & loop prevention
 - **Phase 8.3 — Incremental processing:** `8.3.1` HTTP validators | `8.3.2` Git commit/blob caching | `8.3.3` Content-addressed storage | `8.3.4` Changed-file processing
 - **Phase 8.4 — Scalability:** `8.4.1` Adaptive concurrency | `8.4.2` Backpressure | `8.4.3` Streaming large exports | `8.4.4` Resumable processing

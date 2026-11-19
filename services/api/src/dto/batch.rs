@@ -5,6 +5,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use url::Url;
 use web_repo_to_ai_core::{BatchId, CoreError, JobId, Result, Validatable};
+use web_repo_to_ai_storage::batch::{
+    BatchItemRecord, BatchItemStatusKind, BatchJobStatus, BatchRecord,
+};
 
 use super::jobs::{JobStatus, VALID_EXPORT_FORMATS};
 
@@ -398,8 +401,44 @@ pub struct BatchItemStatus {
     pub custom_id: Option<String>,
     /// Current lifecycle status of this item.
     pub status: JobStatus,
+    /// Machine-readable error code if item execution failed.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error_code: Option<String>,
+    /// Detailed error message if item execution failed.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error_message: Option<String>,
+    /// Execution duration in milliseconds.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub duration_ms: Option<u64>,
     /// UTC timestamp when this item was queued.
     pub created_at: DateTime<Utc>,
+    /// UTC timestamp when this item reached terminal state.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub completed_at: Option<DateTime<Utc>>,
+}
+
+impl From<BatchItemRecord> for BatchItemStatus {
+    fn from(rec: BatchItemRecord) -> Self {
+        let status = match rec.status {
+            BatchItemStatusKind::Queued => JobStatus::Queued,
+            BatchItemStatusKind::Processing => JobStatus::Processing,
+            BatchItemStatusKind::Completed => JobStatus::Completed,
+            BatchItemStatusKind::Failed | BatchItemStatusKind::TimedOut => JobStatus::Failed,
+            BatchItemStatusKind::Cancelled => JobStatus::Cancelled,
+        };
+        Self {
+            item_index: rec.item_index,
+            job_id: rec.job_id,
+            url: rec.url,
+            custom_id: rec.custom_id,
+            status,
+            error_code: rec.error_code,
+            error_message: rec.error_message,
+            duration_ms: rec.duration_ms,
+            created_at: rec.created_at,
+            completed_at: rec.completed_at,
+        }
+    }
 }
 
 /// Progress metrics for an executing or completed batch job.
@@ -513,4 +552,97 @@ impl Validatable for BatchPathParams {
     fn validate(&self) -> Result<()> {
         Ok(())
     }
+}
+
+/// Path parameter extractor for individual batch item endpoints (`/api/v1/jobs/batch/{batch_id}/items/{item_index}`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BatchItemPathParams {
+    /// Strongly-typed UUID v7 batch identifier.
+    pub batch_id: BatchId,
+    /// Zero-based sequence index within the batch.
+    pub item_index: usize,
+}
+
+impl Validatable for BatchItemPathParams {
+    fn validate(&self) -> Result<()> {
+        Ok(())
+    }
+}
+
+/// Response descriptor for querying the full item list of a batch (`GET /api/v1/jobs/batch/{batch_id}/items`).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BatchItemsListResponse {
+    /// Strongly-typed UUID v7 batch identifier.
+    pub batch_id: BatchId,
+    /// Total count of items in the batch.
+    pub total_items: usize,
+    /// Itemized status records.
+    pub items: Vec<BatchItemStatus>,
+}
+
+/// Summary descriptor for an individual batch within a list query.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BatchSummaryItem {
+    /// Strongly-typed UUID v7 batch identifier.
+    pub batch_id: BatchId,
+    /// Optional user-supplied batch title or name.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// High-level lifecycle state.
+    pub status: BatchStatus,
+    /// Total URLs in batch.
+    pub total_items: usize,
+    /// Successfully completed items count.
+    pub completed_items: usize,
+    /// Failed or timed-out items count.
+    pub failed_items: usize,
+    /// Items currently processing in parallel.
+    pub processing_items: usize,
+    /// Items currently queued.
+    pub queued_items: usize,
+    /// Bounded concurrency ceiling.
+    pub max_parallelism: usize,
+    /// Creation timestamp.
+    pub created_at: DateTime<Utc>,
+    /// Last updated timestamp.
+    pub updated_at: DateTime<Utc>,
+    /// Completion timestamp, if finished.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub completed_at: Option<DateTime<Utc>>,
+}
+
+impl From<BatchRecord> for BatchSummaryItem {
+    fn from(rec: BatchRecord) -> Self {
+        let status = match rec.status {
+            BatchJobStatus::Queued => BatchStatus::Queued,
+            BatchJobStatus::Processing => BatchStatus::Processing,
+            BatchJobStatus::Completed => BatchStatus::Completed,
+            BatchJobStatus::PartialFailure => BatchStatus::PartialFailure,
+            BatchJobStatus::Failed => BatchStatus::Failed,
+            BatchJobStatus::Cancelled => BatchStatus::Cancelled,
+        };
+        Self {
+            batch_id: rec.id,
+            name: rec.name,
+            status,
+            total_items: rec.total_items,
+            completed_items: rec.completed_items,
+            failed_items: rec.failed_items,
+            processing_items: rec.processing_items,
+            queued_items: rec.queued_items,
+            max_parallelism: rec.max_parallelism,
+            created_at: rec.created_at,
+            updated_at: rec.updated_at,
+            completed_at: rec.completed_at,
+        }
+    }
+}
+
+/// Response payload for listing batch jobs (`GET /api/v1/jobs/batch`).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ListBatchesResponse {
+    /// Paged batch summary items.
+    pub batches: Vec<BatchSummaryItem>,
+    /// Total count of batches returned in this page.
+    pub count: usize,
 }
