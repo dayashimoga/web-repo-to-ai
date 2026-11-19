@@ -61,8 +61,15 @@ Run-Gate "Rust Workspace Checks" {
 # 4. Frontend Quality Gate (lint, check, test)
 Run-Gate "Frontend Web Quality Checks" {
     if (Test-Path -Path "apps/web/package.json" -PathType Leaf) {
+        $rootItem = Get-Item "." -ErrorAction SilentlyContinue
         $appItem = Get-Item "apps" -ErrorAction SilentlyContinue
-        $webDir = if ($appItem -and $appItem.LinkType -eq "Junction") { Join-Path $appItem.Target[0] "web" } else { "apps/web" }
+        $webDir = if ($appItem -and $appItem.LinkType -eq "Junction") { 
+            Join-Path $appItem.Target[0] "web" 
+        } elseif ($rootItem -and $rootItem.LinkType -eq "Junction") {
+            Join-Path $rootItem.Target[0] "apps/web"
+        } else { 
+            "apps/web" 
+        }
         Push-Location $webDir
         try {
             Write-Output "Checking frontend lint..."

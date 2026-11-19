@@ -22,6 +22,7 @@ pub mod manifest;
 pub mod markdown;
 pub mod options;
 pub mod plain_text;
+pub mod streaming;
 pub(crate) mod util;
 pub mod zip;
 
@@ -66,6 +67,10 @@ pub use options::{
     PlainTextOptions, ZipPackageMetrics, ZipPackageOptions,
 };
 pub use plain_text::{export_plain_text, export_plain_text_to_writer, PlainTextExporter};
+pub use streaming::{
+    StreamingExportConfig, StreamingExportSummary, StreamingFileEntry, StreamingJsonlWriter,
+    StreamingTextWriter, StreamingZipPackageWriter, ZipArchive, DEFAULT_STREAMING_BUFFER_CAPACITY,
+};
 pub use zip::{export_zip_package, export_zip_package_to_writer, ZipPackageExporter};
 
 /// Returns the unique crate identifier name.

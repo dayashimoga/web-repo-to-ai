@@ -445,6 +445,45 @@ impl WorkerEngine {
         Ok(summary)
     }
 
+    /// Streams a set of CDM documents directly into a destination archive with telemetry tracking.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CoreError`] if the engine is shutting down or archive creation fails.
+    pub fn execute_streaming_export<W: std::io::Write + std::io::Seek>(
+        &self,
+        writer: W,
+        config: web_repo_to_ai_exporters::streaming::StreamingExportConfig,
+        docs: &[web_repo_to_ai_cdm::CdmDocument],
+    ) -> Result<web_repo_to_ai_exporters::streaming::StreamingExportSummary, CoreError> {
+        if self.is_shutting_down() {
+            return Err(CoreError::Validation {
+                field: "shutdown".to_string(),
+                reason: "Worker engine is shutting down".to_string(),
+            });
+        }
+
+        let mut package_writer =
+            web_repo_to_ai_exporters::streaming::StreamingZipPackageWriter::new(writer, config)
+                .map_err(|e| CoreError::Internal(e.to_string()))?;
+
+        for (idx, doc) in docs.iter().enumerate() {
+            let doc_dir = format!("doc_{idx}");
+            package_writer
+                .append_cdm_document(&doc_dir, doc)
+                .map_err(|e| CoreError::Internal(e.to_string()))?;
+        }
+
+        let summary = package_writer
+            .finish()
+            .map_err(|e| CoreError::Internal(e.to_string()))?;
+
+        self.metrics
+            .record_streaming_export(summary.total_uncompressed_bytes);
+
+        Ok(summary)
+    }
+
     /// Runs the worker background daemon loop until a shutdown signal is observed.
     pub async fn run_daemon(&self) {
         info!(
@@ -564,5 +603,66 @@ mod tests {
             .await;
 
         assert!(res.is_err());
+    }
+
+    #[test]
+    fn test_worker_engine_streaming_export() {
+        use std::io::Cursor;
+        use web_repo_to_ai_cdm::builder::{CdmDocumentBuilder, CdmSectionBuilder};
+        use web_repo_to_ai_cdm::model::{RevisionInfo, SourceIdentity, SourceType};
+        use web_repo_to_ai_cdm::section::SectionKind;
+        use web_repo_to_ai_exporters::streaming::StreamingExportConfig;
+
+        let config = WorkerServiceConfig::for_worker("test-worker-streaming", 4, 2).unwrap();
+        let engine = WorkerEngine::new(config).unwrap();
+
+        let identity = SourceIdentity {
+            raw_input: "https://github.com/example/stream".to_string(),
+            canonical_url: "https://github.com/example/stream".to_string(),
+            domain: Some("github.com".to_string()),
+            repo_owner: Some("example".to_string()),
+            repo_name: Some("stream".to_string()),
+            git_ref: Some("main".to_string()),
+            subpath: None,
+        };
+
+        let sec = CdmSectionBuilder::new(
+            "sec-stream",
+            "https://github.com/example/stream/blob/main/lib.rs",
+            SectionKind::CodeFile,
+            "pub fn stream_hello() -> &'static str { \"hello\" }\n",
+        )
+        .title("lib.rs")
+        .original_path("lib.rs")
+        .build();
+
+        let doc = CdmDocumentBuilder::new(
+            identity,
+            SourceType::GitHubPublic,
+            "https://github.com/example/stream",
+        )
+        .revision(RevisionInfo {
+            git_branch: Some("main".to_string()),
+            ..Default::default()
+        })
+        .add_section(sec)
+        .build();
+
+        let mut buffer = Cursor::new(Vec::new());
+        let export_config = StreamingExportConfig::new(4096).unwrap();
+
+        let summary = engine
+            .execute_streaming_export(&mut buffer, export_config, &[doc])
+            .unwrap();
+
+        assert!(summary.total_items_written >= 4);
+        assert!(summary.total_uncompressed_bytes > 0);
+
+        let snap = engine.metrics_snapshot();
+        assert_eq!(snap.streaming_exports_completed, 1);
+        assert_eq!(
+            snap.streaming_bytes_exported,
+            summary.total_uncompressed_bytes as usize
+        );
     }
 }

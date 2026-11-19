@@ -27,6 +27,8 @@ pub struct WorkerServiceMetrics {
     backpressure_events: Arc<AtomicUsize>,
     backpressure_items_shed: Arc<AtomicUsize>,
     current_queue_depth: Arc<AtomicUsize>,
+    streaming_bytes_exported: Arc<AtomicUsize>,
+    streaming_exports_completed: Arc<AtomicUsize>,
 }
 
 /// Serializable snapshot of worker metrics.
@@ -66,6 +68,10 @@ pub struct WorkerMetricsSnapshot {
     pub backpressure_items_shed: usize,
     /// Point-in-time queued item depth.
     pub current_queue_depth: usize,
+    /// Total uncompressed bytes exported via streaming pipelines.
+    pub streaming_bytes_exported: usize,
+    /// Total streaming export packages completed.
+    pub streaming_exports_completed: usize,
 }
 
 impl WorkerServiceMetrics {
@@ -151,6 +157,14 @@ impl WorkerServiceMetrics {
             .store(queue_depth, Ordering::Relaxed);
     }
 
+    /// Records streaming export metrics.
+    pub fn record_streaming_export(&self, bytes: u64) {
+        self.streaming_bytes_exported
+            .fetch_add(bytes as usize, Ordering::Relaxed);
+        self.streaming_exports_completed
+            .fetch_add(1, Ordering::Relaxed);
+    }
+
     /// Produces an immutable metrics snapshot.
     #[must_use]
     pub fn snapshot(&self) -> WorkerMetricsSnapshot {
@@ -172,6 +186,8 @@ impl WorkerServiceMetrics {
             backpressure_events: self.backpressure_events.load(Ordering::Relaxed),
             backpressure_items_shed: self.backpressure_items_shed.load(Ordering::Relaxed),
             current_queue_depth: self.current_queue_depth.load(Ordering::Relaxed),
+            streaming_bytes_exported: self.streaming_bytes_exported.load(Ordering::Relaxed),
+            streaming_exports_completed: self.streaming_exports_completed.load(Ordering::Relaxed),
         }
     }
 }
@@ -188,6 +204,7 @@ mod tests {
         metrics.record_incremental_reuse(5, 10240);
         metrics.record_adaptive_stats(3, 1, 1, 6);
         metrics.record_backpressure_stats(2, 0, 8);
+        metrics.record_streaming_export(4096);
         metrics.update_active_workers(3);
 
         let snap = metrics.snapshot();
@@ -208,5 +225,7 @@ mod tests {
         assert_eq!(snap.backpressure_events, 2);
         assert_eq!(snap.backpressure_items_shed, 0);
         assert_eq!(snap.current_queue_depth, 8);
+        assert_eq!(snap.streaming_bytes_exported, 4096);
+        assert_eq!(snap.streaming_exports_completed, 1);
     }
 }

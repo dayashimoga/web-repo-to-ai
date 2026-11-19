@@ -35,6 +35,17 @@ pub enum ExporterError {
     /// A checksum or manifest validation error occurred.
     #[error("Checksum validation error: {0}")]
     ChecksumValidation(String),
+
+    /// Export exceeded maximum allowed package size in bytes.
+    #[error(
+        "Export package exceeded maximum allowed size of {max_bytes} bytes: current {actual_bytes}"
+    )]
+    PackageSizeExceeded {
+        /// Maximum allowable bytes.
+        max_bytes: u64,
+        /// Actual byte count.
+        actual_bytes: u64,
+    },
 }
 
 /// Convenience result type for exporter operations.
