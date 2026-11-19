@@ -1,0 +1,1221 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "web-repo-to-ai REST API",
+    "version": "0.1.0",
+    "description": "Universal URL & GitHub Repository to AI-Ready Content Converter API. High-performance, streaming-capable engine for transforming web articles, documentation sites, public and private GitHub repositories into standardized Markdown, TXT, JSON, HTML, JSONL, and structured ZIP archives optimized for LLM context windows.",
+    "license": {
+      "name": "MIT OR Apache-2.0"
+    },
+    "contact": {
+      "name": "web-repo-to-ai Engineering Team",
+      "url": "https://github.com/dayashimoga/web-repo-to-ai"
+    }
+  },
+  "servers": [
+    {
+      "url": "/api/v1",
+      "description": "Default v1 API prefix"
+    }
+  ],
+  "tags": [
+    { "name": "System", "description": "Liveness, readiness, and telemetry probes" },
+    { "name": "Documentation", "description": "OpenAPI specification and interactive API reference" },
+    { "name": "Sources", "description": "URL pre-validation, SSRF checks, and source classification" },
+    { "name": "Jobs", "description": "Single-source conversion lifecycle, status, preview, and artifacts" },
+    { "name": "Batch Jobs", "description": "Multi-URL parallel batch processing, status, cancellation, and export" },
+    { "name": "GitHub App", "description": "GitHub App OAuth installations, repository authorization, and webhooks" }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": ["System"],
+        "summary": "Liveness probe",
+        "description": "Checks if the API process is alive and receiving traffic.",
+        "operationId": "getHealth",
+        "responses": {
+          "200": {
+            "description": "Service is healthy and responding",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HealthResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ready": {
+      "get": {
+        "tags": ["System"],
+        "summary": "Readiness probe",
+        "description": "Checks if underlying persistence (PostgreSQL) and artifact storage are available.",
+        "operationId": "getReadiness",
+        "responses": {
+          "200": {
+            "description": "All subsystems are ready to accept traffic",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ReadinessResponse" }
+              }
+            }
+          },
+          "503": {
+            "description": "One or more critical subsystems are unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ApiProblemEnvelope" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/metrics": {
+      "get": {
+        "tags": ["System"],
+        "summary": "Prometheus metrics exposition",
+        "description": "Exposes standard Prometheus metrics for latency, request counts, queue depths, and errors.",
+        "operationId": "getMetrics",
+        "responses": {
+          "200": {
+            "description": "Prometheus text format metrics stream",
+            "content": {
+              "text/plain; version=0.0.4": {
+                "schema": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/openapi.json": {
+      "get": {
+        "tags": ["Documentation"],
+        "summary": "OpenAPI 3.1 specification (JSON)",
+        "description": "Returns the complete OpenAPI 3.1.0 specification as JSON.",
+        "operationId": "getOpenApiJson",
+        "responses": {
+          "200": {
+            "description": "OpenAPI specification in JSON format",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/openapi.yaml": {
+      "get": {
+        "tags": ["Documentation"],
+        "summary": "OpenAPI 3.1 specification (YAML)",
+        "description": "Returns the complete OpenAPI 3.1.0 specification as YAML.",
+        "operationId": "getOpenApiYaml",
+        "responses": {
+          "200": {
+            "description": "OpenAPI specification in YAML format",
+            "content": {
+              "application/yaml": {
+                "schema": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/docs": {
+      "get": {
+        "tags": ["Documentation"],
+        "summary": "Interactive API reference documentation",
+        "description": "Renders a modern, interactive API documentation interface.",
+        "operationId": "getInteractiveDocs",
+        "responses": {
+          "200": {
+            "description": "Interactive API documentation UI",
+            "content": {
+              "text/html; charset=utf-8": {
+                "schema": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sources/detect": {
+      "post": {
+        "tags": ["Sources"],
+        "summary": "Detect and classify source URLs",
+        "description": "Validates input URLs against SSRF policies and classifies each source (e.g. WebPage, PublicGitHub, PrivateGitHub).",
+        "operationId": "detectSources",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/DetectSourcesRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Source detection outcomes",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DetectSourcesResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request schema or malformed URLs",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ApiProblemEnvelope" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobs": {
+      "post": {
+        "tags": ["Jobs"],
+        "summary": "Create conversion job",
+        "description": "Submits a new single-source conversion job with context optimization parameters.",
+        "operationId": "createJob",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateJobRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Job successfully accepted and queued",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/JobResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error or invalid request schema",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ApiProblemEnvelope" }
+              }
+            }
+          },
+          "403": {
+            "description": "SSRF restriction or unauthorized source access",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ApiProblemEnvelope" }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["Jobs"],
+        "summary": "List conversion jobs",
+        "description": "Lists conversion jobs associated with the current session with optional status filtering and pagination.",
+        "operationId": "listJobs",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 1, "minimum": 1 },
+            "description": "Page index (1-based)"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 20, "minimum": 1, "maximum": 100 },
+            "description": "Maximum number of items per page"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "enum": ["queued", "running", "completed", "failed", "cancelled"] },
+            "description": "Filter by job execution status"
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "enum": ["created_at:desc", "created_at:asc"], "default": "created_at:desc" },
+            "description": "Sorting order"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of conversion jobs",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PaginatedJobsResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query parameters",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ApiProblemEnvelope" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobs/{job_id}": {
+      "get": {
+        "tags": ["Jobs"],
+        "summary": "Get conversion job details",
+        "description": "Retrieves the status, file completeness, token metrics, and generated artifacts for a job.",
+        "operationId": "getJob",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "description": "Unique UUID of the conversion job"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Job details",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/JobResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Job not found",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ApiProblemEnvelope" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobs/{job_id}/preview": {
+      "get": {
+        "tags": ["Jobs"],
+        "summary": "Preview converted content",
+        "description": "Returns a syntax-highlighted, paginated content preview and repository file tree.",
+        "operationId": "getJobPreview",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "description": "Unique UUID of the conversion job"
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "enum": ["markdown", "txt", "json", "html", "jsonl", "tree"], "default": "markdown" },
+            "description": "Target preview format"
+          },
+          {
+            "name": "max_lines",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 200, "minimum": 1, "maximum": 5000 },
+            "description": "Maximum lines of preview content to return"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Preview content and metadata",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/JobPreviewResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Job or artifact not found",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ApiProblemEnvelope" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobs/{job_id}/events": {
+      "get": {
+        "tags": ["Jobs"],
+        "summary": "Real-time job events SSE stream",
+        "description": "Establishes a Server-Sent Events (SSE) stream emitting pipeline phase transitions, file discoveries, token statistics, and completion events.",
+        "operationId": "getJobEvents",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "description": "Unique UUID of the conversion job"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Real-time event stream",
+            "content": {
+              "text/event-stream": {
+                "schema": { "type": "string" }
+              }
+            }
+          },
+          "404": {
+            "description": "Job not found",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ApiProblemEnvelope" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobs/{job_id}/stream": {
+      "get": {
+        "tags": ["Jobs"],
+        "summary": "Real-time job events SSE stream (alias)",
+        "description": "Alternative endpoint alias for `/jobs/{job_id}/events`.",
+        "operationId": "getJobEventsStreamAlias",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "description": "Unique UUID of the conversion job"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Real-time event stream",
+            "content": {
+              "text/event-stream": {
+                "schema": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobs/{job_id}/artifacts/{format}": {
+      "get": {
+        "tags": ["Jobs"],
+        "summary": "Stream download converted artifact",
+        "description": "Streams the generated artifact package in the requested format (`markdown`, `txt`, `json`, `html`, `jsonl`, `zip`, `manifest`).",
+        "operationId": "getJobArtifact",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "description": "Unique UUID of the conversion job"
+          },
+          {
+            "name": "format",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "enum": ["markdown", "txt", "json", "html", "jsonl", "zip", "manifest"] },
+            "description": "Format of the generated artifact"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Artifact payload stream with Content-Disposition header and SHA-256 validation digest",
+            "headers": {
+              "Content-Disposition": { "schema": { "type": "string" }, "description": "Attachment disposition header" },
+              "X-Checksum-Sha256": { "schema": { "type": "string" }, "description": "SHA-256 digest of artifact" }
+            },
+            "content": {
+              "application/octet-stream": { "schema": { "type": "string", "format": "binary" } },
+              "application/zip": { "schema": { "type": "string", "format": "binary" } },
+              "text/markdown": { "schema": { "type": "string" } },
+              "text/plain": { "schema": { "type": "string" } },
+              "application/json": { "schema": { "type": "string" } }
+            }
+          },
+          "404": {
+            "description": "Job or artifact format not found",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ApiProblemEnvelope" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobs/batch": {
+      "post": {
+        "tags": ["Batch Jobs"],
+        "summary": "Submit multi-URL batch conversion job",
+        "description": "Submits up to 100 URLs for bounded concurrent execution with deduplication and context profile application.",
+        "operationId": "createBatchJob",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateBatchJobRequest" }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Batch job accepted and queued for execution",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CreateBatchJobResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid batch request schema, empty URL list, or exceeded bounds",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ApiProblemEnvelope" }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["Batch Jobs"],
+        "summary": "List batch jobs",
+        "description": "Lists multi-URL batch jobs with status and progress indicators.",
+        "operationId": "listBatches",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 1, "minimum": 1 }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 20, "minimum": 1, "maximum": 100 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of batch jobs",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ListBatchesResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobs/batch/{batch_id}": {
+      "get": {
+        "tags": ["Batch Jobs"],
+        "summary": "Get batch job status",
+        "description": "Retrieves the aggregated execution progress and counters for a batch conversion job.",
+        "operationId": "getBatchJob",
+        "parameters": [
+          {
+            "name": "batch_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Batch job status and progress",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/BatchJobResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Batch job not found",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ApiProblemEnvelope" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Batch Jobs"],
+        "summary": "Cancel batch job",
+        "description": "Cancels an in-flight or queued batch job, stopping unfinished items.",
+        "operationId": "cancelBatchJob",
+        "parameters": [
+          {
+            "name": "batch_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Batch job cancelled",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/BatchJobResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Batch job not found",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ApiProblemEnvelope" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobs/batch/{batch_id}/cancel": {
+      "post": {
+        "tags": ["Batch Jobs"],
+        "summary": "Cancel batch job (POST alias)",
+        "description": "Cancels an in-flight or queued batch job via POST.",
+        "operationId": "cancelBatchJobPost",
+        "parameters": [
+          {
+            "name": "batch_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Batch job cancelled",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/BatchJobResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobs/batch/{batch_id}/items": {
+      "get": {
+        "tags": ["Batch Jobs"],
+        "summary": "List batch items",
+        "description": "Retrieves the item-by-item status, duration, and error reports for all items in a batch.",
+        "operationId": "getBatchItems",
+        "parameters": [
+          {
+            "name": "batch_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of batch items and results",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/BatchItemsListResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Batch job not found",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ApiProblemEnvelope" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobs/batch/{batch_id}/items/{item_index}": {
+      "get": {
+        "tags": ["Batch Jobs"],
+        "summary": "Get individual batch item result",
+        "description": "Retrieves detailed execution outcome and error message for a specific batch item index.",
+        "operationId": "getBatchItem",
+        "parameters": [
+          {
+            "name": "batch_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "item_index",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "minimum": 0 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Individual batch item result",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/BatchSummaryItem" }
+              }
+            }
+          },
+          "404": {
+            "description": "Batch or item not found",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ApiProblemEnvelope" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobs/batch/{batch_id}/export/{format}": {
+      "get": {
+        "tags": ["Batch Jobs"],
+        "summary": "Export consolidated batch artifacts",
+        "description": "Downloads consolidated multi-item output in the specified format (`zip`, `markdown`, `jsonl`, `txt`, `json`).",
+        "operationId": "exportBatch",
+        "parameters": [
+          {
+            "name": "batch_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "format",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "enum": ["zip", "markdown", "jsonl", "txt", "json"] }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Export stream",
+            "content": {
+              "application/zip": { "schema": { "type": "string", "format": "binary" } },
+              "text/markdown": { "schema": { "type": "string" } },
+              "application/x-ndjson": { "schema": { "type": "string" } },
+              "text/plain": { "schema": { "type": "string" } },
+              "application/json": { "schema": { "type": "string" } }
+            }
+          },
+          "404": {
+            "description": "Batch job not found",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ApiProblemEnvelope" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobs/batch/{batch_id}/artifacts": {
+      "get": {
+        "tags": ["Batch Jobs"],
+        "summary": "List batch download artifacts",
+        "description": "Lists all available downloadable artifacts, file sizes, and cryptographic checksums for a batch.",
+        "operationId": "listBatchArtifacts",
+        "parameters": [
+          {
+            "name": "batch_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Batch artifacts listing",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/BatchArtifactsResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Batch job not found",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ApiProblemEnvelope" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/github/installations": {
+      "get": {
+        "tags": ["GitHub App"],
+        "summary": "List authorized GitHub App installations",
+        "description": "Lists GitHub App installations accessible to the authenticated session with granted scopes and repository permissions.",
+        "operationId": "listGithubInstallations",
+        "parameters": [
+          {
+            "name": "X-Session-ID",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "User session identifier"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized installations list",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/InstallationSummaryResponse" }
+              }
+            }
+          },
+          "401": {
+            "description": "Session missing or expired",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ApiProblemEnvelope" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/github/installations/{installation_id}": {
+      "delete": {
+        "tags": ["GitHub App"],
+        "summary": "Revoke GitHub App installation",
+        "description": "Revokes and deletes stored GitHub installation tokens for the session.",
+        "operationId": "revokeGithubInstallation",
+        "parameters": [
+          {
+            "name": "installation_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          },
+          {
+            "name": "X-Session-ID",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Installation revoked successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RevokeInstallationResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Installation not found or not owned by session",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ApiProblemEnvelope" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/github/webhook": {
+      "post": {
+        "tags": ["GitHub App"],
+        "summary": "GitHub App webhook receiver",
+        "description": "Receives signed webhook events from GitHub (`installation`, `installation_repositories`) with HMAC-SHA256 signature verification.",
+        "operationId": "githubWebhook",
+        "parameters": [
+          {
+            "name": "X-GitHub-Event",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "GitHub webhook event type"
+          },
+          {
+            "name": "X-Hub-Signature-256",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "HMAC-SHA256 webhook signature"
+          },
+          {
+            "name": "X-GitHub-Delivery",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Unique delivery UUID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Webhook acknowledged and processed",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/WebhookReceiptResponse" }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing webhook signature",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ApiProblemEnvelope" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ApiProblemEnvelope": {
+        "type": "object",
+        "required": ["error"],
+        "properties": {
+          "error": { "$ref": "#/components/schemas/ApiErrorDetail" }
+        }
+      },
+      "ApiErrorDetail": {
+        "type": "object",
+        "required": ["code", "message"],
+        "properties": {
+          "code": { "type": "string", "example": "RESOURCE_NOT_FOUND" },
+          "message": { "type": "string", "example": "The requested resource was not found." },
+          "details": { "type": "object", "additionalProperties": true },
+          "request_id": { "type": "string", "format": "uuid", "example": "019335c4-7c20-7000-8000-000000000001" }
+        }
+      },
+      "HealthResponse": {
+        "type": "object",
+        "required": ["status", "service", "version"],
+        "properties": {
+          "status": { "type": "string", "example": "healthy" },
+          "service": { "type": "string", "example": "web-repo-to-ai-api" },
+          "version": { "type": "string", "example": "0.1.0" },
+          "uptime_seconds": { "type": "integer", "example": 3600 }
+        }
+      },
+      "ReadinessResponse": {
+        "type": "object",
+        "required": ["status", "database", "storage"],
+        "properties": {
+          "status": { "type": "string", "example": "ready" },
+          "database": { "type": "string", "example": "connected" },
+          "storage": { "type": "string", "example": "writable" }
+        }
+      },
+      "DetectSourcesRequest": {
+        "type": "object",
+        "required": ["urls"],
+        "properties": {
+          "urls": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 50,
+            "items": { "type": "string", "format": "uri" },
+            "example": ["https://github.com/tokio-rs/tokio", "https://docs.rs/axum"]
+          }
+        }
+      },
+      "DetectSourcesResponse": {
+        "type": "object",
+        "required": ["sources"],
+        "properties": {
+          "sources": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/DetectedSource" }
+          }
+        }
+      },
+      "DetectedSource": {
+        "type": "object",
+        "required": ["url", "classification", "valid"],
+        "properties": {
+          "url": { "type": "string" },
+          "classification": { "type": "string", "enum": ["webpage", "public_github", "private_github", "batch"] },
+          "repo_owner": { "type": "string", "nullable": true },
+          "repo_name": { "type": "string", "nullable": true },
+          "git_ref": { "type": "string", "nullable": true },
+          "subpath": { "type": "string", "nullable": true },
+          "valid": { "type": "boolean" },
+          "reason": { "type": "string", "nullable": true }
+        }
+      },
+      "CreateJobRequest": {
+        "type": "object",
+        "required": ["sources"],
+        "properties": {
+          "sources": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "string" },
+            "example": ["https://github.com/rust-lang/rust"]
+          },
+          "git_ref": { "type": "string", "nullable": true, "example": "main" },
+          "path_patterns": { "type": "array", "items": { "type": "string" }, "nullable": true },
+          "token_budget": { "type": "integer", "nullable": true, "minimum": 100, "maximum": 2000000, "example": 128000 },
+          "target_model": { "type": "string", "nullable": true, "example": "gpt-4o" },
+          "export_formats": {
+            "type": "array",
+            "items": { "type": "string", "enum": ["markdown", "txt", "json", "html", "jsonl", "zip"] },
+            "nullable": true
+          },
+          "deduplicate_exact": { "type": "boolean", "nullable": true, "default": true },
+          "deduplicate_semantic": { "type": "boolean", "nullable": true, "default": true },
+          "remove_comments": { "type": "boolean", "nullable": true, "default": false }
+        }
+      },
+      "JobResponse": {
+        "type": "object",
+        "required": ["id", "status", "created_at"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "status": { "type": "string", "enum": ["queued", "running", "completed", "failed", "cancelled"] },
+          "source_type": { "type": "string", "enum": ["webpage", "github"] },
+          "created_at": { "type": "string", "format": "date-time" },
+          "finished_at": { "type": "string", "format": "date-time", "nullable": true },
+          "token_stats": {
+            "type": "object",
+            "properties": {
+              "raw_tokens": { "type": "integer" },
+              "optimized_tokens": { "type": "integer" },
+              "budget_percentage": { "type": "number" },
+              "savings_percentage": { "type": "number" }
+            }
+          },
+          "artifacts": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "error": { "type": "string", "nullable": true }
+        }
+      },
+      "PaginatedJobsResponse": {
+        "type": "object",
+        "required": ["items", "total", "page", "limit", "total_pages"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/JobResponse" } },
+          "total": { "type": "integer" },
+          "page": { "type": "integer" },
+          "limit": { "type": "integer" },
+          "total_pages": { "type": "integer" }
+        }
+      },
+      "JobPreviewResponse": {
+        "type": "object",
+        "required": ["job_id", "format", "content", "truncated", "total_lines", "rendered_lines"],
+        "properties": {
+          "job_id": { "type": "string", "format": "uuid" },
+          "format": { "type": "string" },
+          "content": { "type": "string" },
+          "truncated": { "type": "boolean" },
+          "total_lines": { "type": "integer" },
+          "rendered_lines": { "type": "integer" },
+          "repo_tree": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/PreviewFileItem" }
+          }
+        }
+      },
+      "PreviewFileItem": {
+        "type": "object",
+        "required": ["path", "size_bytes", "classification"],
+        "properties": {
+          "path": { "type": "string" },
+          "size_bytes": { "type": "integer" },
+          "classification": { "type": "string" }
+        }
+      },
+      "CreateBatchJobRequest": {
+        "type": "object",
+        "required": ["urls"],
+        "properties": {
+          "urls": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 100,
+            "items": { "type": "string" },
+            "example": ["https://example.com/doc1", "https://example.com/doc2"]
+          },
+          "max_parallelism": { "type": "integer", "nullable": true, "minimum": 1, "maximum": 20, "default": 4 },
+          "context_profile": { "type": "string", "nullable": true, "enum": ["general", "code_review", "security_audit", "documentation"] },
+          "token_budget": { "type": "integer", "nullable": true, "minimum": 100, "maximum": 2000000 },
+          "target_model": { "type": "string", "nullable": true },
+          "export_formats": { "type": "array", "items": { "type": "string" }, "nullable": true }
+        }
+      },
+      "CreateBatchJobResponse": {
+        "type": "object",
+        "required": ["batch_id", "total_items", "max_parallelism", "status", "created_at"],
+        "properties": {
+          "batch_id": { "type": "string", "format": "uuid" },
+          "total_items": { "type": "integer" },
+          "max_parallelism": { "type": "integer" },
+          "status": { "type": "string", "enum": ["queued", "running", "completed", "failed", "cancelled"] },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "BatchJobResponse": {
+        "type": "object",
+        "required": ["batch_id", "total_items", "succeeded_count", "failed_count", "timed_out_count", "cancelled_count", "status", "progress", "created_at"],
+        "properties": {
+          "batch_id": { "type": "string", "format": "uuid" },
+          "total_items": { "type": "integer" },
+          "succeeded_count": { "type": "integer" },
+          "failed_count": { "type": "integer" },
+          "timed_out_count": { "type": "integer" },
+          "cancelled_count": { "type": "integer" },
+          "status": { "type": "string" },
+          "progress": { "$ref": "#/components/schemas/BatchProgress" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "finished_at": { "type": "string", "format": "date-time", "nullable": true }
+        }
+      },
+      "BatchProgress": {
+        "type": "object",
+        "required": ["percentage", "completed_items", "total_items", "current_stage"],
+        "properties": {
+          "percentage": { "type": "number", "minimum": 0, "maximum": 100 },
+          "completed_items": { "type": "integer" },
+          "total_items": { "type": "integer" },
+          "current_stage": { "type": "string" }
+        }
+      },
+      "ListBatchesResponse": {
+        "type": "object",
+        "required": ["batches", "total"],
+        "properties": {
+          "batches": { "type": "array", "items": { "$ref": "#/components/schemas/BatchJobResponse" } },
+          "total": { "type": "integer" }
+        }
+      },
+      "BatchItemsListResponse": {
+        "type": "object",
+        "required": ["batch_id", "total_items", "items"],
+        "properties": {
+          "batch_id": { "type": "string", "format": "uuid" },
+          "total_items": { "type": "integer" },
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/BatchSummaryItem" } }
+        }
+      },
+      "BatchSummaryItem": {
+        "type": "object",
+        "required": ["item_index", "job_id", "url", "status", "duration_ms"],
+        "properties": {
+          "item_index": { "type": "integer" },
+          "job_id": { "type": "string", "format": "uuid" },
+          "url": { "type": "string" },
+          "status": { "type": "string" },
+          "duration_ms": { "type": "integer" },
+          "error": { "type": "string", "nullable": true }
+        }
+      },
+      "BatchArtifactsResponse": {
+        "type": "object",
+        "required": ["batch_id", "artifacts"],
+        "properties": {
+          "batch_id": { "type": "string", "format": "uuid" },
+          "artifacts": { "type": "array", "items": { "$ref": "#/components/schemas/BatchArtifactItemDescriptor" } }
+        }
+      },
+      "BatchArtifactItemDescriptor": {
+        "type": "object",
+        "required": ["format", "filename", "size_bytes", "sha256_checksum", "download_url"],
+        "properties": {
+          "format": { "type": "string" },
+          "filename": { "type": "string" },
+          "size_bytes": { "type": "integer" },
+          "sha256_checksum": { "type": "string" },
+          "download_url": { "type": "string" }
+        }
+      },
+      "InstallationSummaryResponse": {
+        "type": "object",
+        "required": ["installations"],
+        "properties": {
+          "installations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["installation_id", "account_login", "account_type"],
+              "properties": {
+                "installation_id": { "type": "integer" },
+                "account_login": { "type": "string" },
+                "account_type": { "type": "string" },
+                "repositories_count": { "type": "integer" }
+              }
+            }
+          }
+        }
+      },
+      "RevokeInstallationResponse": {
+        "type": "object",
+        "required": ["revoked", "installation_id"],
+        "properties": {
+          "revoked": { "type": "boolean" },
+          "installation_id": { "type": "integer" }
+        }
+      },
+      "WebhookReceiptResponse": {
+        "type": "object",
+        "required": ["status", "event", "delivery_id"],
+        "properties": {
+          "status": { "type": "string" },
+          "event": { "type": "string" },
+          "delivery_id": { "type": "string" }
+        }
+      }
+    },
+    "securitySchemes": {
+      "SessionAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Session-ID",
+        "description": "User session token identifying the active browser session or client."
+      },
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Optional Bearer API key for programmatic developer access."
+      },
+      "GitHubWebhookSignature": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Hub-Signature-256",
+        "description": "HMAC-SHA256 signature generated by GitHub App webhooks."
+      }
+    }
+  }
+}

@@ -106,6 +106,9 @@ mod tests {
         let body = body_to_string(response.into_body()).await;
         assert!(body.contains("web-repo-to-ai-api"));
         assert!(body.contains("/api/v1"));
+        assert!(body.contains("openapi_json"));
+        assert!(body.contains("openapi_yaml"));
+        assert!(body.contains("docs"));
     }
 
     #[tokio::test]

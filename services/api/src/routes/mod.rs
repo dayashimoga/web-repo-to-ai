@@ -8,6 +8,7 @@ pub mod batch;
 pub mod health;
 pub mod jobs;
 pub mod metrics;
+pub mod openapi;
 pub mod sources;
 
 use crate::error::not_found_problem;
@@ -30,6 +31,9 @@ async fn root_handler(State(_state): State<AppState>) -> impl IntoResponse {
             "health": "/api/v1/health",
             "ready": "/api/v1/ready",
             "metrics": "/api/v1/metrics",
+            "openapi_json": "/api/v1/openapi.json",
+            "openapi_yaml": "/api/v1/openapi.yaml",
+            "docs": "/api/v1/docs",
             "sources_detect": "/api/v1/sources/detect",
             "jobs": "/api/v1/jobs",
             "jobs_batch": "/api/v1/jobs/batch",
@@ -54,6 +58,9 @@ pub fn create_router(state: AppState) -> Router {
         .route("/health", get(health::health_handler))
         .route("/ready", get(health::readiness_handler))
         .route("/metrics", get(metrics::metrics_handler))
+        .route("/openapi.json", get(openapi::openapi_json_handler))
+        .route("/openapi.yaml", get(openapi::openapi_yaml_handler))
+        .route("/docs", get(openapi::openapi_docs_handler))
         .route("/sources/detect", post(sources::detect_sources_handler))
         .route(
             "/jobs/batch",
@@ -110,6 +117,7 @@ pub fn create_router(state: AppState) -> Router {
 
     Router::new()
         .route("/", get(root_handler))
+        .route("/docs", get(openapi::openapi_docs_handler))
         .nest("/api/v1", api_v1)
         .fallback(fallback_handler)
         .with_state(state)

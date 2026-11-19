@@ -98,7 +98,7 @@
 - **Phase 8.4 — Scalability:** `8.4.1` Adaptive concurrency (`ACCEPTED`) | `8.4.2` Backpressure (`ACCEPTED`) | `8.4.3` Streaming large exports (`ACCEPTED`) | `8.4.4` Resumable processing (`ACCEPTED` — **PHASE 8.4 & STAGE 8 CERTIFIED**)
 
 ### STAGE 9 — DEVELOPER AND AI AGENT INTEGRATIONS (`IN_PROGRESS`)
-- **Phase 9.1 — REST API:** `9.1.1` API documentation (`NEXT`) | `9.1.2` Authentication & authorization | `9.1.3` Rate limits | `9.1.4` API integration tests
+- **Phase 9.1 — REST API:** `9.1.1` API documentation (`ACCEPTED`) | `9.1.2` Authentication & authorization (`NEXT`) | `9.1.3` Rate limits | `9.1.4` API integration tests
 - **Phase 9.2 — CLI:** `9.2.1` URL conversion commands | `9.2.2` Repository conversion commands | `9.2.3` Configuration | `9.2.4` Download & verification
 - **Phase 9.3 — MCP:** `9.3.1` MCP server | `9.3.2` Conversion tools | `9.3.3` Resource retrieval | `9.3.4` Security & protocol testing
 - **Phase 9.4 — Browser integration:** `9.4.1` Browser extension foundation | `9.4.2` Current-page conversion | `9.4.3` Result handoff | `9.4.4` Extension security

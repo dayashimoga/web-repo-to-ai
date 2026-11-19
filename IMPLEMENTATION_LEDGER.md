@@ -8155,7 +8155,73 @@
   - `cargo fmt --all -- --check`: formatting clean across workspace.
   - `cargo deny check`: advisories ok, bans ok, licenses ok, sources ok.
   - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures) across Bootstrap/Governance, Workflows, Rust Workspace (545 tests passed), Frontend Web (17 files, 213 passing vitest tests), and Resource Budget (Podman storage 0 B / 30 GB, 0%).
-- **Git Commit Reference:** `09b8189`
+- **Git Commit Reference:** `8f6b279`
+- **Status:** `ACCEPTED`
+
+---
+
+#### Subphase `9.1.1` — REST API Documentation: OpenAPI 3.1 & JSON Schema specifications in docs/API.md & services/api
+- **Unique ID:** `9.1.1`
+- **Objective:** Author and certify complete OpenAPI 3.1.0 specifications (`docs/openapi.json` and `docs/openapi.yaml`) covering 100% of the operational API endpoints, error schemas, and security schemes; serve machine-readable specs and interactive Scalar/Swagger UI documentation directly from `services/api`; expand `docs/API.md` into an exhaustive technical manual; and verify route coverage and schema validity with automated tests.
+- **Scope:** `docs/openapi.json`, `docs/openapi.yaml`, `docs/API.md`, `services/api/src/routes/openapi.rs`, `services/api/src/routes/mod.rs`, `services/api/src/lib.rs`, `services/api/tests/openapi_test.rs`.
+- **Prerequisites:** Subphase `8.4.4` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `docs/openapi.json`
+  - `docs/openapi.yaml`
+  - `docs/API.md`
+  - `services/api/src/routes/openapi.rs`
+  - `services/api/src/routes/mod.rs`
+  - `services/api/src/lib.rs`
+  - `services/api/tests/openapi_test.rs`
+- **Implementation Tasks:**
+  1. Author `docs/openapi.json`:
+     - OpenAPI 3.1.0 compliant document covering all operational paths (`/health`, `/ready`, `/metrics`, `/openapi.json`, `/openapi.yaml`, `/docs`, `/sources/detect`, `/jobs`, `/jobs/{job_id}`, `/jobs/{job_id}/preview`, `/jobs/{job_id}/events`, `/jobs/{job_id}/stream`, `/jobs/{job_id}/artifacts/{format}`, `/jobs/batch`, `/jobs/batch/{batch_id}`, `/jobs/batch/{batch_id}/cancel`, `/jobs/batch/{batch_id}/items`, `/jobs/batch/{batch_id}/items/{item_index}`, `/jobs/batch/{batch_id}/export/{format}`, `/jobs/batch/{batch_id}/artifacts`, `/auth/github/installations`, `/auth/github/installations/{installation_id}`, `/auth/github/webhook`).
+     - Define 24 JSON Schemas under `components.schemas` for requests, responses, pagination parameters, error problem envelopes, and batch summaries.
+     - Define security schemes `SessionAuth`, `BearerAuth`, and `GitHubWebhookSignature`.
+  2. Author `docs/openapi.yaml`:
+     - Identical specification structured in clean YAML.
+  3. Implement `services/api/src/routes/openapi.rs`:
+     - `openapi_json_handler`: Serves embedded `docs/openapi.json` with `Content-Type: application/json; charset=utf-8`.
+     - `openapi_yaml_handler`: Serves embedded `docs/openapi.yaml` with `Content-Type: application/yaml; charset=utf-8`.
+     - `openapi_docs_handler`: Serves a modern, interactive API documentation HTML viewer (Scalar / Deep Space theme) pointing to `/api/v1/openapi.json`.
+  4. Register routes in `services/api/src/routes/mod.rs`:
+     - Mount `/openapi.json`, `/openapi.yaml`, and `/docs` under `/api/v1`.
+     - Mount top-level `/docs` on the root router as an accessible shortcut.
+     - Advertise `openapi_json`, `openapi_yaml`, and `docs` in `root_handler` (`GET /`).
+  5. Expand `docs/API.md`:
+     - Full technical reference manual covering interactive doc endpoints, global headers, RFC 7807 problem details error catalog, endpoint request/response payloads, SSE streaming lifecycle, and export format specifications.
+  6. Author automated integration tests in `services/api/tests/openapi_test.rs`:
+     - `test_openapi_json_endpoint`: Asserts 200 OK, valid JSON, `openapi == "3.1.0"`.
+     - `test_openapi_yaml_endpoint`: Asserts 200 OK, Content-Type containing `yaml`, starts with `openapi: 3.1.0`.
+     - `test_openapi_docs_endpoint_and_root_alias`: Asserts 200 OK, HTML content type, and title rendering for both `/api/v1/docs` and `/docs`.
+     - `test_root_endpoint_contains_openapi_links`: Asserts root handler advertises all documentation endpoints.
+     - `test_openapi_route_coverage`: Verifies 100% path coverage for all 23 registered route endpoints.
+     - `test_openapi_schemas_presence_and_validity`: Validates presence and structure of all 24 component schemas and 3 security schemes.
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-api`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell -ExecutionPolicy Bypass -File scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - `GET /api/v1/openapi.json` returns HTTP 200 with valid OpenAPI 3.1.0 JSON.
+  - `GET /api/v1/openapi.yaml` returns HTTP 200 with valid OpenAPI 3.1.0 YAML.
+  - `GET /api/v1/docs` and `GET /docs` return HTTP 200 with interactive HTML documentation viewer.
+  - 100% route coverage: every registered route in the Axum router has a path definition in `openapi.json`.
+  - `docs/API.md` contains comprehensive technical documentation, RFC 7807 error catalog, and payload examples.
+  - 100% test pass rate across api tests (90/90) and workspace tests (551/551), zero clippy warnings, zero fmt diffs, cargo deny clean, and 5/5 check-all gates pass.
+- **Risk Analysis:**
+  - Risk: Drift between implementation routes and OpenAPI documentation.
+  - Mitigation: Automated integration test `test_openapi_route_coverage` asserts presence of every registered endpoint in the specification, failing CI if an endpoint is added without OpenAPI documentation.
+- **Rollback Plan:**
+  - Revert Subphase 9.1.1 additions via Git reset to commit `8f6b279`.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-api`: 90 passed; 0 failed (83 lib unit, 1 main unit, 6 openapi integration).
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings across all targets.
+  - `cargo fmt --all -- --check`: formatting clean across workspace.
+  - `cargo deny check`: advisories ok, bans ok, licenses ok, sources ok.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures) across Bootstrap/Governance, Workflows, Rust Workspace (551 tests passed), Frontend Web (17 files, 213 passing vitest tests), and Resource Budget (Podman storage 0 B / 30 GB, 0%).
+- **Git Commit Reference:** `3ad901f`
 - **Status:** `ACCEPTED`
 
 ---
@@ -8166,10 +8232,10 @@
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `9.1.1` | OpenAPI 3.1 & JSON Schema specifications in docs/API.md & services/api | `8.4.4` (`ACCEPTED`) | `docs/API.md`, `services/api/*` | `NOT_STARTED` |
+| `9.1.2` | Authentication & authorization (API key / Bearer token validation and tenant isolation) | `9.1.1` (`ACCEPTED`) | `services/api/*`, `crates/core/*`, `crates/storage/*` | `NOT_STARTED` |
 
 ---
 
 ## STAGES 9 – 11 QUEUED LEDGER SUMMARY
 
-All subsequent subphases for **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.
+All subsequent subphases for **Stage 9** (`9.1.2`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.

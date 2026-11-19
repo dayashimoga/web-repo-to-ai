@@ -256,7 +256,34 @@
 
 ---
 
+## Stage 9: Developer and AI Agent Integrations (`IN_PROGRESS`)
+
+### Phase 9.1 — REST API
+- [x] **[9.1.1]** API documentation *(Completed 2026-11-19, Complete OpenAPI 3.1.0 specifications in docs/openapi.json and docs/openapi.yaml covering 23 operational endpoints, 24 component schemas, and 3 security schemes, embedded JSON/YAML serving in services/api via GET /api/v1/openapi.json and GET /api/v1/openapi.yaml, interactive Scalar/Swagger UI documentation viewer at GET /api/v1/docs with top-level alias GET /docs, updated root service descriptor at GET /, comprehensive technical manual in docs/API.md with RFC 7807 problem details error catalog and payload specifications, 6 integration tests in openapi_test.rs asserting 100% route coverage and schema validity, 90 API tests, 551 workspace tests, 100% passing quality gates)*
+- [ ] **[9.1.2]** Authentication & authorization
+- [ ] **[9.1.3]** Rate limits
+- [ ] **[9.1.4]** API integration tests
+
+### Phase 9.2 — CLI
+- [ ] **[9.2.1]** URL conversion commands
+- [ ] **[9.2.2]** Repository conversion commands
+- [ ] **[9.2.3]** Configuration
+- [ ] **[9.2.4]** Download & verification
+
+### Phase 9.3 — MCP
+- [ ] **[9.3.1]** MCP server
+- [ ] **[9.3.2]** Conversion tools
+- [ ] **[9.3.3]** Resource retrieval
+- [ ] **[9.3.4]** Security & protocol testing
+
+### Phase 9.4 — Browser integration
+- [ ] **[9.4.1]** Browser extension foundation
+- [ ] **[9.4.2]** Current-page conversion
+- [ ] **[9.4.3]** Result handoff
+- [ ] **[9.4.4]** Extension security
+
+---
+
 ## Subsequent Stages (Queued)
-- [ ] **[Stage 9]** Developer and AI Agent Integrations (`9.1.1` – `9.4.4`)
 - [ ] **[Stage 10]** Advanced Documents and Content (`10.1.1` – `10.5.4`)
 - [ ] **[Stage 11]** Production Certification (`11.1.1` – `11.4.5`)

@@ -6,6 +6,28 @@
 
 ## [Unreleased] — Stage 9: Developer and AI Agent Integrations
 
+### 2026-11-19 — Phase 9.1: REST API (`9.1.1`)
+
+#### Added
+- **`[9.1.1]` OpenAPI 3.1 & JSON Schema Specifications in `docs/` and `services/api`:**
+  - Authored comprehensive OpenAPI 3.1.0 specifications in `docs/openapi.json` and `docs/openapi.yaml`:
+    - Full coverage across 23 operational API endpoints spanning System (`/health`, `/ready`, `/metrics`), Documentation (`/openapi.json`, `/openapi.yaml`, `/docs`), Sources (`/sources/detect`), Jobs (`/jobs`, `/jobs/{job_id}`, `/jobs/{job_id}/preview`, `/jobs/{job_id}/events`, `/jobs/{job_id}/stream`, `/jobs/{job_id}/artifacts/{format}`), Batch Jobs (`/jobs/batch`, `/jobs/batch/{batch_id}`, `/jobs/batch/{batch_id}/cancel`, `/jobs/batch/{batch_id}/items`, `/jobs/batch/{batch_id}/items/{item_index}`, `/jobs/batch/{batch_id}/export/{format}`, `/jobs/batch/{batch_id}/artifacts`), and GitHub App (`/auth/github/installations`, `/auth/github/installations/{installation_id}`, `/auth/github/webhook`).
+    - 24 comprehensive JSON Schemas under `components.schemas` modeling requests, responses, pagination parameters, batch summaries, and RFC 7807 problem details error envelopes (`ApiProblemEnvelope`).
+    - 3 security scheme declarations: `SessionAuth` (`X-Session-ID`), `BearerAuth` (`Authorization`), and `GitHubWebhookSignature` (`X-Hub-Signature-256`).
+  - Implemented documentation routes in `services/api/src/routes/openapi.rs`:
+    - `openapi_json_handler`: Serves embedded `docs/openapi.json` with `Content-Type: application/json; charset=utf-8`.
+    - `openapi_yaml_handler`: Serves embedded `docs/openapi.yaml` with `Content-Type: application/yaml; charset=utf-8`.
+    - `openapi_docs_handler`: Serves a modern interactive HTML documentation viewer (Scalar / Deep Space theme) at `GET /api/v1/docs` with top-level shortcut alias `GET /docs`.
+  - Registered documentation routes and updated root service descriptor (`GET /`) in `services/api/src/routes/mod.rs`.
+  - Expanded `docs/API.md` into an exhaustive technical reference manual covering endpoint parameters, request/response headers, error catalog, SSE event streams, and artifact formats.
+  - Authored 6 automated integration tests in `services/api/tests/openapi_test.rs`:
+    - Validates JSON and YAML specification serialization and content types.
+    - Validates interactive HTML viewer serving and root aliases.
+    - Validates root descriptor links advertisement.
+    - Enforces 100% route coverage invariant against all 23 registered router paths.
+    - Validates syntax and presence of all 24 component schemas and 3 security schemes.
+  - 100% passing quality gates: 90 API tests, 551 workspace tests, zero clippy warnings, zero fmt diffs, cargo deny clean, and 5/5 check-all gates passed.
+
 ### 2026-11-19 — Phase 8.4: Scalability (`8.4.4`) & Stage 8 Formal Certification
 
 #### Added
