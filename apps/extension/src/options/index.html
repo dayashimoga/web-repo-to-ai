@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>web-repo-to-ai - Options</title>
+  <link rel="stylesheet" href="options.css" />
+</head>
+<body>
+  <div class="container">
+    <header>
+      <img src="../../public/icons/icon48.png" alt="Logo" />
+      <h1>web-repo-to-ai Settings</h1>
+    </header>
+
+    <main>
+      <!-- Backend API Configuration -->
+      <section class="card">
+        <h2>Backend Connection</h2>
+        
+        <div class="form-group">
+          <label for="apiUrl">API Base URL</label>
+          <div class="input-with-button">
+            <input type="text" id="apiUrl" placeholder="http://localhost:3000" />
+            <button id="btnTestConnection" class="btn btn-secondary" type="button">Test</button>
+          </div>
+          <p class="help-text">The URL of your running web-repo-to-ai API instance.</p>
+          <div id="connectionStatus" class="status-badge" style="display: none;"></div>
+        </div>
+
+        <div class="form-group">
+          <label for="apiKey">API Key (Optional)</label>
+          <div class="input-with-button">
+            <input type="password" id="apiKey" placeholder="wr_live_..." />
+            <button id="btnToggleKey" class="btn btn-secondary" type="button">Show</button>
+          </div>
+          <p class="help-text">Required if your web-repo-to-ai instance requires authentication.</p>
+        </div>
+      </section>
+
+      <!-- Conversion Defaults -->
+      <section class="card">
+        <h2>Conversion Defaults</h2>
+
+        <div class="form-group">
+          <label for="defaultFormat">Default Output Format</label>
+          <select id="defaultFormat">
+            <option value="markdown">Markdown (.md)</option>
+            <option value="txt">Plain Text (.txt)</option>
+            <option value="json">Canonical Document Model (.json)</option>
+            <option value="html">Clean HTML (.html)</option>
+            <option value="jsonl">JSON Lines (.jsonl)</option>
+            <option value="zip">Complete ZIP Archive (.zip)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="defaultTokenBudget">Default Token Budget</label>
+          <input type="number" id="defaultTokenBudget" placeholder="32000" min="1" step="1000" />
+          <p class="help-text">Leave blank for unlimited / full content.</p>
+        </div>
+
+        <div class="form-group">
+          <label for="defaultTargetModel">Target Tokenizer Model</label>
+          <select id="defaultTargetModel">
+            <option value="gpt-4o">GPT-4o (o200k_base)</option>
+            <option value="claude-3-5-sonnet">Claude 3.5 Sonnet</option>
+            <option value="gemini-1-5-pro">Gemini 1.5 Pro</option>
+            <option value="generic">Generic Tokenizer</option>
+          </select>
+        </div>
+      </section>
+
+      <!-- Advanced Features -->
+      <section class="card">
+        <h2>Behavior & Extraction</h2>
+
+        <label class="checkbox-group">
+          <input type="checkbox" id="autoDetectSource" />
+          <div>
+            <strong>Auto-detect source archetype</strong>
+            <p class="help-text">Automatically classify URLs into GitHub repo, Docs, or Articles.</p>
+          </div>
+        </label>
+
+        <label class="checkbox-group">
+          <input type="checkbox" id="includeFrontmatter" />
+          <div>
+            <strong>Include YAML frontmatter</strong>
+            <p class="help-text">Prepend provenance, date, and source metadata to converted documents.</p>
+          </div>
+        </label>
+
+        <label class="checkbox-group">
+          <input type="checkbox" id="sendDomSnapshot" />
+          <div>
+            <strong>Send DOM snapshot fallback</strong>
+            <p class="help-text">When server-side fetch is blocked, send active page DOM directly.</p>
+          </div>
+        </label>
+      </section>
+
+      <!-- Action Buttons -->
+      <div class="actions">
+        <button id="btnReset" class="btn btn-secondary" type="button">Reset Defaults</button>
+        <button id="btnSave" class="btn btn-primary" type="button">Save Settings</button>
+      </div>
+    </main>
+  </div>
+
+  <div id="toast" class="toast">Settings saved successfully!</div>
+
+  <script type="module" src="options.ts"></script>
+</body>
+</html>

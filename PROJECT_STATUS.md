@@ -6,8 +6,8 @@
 **Last Completed Stage:** `STAGE 8 — LARGE REPOSITORIES, BATCH AND CRAWLING` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Last Completed Phase:** `Phase 9.3 — MCP` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Active Subphase:** `None`  
-**Last Completed Subphase:** `9.3.4 — Security & protocol testing (crates/mcp: Adversarial protocol fuzzer, unauthorized resource rejection, transport isolation, and Phase 9.3 formal certification)` (`ACCEPTED`)  
-**Next Upcoming Subphase:** `9.4.1 — Browser extension foundation (apps/extension: WebExtensions Manifest V3 scaffolding, background service worker, and popup UI)`
+**Last Completed Subphase:** `9.4.1 — Browser extension foundation (apps/extension: WebExtensions Manifest V3 scaffolding, background service worker, options/storage configuration, and popup UI)` (`ACCEPTED`)  
+**Next Upcoming Subphase:** `9.4.2 — Current-page conversion (apps/extension: Active tab DOM and URL capture, extraction dispatch, and conversion state machine)`
 
 ---
 
@@ -62,18 +62,27 @@ In Stage 9 ("Developer and AI Agent Integrations"):
       6. Multi-client concurrent execution & thread safety (20 concurrent tasks executing simultaneous `ping`, `tools/list`, `resources/list`, and `tools/call` over shared client handle without race conditions or error).
     - Verified all 39 MCP tests passing (1 unit, 38 integration), all 656 workspace tests passing, zero clippy warnings, zero fmt diffs, cargo deny clean, and 100% passing quality gates (5/5). Formally certified Phase 9.3.
 
+- Phase 9.4 ("Browser integration") is in progress:
+  - Subphase `9.4.1` delivered `apps/extension` establishing the WebExtensions Manifest V3 architecture:
+    - Scaffolding & Manifest: Defined Manifest V3 specification (`apps/extension/manifest.json`) targeting modern Chrome, Edge, and Firefox, configuring background service worker, options UI, action popup, permissions (`storage`, `activeTab`, `scripting`), host permissions (`http://localhost:*/*`, `http://127.0.0.1:*/*`), and generated pixel-accurate 16x16, 48x48, and 128x128 brand PNG icons.
+    - Configuration & Storage: Implemented `src/storage/config.ts` providing typed schema (`ExtensionConfig`, `DEFAULT_CONFIG`), validation rules (`validateConfig`), and dual-layer persistence using `chrome.storage.sync` with automatic fallback to `chrome.storage.local` and in-memory test fallback. Supports configurable API URL, optional API key, default export format (`markdown`, `txt`, `json`, `html`, `jsonl`, `zip`), token budget presets, model targets (`gpt-4o`, `claude-3-5-sonnet`, `gemini-1-5-pro`, `generic`), source auto-detection, YAML frontmatter, and DOM fallback toggles.
+    - Background Service Worker: Implemented `src/background/index.ts` managing the extension lifecycle (`onInstalled`), badge state (`OK` vs `ERR`), message routing (`PING`, `CHECK_BACKEND_STATUS`, `GET_CONFIG`, `SAVE_CONFIG`, `RESET_CONFIG`, `GET_ACTIVE_TAB`, `DETECT_URL_TYPE`, `START_CONVERSION`), live API health checks (`/api/v1/health` with fallback to `/health` and 5000ms timeout), and local regex-based URL classification (GitHub repositories, technical documentation, web articles, structured file resources, and generic webpages).
+    - Options Page: Implemented `src/options/index.html`, `options.css`, and `options.ts` featuring backend connection configuration with live "Test Connection" status probe, API key visibility toggle, format and budget selectors, behavioral checkboxes, animated status toast notifications, and reset-to-defaults workflow.
+    - Popup Interface: Implemented `src/popup/index.html`, `popup.css`, and `popup.ts` providing compact 380px toolbar interface featuring dynamic API connection status dot, active tab title and URL extraction, source archetype classification badge (`GitHub Repository`, `Documentation`, `Web Article`, `Webpage`, `Internal Browser Page`), export format picker, quick token budget chips (`8K`, `32K`, `64K`, `128K`, `Max`), "Convert Current Tab" state machine (idle -> converting spinner -> success/error), and web UI launcher.
+    - Quality & Verification: Authored 4 comprehensive test suites across `tests/config.test.ts`, `tests/background.test.ts`, `tests/options.test.ts`, and `tests/popup.test.ts` backed by a high-fidelity Chrome MV3 mock (`tests/mocks/chrome.ts`). Integrated into monorepo quality gate (`scripts/check-all.ps1`). Verified with 46 extension unit tests, 213 frontend web tests, 656 workspace Rust tests, Vite build (153ms), TypeScript zero errors, Prettier formatting clean, zero cargo deny violations, and 100% passing quality gates (5/5).
+
 ---
 
 ## 2. Subphase Status Counter
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 156 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1`, `9.3.2`, `9.3.3`, `9.3.4` |
+| `ACCEPTED` | 157 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 40 | `9.4.1` – `11.4.5` |
+| `NOT_STARTED` | 39 | `9.4.2` – `11.4.5` |
 | **Total** | **196** | `Stage 0` – `Stage 11` |
 
 ---

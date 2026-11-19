@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>web-repo-to-ai</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="brand">
+      <img src="../../public/icons/icon48.png" alt="Logo" />
+      <h1>web-repo-to-ai</h1>
+    </div>
+    <div class="header-actions">
+      <div id="statusDot" class="status-dot" title="Checking API status..."></div>
+      <button id="btnOpenOptions" class="icon-btn" title="Open Settings" type="button">
+        ⚙️
+      </button>
+    </div>
+  </header>
+
+  <!-- Active Page Card -->
+  <section class="card">
+    <div class="card-title">
+      <span>Current Page</span>
+      <span id="archetypeBadge" class="badge badge-web">Webpage</span>
+    </div>
+    <div id="tabTitle" class="tab-title">Loading tab...</div>
+    <div id="tabUrl" class="tab-url">...</div>
+  </section>
+
+  <!-- Conversion Options Card -->
+  <section class="card">
+    <div class="control-row">
+      <label class="control-label" for="formatSelect">Output Format</label>
+      <select id="formatSelect">
+        <option value="markdown">Markdown (.md)</option>
+        <option value="txt">Plain Text (.txt)</option>
+        <option value="json">Canonical Document (.json)</option>
+        <option value="html">Clean HTML (.html)</option>
+        <option value="jsonl">JSON Lines (.jsonl)</option>
+        <option value="zip">ZIP Package (.zip)</option>
+      </select>
+    </div>
+
+    <div class="control-row">
+      <span class="control-label">Token Budget Preset</span>
+      <div class="chips-container" id="budgetChips">
+        <button class="chip" data-budget="8000" type="button">8K</button>
+        <button class="chip active" data-budget="32000" type="button">32K</button>
+        <button class="chip" data-budget="64000" type="button">64K</button>
+        <button class="chip" data-budget="128000" type="button">128K</button>
+        <button class="chip" data-budget="0" type="button">Max</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Action Section -->
+  <div>
+    <button id="btnConvert" class="btn-convert" type="button">
+      <span class="spinner" id="spinner"></span>
+      <span id="btnConvertText">Convert Current Tab</span>
+    </button>
+    <div id="statusMessage" class="status-message"></div>
+  </div>
+
+  <div class="footer-links">
+    <a href="#" id="linkOpenWorkspace">Open Web UI</a>
+    <span id="apiVersion" style="color: var(--text-muted); font-size: 10px;">v0.1.0</span>
+  </div>
+
+  <script type="module" src="popup.ts"></script>
+</body>
+</html>

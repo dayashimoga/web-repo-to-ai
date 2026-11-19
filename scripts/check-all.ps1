@@ -89,6 +89,38 @@ Run-Gate "Frontend Web Quality Checks" {
     } else {
         Write-Output "Notice: apps/web package.json scheduled for Stage 1 (Frontend Experience). .prettierrc verified."
     }
+
+    if (Test-Path -Path "apps/extension/package.json" -PathType Leaf) {
+        $rootItem = Get-Item "." -ErrorAction SilentlyContinue
+        $appItem = Get-Item "apps" -ErrorAction SilentlyContinue
+        $extDir = if ($appItem -and $appItem.LinkType -eq "Junction") { 
+            Join-Path $appItem.Target[0] "extension" 
+        } elseif ($rootItem -and $rootItem.LinkType -eq "Junction") {
+            Join-Path $rootItem.Target[0] "apps/extension"
+        } else { 
+            "apps/extension" 
+        }
+        Push-Location $extDir
+        try {
+            Write-Output "Checking extension lint..."
+            npm run lint
+            if ($LASTEXITCODE -ne 0) { throw "extension npm run lint failed" }
+
+            Write-Output "Checking extension types (tsc)..."
+            npm run typecheck
+            if ($LASTEXITCODE -ne 0) { throw "extension npm run typecheck failed" }
+
+            Write-Output "Checking extension build..."
+            npm run build
+            if ($LASTEXITCODE -ne 0) { throw "extension npm run build failed" }
+
+            Write-Output "Checking extension tests..."
+            npm test
+            if ($LASTEXITCODE -ne 0) { throw "extension npm test failed" }
+        } finally {
+            Pop-Location
+        }
+    }
 }
 
 # 5. Resource Budget & 30 GB Storage Ceiling Gate

@@ -6,6 +6,49 @@
 
 ## [Unreleased] — Stage 9: Developer and AI Agent Integrations
 
+### 2026-11-19 — Phase 9.4: Browser integration (`9.4.1`)
+
+#### Added
+- **`[9.4.1]` Browser extension foundation in `apps/extension`:**
+  - Manifest V3 WebExtension architecture (`apps/extension/manifest.json`):
+    - Configured Manifest V3 targeting modern Chrome, Edge, and Firefox browsers.
+    - Declared background service worker (`src/background/index.ts`, compiled to ES module `dist/background.js`).
+    - Configured permissions (`storage`, `activeTab`, `scripting`) and host permissions (`http://localhost:*/*`, `http://127.0.0.1:*/*`).
+    - Configured action popup (`src/popup/index.html`) and options UI (`src/options/index.html`).
+    - Generated valid pixel-accurate RGBA PNG icons for 16x16, 48x48, and 128x128 brand dimensions.
+  - Configuration & storage architecture (`apps/extension/src/storage/config.ts`):
+    - Defined typed `ExtensionConfig` interface and immutable `DEFAULT_CONFIG`.
+    - Implemented `validateConfig` enforcing URL protocol validity (`http:`/`https:`), format restrictions (`markdown`, `txt`, `json`, `html`, `jsonl`, `zip`), model bounds (`gpt-4o`, `claude-3-5-sonnet`, `gemini-1-5-pro`, `generic`), and token budgets.
+    - Implemented dual-layer persistence using `chrome.storage.sync` with automatic fallback to `chrome.storage.local` and in-memory test fallback.
+    - Supported API URL, API key, format, budget presets, target model, archetype auto-detection, frontmatter, and DOM fallback settings.
+  - Background service worker (`apps/extension/src/background/index.ts`):
+    - Managed extension lifecycle listener (`chrome.runtime.onInstalled`) ensuring default storage initialization and initial health checks.
+    - Handled runtime message routing (`chrome.runtime.onMessage`) for `PING`, `CHECK_BACKEND_STATUS`, `GET_CONFIG`, `SAVE_CONFIG`, `RESET_CONFIG`, `GET_ACTIVE_TAB`, `DETECT_URL_TYPE`, and `START_CONVERSION`.
+    - Implemented live backend connection probe (`checkBackendStatus`) hitting `/api/v1/health` with fallback to `/health` and 5000ms timeout.
+    - Implemented browser toolbar action badge updates (`setBadgeText` / `setBadgeBackgroundColor`) showing `OK` (green) or `ERR` (red).
+    - Implemented local regex-based URL classifier (`classifyUrl`) categorizing URLs into `github_repository`, `web_documentation`, `web_article`, `file_resource`, `generic_web`, and `unknown` internal browser pages.
+  - Options management page (`apps/extension/src/options/index.html`, `options.css`, `options.ts`):
+    - Built responsive settings UI with backend connection settings, live "Test Connection" button with latency badge, and API key visibility toggle.
+    - Implemented default conversion controls (output format, token budget, target model) and behavior toggles (auto-detect, frontmatter, DOM fallback).
+    - Added form validation, animated toast notifications, and reset-to-defaults workflow.
+  - Action popup interface (`apps/extension/src/popup/index.html`, `popup.css`, `popup.ts`):
+    - Built compact 380px toolbar UI featuring real-time API connection dot indicator (green/yellow/red).
+    - Extracted active browser tab title, URL, and dynamic source archetype classification badge.
+    - Added format selector dropdown and quick token budget chips (`8K`, `32K`, `64K`, `128K`, `Max`).
+    - Implemented "Convert Current Tab" state machine (idle -> converting spinner -> success/error) and web UI deep link.
+  - Comprehensive unit & integration test suites (`apps/extension/tests/`):
+    - Created high-fidelity Chrome MV3 mock (`tests/mocks/chrome.ts`) supporting storage sync/local, runtime message routing, and tab querying.
+    - `tests/config.test.ts` (14 tests): Configuration validation, storage loading, saving, corruption recovery, and reset.
+    - `tests/background.test.ts` (19 tests): URL classification, backend status probing, badge updates, active tab query, and message dispatch.
+    - `tests/options.test.ts` (8 tests): Form population, extraction, validation, connection testing, and toast display.
+    - `tests/popup.test.ts` (5 tests): Popup state initialization, active tab retrieval, archetype badge styling, and conversion triggering.
+  - Quality verification:
+    - 46 extension tests passing in 447ms.
+    - Vite multi-page extension build passing in 173ms.
+    - TypeScript strict typecheck (`tsc --noEmit`) passing with zero errors.
+    - Prettier code style clean across all extension TypeScript files.
+    - Monorepo quality gate (`scripts/check-all.ps1`) updated and passing 5/5 quality gates.
+
 ### 2026-11-19 — Phase 9.3: MCP (`9.3.4` — PHASE 9.3 CERTIFIED)
 
 #### Added

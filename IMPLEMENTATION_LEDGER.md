@@ -5588,5 +5588,54 @@
   - Phase 9.3 is formally certified.
 - **Status:** `ACCEPTED`
 
+#### Subphase `9.4.1` — Browser extension foundation
+- **Unique ID:** `9.4.1`
+- **Objective:** Establish the browser extension architecture in `apps/extension` using WebExtensions Manifest V3, background service worker, options/storage configuration subsystem, and popup user interface.
+- **Scope:** `apps/extension/manifest.json`, `apps/extension/package.json`, `apps/extension/tsconfig.json`, `apps/extension/vite.config.ts`, `apps/extension/vitest.config.ts`, `apps/extension/public/icons/*`, `apps/extension/src/types/*`, `apps/extension/src/storage/config.ts`, `apps/extension/src/background/index.ts`, `apps/extension/src/options/*`, `apps/extension/src/popup/*`, `apps/extension/tests/*`, `scripts/check-all.ps1`, and project tracking ledgers.
+- **Prerequisites:** Subphase `9.3.4` (Security & protocol testing, Phase 9.3 Formal Certification) ACCEPTED.
+- **Files/Components Affected:**
+  - `apps/extension/manifest.json`: WebExtensions Manifest V3 specification targeting modern Chromium and Gecko browsers; declares background service worker (`background.js`, module), options UI (`src/options/index.html`), action popup (`src/popup/index.html`), permissions (`storage`, `activeTab`, `scripting`), host permissions (`http://localhost:*/*`, `http://127.0.0.1:*/*`), and icon mapping.
+  - `apps/extension/package.json`: NPM package declaration configuring scripts (`build`, `test`, `typecheck`, `lint`) sharing root devDependencies with zero duplicate bloat.
+  - `apps/extension/tsconfig.json`: TypeScript compiler options with ES2022/DOM lib and bundler resolution.
+  - `apps/extension/vite.config.ts`: Multi-page Vite build configuration generating isolated `background.js`, `popup/index.html`, and `options/index.html`.
+  - `apps/extension/vitest.config.ts`: Vitest test configuration running in Node environment.
+  - `apps/extension/public/icons/`: Generated 16x16, 48x48, and 128x128 brand RGBA PNG icons.
+  - `apps/extension/src/types/chrome.d.ts`: Self-contained type declarations for Manifest V3 APIs (`chrome.storage`, `chrome.runtime`, `chrome.tabs`, `chrome.action`, `chrome.scripting`).
+  - `apps/extension/src/types/index.ts`: Shared domain interfaces (`ExtensionConfig`, `DEFAULT_CONFIG`, `BackendStatus`, `SourceClassification`, `ExtensionMessage`, `ExtensionResponse`).
+  - `apps/extension/src/storage/config.ts`: Typed configuration manager with validation (`validateConfig`), dual-layer `chrome.storage.sync`/`chrome.storage.local` persistence, defaults merging, and reset capabilities.
+  - `apps/extension/src/background/index.ts`: Background service worker managing extension lifecycle (`onInstalled`), message dispatcher (`PING`, `CHECK_BACKEND_STATUS`, `GET_CONFIG`, `SAVE_CONFIG`, `RESET_CONFIG`, `GET_ACTIVE_TAB`, `DETECT_URL_TYPE`, `START_CONVERSION`), live API health probes with fallback, toolbar action badge indicators (`OK` vs `ERR`), and local regex URL classification.
+  - `apps/extension/src/options/`: Options page UI (`index.html`, `options.css`, `options.ts`) with API connection testing, key toggle, conversion defaults, behavior flags, and animated toast alerts.
+  - `apps/extension/src/popup/`: Popup UI (`index.html`, `popup.css`, `popup.ts`) featuring API status dot, active tab detection, archetype classification badges, format selector, token budget chips, and conversion state machine.
+  - `apps/extension/tests/mocks/chrome.ts`: High-fidelity Chrome MV3 mock with async storage, event emitters, and tab querying.
+  - `apps/extension/tests/`: 4 comprehensive test suites (`config.test.ts`, `background.test.ts`, `options.test.ts`, `popup.test.ts`).
+  - `scripts/check-all.ps1`: Quality gate 4 enhanced to verify extension formatting, types, build, and tests.
+- **Implementation Tasks:**
+  1. Configured WebExtensions Manifest V3 scaffolding in `apps/extension/manifest.json`.
+  2. Implemented typed storage subsystem in `src/storage/config.ts` with validation and fallback persistence.
+  3. Implemented background service worker in `src/background/index.ts` with lifecycle hooks, message router, health probe, and URL classification heuristics.
+  4. Built options page in `src/options/` with live connection testing, key toggle, and settings persistence.
+  5. Built action popup in `src/popup/` with active tab detection, source archetype badges, format/budget controls, and conversion dispatch.
+  6. Generated pixel-accurate brand PNG icons (16, 48, 128).
+  7. Authored 4 unit and integration test suites in `tests/` backed by Chrome MV3 mock.
+  8. Integrated extension verification into monorepo quality gate (`scripts/check-all.ps1`).
+  9. Executed full test and quality gate pipeline with 100% passing results.
+- **Verification Commands:**
+  - `npm test` in `apps/extension` (46 unit tests passing)
+  - `npm run build` in `apps/extension` (Vite build successful in 173ms)
+  - `npm run typecheck` in `apps/extension` (tsc --noEmit clean)
+  - `npm run lint` in `apps/extension` (Prettier clean)
+  - `powershell scripts/check-all.ps1` (All 5 gates passed with 0 failures)
+- **Acceptance Criteria:**
+  - Manifest V3 architecture adheres to modern browser extension standards.
+  - Configuration persists reliably via `chrome.storage.sync` with local fallback.
+  - Background service worker responds to lifecycle and runtime messages.
+  - Live API status probe correctly updates badge indicator.
+  - Popup extracts active tab information and accurately classifies URL archetypes.
+  - Zero-mock policy enforced across all extension components.
+  - All 46 extension tests and 656 workspace tests pass cleanly.
+  - Disk space constraint satisfied ($\ge 70$ GB free on `C:`).
+  - All 5 monorepo quality gates pass with 0 failures.
+- **Status:** `ACCEPTED`
+
 
 
