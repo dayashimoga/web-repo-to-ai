@@ -5228,3 +5228,56 @@
   - Disk space constraint satisfied ($\ge 70$ GB free on `C:`).
   - All monorepo gates pass with 0 failures.
 - **Status:** `ACCEPTED`
+
+---
+
+#### Subphase `9.2.3` — Configuration and batch input processing in crates/cli
+- **Unique ID:** `9.2.3`
+- **Objective:** Deliver configuration file discovery, parsing, and precedence merging alongside batch conversion and input file processing in `crates/cli`, supporting newline-delimited and JSON array inputs, comment stripping, bounded concurrency, individual failure tolerance, and structured JSON summary reporting.
+- **Scope:** `crates/cli`, `Cargo.toml`.
+- **Prerequisites:** Subphase `9.2.2` Accepted.
+- **Files/Components Affected:**
+  - `crates/cli/Cargo.toml`
+  - `crates/cli/src/args.rs`
+  - `crates/cli/src/config.rs`
+  - `crates/cli/src/commands/mod.rs`
+  - `crates/cli/src/commands/config.rs`
+  - `crates/cli/src/commands/batch.rs`
+  - `crates/cli/src/lib.rs`
+  - `crates/cli/tests/config_command_test.rs`
+  - `crates/cli/tests/batch_command_test.rs`
+- **Implementation Highlights:**
+  1. Implemented `crates/cli/src/config.rs` with `CliConfigFile`, `DefaultsConfig`, `ApiConfig`, `GitHubConfig`, and `BatchConfig` data structures.
+  2. Implemented hierarchical configuration file auto-discovery (`find_config_file`) checking explicit `--config`, current working directory (`web-repo-to-ai.toml`, `.web-repo-to-ai.toml`, `web-repo-to-ai.json`, `.web-repo-to-ai.json`), and user home directories (`~/.config/web-repo-to-ai/config.toml`, `config.json`).
+  3. Implemented zero-external-dependency TOML and JSON parsing (`parse_config_str`, `parse_toml_to_json_value`) with scalar parsing for booleans, numbers, and quoted strings.
+  4. Implemented configuration precedence mutation helpers (`apply_to_url_args`, `apply_to_repo_args`, `apply_to_batch_args`) strictly enforcing `CLI Flags > Environment Variables > Config File > Built-in Defaults`.
+  5. Implemented credential masking (`mask_secret`) masking sensitive API keys and GitHub tokens for terminal display unless `--reveal-secrets` is supplied.
+  6. Implemented starter template generators (`generate_template_toml`, `generate_template_json`).
+  7. Added `ConfigArgs` and `ConfigAction` (`Show`, `Init`, `Validate`, `Path`) to `crates/cli/src/args.rs`.
+  8. Implemented `execute_config` in `crates/cli/src/commands/config.rs` handling all subactions with `--force` overwrite guards and `--json` formatting.
+  9. Added `BatchArgs` with options: `-i, --input-file` (or `-` for stdin), positional `targets`, `-o, --output-dir`, `-f, --format`, `-b, --budget`, `-m, --model`, `-c, --concurrency`, `--continue-on-error`, `--timeout`, `--github-token`, `--api-url`, and `--api-key`.
+  10. Implemented `execute_batch` and `execute_batch_with_options` in `crates/cli/src/commands/batch.rs` supporting:
+      - Input parsing from newline-delimited files, JSON array of strings, or stdin (`-`), stripping `#` comments, `//` comments, and blank lines.
+      - Automatic target classification across Web URLs, remote GitHub repositories, and local filesystem directories.
+      - Bounded parallel processing via `tokio::sync::Semaphore` with `args.concurrency`.
+      - Individual error tolerance (`--continue-on-error`, default `true`) recording failed targets without halting remaining jobs.
+      - Collision-proof, deterministic artifact filename generation (`sanitize_filename`) with 3-digit order prefixes and slug sanitization.
+      - Structured JSON summary envelope (`BatchJsonEnvelope`) with granular per-target results (`BatchItemResult`), durations, byte sizes, and exit codes.
+  11. Authored 13 integration tests in `crates/cli/tests/config_command_test.rs` (6 tests) and `crates/cli/tests/batch_command_test.rs` (7 tests).
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-cli` (30 tests passing)
+  - `cargo test --workspace` (600 tests passing)
+  - `cargo clippy --workspace --all-targets -- -D warnings` (0 warnings, 0 errors)
+  - `cargo fmt --all -- --check` (100% clean formatting)
+  - `cargo deny check` (advisories ok, bans ok, licenses ok, sources ok)
+  - `powershell scripts/check-all.ps1` (5/5 gates passed)
+- **Acceptance Criteria:**
+  - All 30 CLI integration tests pass cleanly.
+  - Configuration file discovery, parsing, and precedence merging function across both TOML and JSON formats.
+  - Secret redaction reliably masks API keys and tokens in terminal outputs.
+  - Batch conversion processes multiple targets concurrently within specified concurrency limits.
+  - Input files with comments, empty lines, and JSON arrays parse correctly.
+  - Continue-on-error enables partial batch completion while tracking failures and returning appropriate exit codes.
+  - Disk space constraint satisfied ($\ge 70$ GB free on `C:`).
+  - All monorepo gates pass with 0 failures.
+- **Status:** `ACCEPTED`

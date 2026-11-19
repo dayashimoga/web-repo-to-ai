@@ -43,6 +43,10 @@ pub enum Commands {
     /// Convert a GitHub repository or local directory into AI-ready format
     #[command(alias = "repository")]
     Repo(RepoArgs),
+    /// View, initialize, or validate CLI configuration files
+    Config(ConfigArgs),
+    /// Batch convert multiple URLs, repositories, or local directories
+    Batch(BatchArgs),
 }
 
 /// Supported output artifact formats.
@@ -192,6 +196,115 @@ pub struct RepoArgs {
     pub github_token: Option<String>,
 
     /// Remote web-repo-to-ai API base URL (e.g. http://localhost:8080)
+    #[arg(long, env = "WEB_REPO_TO_AI_API_URL", value_name = "URL")]
+    pub api_url: Option<String>,
+
+    /// Remote API key for authentication
+    #[arg(long, env = "WEB_REPO_TO_AI_API_KEY", value_name = "KEY")]
+    pub api_key: Option<String>,
+}
+
+/// Arguments for the `config` subcommand.
+#[derive(Debug, Clone, Args, PartialEq, Eq)]
+pub struct ConfigArgs {
+    /// Subcommand action to execute on configuration
+    #[command(subcommand)]
+    pub action: Option<ConfigAction>,
+}
+
+/// Subactions supported under the `config` command.
+#[derive(Debug, Clone, Subcommand, PartialEq, Eq)]
+pub enum ConfigAction {
+    /// Display current active configuration and resolved values
+    Show {
+        /// Path to a specific configuration file to view
+        #[arg(short, long, value_name = "PATH")]
+        path: Option<PathBuf>,
+
+        /// Show unmasked secrets (tokens and API keys)
+        #[arg(long, default_value_t = false)]
+        reveal_secrets: bool,
+
+        /// Format output as JSON instead of TOML
+        #[arg(long, default_value_t = false)]
+        json: bool,
+    },
+    /// Create a starter configuration file template
+    Init {
+        /// Destination path for the new configuration file
+        #[arg(short, long, value_name = "PATH")]
+        path: Option<PathBuf>,
+
+        /// Overwrite existing file when initializing
+        #[arg(short, long, default_value_t = false)]
+        force: bool,
+
+        /// Format template as JSON instead of TOML
+        #[arg(long, default_value_t = false)]
+        json: bool,
+    },
+    /// Validate configuration file syntax and schema
+    Validate {
+        /// Path to configuration file to validate
+        #[arg(short, long, value_name = "PATH")]
+        path: Option<PathBuf>,
+    },
+    /// Print path of discovered active configuration file
+    Path {
+        /// Explicit path to check
+        #[arg(short, long, value_name = "PATH")]
+        path: Option<PathBuf>,
+    },
+}
+
+/// Arguments for the `batch` subcommand.
+#[derive(Debug, Clone, Args, PartialEq, Eq)]
+pub struct BatchArgs {
+    /// File containing URLs or repository targets (one per line, '-' for stdin)
+    #[arg(short = 'i', long = "input-file", value_name = "PATH")]
+    pub input_file: Option<PathBuf>,
+
+    /// Direct positional targets to convert in batch (URLs, GitHub repos, or local paths)
+    #[arg(value_name = "TARGETS")]
+    pub targets: Vec<String>,
+
+    /// Output directory for converted artifacts
+    #[arg(short, long, default_value = "./output", value_name = "DIR")]
+    pub output_dir: PathBuf,
+
+    /// Output format for generated context documents
+    #[arg(short, long, value_enum, default_value = "markdown")]
+    pub format: OutputFormat,
+
+    /// Target context token budget per source
+    #[arg(short, long, default_value_t = 160_000, value_name = "TOKENS")]
+    pub budget: usize,
+
+    /// Model name for token counting
+    #[arg(short, long, default_value = "cl100k_base", value_name = "MODEL")]
+    pub model: String,
+
+    /// Disable context budget optimization
+    #[arg(long, default_value_t = false)]
+    pub no_optimize: bool,
+
+    /// Concurrency limit for parallel batch processing
+    #[arg(short = 'c', long, default_value_t = 4, value_name = "N")]
+    pub concurrency: usize,
+
+    /// Continue processing remaining items if an individual conversion fails
+    #[arg(long, default_value_t = true)]
+    pub continue_on_error: bool,
+
+    /// Network timeout in seconds per conversion
+    #[arg(short, long, default_value_t = 60, value_name = "SECONDS")]
+    pub timeout: u64,
+
+    /// GitHub personal access token for remote repositories
+    #[arg(long, env = "GITHUB_TOKEN", value_name = "TOKEN")]
+    pub github_token: Option<String>,
+
+    /// Remote API base URL (e.g. http://localhost:8080)
     #[arg(long, env = "WEB_REPO_TO_AI_API_URL", value_name = "URL")]
     pub api_url: Option<String>,
 

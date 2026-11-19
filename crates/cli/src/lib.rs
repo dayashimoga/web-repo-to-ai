@@ -8,6 +8,7 @@
 
 pub mod args;
 pub mod commands;
+pub mod config;
 pub mod error;
 pub mod output;
 
@@ -17,9 +18,16 @@ use web_repo_to_ai_github_extractor::client::GitHubApiClient;
 use web_repo_to_ai_url_security::SecureDnsResolver;
 use web_repo_to_ai_web_extractor::http::HttpTransport;
 
-pub use args::{Cli, Commands, OutputFormat, RepoArgs, UrlArgs};
+pub use args::{
+    BatchArgs, Cli, Commands, ConfigAction, ConfigArgs, OutputFormat, RepoArgs, UrlArgs,
+};
+pub use commands::batch::{
+    execute_batch, execute_batch_with_options, BatchItemResult, BatchJsonEnvelope,
+};
+pub use commands::config::execute_config;
 pub use commands::repo::{execute_repo, execute_repo_with_client};
 pub use commands::url::{execute_url, execute_url_with_options, execute_url_with_transport};
+pub use config::{find_config_file, load_config, parse_config_str, CliConfigFile};
 pub use error::{CliError, ExitCode};
 pub use output::{export_artifact, CliJsonEnvelope, OutputWriter};
 
@@ -118,12 +126,30 @@ async fn run_with_parsed(
     github_client: Option<GitHubApiClient>,
 ) -> Result<i32, CliError> {
     let writer = OutputWriter::new(cli.verbose, cli.quiet, cli.json);
+    let config_file = load_config(cli.config.as_deref())?;
+
     match cli.command {
-        Commands::Url(url_args) => {
+        Commands::Url(mut url_args) => {
+            if let Some(ref cfg) = config_file {
+                cfg.apply_to_url_args(&mut url_args);
+            }
             execute_url_with_options(&url_args, &writer, transport, resolver).await
         }
-        Commands::Repo(repo_args) => {
+        Commands::Repo(mut repo_args) => {
+            if let Some(ref cfg) = config_file {
+                cfg.apply_to_repo_args(&mut repo_args);
+            }
             execute_repo_with_client(&repo_args, &writer, github_client).await
+        }
+        Commands::Batch(mut batch_args) => {
+            if let Some(ref cfg) = config_file {
+                cfg.apply_to_batch_args(&mut batch_args);
+            }
+            execute_batch_with_options(&batch_args, &writer, transport, resolver, github_client)
+                .await
+        }
+        Commands::Config(config_args) => {
+            execute_config(&config_args, cli.config.as_deref(), &writer)
         }
     }
 }

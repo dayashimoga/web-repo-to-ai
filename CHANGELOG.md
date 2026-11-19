@@ -6,6 +6,34 @@
 
 ## [Unreleased] — Stage 9: Developer and AI Agent Integrations
 
+### 2026-11-19 — Phase 9.2: CLI (`9.2.3`)
+
+#### Added
+- **`[9.2.3]` Configuration and batch input processing in `crates/cli`:**
+  - Implemented configuration management module `crates/cli/src/config.rs`:
+    - Structured `CliConfigFile`, `DefaultsConfig`, `ApiConfig`, `GitHubConfig`, and `BatchConfig` models with `serde` serialization and deserialization.
+    - Configuration file auto-discovery across explicit `--config <PATH>`, current working directory (`web-repo-to-ai.toml`, `.web-repo-to-ai.toml`, `web-repo-to-ai.json`, `.web-repo-to-ai.json`), and user home directories (`~/.config/web-repo-to-ai/config.toml`, `config.json`).
+    - Lightweight, zero-dependency TOML and JSON parsing (`parse_config_str`, `parse_toml_to_json_value`) converting TOML scalars and sections to `serde_json::Value`.
+    - Precedence merging methods (`apply_to_url_args`, `apply_to_repo_args`, `apply_to_batch_args`) enforcing the hierarchy `CLI Flags > Environment Variables > Config File > Built-in Defaults`.
+    - Sensitive credential masking (`mask_secret`) masking tokens as `ghp_...cdef` and `wr_l...1234` unless `--reveal-secrets` is provided.
+    - Template generation for starter configurations (`generate_template_toml`, `generate_template_json`).
+  - Implemented `config` command handler `crates/cli/src/commands/config.rs`:
+    - `show`: Displays resolved active configuration in formatted TOML or JSON, with optional secret unmasking via `--reveal-secrets`.
+    - `init`: Generates starter template config file at target path or standard location with `--force` overwrite guard.
+    - `validate`: Parses and validates configuration file syntax and schema.
+    - `path`: Prints discovered active configuration file location.
+  - Implemented `batch` command execution engine `crates/cli/src/commands/batch.rs`:
+    - Input parsing from newline-delimited files, JSON array of strings, or stdin (`-`), filtering comments (`#`, `//`) and whitespace.
+    - Automatic target classification across Web URLs, remote GitHub repositories, and local filesystem directories.
+    - Bounded concurrency using `tokio::sync::Semaphore` respecting `--concurrency` limits.
+    - Individual error tolerance (`--continue-on-error`, default `true`) recording failed targets without aborting remaining conversions.
+    - Collision-proof, deterministic artifact filename generation (`sanitize_filename`) with 3-digit order prefixes and sanitized target slugs.
+    - Structured JSON summary envelope (`BatchJsonEnvelope`) with granular per-target results (`BatchItemResult`), durations, byte sizes, and exit codes.
+  - Added 13 integration tests across `crates/cli/tests/config_command_test.rs` (6 tests) and `crates/cli/tests/batch_command_test.rs` (7 tests):
+    - `test_config_cli_help`, `test_config_init_toml_and_json`, `test_config_validate`, `test_config_show_and_path`, `test_config_precedence_and_mutation`, `test_config_parsing_toml_and_json_edge_cases`.
+    - `test_batch_cli_help`, `test_batch_empty_targets_validation_error`, `test_batch_classification_and_filename_sanitization`, `test_batch_load_targets_parsing`, `test_batch_local_directories_execution`, `test_batch_with_mock_urls_and_concurrency`, `test_batch_continue_on_error`.
+  - Monorepo gates verified: 30 CLI tests, 600 workspace tests, zero clippy warnings, zero fmt diffs, cargo deny clean, and 5/5 check-all gates passed.
+
 ### 2026-11-19 — Phase 9.2: CLI (`9.2.2`)
 
 #### Added
