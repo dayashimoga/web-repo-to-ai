@@ -284,6 +284,60 @@ pub struct ListResourcesResult {
     pub next_cursor: Option<String>,
 }
 
+/// Declaration of a parameterized Resource template.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ResourceTemplate {
+    /// Parameterized URI template (e.g. `cdm://{document_id}/{format}`).
+    pub uri_template: String,
+    /// Human-readable name.
+    pub name: String,
+    /// Optional resource template description.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// Optional MIME type.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mime_type: Option<String>,
+}
+
+impl ResourceTemplate {
+    /// Creates a new resource template descriptor.
+    #[must_use]
+    pub fn new(uri_template: impl Into<String>, name: impl Into<String>) -> Self {
+        Self {
+            uri_template: uri_template.into(),
+            name: name.into(),
+            description: None,
+            mime_type: None,
+        }
+    }
+
+    /// Sets an optional description.
+    #[must_use]
+    pub fn with_description(mut self, desc: impl Into<String>) -> Self {
+        self.description = Some(desc.into());
+        self
+    }
+
+    /// Sets an optional MIME type.
+    #[must_use]
+    pub fn with_mime_type(mut self, mime: impl Into<String>) -> Self {
+        self.mime_type = Some(mime.into());
+        self
+    }
+}
+
+/// Result returned from `resources/templates/list`.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ListResourceTemplatesResult {
+    /// Available resource templates list.
+    pub resource_templates: Vec<ResourceTemplate>,
+    /// Pagination cursor if more templates exist.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub next_cursor: Option<String>,
+}
+
 /// Parameters sent in `resources/read`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

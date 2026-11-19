@@ -10,8 +10,11 @@ use tracing::{debug, error, info};
 use crate::error::McpError;
 use crate::protocol::jsonrpc::JsonRpcMessage;
 use crate::protocol::types::{Prompt, Resource, ServerInfo, Tool};
+use crate::resources::McpDocumentStore;
 use crate::server::dispatcher::McpDispatcher;
-use crate::server::registry::{PromptHandler, ResourceHandler, ServerRegistry, ToolHandler};
+use crate::server::registry::{
+    DynamicResourceProvider, PromptHandler, ResourceHandler, ServerRegistry, ToolHandler,
+};
 use crate::server::state::ServerState;
 use crate::transport::stdio::StdioTransport;
 use crate::transport::trait_def::Transport;
@@ -21,6 +24,7 @@ pub struct McpServer {
     state: Arc<RwLock<ServerState>>,
     registry: Arc<RwLock<ServerRegistry>>,
     dispatcher: McpDispatcher,
+    document_store: Arc<McpDocumentStore>,
 }
 
 impl McpServer {
@@ -40,6 +44,12 @@ impl McpServer {
     #[must_use]
     pub fn registry(&self) -> Arc<RwLock<ServerRegistry>> {
         self.registry.clone()
+    }
+
+    /// Returns a handle to the session's in-memory document store.
+    #[must_use]
+    pub fn document_store(&self) -> Arc<McpDocumentStore> {
+        self.document_store.clone()
     }
 
     /// Runs the server event loop using the provided transport implementation.
@@ -95,6 +105,7 @@ pub struct McpServerBuilder {
     version: String,
     instructions: Option<String>,
     registry: ServerRegistry,
+    document_store: Arc<McpDocumentStore>,
 }
 
 impl Default for McpServerBuilder {
@@ -107,6 +118,7 @@ impl Default for McpServerBuilder {
                     .to_string(),
             ),
             registry: ServerRegistry::new(),
+            document_store: Arc::new(McpDocumentStore::new()),
         }
     }
 }
@@ -139,11 +151,37 @@ impl McpServerBuilder {
         self
     }
 
+    /// Attaches an existing in-memory document store.
+    #[must_use]
+    pub fn with_document_store(mut self, store: Arc<McpDocumentStore>) -> Self {
+        self.document_store = store;
+        self
+    }
+
     /// Automatically registers all default conversion tools (`convert_url`, `convert_repo`, `detect_source`, `optimize_context`).
     #[must_use]
     pub fn with_default_tools(mut self) -> Self {
-        crate::tools::register_default_tools(&mut self.registry);
+        crate::tools::register_default_tools_with_store(
+            &mut self.registry,
+            Some(self.document_store.clone()),
+        );
         self
+    }
+
+    /// Automatically registers all default resource providers (`cdm://`, `file://`, `artifact://`).
+    #[must_use]
+    pub fn with_default_resources(mut self) -> Self {
+        crate::resources::register_default_resources(
+            &mut self.registry,
+            self.document_store.clone(),
+        );
+        self
+    }
+
+    /// Automatically registers both default conversion tools and resource providers.
+    #[must_use]
+    pub fn with_defaults(self) -> Self {
+        self.with_default_tools().with_default_resources()
     }
 
     /// Registers a tool with its execution handler.
@@ -153,7 +191,7 @@ impl McpServerBuilder {
         self
     }
 
-    /// Registers a resource with its content reading handler.
+    /// Registers a static resource with its content reading handler.
     #[must_use]
     pub fn register_resource(
         mut self,
@@ -161,6 +199,16 @@ impl McpServerBuilder {
         handler: Arc<dyn ResourceHandler>,
     ) -> Self {
         self.registry.register_resource(resource, handler);
+        self
+    }
+
+    /// Registers a dynamic resource provider.
+    #[must_use]
+    pub fn register_resource_provider(
+        mut self,
+        provider: Arc<dyn DynamicResourceProvider>,
+    ) -> Self {
+        self.registry.register_resource_provider(provider);
         self
     }
 
@@ -192,6 +240,7 @@ impl McpServerBuilder {
             state,
             registry,
             dispatcher,
+            document_store: self.document_store,
         }
     }
 }

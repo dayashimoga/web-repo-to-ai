@@ -13,9 +13,10 @@ use crate::protocol::jsonrpc::{
     JsonRpcError, JsonRpcNotification, JsonRpcRequest, JsonRpcResponse, RequestId,
 };
 use crate::protocol::types::{
-    CallToolParams, InitializeParams, InitializeResult, ListPromptsResult, ListResourcesResult,
-    ListToolsResult, LoggingCapability, PromptsCapability, ReadResourceParams, ResourcesCapability,
-    ServerCapabilities, ServerInfo, SetLevelParams, ToolsCapability, LATEST_PROTOCOL_VERSION,
+    CallToolParams, InitializeParams, InitializeResult, ListPromptsResult,
+    ListResourceTemplatesResult, ListResourcesResult, ListToolsResult, LoggingCapability,
+    PromptsCapability, ReadResourceParams, ResourcesCapability, ServerCapabilities, ServerInfo,
+    SetLevelParams, ToolsCapability, LATEST_PROTOCOL_VERSION,
 };
 use crate::server::registry::ServerRegistry;
 use crate::server::state::{ServerLifecycleState, ServerState};
@@ -66,6 +67,7 @@ impl McpDispatcher {
             "tools/list" => self.handle_tools_list(req_id).await,
             "tools/call" => self.handle_tools_call(req_id, req.params).await,
             "resources/list" => self.handle_resources_list(req_id).await,
+            "resources/templates/list" => self.handle_resources_templates_list(req_id).await,
             "resources/read" => self.handle_resources_read(req_id, req.params).await,
             "prompts/list" => self.handle_prompts_list(req_id).await,
             "logging/setLevel" => self.handle_logging_set_level(req_id, req.params).await,
@@ -293,6 +295,28 @@ impl McpDispatcher {
         let resources = registry.list_resources();
         let result = ListResourcesResult {
             resources,
+            next_cursor: None,
+        };
+
+        match serde_json::to_value(result) {
+            Ok(val) => JsonRpcResponse::success(id, val),
+            Err(e) => JsonRpcResponse::error(
+                id,
+                JsonRpcError::new(jsonrpc_codes::INTERNAL_ERROR, e.to_string(), None),
+            ),
+        }
+    }
+
+    async fn handle_resources_templates_list(&self, id: RequestId) -> JsonRpcResponse {
+        let state = self.state.read().await;
+        if let Err(e) = state.ensure_initialized() {
+            return JsonRpcResponse::error(id, JsonRpcError::from_mcp_error(&e, None));
+        }
+
+        let registry = self.registry.read().await;
+        let resource_templates = registry.list_resource_templates();
+        let result = ListResourceTemplatesResult {
+            resource_templates,
             next_cursor: None,
         };
 

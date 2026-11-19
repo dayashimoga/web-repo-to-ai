@@ -6,6 +6,23 @@
 
 ## [Unreleased] — Stage 9: Developer and AI Agent Integrations
 
+### 2026-11-19 — Phase 9.3: MCP (`9.3.3`)
+
+#### Added
+- **`[9.3.3]` Resource retrieval in `crates/mcp`:**
+  - Implemented Model Context Protocol 2024-11-05 resource retrieval subsystem in `crates/mcp`:
+    - `ResourceTemplate` & `ListResourceTemplatesResult` (`crates/mcp/src/protocol/types.rs`): Declares parameterized URI templates (`cdm://{document_id}/{format}`, `cdm://{document_id}/section/{section_id}`, `file://{path}`, `artifact://{path}`) for AI clients.
+    - `DynamicResourceProvider` trait (`crates/mcp/src/server/registry.rs`): Extensible dynamic URI handler abstraction with `can_handle`, `read`, `list_resources`, and `list_templates`.
+    - `handle_resources_templates_list` (`crates/mcp/src/server/dispatcher.rs`): Handles `resources/templates/list` JSON-RPC method dispatch across registered static and dynamic providers.
+    - `base64` (`crates/mcp/src/resources/base64.rs`): Pure zero-dependency RFC 4648 Base64 binary encoder and decoder for binary ZIP archive payloads.
+    - `McpDocumentStore` (`crates/mcp/src/resources/store.rs`): Thread-safe in-memory session document store backed by `std::sync::RwLock` for synchronous, non-blocking enumeration and lookup.
+    - `CdmResourceProvider` (`crates/mcp/src/resources/cdm.rs`): Dynamic resource provider for `cdm://` URIs exposing converted documents across multi-format exports (`markdown`, `txt`/`text`, `json`, `html`, `jsonl`, `manifest`, `checksums`), extraction quality and completeness audit reports (`report`/`completeness`), Base64-encoded ZIP archive packages (`zip`), and granular section retrieval (`section/<section_id>`).
+    - `FileResourceProvider` (`crates/mcp/src/resources/file.rs`): Dynamic resource provider for `file://` and `artifact://` URIs enforcing strict canonical root boundary checks against directory traversal attacks.
+    - Conversion tool store wiring (`crates/mcp/src/tools/convert_url.rs`, `convert_repo.rs`): Automatically saves newly converted documents into the session's `McpDocumentStore` for immediate MCP resource retrieval.
+    - `McpServerBuilder` extensions (`crates/mcp/src/server/service.rs`): Fluent builder methods `with_document_store()`, `with_default_resources()`, and `with_defaults()`.
+  - Authored 6 new integration tests in `crates/mcp/tests/resources_test.rs` covering URI template discovery, concrete resource enumeration, 10 CDM output formats, missing document and section error handling, filesystem path traversal defenses, and an end-to-end tool conversion-to-resource pipeline.
+  - Monorepo test suite expanded to 33 MCP tests, 650 workspace tests, and 5/5 quality gates clean.
+
 ### 2026-11-19 — Phase 9.3: MCP (`9.3.2`)
 
 #### Added

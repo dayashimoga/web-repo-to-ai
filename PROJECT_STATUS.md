@@ -5,9 +5,9 @@
 **Current Stage:** `STAGE 9 — DEVELOPER AND AI AGENT INTEGRATIONS` (`IN_PROGRESS`)  
 **Last Completed Stage:** `STAGE 8 — LARGE REPOSITORIES, BATCH AND CRAWLING` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Last Completed Phase:** `Phase 9.2 — CLI` (`100% COMPLETED & FORMALLY CERTIFIED`)  
-**Active Subphase:** `None (awaiting user confirmation to proceed to Subphase 9.3.3)`  
-**Last Completed Subphase:** `9.3.2 — Conversion tools (crates/mcp: Model Context Protocol tools for universal URL and repository conversion with context budget optimization)` (`ACCEPTED`)  
-**Next Upcoming Subphase:** `9.3.3 — Resource retrieval (crates/mcp: Model Context Protocol resource providers for converted documents, archives, and completeness reports)`
+**Active Subphase:** `None`  
+**Last Completed Subphase:** `9.3.3 — Resource retrieval (crates/mcp: Model Context Protocol resource providers for converted documents, archives, and completeness reports)` (`ACCEPTED`)  
+**Next Upcoming Subphase:** `9.3.4 — Security & protocol testing (crates/mcp: Adversarial protocol fuzzer, unauthorized resource rejection, transport isolation, and Phase 9.3 formal certification)`
 
 ---
 
@@ -37,6 +37,16 @@ In Stage 9 ("Developer and AI Agent Integrations"):
     - Implemented `export_cdm_to_string` helper in `crates/mcp/src/tools/export.rs` serializing CDM documents to Markdown, plaintext, JSON, HTML, JSONL, package manifests, and BSD/GNU coreutils checksums.
     - Registered default conversion tools via `McpServerBuilder::with_default_tools()`, exposed across both `web-repo-to-ai-mcp` daemon and `web-repo-to-ai mcp` CLI subcommand.
     - Authored 8 new integration tests in `crates/mcp/tests/tools_test.rs` covering schema introspection, SSRF defenses, path traversal defenses, mock HTTP article extraction, local directory conversion, model token optimization, and end-to-end channel dispatch. Verified with 26 MCP tests, 644 workspace tests, zero clippy warnings, zero fmt diffs, cargo deny clean, and 100% passing quality gates (5/5).
+  - Subphase `9.3.3` delivered Model Context Protocol resource providers in `crates/mcp`:
+    - Implemented parameterized URI template discovery in `crates/mcp/src/protocol/types.rs` (`ResourceTemplate`, `ListResourceTemplatesResult`) aligned with MCP specification (2024-11-05).
+    - Extended server registry and dispatcher with dynamic resource providers (`DynamicResourceProvider` trait, `handle_resources_templates_list`, `resources/templates/list`).
+    - Implemented zero-dependency RFC 4648 Base64 binary encoder and decoder (`encode_base64`, `decode_base64`) in `crates/mcp/src/resources/base64.rs` for binary archive payloads.
+    - Implemented thread-safe in-memory session document store (`McpDocumentStore`) in `crates/mcp/src/resources/store.rs` backed by `std::sync::RwLock` for synchronous, non-blocking enumeration and lookups.
+    - Implemented `CdmResourceProvider` in `crates/mcp/src/resources/cdm.rs` for `cdm://` URIs exposing converted documents across multi-format representations (`markdown`, `txt`/`text`, `json`, `html`, `jsonl`, `manifest`, `checksums`), extraction quality and completeness audit reports (`report`/`completeness`), Base64-encoded ZIP archive packages (`zip`), and granular section retrieval (`section/<section_id>`).
+    - Implemented `FileResourceProvider` in `crates/mcp/src/resources/file.rs` for `file://` and `artifact://` URIs enforcing strict canonical root boundary checks against directory traversal attacks.
+    - Integrated automatic document capture across conversion tools (`convert_url`, `convert_repo`), wiring conversion outputs directly into `McpDocumentStore` for subsequent resource retrieval.
+    - Added fluent builder methods `with_document_store()`, `with_default_resources()`, and `with_defaults()` on `McpServerBuilder`.
+    - Authored 6 new integration tests in `crates/mcp/tests/resources_test.rs` covering template discovery, concrete resource enumeration, 10 CDM output formats, missing document and section error handling, filesystem path traversal defenses, and an end-to-end tool conversion-to-resource pipeline. Total MCP tests expanded to 33; monorepo workspace tests expanded to 650 passing tests.
 
 ---
 
@@ -44,12 +54,12 @@ In Stage 9 ("Developer and AI Agent Integrations"):
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 154 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1`, `9.1.2`, `9.1.3`, `9.1.4`, `9.2.1`, `9.2.2`, `9.2.3`, `9.2.4`, `9.3.1`, `9.3.2` |
+| `ACCEPTED` | 155 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1`, `9.1.2`, `9.1.3`, `9.1.4`, `9.2.1`, `9.2.2`, `9.2.3`, `9.2.4`, `9.3.1`, `9.3.2`, `9.3.3` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 42 | `9.3.3` – `11.4.5` |
+| `NOT_STARTED` | 41 | `9.3.4` – `11.4.5` |
 | **Total** | **196** | `Stage 0` – `Stage 11` |
 
 ---

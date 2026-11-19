@@ -100,7 +100,7 @@
 ### STAGE 9 — DEVELOPER AND AI AGENT INTEGRATIONS (`IN_PROGRESS`)
 - **Phase 9.1 — REST API:** `9.1.1` API documentation (`ACCEPTED`) | `9.1.2` Authentication & authorization (`ACCEPTED`) | `9.1.3` Rate limits (`ACCEPTED`) | `9.1.4` API integration tests (`ACCEPTED` — **PHASE 9.1 CERTIFIED**)
 - **Phase 9.2 — CLI:** `9.2.1` URL conversion commands (`ACCEPTED`) | `9.2.2` Repository conversion commands (`ACCEPTED`) | `9.2.3` Configuration (`ACCEPTED`) | `9.2.4` Download & verification (`ACCEPTED` — **PHASE 9.2 CERTIFIED**)
-- **Phase 9.3 — MCP:** `9.3.1` MCP server (`ACCEPTED`) | `9.3.2` Conversion tools (`ACCEPTED`) | `9.3.3` Resource retrieval | `9.3.4` Security & protocol testing
+- **Phase 9.3 — MCP:** `9.3.1` MCP server (`ACCEPTED`) | `9.3.2` Conversion tools (`ACCEPTED`) | `9.3.3` Resource retrieval (`ACCEPTED`) | `9.3.4` Security & protocol testing
 - **Phase 9.4 — Browser integration:** `9.4.1` Browser extension foundation | `9.4.2` Current-page conversion | `9.4.3` Result handoff | `9.4.4` Extension security
 
 ### STAGE 10 — ADVANCED DOCUMENTS AND CONTENT

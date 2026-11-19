@@ -10,6 +10,7 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use tracing::{debug, info};
 
 use web_repo_to_ai_cdm::builder::{CdmDocumentBuilder, CdmSectionBuilder};
@@ -115,6 +116,7 @@ pub fn tool_definition() -> Tool {
 /// Handler executing the `convert_repo` tool.
 pub struct ConvertRepoHandler {
     custom_client: Option<GitHubApiClient>,
+    document_store: Option<Arc<crate::resources::McpDocumentStore>>,
 }
 
 impl Default for ConvertRepoHandler {
@@ -129,13 +131,24 @@ impl ConvertRepoHandler {
     pub fn new() -> Self {
         Self {
             custom_client: None,
+            document_store: None,
         }
+    }
+
+    /// Attaches an in-memory document store to record converted documents as MCP resources.
+    #[must_use]
+    pub fn with_store(mut self, store: Arc<crate::resources::McpDocumentStore>) -> Self {
+        self.document_store = Some(store);
+        self
     }
 
     /// Creates a handler with a custom GitHub API client (useful for testing with mock servers).
     #[must_use]
     pub fn with_client(custom_client: Option<GitHubApiClient>) -> Self {
-        Self { custom_client }
+        Self {
+            custom_client,
+            document_store: None,
+        }
     }
 
     /// Internal execution routine.
@@ -218,7 +231,13 @@ impl ConvertRepoHandler {
             }
         }
 
-        // 4. Format Export
+        // 4. Store document in session store for MCP resource retrieval
+        if let Some(ref store) = self.document_store {
+            let id = store.insert(cdm_doc.clone());
+            debug!(target: "mcp::tools::convert_repo", doc_id = %id, "Document saved in MCP document store");
+        }
+
+        // 5. Format Export
         let exported_str = match export_cdm_to_string(&cdm_doc, &params.format) {
             Ok(s) => s,
             Err(e) => return Ok(CallToolResult::error(format!("Export failed: {e}"))),

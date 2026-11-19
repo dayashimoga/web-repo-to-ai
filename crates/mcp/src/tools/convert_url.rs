@@ -101,6 +101,7 @@ pub fn tool_definition() -> Tool {
 pub struct ConvertUrlHandler {
     custom_transport: Option<Arc<dyn HttpTransport>>,
     custom_resolver: Option<SecureDnsResolver>,
+    document_store: Option<Arc<crate::resources::McpDocumentStore>>,
 }
 
 impl Default for ConvertUrlHandler {
@@ -116,7 +117,15 @@ impl ConvertUrlHandler {
         Self {
             custom_transport: None,
             custom_resolver: None,
+            document_store: None,
         }
+    }
+
+    /// Attaches an in-memory document store to record converted documents as MCP resources.
+    #[must_use]
+    pub fn with_store(mut self, store: Arc<crate::resources::McpDocumentStore>) -> Self {
+        self.document_store = Some(store);
+        self
     }
 
     /// Creates a handler with custom HTTP transport and DNS resolver (useful for tests).
@@ -128,6 +137,7 @@ impl ConvertUrlHandler {
         Self {
             custom_transport,
             custom_resolver,
+            document_store: None,
         }
     }
 
@@ -250,7 +260,13 @@ impl ConvertUrlHandler {
             }
         }
 
-        // 7. Format Export
+        // 7. Store document in session store for MCP resource retrieval
+        if let Some(ref store) = self.document_store {
+            let id = store.insert(cdm_doc.clone());
+            debug!(target: "mcp::tools::convert_url", doc_id = %id, "Document saved in MCP document store");
+        }
+
+        // 8. Format Export
         let exported_str = match export_cdm_to_string(&cdm_doc, &params.format) {
             Ok(s) => s,
             Err(e) => return Ok(CallToolResult::error(format!("Export failed: {e}"))),

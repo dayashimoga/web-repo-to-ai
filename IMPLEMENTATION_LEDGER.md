@@ -5479,4 +5479,63 @@
   - All 5 monorepo quality gates pass with 0 failures.
 - **Status:** `ACCEPTED`
 
+---
+
+#### Subphase `9.3.3` — Resource retrieval
+- **Unique ID:** `9.3.3`
+- **Objective:** Expose converted documents, multi-format artifacts, extraction completeness audit reports, and ZIP packages as Model Context Protocol (MCP 2024-11-05) resource providers via URI schemes (`cdm://`, `file://`, `artifact://`) in `crates/mcp`.
+- **Scope:** MCP resource specification types (`ResourceTemplate`, `ListResourceTemplatesResult`), dynamic resource provider trait (`DynamicResourceProvider`), zero-dependency RFC 4648 Base64 binary encoder/decoder (`base64.rs`), thread-safe in-memory session document store (`McpDocumentStore`), CDM resource provider (`CdmResourceProvider`), filesystem resource provider (`FileResourceProvider`), automatic document capture across conversion tools, fluent server builder methods, and integration tests in `crates/mcp/tests/resources_test.rs`.
+- **Prerequisites:** `9.3.2` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/mcp/src/protocol/types.rs`: Added `ResourceTemplate` descriptor and `ListResourceTemplatesResult` for parameterized URI template discovery.
+  - `crates/mcp/src/server/registry.rs`: Added `DynamicResourceProvider` trait (`can_handle`, `read`, `list_resources`, `list_templates`) and updated `ServerRegistry` to aggregate static and dynamic resource providers.
+  - `crates/mcp/src/server/dispatcher.rs`: Added `resources/templates/list` dispatch handler and dynamic delegation for `resources/list` and `resources/read`.
+  - `crates/mcp/src/server/mod.rs`: Re-exported `DynamicResourceProvider`.
+  - `crates/mcp/src/server/service.rs`: Extended `McpServerBuilder` with `with_document_store()`, `with_default_resources()`, and `with_defaults()`; attached session document store to `McpServer`.
+  - `crates/mcp/src/resources/base64.rs`: Implemented pure zero-dependency RFC 4648 Base64 binary encoder (`encode_base64`) and decoder (`decode_base64`) with roundtrip unit tests.
+  - `crates/mcp/src/resources/store.rs`: Implemented thread-safe in-memory session document store (`McpDocumentStore`) backed by `std::sync::RwLock` for synchronous, non-blocking enumeration and lookups.
+  - `crates/mcp/src/resources/cdm.rs`: Implemented `CdmResourceProvider` handling `cdm://` URIs across 10 export representations (`markdown`, `txt`/`text`, `json`, `html`, `jsonl`, `manifest`, `checksums`), extraction quality and completeness audit reports (`report`/`completeness`), Base64-encoded ZIP archive packages (`zip`), and granular section retrieval (`section/<section_id>`).
+  - `crates/mcp/src/resources/file.rs`: Implemented `FileResourceProvider` handling `file://` and `artifact://` URIs with strict canonical root boundary checks preventing path traversal attacks.
+  - `crates/mcp/src/resources/mod.rs`: Module exports and `register_default_resources` registration helper.
+  - `crates/mcp/src/tools/convert_url.rs`: Integrated session `McpDocumentStore`, saving converted documents upon successful conversion.
+  - `crates/mcp/src/tools/convert_repo.rs`: Integrated session `McpDocumentStore`, saving repository CDM documents upon conversion.
+  - `crates/mcp/src/tools/mod.rs`: Added `register_default_tools_with_store` helper.
+  - `crates/mcp/src/lib.rs`: Exposed `pub mod resources;` and public resource types.
+  - `crates/mcp/tests/resources_test.rs`: 6 comprehensive integration tests.
+- **Implementation Tasks:**
+  1. Implemented `ResourceTemplate` descriptor and `ListResourceTemplatesResult` container in `crates/mcp/src/protocol/types.rs`.
+  2. Implemented `DynamicResourceProvider` trait in `crates/mcp/src/server/registry.rs` and wired it into `ServerRegistry::get_resource`, `list_resources`, and `list_resource_templates`.
+  3. Implemented `resources/templates/list` dispatch handler in `crates/mcp/src/server/dispatcher.rs`.
+  4. Implemented zero-dependency RFC 4648 Base64 binary encoder and decoder in `crates/mcp/src/resources/base64.rs` for binary ZIP archive payloads.
+  5. Implemented `McpDocumentStore` in `crates/mcp/src/resources/store.rs` with `insert`, `get`, `list`, `remove`, `clear`, `len`, `is_empty`, and `DocumentSummary`.
+  6. Implemented `CdmResourceProvider` in `crates/mcp/src/resources/cdm.rs` with support for 10 URI templates and dynamic content rendering.
+  7. Implemented `FileResourceProvider` in `crates/mcp/src/resources/file.rs` with strict canonical root boundary validation rejecting path traversal.
+  8. Integrated document recording into `ConvertUrlHandler` and `ConvertRepoHandler`, automatically registering converted context into `McpDocumentStore`.
+  9. Extended `McpServerBuilder` with fluent methods `with_document_store()`, `with_default_resources()`, and `with_defaults()`.
+  10. Authored 6 comprehensive integration tests in `crates/mcp/tests/resources_test.rs`:
+      - `test_resources_templates_list`: verified all 10 `cdm://` templates and `file://`/`artifact://` templates are discovered.
+      - `test_resources_list_empty_and_populated`: verified initial empty list and concrete URI enumeration after document insertion.
+      - `test_resources_read_cdm_formats`: verified retrieval of Markdown, plain text, canonical CDM JSON, HTML, JSONL, manifest, checksums, completeness report, Base64 ZIP package (verifying `PK\x03\x04` magic bytes), and individual sections.
+      - `test_resources_read_not_found_and_errors`: verified JSON-RPC -32003 resource errors on non-existent documents, sections, or unsupported formats.
+      - `test_file_and_artifact_resource_provider`: verified safe monorepo file reading and path traversal rejection.
+      - `test_end_to_end_tool_conversion_to_resource_pipeline`: verified full end-to-end pipeline: tool conversion -> document store insertion -> resource enumeration -> resource retrieval over channel transport.
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-mcp` (33 tests passing)
+  - `cargo test --workspace` (650 tests passing)
+  - `cargo clippy --workspace --all-targets -- -D warnings` (0 warnings, 0 errors)
+  - `cargo fmt --all -- --check` (100% clean formatting)
+  - `cargo deny check` (advisories ok, bans ok, licenses ok, sources ok)
+  - `powershell scripts/check-all.ps1` (5/5 quality gates passed)
+- **Acceptance Criteria:**
+  - Model Context Protocol resource retrieval capabilities implemented strictly per MCP 2024-11-05 specification.
+  - Zero-mock policy enforced: real multi-format exporters, real completeness quality reports, real Base64 binary encoder, and real path traversal boundary defenses.
+  - Parameterized URI templates discoverable via `resources/templates/list`.
+  - Concrete resources discoverable via `resources/list`.
+  - CDM documents accessible in 10 formats via `cdm://{id}/{format}` and `cdm://{id}/section/{section_id}`.
+  - Path traversal attacks via `file://` and `artifact://` strictly forbidden.
+  - All 33 MCP tests and 650 workspace tests pass cleanly.
+  - Disk space constraint satisfied ($\ge 70$ GB free on `C:`).
+  - All 5 monorepo quality gates pass with 0 failures.
+- **Status:** `ACCEPTED`
+
 

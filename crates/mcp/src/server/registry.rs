@@ -1,7 +1,7 @@
 //! # MCP Tool and Resource Registry
 //!
 //! Provides thread-safe registries for MCP tools, resources, and prompt templates,
-//! supporting extensible dynamic handlers and typed parameter schemas.
+//! supporting extensible dynamic handlers, parameterized resource templates, and typed schemas.
 
 use std::collections::HashMap;
 use std::future::Future;
@@ -11,7 +11,9 @@ use async_trait::async_trait;
 use serde_json::Value;
 
 use crate::error::McpError;
-use crate::protocol::types::{CallToolResult, Prompt, ReadResourceResult, Resource, Tool};
+use crate::protocol::types::{
+    CallToolResult, Prompt, ReadResourceResult, Resource, ResourceTemplate, Tool,
+};
 
 /// Trait implemented by executable MCP tool handlers.
 #[async_trait]
@@ -73,6 +75,31 @@ where
     }
 }
 
+/// Trait implemented by dynamic resource providers (e.g. CDM document store, artifact repository).
+#[async_trait]
+pub trait DynamicResourceProvider: Send + Sync {
+    /// Returns true if this provider recognizes or can resolve the specified URI.
+    fn can_handle(&self, uri: &str) -> bool;
+
+    /// Reads and returns the content for the specified URI.
+    async fn read(&self, uri: &str) -> Result<ReadResourceResult, McpError>;
+
+    /// Lists concrete resources currently known or available from this provider.
+    fn list_resources(&self) -> Vec<Resource>;
+
+    /// Lists URI templates supported by this provider.
+    fn list_templates(&self) -> Vec<ResourceTemplate>;
+}
+
+struct ProviderResourceHandlerAdapter(Arc<dyn DynamicResourceProvider>);
+
+#[async_trait]
+impl ResourceHandler for ProviderResourceHandlerAdapter {
+    async fn read(&self, uri: &str) -> Result<ReadResourceResult, McpError> {
+        self.0.read(uri).await
+    }
+}
+
 /// Trait implemented by prompt template providers.
 #[async_trait]
 pub trait PromptHandler: Send + Sync {
@@ -85,6 +112,7 @@ pub trait PromptHandler: Send + Sync {
 pub struct ServerRegistry {
     tools: HashMap<String, (Tool, Arc<dyn ToolHandler>)>,
     resources: HashMap<String, (Resource, Arc<dyn ResourceHandler>)>,
+    resource_providers: Vec<Arc<dyn DynamicResourceProvider>>,
     prompts: HashMap<String, (Prompt, Arc<dyn PromptHandler>)>,
 }
 
@@ -100,10 +128,15 @@ impl ServerRegistry {
         self.tools.insert(tool.name.clone(), (tool, handler));
     }
 
-    /// Registers a resource descriptor with its reading handler.
+    /// Registers a static resource descriptor with its reading handler.
     pub fn register_resource(&mut self, resource: Resource, handler: Arc<dyn ResourceHandler>) {
         self.resources
             .insert(resource.uri.clone(), (resource, handler));
+    }
+
+    /// Registers a dynamic resource provider (e.g. for CDM documents or filesystem artifacts).
+    pub fn register_resource_provider(&mut self, provider: Arc<dyn DynamicResourceProvider>) {
+        self.resource_providers.push(provider);
     }
 
     /// Registers a prompt template with its evaluation handler.
@@ -123,16 +156,51 @@ impl ServerRegistry {
         self.tools.get(name).cloned()
     }
 
-    /// Returns list of registered resource descriptors.
+    /// Returns list of all available resource descriptors (static and dynamic).
     #[must_use]
     pub fn list_resources(&self) -> Vec<Resource> {
-        self.resources.values().map(|(r, _)| r.clone()).collect()
+        let mut all = Vec::new();
+        for (r, _) in self.resources.values() {
+            all.push(r.clone());
+        }
+        for provider in &self.resource_providers {
+            all.extend(provider.list_resources());
+        }
+        all
     }
 
-    /// Retrieves resource handler by URI.
+    /// Returns list of all parameterized resource templates.
+    #[must_use]
+    pub fn list_resource_templates(&self) -> Vec<ResourceTemplate> {
+        let mut all = Vec::new();
+        for provider in &self.resource_providers {
+            all.extend(provider.list_templates());
+        }
+        all
+    }
+
+    /// Retrieves resource descriptor and handler by URI.
     #[must_use]
     pub fn get_resource(&self, uri: &str) -> Option<(Resource, Arc<dyn ResourceHandler>)> {
-        self.resources.get(uri).cloned()
+        if let Some((r, h)) = self.resources.get(uri) {
+            return Some((r.clone(), h.clone()));
+        }
+
+        for provider in &self.resource_providers {
+            if provider.can_handle(uri) {
+                let synthetic_resource = Resource {
+                    uri: uri.to_string(),
+                    name: uri.to_string(),
+                    description: None,
+                    mime_type: None,
+                };
+                let handler: Arc<dyn ResourceHandler> =
+                    Arc::new(ProviderResourceHandlerAdapter(provider.clone()));
+                return Some((synthetic_resource, handler));
+            }
+        }
+
+        None
     }
 
     /// Returns list of registered prompt descriptors.

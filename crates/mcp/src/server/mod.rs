@@ -9,7 +9,8 @@ pub mod state;
 
 pub use dispatcher::McpDispatcher;
 pub use registry::{
-    FnResourceHandler, FnToolHandler, PromptHandler, ResourceHandler, ServerRegistry, ToolHandler,
+    DynamicResourceProvider, FnResourceHandler, FnToolHandler, PromptHandler, ResourceHandler,
+    ServerRegistry, ToolHandler,
 };
 pub use service::{McpServer, McpServerBuilder};
 pub use state::{ServerLifecycleState, ServerState};
