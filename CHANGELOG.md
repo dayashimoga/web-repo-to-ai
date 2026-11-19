@@ -6,6 +6,32 @@
 
 ## [Unreleased] — Stage 9: Developer and AI Agent Integrations
 
+### 2026-11-19 — Phase 9.2: CLI (`9.2.4` — Phase 9.2 Formal Certification)
+
+#### Added
+- **`[9.2.4]` Distribution, packaging, and CLI testing in `crates/cli` & Phase 9.2 Formal Certification:**
+  - Added `clap_complete` to workspace and `crates/cli` dependencies for automatic shell completion generation.
+  - Added cryptographic hashing crates `sha2` and `blake3` to `crates/cli`.
+  - Implemented `completions` subcommand in `crates/cli/src/commands/completions.rs`:
+    - Generated completions for 5 major shell types via `clap_complete::generate`: `bash`, `zsh`, `fish`, `powershell`, and `elvish`.
+    - Integrated with Clap ValueEnum for case-insensitive and kebab-case shell matching.
+  - Implemented `verify` subcommand in `crates/cli/src/commands/verify.rs`:
+    - Single-file cryptographic hash verification using `--sha256` and `--blake3` digests.
+    - Checksums manifest verification parsing coreutils format (`checksums.sha256` or `.checksums`), validating relative and absolute target hashes.
+    - Package inventory manifest verification (`manifest.json` and `.manifest`) checking entry counts, byte sizes, and paths.
+    - ZIP package archive integrity inspection (`.zip`), verifying uncorrupted decompression, CRC32, file list, and internal `manifest.json` / `checksums.sha256`.
+    - Canonical Context Document (`.json`) structural validation (`--strict`), enforcing CDM schema integrity via `CdmValidator`.
+    - Remote API job validation via `--job-id` and `--api-url`, querying job status, item count, and error state.
+    - Structured JSON execution envelope reporting (`VerifyJsonEnvelope`, `VerificationItemResult`) via `--json`.
+  - Configured release profile build optimization:
+    - Built production binaries `web-repo-to-ai.exe` and `web-repo-to-ai-cli.exe` (~26 MB each).
+    - Verified execution parity across both binary aliases (`--version`, `--help`, `completions`, `verify`).
+  - Authored 18 new integration tests across 3 test suites:
+    - `crates/cli/tests/completions_command_test.rs` (7 tests: help, bash, zsh, fish, powershell, elvish, and invalid shell errors).
+    - `crates/cli/tests/verify_command_test.rs` (8 tests: help, missing target error, single file sha256/blake3, checksums manifest, package manifest, zip package inspection, CDM document schema validation, and JSON reporting envelope).
+    - `crates/cli/tests/binary_alias_test.rs` (3 tests: dual binary aliases version parity, help flag execution, and completions subcommand execution).
+  - Formally certified **Phase 9.2 — CLI** across all 4 subphases (`9.2.1`, `9.2.2`, `9.2.3`, `9.2.4`) with 48 CLI integration tests passing, 618 workspace tests passing, zero clippy warnings, zero fmt diffs, cargo deny clean, and 100% quality gate compliance (5/5).
+
 ### 2026-11-19 — Phase 9.2: CLI (`9.2.3`)
 
 #### Added

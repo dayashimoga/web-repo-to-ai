@@ -19,14 +19,17 @@ use web_repo_to_ai_url_security::SecureDnsResolver;
 use web_repo_to_ai_web_extractor::http::HttpTransport;
 
 pub use args::{
-    BatchArgs, Cli, Commands, ConfigAction, ConfigArgs, OutputFormat, RepoArgs, UrlArgs,
+    BatchArgs, Cli, Commands, CompletionsArgs, ConfigAction, ConfigArgs, OutputFormat, RepoArgs,
+    ShellType, UrlArgs, VerifyArgs,
 };
 pub use commands::batch::{
     execute_batch, execute_batch_with_options, BatchItemResult, BatchJsonEnvelope,
 };
+pub use commands::completions::execute_completions;
 pub use commands::config::execute_config;
 pub use commands::repo::{execute_repo, execute_repo_with_client};
 pub use commands::url::{execute_url, execute_url_with_options, execute_url_with_transport};
+pub use commands::verify::{execute_verify, VerifyItemResult, VerifyJsonEnvelope};
 pub use config::{find_config_file, load_config, parse_config_str, CliConfigFile};
 pub use error::{CliError, ExitCode};
 pub use output::{export_artifact, CliJsonEnvelope, OutputWriter};
@@ -151,5 +154,7 @@ async fn run_with_parsed(
         Commands::Config(config_args) => {
             execute_config(&config_args, cli.config.as_deref(), &writer)
         }
+        Commands::Verify(verify_args) => execute_verify(&verify_args, &writer).await,
+        Commands::Completions(completions_args) => execute_completions(&completions_args),
     }
 }

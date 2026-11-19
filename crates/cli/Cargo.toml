@@ -36,6 +36,9 @@ web-repo-to-ai-context-optimizer = { workspace = true }
 web-repo-to-ai-exporters = { workspace = true }
 web-repo-to-ai-observability = { workspace = true }
 clap = { workspace = true }
+clap_complete = { workspace = true }
+sha2 = { workspace = true }
+blake3 = { workspace = true }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "io-std", "io-util", "sync"] }
 futures = { workspace = true }
 serde = { workspace = true, features = ["derive"] }

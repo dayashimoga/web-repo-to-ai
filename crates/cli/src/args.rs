@@ -47,6 +47,10 @@ pub enum Commands {
     Config(ConfigArgs),
     /// Batch convert multiple URLs, repositories, or local directories
     Batch(BatchArgs),
+    /// Verify cryptographic checksums or schema compliance of converted artifacts
+    Verify(VerifyArgs),
+    /// Generate shell completion scripts for supported shells
+    Completions(CompletionsArgs),
 }
 
 /// Supported output artifact formats.
@@ -311,4 +315,74 @@ pub struct BatchArgs {
     /// Remote API key for authentication
     #[arg(long, env = "WEB_REPO_TO_AI_API_KEY", value_name = "KEY")]
     pub api_key: Option<String>,
+}
+
+/// Shell target for autocompletion generation.
+#[derive(Debug, Clone, Copy, ValueEnum, PartialEq, Eq)]
+pub enum ShellType {
+    /// Bourne Again SHell (bash)
+    Bash,
+    /// Elvish shell
+    Elvish,
+    /// Friendly Interactive SHell (fish)
+    Fish,
+    /// Microsoft PowerShell
+    #[value(name = "powershell", alias = "power-shell")]
+    PowerShell,
+    /// Z Shell (zsh)
+    Zsh,
+}
+
+impl ShellType {
+    /// Converts to clap_complete Shell enum.
+    #[must_use]
+    pub fn to_clap_shell(self) -> clap_complete::Shell {
+        match self {
+            Self::Bash => clap_complete::Shell::Bash,
+            Self::Elvish => clap_complete::Shell::Elvish,
+            Self::Fish => clap_complete::Shell::Fish,
+            Self::PowerShell => clap_complete::Shell::PowerShell,
+            Self::Zsh => clap_complete::Shell::Zsh,
+        }
+    }
+}
+
+/// Arguments for the `completions` subcommand.
+#[derive(Debug, Clone, Args, PartialEq, Eq)]
+pub struct CompletionsArgs {
+    /// Target shell to generate completion script for
+    #[arg(value_enum)]
+    pub shell: ShellType,
+}
+
+/// Arguments for the `verify` subcommand.
+#[derive(Debug, Clone, Args, PartialEq, Eq)]
+pub struct VerifyArgs {
+    /// Path to artifact file, manifest, checksums file, or directory to verify
+    #[arg(value_name = "PATH")]
+    pub path: Option<PathBuf>,
+
+    /// Expected SHA-256 hex digest to verify against
+    #[arg(long, value_name = "HEX")]
+    pub sha256: Option<String>,
+
+    /// Expected BLAKE3 hex digest to verify against
+    #[arg(long, value_name = "HEX")]
+    pub blake3: Option<String>,
+
+    /// Remote job ID to fetch and verify artifacts for from API
+    #[arg(long, value_name = "JOB_ID")]
+    pub job_id: Option<String>,
+
+    /// Remote API base URL (e.g. http://localhost:8080)
+    #[arg(long, env = "WEB_REPO_TO_AI_API_URL", value_name = "URL")]
+    pub api_url: Option<String>,
+
+    /// Remote API key for authentication
+    #[arg(long, env = "WEB_REPO_TO_AI_API_KEY", value_name = "KEY")]
+    pub api_key: Option<String>,
+
+    /// Strict CDM structural validation for JSON and Markdown artifacts
+    #[arg(long, default_value_t = false)]
+    pub strict: bool,
 }

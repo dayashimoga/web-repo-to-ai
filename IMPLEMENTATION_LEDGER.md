@@ -5281,3 +5281,57 @@
   - Disk space constraint satisfied ($\ge 70$ GB free on `C:`).
   - All monorepo gates pass with 0 failures.
 - **Status:** `ACCEPTED`
+
+#### Subphase `9.2.4` — Distribution, packaging, and CLI testing in crates/cli (Phase 9.2 Formal Certification)
+- **Unique ID:** `9.2.4`
+- **Objective:** Implement CLI shell completions generation, distribution packaging optimization, and artifact verification commands (`verify` and `completions`), verify dual binary execution aliases, optimize release builds, and formally certify Phase 9.2 (CLI).
+- **Scope:** `crates/cli`, `Cargo.toml`.
+- **Prerequisites:** Subphase `9.2.3` Accepted.
+- **Files/Components Affected:**
+  - `Cargo.toml`
+  - `Cargo.lock`
+  - `crates/cli/Cargo.toml`
+  - `crates/cli/src/args.rs`
+  - `crates/cli/src/commands/mod.rs`
+  - `crates/cli/src/commands/completions.rs`
+  - `crates/cli/src/commands/verify.rs`
+  - `crates/cli/src/lib.rs`
+  - `crates/cli/tests/completions_command_test.rs`
+  - `crates/cli/tests/verify_command_test.rs`
+  - `crates/cli/tests/binary_alias_test.rs`
+- **Implementation Highlights:**
+  1. Added `clap_complete` to root `Cargo.toml` workspace dependencies and `crates/cli/Cargo.toml`.
+  2. Added cryptographic hash dependencies `sha2` and `blake3` to `crates/cli/Cargo.toml`.
+  3. Added `ShellType` enum to `crates/cli/src/args.rs` with `clap::ValueEnum` deriving, supporting `bash`, `zsh`, `fish`, `powershell`, and `elvish`.
+  4. Implemented `completions` subcommand in `crates/cli/src/commands/completions.rs` utilizing `clap_complete::generate` against the root `Cli` command structure to generate complete shell auto-completion scripts.
+  5. Implemented `verify` subcommand in `crates/cli/src/commands/verify.rs` supporting:
+     - Single-file SHA-256 and BLAKE3 hash verification (`--sha256 <HEX>`, `--blake3 <HEX>`).
+     - Checksums manifest verification parsing coreutils format (`checksums.sha256` or `.checksums`), validating relative and absolute target hashes.
+     - Package inventory manifest verification (`manifest.json` and `.manifest`) checking entry counts, byte sizes, and paths.
+     - ZIP package archive integrity inspection (`.zip`), verifying uncorrupted decompression, CRC32, file list, and internal `manifest.json` / `checksums.sha256`.
+     - Canonical Context Document (`.json`) structural validation (`--strict`), enforcing CDM schema integrity via `CdmValidator`.
+     - Remote API job validation via `--job-id` and `--api-url`, querying job status, item count, and error state.
+     - Structured JSON execution envelope reporting (`VerifyJsonEnvelope`, `VerificationItemResult`) via `--json`.
+  6. Verified dual binary configuration in `crates/cli/Cargo.toml` (`web-repo-to-ai` and `web-repo-to-ai-cli`) pointing to `src/bin/main.rs`.
+  7. Tested production release compilation: `cargo build --release -p web-repo-to-ai-cli` generating stripped, LTO-optimized release binaries (~26 MB each).
+  8. Authored 18 integration tests across 3 suites:
+     - `crates/cli/tests/completions_command_test.rs` (7 tests: help, bash, zsh, fish, powershell, elvish, invalid shell).
+     - `crates/cli/tests/verify_command_test.rs` (8 tests: help, missing target error, sha256/blake3, checksums manifest, package manifest, zip package, CDM schema validation, JSON reporting envelope).
+     - `crates/cli/tests/binary_alias_test.rs` (3 tests: dual binary aliases version parity, help flag execution, completions subcommand execution).
+  9. Formally certified Phase 9.2 (CLI) across all 4 subphases (`9.2.1`, `9.2.2`, `9.2.3`, `9.2.4`).
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-cli` (48 tests passing)
+  - `cargo test --workspace` (618 tests passing)
+  - `cargo clippy --workspace --all-targets -- -D warnings` (0 warnings, 0 errors)
+  - `cargo fmt --all -- --check` (100% clean formatting)
+  - `cargo deny check` (advisories ok, bans ok, licenses ok, sources ok)
+  - `powershell scripts/check-all.ps1` (5/5 gates passed)
+- **Acceptance Criteria:**
+  - All 48 CLI integration tests pass cleanly.
+  - Shell completion scripts generate correctly for all 5 supported shells (Bash, Zsh, Fish, PowerShell, Elvish).
+  - Artifact verification validates single files, manifests, zip archives, CDM JSON schemas, and remote API jobs.
+  - Dual binary aliases (`web-repo-to-ai` and `web-repo-to-ai-cli`) operate identically.
+  - Production release binaries compile cleanly under full optimization.
+  - Disk space constraint satisfied ($\ge 70$ GB free on `C:`).
+  - All 5 monorepo quality gates pass with 0 failures.
+- **Status:** `ACCEPTED`
