@@ -54,6 +54,46 @@ mod tests {
         String::from_utf8(bytes.to_vec()).unwrap()
     }
 
+    async fn body_to_bytes(body: Body) -> Vec<u8> {
+        body.collect().await.unwrap().to_bytes().to_vec()
+    }
+
+    fn create_sample_cdm_bytes(title: &str, url: &str) -> Vec<u8> {
+        let identity = web_repo_to_ai_cdm::model::SourceIdentity {
+            raw_input: url.to_string(),
+            canonical_url: url.to_string(),
+            domain: Some("example.com".to_string()),
+            repo_owner: None,
+            repo_name: None,
+            git_ref: None,
+            subpath: None,
+        };
+        let section = web_repo_to_ai_cdm::builder::CdmSectionBuilder::new(
+            "sec-01",
+            format!("{url}/main.rs"),
+            web_repo_to_ai_cdm::section::SectionKind::CodeFile,
+            "fn batch_test() {}",
+        )
+        .title("main.rs")
+        .original_path("main.rs")
+        .language("rust")
+        .build();
+
+        let doc = web_repo_to_ai_cdm::builder::CdmDocumentBuilder::new(
+            identity,
+            web_repo_to_ai_cdm::model::SourceType::WebpageStatic,
+            url,
+        )
+        .metadata(web_repo_to_ai_cdm::metadata::DocumentMetadata {
+            title: Some(title.to_string()),
+            ..Default::default()
+        })
+        .add_section(section)
+        .build();
+
+        serde_json::to_vec(&doc).unwrap()
+    }
+
     #[tokio::test]
     async fn test_root_endpoint_metadata() {
         let app = setup_test_app();
@@ -1125,6 +1165,406 @@ mod tests {
         assert_eq!(v_item1["error_code"], "EXTRACTION_FAILED");
         assert_eq!(v_item1["error_message"], "Connection refused");
         assert_eq!(v_item1["duration_ms"], 45);
+    }
+
+    #[tokio::test]
+    async fn test_export_batch_artifacts_listing() {
+        let (app, _state) = setup_test_app_and_state();
+        let payload = serde_json::json!({
+            "urls": ["https://example.com/one", "https://example.com/two"],
+            "name": "Listing Test Batch"
+        });
+
+        let res1 = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/api/v1/jobs/batch")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(payload.to_string()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        let v1: serde_json::Value =
+            serde_json::from_str(&body_to_string(res1.into_body()).await).unwrap();
+        let batch_id = v1["batch_id"].as_str().unwrap();
+
+        let res2 = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::GET)
+                    .uri(format!("/api/v1/jobs/batch/{batch_id}/artifacts"))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(res2.status(), StatusCode::OK);
+        let v2: serde_json::Value =
+            serde_json::from_str(&body_to_string(res2.into_body()).await).unwrap();
+        assert_eq!(v2["batch_id"], batch_id);
+        let artifacts = v2["artifacts"].as_array().unwrap();
+        assert_eq!(artifacts.len(), 5);
+        let formats: Vec<&str> = artifacts
+            .iter()
+            .map(|a| a["format"].as_str().unwrap())
+            .collect();
+        assert!(formats.contains(&"zip"));
+        assert!(formats.contains(&"markdown"));
+        assert!(formats.contains(&"jsonl"));
+        assert!(formats.contains(&"json"));
+        assert!(formats.contains(&"txt"));
+    }
+
+    #[tokio::test]
+    async fn test_export_batch_zip() {
+        let (app, state) = setup_test_app_and_state();
+        let payload = serde_json::json!({
+            "urls": ["https://example.com/item1", "https://example.com/item2"],
+            "name": "ZIP Export Batch"
+        });
+
+        let res1 = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/api/v1/jobs/batch")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(payload.to_string()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        let v1: serde_json::Value =
+            serde_json::from_str(&body_to_string(res1.into_body()).await).unwrap();
+        let batch_id = v1["batch_id"].as_str().unwrap();
+        let items = v1["items"].as_array().unwrap();
+        let job0_id = items[0]["job_id"].as_str().unwrap();
+
+        // Seed storage with CDM document for item 0
+        let cdm_bytes = create_sample_cdm_bytes("Item 1 Title", "https://example.com/item1");
+        state
+            .storage
+            .put(&format!("jobs/{job0_id}/artifact.cdm.json"), &cdm_bytes)
+            .await
+            .unwrap();
+
+        // Query ZIP export
+        let res2 = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::GET)
+                    .uri(format!("/api/v1/jobs/batch/{batch_id}/export/zip"))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(res2.status(), StatusCode::OK);
+        assert_eq!(
+            res2.headers().get(header::CONTENT_TYPE).unwrap(),
+            "application/zip"
+        );
+        let disp = res2
+            .headers()
+            .get(header::CONTENT_DISPOSITION)
+            .unwrap()
+            .to_str()
+            .unwrap();
+        assert!(disp.contains(&format!("batch-{batch_id}.zip")));
+
+        let zip_bytes = body_to_bytes(res2.into_body()).await;
+        assert!(!zip_bytes.is_empty());
+        assert_eq!(&zip_bytes[0..4], b"PK\x03\x04");
+        assert!(zip_bytes.len() > 200);
+    }
+
+    #[tokio::test]
+    async fn test_export_batch_markdown() {
+        let (app, state) = setup_test_app_and_state();
+        let payload = serde_json::json!({
+            "urls": ["https://example.com/md1"],
+            "name": "Markdown Export Batch"
+        });
+
+        let res1 = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/api/v1/jobs/batch")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(payload.to_string()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        let v1: serde_json::Value =
+            serde_json::from_str(&body_to_string(res1.into_body()).await).unwrap();
+        let batch_id = v1["batch_id"].as_str().unwrap();
+        let items = v1["items"].as_array().unwrap();
+        let job0_id = items[0]["job_id"].as_str().unwrap();
+
+        let cdm_bytes = create_sample_cdm_bytes("Doc MD Title", "https://example.com/md1");
+        state
+            .storage
+            .put(&format!("jobs/{job0_id}/artifact.cdm.json"), &cdm_bytes)
+            .await
+            .unwrap();
+
+        let res2 = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::GET)
+                    .uri(format!("/api/v1/jobs/batch/{batch_id}/export/markdown"))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(res2.status(), StatusCode::OK);
+        assert_eq!(
+            res2.headers().get(header::CONTENT_TYPE).unwrap(),
+            "text/markdown; charset=utf-8"
+        );
+        let body = body_to_string(res2.into_body()).await;
+        assert!(body.contains("# Markdown Export Batch"));
+        assert!(body.contains("- **Batch ID:**"));
+        assert!(body.contains("## Table of Contents"));
+        assert!(body.contains("Doc MD Title"));
+    }
+
+    #[tokio::test]
+    async fn test_export_batch_jsonl() {
+        let (app, state) = setup_test_app_and_state();
+        let payload = serde_json::json!({
+            "urls": ["https://example.com/jl1"],
+            "name": "JSONL Batch"
+        });
+
+        let res1 = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/api/v1/jobs/batch")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(payload.to_string()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        let v1: serde_json::Value =
+            serde_json::from_str(&body_to_string(res1.into_body()).await).unwrap();
+        let batch_id = v1["batch_id"].as_str().unwrap();
+        let items = v1["items"].as_array().unwrap();
+        let job0_id = items[0]["job_id"].as_str().unwrap();
+
+        let cdm_bytes = create_sample_cdm_bytes("JL Doc", "https://example.com/jl1");
+        state
+            .storage
+            .put(&format!("jobs/{job0_id}/artifact.cdm.json"), &cdm_bytes)
+            .await
+            .unwrap();
+
+        let res2 = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::GET)
+                    .uri(format!("/api/v1/jobs/batch/{batch_id}/export/jsonl"))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(res2.status(), StatusCode::OK);
+        assert_eq!(
+            res2.headers().get(header::CONTENT_TYPE).unwrap(),
+            "application/x-ndjson"
+        );
+        let body = body_to_string(res2.into_body()).await;
+        let line: serde_json::Value = serde_json::from_str(body.trim()).unwrap();
+        assert_eq!(line["status"], "completed");
+        assert_eq!(line["content"], "fn batch_test() {}");
+    }
+
+    #[tokio::test]
+    async fn test_export_batch_json() {
+        let (app, state) = setup_test_app_and_state();
+        let payload = serde_json::json!({
+            "urls": ["https://example.com/json1"],
+            "name": "JSON Envelope Batch"
+        });
+
+        let res1 = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/api/v1/jobs/batch")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(payload.to_string()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        let v1: serde_json::Value =
+            serde_json::from_str(&body_to_string(res1.into_body()).await).unwrap();
+        let batch_id = v1["batch_id"].as_str().unwrap();
+        let items = v1["items"].as_array().unwrap();
+        let job0_id = items[0]["job_id"].as_str().unwrap();
+
+        let cdm_bytes = create_sample_cdm_bytes("JSON Doc", "https://example.com/json1");
+        state
+            .storage
+            .put(&format!("jobs/{job0_id}/artifact.cdm.json"), &cdm_bytes)
+            .await
+            .unwrap();
+
+        let res2 = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::GET)
+                    .uri(format!("/api/v1/jobs/batch/{batch_id}/export/json"))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(res2.status(), StatusCode::OK);
+        assert_eq!(
+            res2.headers().get(header::CONTENT_TYPE).unwrap(),
+            "application/json"
+        );
+        let body = body_to_string(res2.into_body()).await;
+        let env: serde_json::Value = serde_json::from_str(&body).unwrap();
+        assert_eq!(env["manifest"]["batch_id"], batch_id);
+        assert_eq!(env["items"].as_array().unwrap().len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_export_batch_txt() {
+        let (app, _state) = setup_test_app_and_state();
+        let payload = serde_json::json!({
+            "urls": ["https://example.com/txt1"]
+        });
+
+        let res1 = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/api/v1/jobs/batch")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(payload.to_string()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        let v1: serde_json::Value =
+            serde_json::from_str(&body_to_string(res1.into_body()).await).unwrap();
+        let batch_id = v1["batch_id"].as_str().unwrap();
+
+        let res2 = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::GET)
+                    .uri(format!("/api/v1/jobs/batch/{batch_id}/export/txt"))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(res2.status(), StatusCode::OK);
+        assert_eq!(
+            res2.headers().get(header::CONTENT_TYPE).unwrap(),
+            "text/plain; charset=utf-8"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_export_batch_invalid_format_rejected() {
+        let (app, _state) = setup_test_app_and_state();
+        let payload = serde_json::json!({
+            "urls": ["https://example.com/one"]
+        });
+
+        let res1 = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/api/v1/jobs/batch")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(payload.to_string()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        let v1: serde_json::Value =
+            serde_json::from_str(&body_to_string(res1.into_body()).await).unwrap();
+        let batch_id = v1["batch_id"].as_str().unwrap();
+
+        let res2 = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::GET)
+                    .uri(format!(
+                        "/api/v1/jobs/batch/{batch_id}/export/unsupported_format"
+                    ))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(res2.status(), StatusCode::BAD_REQUEST);
+        let body = body_to_string(res2.into_body()).await;
+        assert!(body.contains("VALIDATION_ERROR"));
+        assert!(body.contains("format"));
+    }
+
+    #[tokio::test]
+    async fn test_export_batch_not_found() {
+        let (app, _state) = setup_test_app_and_state();
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .method(Method::GET)
+                    .uri("/api/v1/jobs/batch/018f0a00-0000-7000-8000-000000000000/export/zip")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(res.status(), StatusCode::NOT_FOUND);
+        let body = body_to_string(res.into_body()).await;
+        assert!(body.contains("RESOURCE_NOT_FOUND"));
+        assert!(body.contains("BatchJob"));
     }
 
     #[tokio::test]

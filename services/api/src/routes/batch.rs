@@ -1,21 +1,30 @@
 //! Multi-URL batch conversion route handlers.
 
+use axum::body::Body;
 use axum::extract::{Extension, State};
-use axum::http::StatusCode;
-use axum::response::IntoResponse;
+use axum::http::{header, StatusCode};
+use axum::response::{IntoResponse, Response};
 use axum::Json;
 use chrono::Utc;
+use web_repo_to_ai_cdm::CdmDocument;
 use web_repo_to_ai_core::{BatchId, JobId, RequestId};
+use web_repo_to_ai_exporters::batch::{
+    export_batch_consolidated_json, export_batch_consolidated_jsonl,
+    export_batch_consolidated_markdown, export_batch_consolidated_plain_text,
+    export_batch_zip_package, BatchExportOptions, BatchItemExportInput,
+};
 use web_repo_to_ai_storage::batch::{
     BatchItemRecord, BatchItemStatusKind, BatchJobStatus, BatchRecord,
 };
+use web_repo_to_ai_storage::layout;
 
 use crate::dto::{
+    BatchArtifactItemDescriptor, BatchArtifactPathParams, BatchArtifactsResponse,
     BatchItemPathParams, BatchItemStatus, BatchItemsListResponse, BatchJobResponse,
     BatchPathParams, BatchProgress, BatchStatus, BatchSummaryItem, CreateBatchJobRequest,
     CreateBatchJobResponse, JobStatus, ListBatchesResponse, DEFAULT_BATCH_PARALLELISM,
 };
-use crate::error::not_found_problem;
+use crate::error::{internal_problem, not_found_problem};
 use crate::extractors::{ValidatedJson, ValidatedPath};
 use crate::state::AppState;
 
@@ -264,4 +273,253 @@ pub async fn list_batches_handler(State(state): State<AppState>) -> impl IntoRes
     let batches = list.into_iter().map(BatchSummaryItem::from).collect();
 
     (StatusCode::OK, Json(ListBatchesResponse { batches, count })).into_response()
+}
+
+/// Helper building a standardized binary/text download attachment response.
+fn build_batch_download_response(
+    body: Body,
+    mime_type: &str,
+    filename: &str,
+    content_length: Option<u64>,
+    request_id: &RequestId,
+) -> Response {
+    let mut builder = Response::builder()
+        .status(StatusCode::OK)
+        .header(header::CONTENT_TYPE, mime_type)
+        .header(
+            header::CONTENT_DISPOSITION,
+            format!("attachment; filename=\"{filename}\""),
+        )
+        .header("x-content-type-options", "nosniff")
+        .header("cache-control", "private, no-transform, max-age=86400")
+        .header("x-request-id", request_id.to_string());
+
+    if let Some(len) = content_length {
+        builder = builder.header(header::CONTENT_LENGTH, len.to_string());
+    }
+
+    builder.body(body).unwrap_or_else(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Failed to build response",
+        )
+            .into_response()
+    })
+}
+
+/// Handles `GET /api/v1/jobs/batch/{batch_id}/export/{format}`.
+///
+/// Exports all items in a batch into the requested consolidated distribution format.
+pub async fn export_batch_handler(
+    State(state): State<AppState>,
+    Extension(request_id): Extension<RequestId>,
+    ValidatedPath(params): ValidatedPath<BatchArtifactPathParams>,
+) -> Response {
+    let batch = match state.batch_storage.get_batch(params.batch_id).await {
+        Ok(Some(b)) => b,
+        _ => {
+            return not_found_problem("BatchJob", &params.batch_id.to_string(), Some(request_id))
+                .into_response();
+        }
+    };
+
+    let items = state
+        .batch_storage
+        .get_batch_items(params.batch_id)
+        .await
+        .unwrap_or_default();
+
+    let mut export_inputs = Vec::with_capacity(items.len());
+    for item in items {
+        let job_uuid = *item.job_id.as_uuid();
+        let cdm_keys = [
+            layout::job_artifact_key(
+                job_uuid,
+                web_repo_to_ai_storage::schema::ArtifactFormat::CdmJson,
+            ),
+            format!("jobs/{job_uuid}/artifact.cdm.json"),
+            format!("jobs/{job_uuid}/cdm.json"),
+        ];
+
+        let mut doc = None;
+        for key in &cdm_keys {
+            if let Ok(bytes) = state.storage.get(key).await {
+                if let Ok(parsed) = serde_json::from_slice::<CdmDocument>(&bytes) {
+                    doc = Some(parsed);
+                    break;
+                }
+            }
+        }
+
+        if let Some(cdm) = doc {
+            export_inputs.push(BatchItemExportInput::success(
+                item.item_index,
+                item.job_id,
+                item.url,
+                item.custom_id,
+                cdm,
+            ));
+        } else {
+            let err = item.error_message.unwrap_or_else(|| {
+                if item.status == BatchItemStatusKind::Completed {
+                    "Artifact CDM document missing from storage".to_string()
+                } else {
+                    format!("Item status is {}", item.status.as_str())
+                }
+            });
+            export_inputs.push(BatchItemExportInput::failure(
+                item.item_index,
+                item.job_id,
+                item.url,
+                item.custom_id,
+                err,
+            ));
+        }
+    }
+
+    let raw_format = params.format.trim().to_ascii_lowercase();
+    let options = BatchExportOptions {
+        title: batch.name,
+        ..Default::default()
+    };
+    let batch_id_str = params.batch_id.to_string();
+
+    let (bytes, filename, mime_type) = match raw_format.as_str() {
+        "zip" => match export_batch_zip_package(&batch_id_str, &export_inputs, &options) {
+            Ok((b, _)) => (b, format!("batch-{batch_id_str}.zip"), "application/zip"),
+            Err(e) => {
+                return internal_problem(&e.to_string(), Some(request_id)).into_response();
+            }
+        },
+        "markdown" | "md" => {
+            match export_batch_consolidated_markdown(&batch_id_str, &export_inputs, &options) {
+                Ok(s) => (
+                    s.into_bytes(),
+                    format!("batch-{batch_id_str}.md"),
+                    "text/markdown; charset=utf-8",
+                ),
+                Err(e) => {
+                    return internal_problem(&e.to_string(), Some(request_id)).into_response();
+                }
+            }
+        }
+        "jsonl" | "ndjson" => {
+            match export_batch_consolidated_jsonl(&batch_id_str, &export_inputs, &options) {
+                Ok(s) => (
+                    s.into_bytes(),
+                    format!("batch-{batch_id_str}.jsonl"),
+                    "application/x-ndjson",
+                ),
+                Err(e) => {
+                    return internal_problem(&e.to_string(), Some(request_id)).into_response();
+                }
+            }
+        }
+        "json" => match export_batch_consolidated_json(&batch_id_str, &export_inputs, &options) {
+            Ok(s) => (
+                s.into_bytes(),
+                format!("batch-{batch_id_str}.json"),
+                "application/json",
+            ),
+            Err(e) => {
+                return internal_problem(&e.to_string(), Some(request_id)).into_response();
+            }
+        },
+        "txt" | "text" => {
+            match export_batch_consolidated_plain_text(&batch_id_str, &export_inputs, &options) {
+                Ok(s) => (
+                    s.into_bytes(),
+                    format!("batch-{batch_id_str}.txt"),
+                    "text/plain; charset=utf-8",
+                ),
+                Err(e) => {
+                    return internal_problem(&e.to_string(), Some(request_id)).into_response();
+                }
+            }
+        }
+        _ => {
+            return not_found_problem(
+                "ArtifactFormat",
+                &format!("{}:{}", params.batch_id, params.format),
+                Some(request_id),
+            )
+            .into_response();
+        }
+    };
+
+    let len = bytes.len() as u64;
+    let body = Body::from(bytes);
+    build_batch_download_response(body, mime_type, &filename, Some(len), &request_id)
+}
+
+/// Handles `GET /api/v1/jobs/batch/{batch_id}/artifacts`.
+///
+/// Lists all available downloadable export formats for the batch.
+pub async fn list_batch_artifacts_handler(
+    State(state): State<AppState>,
+    Extension(request_id): Extension<RequestId>,
+    ValidatedPath(params): ValidatedPath<BatchPathParams>,
+) -> impl IntoResponse {
+    let batch = match state.batch_storage.get_batch(params.batch_id).await {
+        Ok(Some(b)) => b,
+        _ => {
+            return not_found_problem("BatchJob", &params.batch_id.to_string(), Some(request_id))
+                .into_response();
+        }
+    };
+
+    let status = match batch.status {
+        BatchJobStatus::Queued => BatchStatus::Queued,
+        BatchJobStatus::Processing => BatchStatus::Processing,
+        BatchJobStatus::Completed => BatchStatus::Completed,
+        BatchJobStatus::PartialFailure => BatchStatus::PartialFailure,
+        BatchJobStatus::Failed => BatchStatus::Failed,
+        BatchJobStatus::Cancelled => BatchStatus::Cancelled,
+    };
+
+    let base = format!("/api/v1/jobs/batch/{}", params.batch_id);
+    let id_str = params.batch_id.to_string();
+
+    let artifacts = vec![
+        BatchArtifactItemDescriptor {
+            format: "zip".to_string(),
+            filename: format!("batch-{id_str}.zip"),
+            mime_type: "application/zip".to_string(),
+            download_url: format!("{base}/export/zip"),
+        },
+        BatchArtifactItemDescriptor {
+            format: "markdown".to_string(),
+            filename: format!("batch-{id_str}.md"),
+            mime_type: "text/markdown; charset=utf-8".to_string(),
+            download_url: format!("{base}/export/markdown"),
+        },
+        BatchArtifactItemDescriptor {
+            format: "jsonl".to_string(),
+            filename: format!("batch-{id_str}.jsonl"),
+            mime_type: "application/x-ndjson".to_string(),
+            download_url: format!("{base}/export/jsonl"),
+        },
+        BatchArtifactItemDescriptor {
+            format: "json".to_string(),
+            filename: format!("batch-{id_str}.json"),
+            mime_type: "application/json".to_string(),
+            download_url: format!("{base}/export/json"),
+        },
+        BatchArtifactItemDescriptor {
+            format: "txt".to_string(),
+            filename: format!("batch-{id_str}.txt"),
+            mime_type: "text/plain; charset=utf-8".to_string(),
+            download_url: format!("{base}/export/txt"),
+        },
+    ];
+
+    (
+        StatusCode::OK,
+        Json(BatchArtifactsResponse {
+            batch_id: params.batch_id,
+            status,
+            artifacts,
+        }),
+    )
+        .into_response()
 }

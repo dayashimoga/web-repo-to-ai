@@ -76,6 +76,14 @@ pub fn create_router(state: AppState) -> Router {
             get(batch::get_batch_item_handler),
         )
         .route(
+            "/jobs/batch/:batch_id/export/:format",
+            get(batch::export_batch_handler),
+        )
+        .route(
+            "/jobs/batch/:batch_id/artifacts",
+            get(batch::list_batch_artifacts_handler),
+        )
+        .route(
             "/jobs",
             post(jobs::create_job_handler).get(jobs::list_jobs_handler),
         )

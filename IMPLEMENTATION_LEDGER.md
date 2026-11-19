@@ -7264,16 +7264,99 @@
 
 ---
 
+### Subphase `8.1.4` — Batch export in crates/exporters and services/api
+- **Unique ID:** `8.1.4`
+- **Objective:** Implement unified multi-URL batch artifact exports and download endpoints in `crates/exporters`, `crates/storage`, and `services/api`, supporting multi-item consolidated formats (Markdown with TOC and divider headings, line-delimited JSONL chunks, structured JSON manifest with CDM document array, clean plain-text context) and a deterministic, streaming multi-item ZIP archive package containing manifest (`batch-manifest.json`), summary (`batch-summary.md`), consolidated markdown (`consolidated.md`), per-item folders with individual exports (`items/{idx:03}_{slug}/context.md`, `context.txt`, `context.json`), failure reports (`error.txt`), and BLAKE3/SHA-256 cryptographic checksums (`checksums.sha256`). Wire HTTP download endpoints with RFC 7807 problem details, content disposition attachment headers, and nosniff security protections.
+- **Prerequisites:** `8.1.3` (`ACCEPTED`)
+- **Primary Agent Roster:** `context-optimization-engineer`, `rust-backend-engineer`, `qa-engineer`, `security-reviewer`, `documentation-reviewer`
+- **Scope:**
+  - `crates/storage/src/local_fs.rs`
+  - `crates/exporters/src/batch.rs`
+  - `crates/exporters/src/lib.rs`
+  - `services/api/src/dto/batch.rs`
+  - `services/api/src/dto/mod.rs`
+  - `services/api/src/error.rs`
+  - `services/api/src/routes/batch.rs`
+  - `services/api/src/routes/mod.rs`
+  - `services/api/src/lib.rs`
+- **Implementation Tasks:**
+  1. Add `layout::batch_artifact_key` and `layout::batch_dir_key` in `crates/storage/src/local_fs.rs` for batch artifact path storage resolution.
+  2. Implement `crates/exporters/src/batch.rs`:
+     - Data models: `BatchItemExportInput`, `BatchExportOptions`, `BatchExportManifest`, `BatchItemManifestEntry`, `BatchZipMetrics`.
+     - Slugification utility `slugify_url` collapsing non-alphanumeric runes and sanitizing folder names.
+     - `export_batch_consolidated_markdown`: generates full consolidated Markdown with batch title, table of contents, and per-item section dividers.
+     - `export_batch_consolidated_plain_text`: generates clean ASCII text context suitable for language models.
+     - `export_batch_consolidated_jsonl`: generates line-delimited JSONL chunks with batch item indices, item URLs, and section payloads.
+     - `export_batch_consolidated_json`: generates structured JSON envelope with manifest and document objects.
+     - `export_batch_zip_package` & `export_batch_zip_to_writer`: packages a complete multi-item ZIP archive with `batch-manifest.json`, `batch-summary.md`, `consolidated.md`, `checksums.sha256`, individual item folders, and item failure reports.
+  3. Re-export batch exporters in `crates/exporters/src/lib.rs`.
+  4. Implement `BatchArtifactPathParams`, `BatchArtifactItemDescriptor`, and `BatchArtifactsResponse` in `services/api/src/dto/batch.rs` and re-export in `services/api/src/dto/mod.rs`.
+  5. Implement `internal_problem` helper in `services/api/src/error.rs`.
+  6. Implement `export_batch_handler`, `list_batch_artifacts_handler`, and `build_batch_download_response` in `services/api/src/routes/batch.rs`.
+  7. Wire routes in `services/api/src/routes/mod.rs`:
+     - `GET /api/v1/jobs/batch/:batch_id/export/:format` -> `batch::export_batch_handler`
+     - `GET /api/v1/jobs/batch/:batch_id/artifacts` -> `batch::list_batch_artifacts_handler`
+  8. Author unit and integration tests in `crates/exporters/src/batch.rs` and `services/api/src/lib.rs` validating consolidated format exports, ZIP archive creation, artifact listing, checksum manifests, invalid format rejections, and missing batch 404 responses.
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-exporters`
+  - `cargo test -p web-repo-to-ai-api`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - Consolidated exports (Markdown, Plain Text, JSONL, JSON) and ZIP archives are generated deterministically from batch items.
+  - Succeeded items include full context and CDM structures; failed items include error descriptors without crashing the export pipeline.
+  - ZIP archives contain valid directory structures, per-item files, summary, manifest, and dual-hash checksums (`checksums.sha256`).
+  - `GET /api/v1/jobs/batch/:batch_id/artifacts` lists all available export formats and their download URLs.
+  - `GET /api/v1/jobs/batch/:batch_id/export/:format` streams downloads with proper Content-Type, Content-Disposition attachment headers, and nosniff protection.
+  - 100% of exporter tests pass (81/81), 100% of API tests pass (84/84), zero clippy warnings, zero fmt diffs, cargo deny clean, and all monorepo gates pass (5/5).
+- **Risk Analysis:**
+  - Risk: Large batch sizes could exceed memory during ZIP archive packaging.
+  - Mitigation: Stream zip entries using `export_batch_zip_to_writer` over `std::io::Write` buffers; compress item sections sequentially with Deflate/Stored modes.
+- **Rollback Plan:**
+  - Revert Subphase 8.1.4 additions via Git reset to commit `0655c51`.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-exporters`: 81 tests passed (4 unit in `lib.rs`, 77 integration across 8 integration suites).
+  - `cargo test -p web-repo-to-ai-api`: 84 tests passed (83 unit/integration in `lib.rs`, 1 in `main.rs`).
+  - `cargo clippy --workspace --all-targets -- -D warnings`: passed with 0 warnings.
+  - `cargo fmt --all -- --check`: verified clean formatting with 0 diffs.
+  - `cargo deny check`: passed (`advisories ok, bans ok, licenses ok, sources ok`).
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures) including 213 frontend vitest tests and 17.6% Podman storage footprint.
+- **Git Commit Reference:** `a3aa12d`
+- **Status:** `ACCEPTED`
+
+---
+
+### PHASE 8.1 FORMAL CERTIFICATION
+
+- **Stage:** `STAGE 8 — LARGE REPOSITORIES, BATCH AND CRAWLING`
+- **Phase:** `Phase 8.1 — Batch URLs`
+- **Subphases Certified (4 of 4):**
+  - `8.1.1` (Multi-URL submission endpoint and payload validation in services/api) — `ACCEPTED`
+  - `8.1.2` (Bounded parallel execution in services/worker) — `ACCEPTED`
+  - `8.1.3` (Individual result tracking in crates/storage and services/api) — `ACCEPTED`
+  - `8.1.4` (Batch export in crates/exporters and services/api) — `ACCEPTED`
+- **Phase Acceptance Gate Verification:**
+  - Multi-URL batch ingestion validated with strict RFC 7807 error responses and per-item option overrides.
+  - Bounded worker concurrency engine strictly enforces global permit ceiling, per-batch worker quotas, and cooperative shutdown.
+  - Relational and in-memory batch storage tracks granular item lifecycle, execution durations, error taxonomy, and dynamic parent progress.
+  - Multi-format batch export pipeline generates consolidated Markdown, plain text, JSONL, JSON, and fully structured ZIP archives with cryptographic checksums.
+  - 100% of workspace tests passing, clippy warning-free, and all 5 monorepo verification gates passing.
+- **Certification Status:** **PHASE 8.1 FORMALLY CERTIFIED & ACCEPTED**
+
+---
+
 ### Upcoming Subphase (Stage 8 — Large Repositories, Batch and Crawling)
 
-#### Phase 8.1 — Batch URLs
+#### Phase 8.2 — Website crawling
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `8.1.4` | Batch export in crates/exporters and services/api | `8.1.3` (`ACCEPTED`) | `crates/exporters/*`, `services/api/*` | `NOT_STARTED` |
+| `8.2.1` | Sitemap discovery in crates/web-extractor | `8.1.4` (`ACCEPTED`) | `crates/web-extractor/*` | `NOT_STARTED` |
 
 ---
 
 ## STAGES 8 – 11 QUEUED LEDGER SUMMARY
 
-All subsequent subphases for **Stage 8** (`8.1.4`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.
+All subsequent subphases for **Stage 8** (`8.2.1`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.

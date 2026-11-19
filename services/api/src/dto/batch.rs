@@ -646,3 +646,54 @@ pub struct ListBatchesResponse {
     /// Total count of batches returned in this page.
     pub count: usize,
 }
+
+/// Path parameters for batch export download (`/api/v1/jobs/batch/{batch_id}/export/{format}`).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BatchArtifactPathParams {
+    /// Strongly-typed UUID v7 batch identifier.
+    pub batch_id: BatchId,
+    /// Desired export format: "zip", "markdown", "md", "jsonl", "ndjson", "json", "txt", "text".
+    pub format: String,
+}
+
+impl Validatable for BatchArtifactPathParams {
+    fn validate(&self) -> Result<()> {
+        let fmt = self.format.trim().to_ascii_lowercase();
+        let valid_formats = &[
+            "zip", "markdown", "md", "jsonl", "ndjson", "json", "txt", "text",
+        ];
+        if !valid_formats.contains(&fmt.as_str()) {
+            return Err(CoreError::Validation {
+                field: "format".to_string(),
+                reason: format!(
+                    "Unsupported batch export format '{fmt}': must be one of {valid_formats:?}"
+                ),
+            });
+        }
+        Ok(())
+    }
+}
+
+/// Metadata describing an available batch export format.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BatchArtifactItemDescriptor {
+    /// Canonical format identifier (e.g. "zip", "markdown", "jsonl", "json", "txt").
+    pub format: String,
+    /// Default download filename.
+    pub filename: String,
+    /// HTTP MIME Content-Type header value.
+    pub mime_type: String,
+    /// Relative URL endpoint to download this artifact.
+    pub download_url: String,
+}
+
+/// Response payload listing available export artifacts for a batch (`GET /api/v1/jobs/batch/{batch_id}/artifacts`).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BatchArtifactsResponse {
+    /// Strongly-typed UUID v7 batch identifier.
+    pub batch_id: BatchId,
+    /// Current lifecycle state of the batch.
+    pub status: BatchStatus,
+    /// List of available downloadable export formats.
+    pub artifacts: Vec<BatchArtifactItemDescriptor>,
+}

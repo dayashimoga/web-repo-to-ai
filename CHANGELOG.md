@@ -6,6 +6,31 @@
 
 ## [Unreleased] — Stage 8: Large Repositories, Batch and Crawling
 
+### 2026-11-19 — Phase 8.1: Batch URLs (`8.1.4` — PHASE 8.1 FORMALLY CERTIFIED)
+
+#### Added
+- **`[8.1.4]` Batch Export Generation and Download Endpoints in `crates/exporters` and `services/api`:**
+  - Implemented multi-format batch context exporters and ZIP archive packager in `crates/exporters/src/batch.rs`:
+    - `BatchItemExportInput`: input data structure representing individual item extraction outcomes with CDM document models, execution duration, and error codes/messages.
+    - `BatchExportOptions`: configurable export controls for table-of-contents generation, per-item summaries, manifests, and cryptographic checksums.
+    - `BatchExportManifest`, `BatchItemManifestEntry`, `BatchZipMetrics`.
+    - `slugify_url`: URL slug generation collapsing consecutive non-alphanumeric characters into single underscores and bounding path lengths.
+    - `export_batch_consolidated_markdown`: generates consolidated Markdown including batch header, TOC, summary table, and per-item section headers.
+    - `export_batch_consolidated_plain_text`: generates clean ASCII context with standardized headers and section dividers.
+    - `export_batch_consolidated_jsonl`: generates line-delimited JSONL chunks with batch item indices, item URLs, and section payloads.
+    - `export_batch_consolidated_json`: generates unified JSON envelope with manifest and structured document objects.
+    - `export_batch_zip_package` & `export_batch_zip_to_writer`: packages a complete multi-item ZIP archive containing `batch-manifest.json`, `batch-summary.md`, `consolidated.md`, `checksums.sha256` (BLAKE3 + SHA-256), item folders (`items/{idx:03}_{slug}/context.md`, `context.txt`, `context.json`), and failed item error reports (`error.txt`).
+  - Added storage layout helpers `batch_artifact_key` and `batch_dir_key` in `crates/storage/src/local_fs.rs`.
+  - Re-exported `batch` module in `crates/exporters/src/lib.rs`.
+  - Added DTO models in `services/api/src/dto/batch.rs` (`BatchArtifactPathParams`, `BatchArtifactItemDescriptor`, `BatchArtifactsResponse`) and re-exported in `services/api/src/dto/mod.rs`.
+  - Added `internal_problem` RFC 7807 problem helper in `services/api/src/error.rs`.
+  - Implemented REST route handlers in `services/api/src/routes/batch.rs` and wired routes in `services/api/src/routes/mod.rs`:
+    - `GET /api/v1/jobs/batch/:batch_id/export/:format`: streams on-demand batch exports in `zip`, `markdown`, `jsonl`, `json`, and `txt` formats with attachment headers and `x-content-type-options: nosniff`.
+    - `GET /api/v1/jobs/batch/:batch_id/artifacts`: lists all available batch export formats with download links and content types.
+  - Added 8 integration tests in `services/api/src/lib.rs` validating batch artifact listing, ZIP export with magic byte headers, consolidated Markdown, JSONL, JSON, TXT downloads, invalid format rejections, and missing batch 404 responses.
+  - **Milestone:** Formally certified **Phase 8.1 — Batch URLs** (`8.1.1` – `8.1.4`).
+  - 100% passing quality gates: 81 exporter tests passed, 84 API tests passed, zero clippy warnings, zero fmt diffs, cargo deny passed, and 5/5 check-all gates passed.
+
 ### 2026-11-19 — Phase 8.1: Batch URLs (`8.1.3`)
 
 #### Added

@@ -28,9 +28,9 @@ secrets/
 credentials.json
 
 # Local Storage, Artifacts, Caches, and Databases
-/data/
-/artifacts/
-/storage/
+data/
+artifacts/
+storage/
 /tmp/
 /cache/
 *.db

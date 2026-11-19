@@ -11,6 +11,7 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
+pub mod batch;
 pub mod checksum;
 pub mod error;
 pub mod html;
@@ -25,6 +26,13 @@ pub(crate) mod util;
 pub mod zip;
 
 // Public re-exports
+pub use batch::{
+    build_batch_manifest, export_batch_consolidated_json, export_batch_consolidated_jsonl,
+    export_batch_consolidated_markdown, export_batch_consolidated_plain_text,
+    export_batch_zip_package, export_batch_zip_to_writer, slugify_url, BatchExportManifest,
+    BatchExportOptions, BatchItemExportInput, BatchItemManifestEntry, BatchJsonEnvelope,
+    BatchJsonlRecord, BatchZipMetrics,
+};
 pub use checksum::{
     compute_blake3_hex, compute_sha256_hex, export_checksums_to_writer,
     generate_checksums_manifest, parse_checksums_manifest, verify_checksums, ChecksumAlgorithm,

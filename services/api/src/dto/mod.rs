@@ -8,6 +8,7 @@ pub mod query;
 pub mod sources;
 
 pub use batch::{
+    BatchArtifactItemDescriptor, BatchArtifactPathParams, BatchArtifactsResponse,
     BatchItemPathParams, BatchItemRequest, BatchItemStatus, BatchItemsListResponse,
     BatchJobResponse, BatchPathParams, BatchProgress, BatchStatus, BatchSummaryItem,
     CreateBatchJobRequest, CreateBatchJobResponse, ListBatchesResponse, DEFAULT_BATCH_PARALLELISM,

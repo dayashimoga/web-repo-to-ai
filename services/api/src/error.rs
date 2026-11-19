@@ -128,6 +128,13 @@ pub fn method_not_allowed_problem(
     to_problem_response(err, request_id)
 }
 
+/// Generates a standardized 500 Internal Server Error RFC 7807 problem response.
+#[must_use]
+pub fn internal_problem(message: &str, request_id: Option<RequestId>) -> Response {
+    let err = CoreError::Internal(message.to_string());
+    to_problem_response(err, request_id)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

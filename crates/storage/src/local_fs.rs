@@ -35,6 +35,18 @@ pub mod layout {
         format!("jobs/{job_id}")
     }
 
+    /// Constructs the standard relative storage key for a batch's exported consolidated artifact.
+    #[must_use]
+    pub fn batch_artifact_key(batch_id: Uuid, extension: &str) -> String {
+        format!("batches/{batch_id}/batch.{extension}")
+    }
+
+    /// Constructs the standard relative directory key for all artifacts belonging to a batch.
+    #[must_use]
+    pub fn batch_dir_key(batch_id: Uuid) -> String {
+        format!("batches/{batch_id}")
+    }
+
     /// Constructs the standard two-tier sharded storage key for a content-addressed blob.
     #[must_use]
     pub fn blob_key(blake3_hex: &str) -> String {
@@ -854,6 +866,13 @@ mod tests {
 
         let dir_key = layout::job_dir_key(job_id);
         assert_eq!(dir_key, format!("jobs/{job_id}"));
+
+        let batch_id = Uuid::now_v7();
+        let batch_zip = layout::batch_artifact_key(batch_id, "zip");
+        assert_eq!(batch_zip, format!("batches/{batch_id}/batch.zip"));
+
+        let batch_dir = layout::batch_dir_key(batch_id);
+        assert_eq!(batch_dir, format!("batches/{batch_id}"));
 
         let blob = layout::blob_key("abcdef0123456789");
         assert_eq!(blob, "blobs/ab/abcdef0123456789.bin");
