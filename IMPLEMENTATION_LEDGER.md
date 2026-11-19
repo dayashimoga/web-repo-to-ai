@@ -7492,16 +7492,6 @@
 
 ---
 
-### Upcoming Subphase (Stage 8 — Large Repositories, Batch and Crawling)
-
-#### Phase 8.2 — Website crawling
-
-| Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
-| :--- | :--- | :--- | :--- | :--- |
-| `8.2.3` | Crawl-depth & domain restrictions in crates/web-extractor | `8.2.2` (`ACCEPTED`) | `crates/web-extractor/*` | `IN_PROGRESS` |
-
----
-
 ### Subphase `8.2.3` — Crawl-depth & domain restrictions in crates/web-extractor
 - **Unique ID:** `8.2.3`
 - **Objective:** Implement crawl traversal depth limits, domain scoping policies, path inclusion/exclusion glob and regex filtering, query parameter policies, and page budget quotas in `crates/web-extractor`. Provide stateful evaluation of candidate URLs against boundary restrictions, tracking depths, host quotas, and total crawl limits to prevent runaway crawling, crawl loops, and cross-origin resource exhaustion.
@@ -7561,16 +7551,70 @@
 
 ---
 
+### Subphase `8.2.4` — Duplicate & loop prevention in crates/web-extractor
+- **Unique ID:** `8.2.4`
+- **Objective:** Implement crawler loop detection (path segment repetition traps, cyclic directory patterns, query parameter combinatorial explosion, and circular redirect loop detection) and crawl frontier queue management with deterministic canonical URL normalization and multi-tier duplicate prevention (canonical URL deduplication, cryptographic BLAKE3 exact content deduplication, and SimHash near-duplicate detection) in `crates/web-extractor`.
+- **Scope:** `crates/web-extractor/src/crawler/loop_detector.rs`, `crates/web-extractor/src/crawler/frontier.rs`, `crates/web-extractor/src/crawler/mod.rs`, `crates/web-extractor/src/lib.rs`, `crates/web-extractor/tests/crawler_dedup_loop_test.rs`.
+- **Prerequisites:** `8.2.3` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/web-extractor/src/crawler/loop_detector.rs`
+  - `crates/web-extractor/src/crawler/frontier.rs`
+  - `crates/web-extractor/src/crawler/mod.rs`
+  - `crates/web-extractor/src/lib.rs`
+  - `crates/web-extractor/tests/crawler_dedup_loop_test.rs`
+- **Implementation Tasks:**
+  1. Author `crates/web-extractor/src/crawler/loop_detector.rs`:
+     - Define `CrawlTrapReason` enum: `PathSegmentRepetition`, `CyclicPathSequence`, `ExcessivePathSegments`, `ExcessiveQueryParameters`, `RepeatedQueryKey`, `RedirectLoop`, and `RedirectChainTooLong`.
+     - Implement `LoopDetectorConfig` with customizable limits: `max_segment_repeats` (default 3), `max_path_segments` (default 16), `max_query_params` (default 10), `max_query_key_repeats` (default 2), `max_redirect_chain_len` (default 10), `detect_cyclic_sequences` (default true), `min_cycle_len` (2), `max_cycle_len` (4), `cycle_repeat_threshold` (2).
+     - Implement `CrawlLoopDetector` with `evaluate_url`, `check_path`, `check_query`, and `check_redirect_chain` methods.
+     - Implement multi-segment cyclic sequence pattern detection (`find_cyclic_sequence`).
+  2. Author `crates/web-extractor/src/crawler/frontier.rs`:
+     - Define `CanonicalUrlNormalizerConfig` and `CrawlerUrlNormalizer` performing deterministic crawling canonicalization: default port stripping (`:80`, `:443`), section fragment stripping, default index file normalization (`index.html`, `index.php`, etc. to root), trailing slash normalization on non-root paths, marketing tracking query stripping (`utm_*`, `fbclid`, `gclid`, etc.), and alphabetical query parameter key sorting.
+     - Define `CrawlQueueItem` min-heap ordered by priority, depth, and alphabetical canonical URL.
+     - Define `FrontierEnqueueDecision` (`Enqueued`, `AlreadySeen`, `TrapBlocked`) and `FrontierStats`.
+     - Implement `CrawlFrontier` priority queue and state engine integrating URL deduplication, depth optimization (re-queueing at shorter path depth), trap evaluation via `CrawlLoopDetector`, circular redirect loop tracking via `record_redirect_hop`, error tracking via `mark_failed`, and multi-tier content deduplication via `mark_visited` backed by `DuplicateRegistry` (BLAKE3 exact and 64-bit SimHash Hamming distance near-duplicates).
+  3. Re-export crawler types in `crates/web-extractor/src/crawler/mod.rs` and `crates/web-extractor/src/lib.rs`.
+  4. Author 14 comprehensive integration tests in `crates/web-extractor/tests/crawler_dedup_loop_test.rs` validating canonical URL normalization, path segment repetition traps, cyclic path sequences, path segment depth limits, query parameter count limits, repeated query keys, direct and multi-hop circular redirect loops, excessive redirect chains, frontier min-heap priority ordering, candidate URL deduplication, trap blocking, BLAKE3 exact content deduplication, SimHash near-duplicate detection, redirect loop tracking, and frontier metric accounting.
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-web-extractor`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - Canonical URL normalization strips default ports, tracking params, and default index files while deterministically sorting functional query parameters.
+  - Path segment repetition traps (> 3 identical segments) and cyclic directory patterns (`/a/b/a/b`) are detected and rejected.
+  - Excessive path depth (> 16 segments) and query explosion (> 10 parameters or > 2 repeated keys) are caught.
+  - Circular redirect loops (`A -> B -> A`, `A -> B -> C -> A`) and excessive redirect chains (> 10 hops) are identified.
+  - Min-heap frontier queue pops items strictly in priority order (lowest priority value first, then lowest depth).
+  - Exact content duplicates (BLAKE3) and near-duplicates (SimHash Hamming distance <= threshold) are classified correctly.
+  - 100% of web-extractor tests pass (199/199), clippy has 0 warnings, formatting is verified, and all monorepo gates pass (5/5).
+- **Risk Analysis:**
+  - Risk: False positive trap triggers on legitimate deep documentation paths or faceted search queries.
+  - Mitigation: Configurable limits in `LoopDetectorConfig` and `CanonicalUrlNormalizerConfig` allowing custom crawlers to tailor thresholds.
+- **Rollback Plan:**
+  - Revert Subphase 8.2.4 additions via Git reset to commit `b878176`.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-web-extractor`: 199 tests passed (135 unit, 14 crawl restrictions, 14 crawler dedup loop, 8 golden dataset, 14 internal link discovery, 14 sitemap discovery).
+  - `cargo clippy --workspace --all-targets -- -D warnings`: passed with 0 warnings.
+  - `cargo fmt --all -- --check`: passed with 0 diffs.
+  - `cargo deny check`: passed (`advisories ok, bans ok, licenses ok, sources ok`).
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures) including 213 frontend vitest tests and 17.6% Podman storage footprint.
+- **Git Commit Reference:** `6553e10`
+- **Status:** `ACCEPTED`
+
+---
+
 ### Upcoming Subphase (Stage 8 — Large Repositories, Batch and Crawling)
 
-#### Phase 8.2 — Website crawling
+#### Phase 8.3 — Incremental processing
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `8.2.4` | Duplicate & loop prevention in crates/web-extractor | `8.2.3` (`ACCEPTED`) | `crates/web-extractor/*` | `NOT_STARTED` |
+| `8.3.1` | HTTP validators in crates/storage and crates/web-extractor | `8.2.4` (`ACCEPTED`) | `crates/storage/*`, `crates/web-extractor/*` | `NOT_STARTED` |
 
 ---
 
 ## STAGES 8 – 11 QUEUED LEDGER SUMMARY
 
-All subsequent subphases for **Stage 8** (`8.2.4`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.
+All subsequent subphases for **Stage 8** (`8.3.1`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.

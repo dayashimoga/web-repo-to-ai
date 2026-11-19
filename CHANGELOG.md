@@ -6,6 +6,26 @@
 
 ## [Unreleased] — Stage 8: Large Repositories, Batch and Crawling
 
+### 2026-11-19 — Phase 8.2: Website Crawling (`8.2.4`)
+
+#### Added
+- **`[8.2.4]` Duplicate and Loop Prevention Engine in `crates/web-extractor`:**
+  - Implemented crawler loop and trap detector in `crates/web-extractor/src/crawler/loop_detector.rs`:
+    - `CrawlTrapReason`: strongly-typed classification for `PathSegmentRepetition`, `CyclicPathSequence`, `ExcessivePathSegments`, `ExcessiveQueryParameters`, `RepeatedQueryKey`, `RedirectLoop`, and `RedirectChainTooLong`.
+    - `LoopDetectorConfig`: builder pattern with configurable limits for `max_segment_repeats` (default 3), `max_path_segments` (default 16), `max_query_params` (default 10), `max_query_key_repeats` (default 2), `max_redirect_chain_len` (default 10), `detect_cyclic_sequences` (default true), `min_cycle_len` (2), `max_cycle_len` (4), `cycle_repeat_threshold` (2).
+    - `CrawlLoopDetector`: evaluation methods `evaluate_url`, `check_path`, `check_query`, and `check_redirect_chain`.
+    - Multi-segment cyclic pattern detection (`find_cyclic_sequence`) preventing directory loop traps (e.g. `/category/books/category/books`).
+  - Implemented crawl frontier and deduplication manager in `crates/web-extractor/src/crawler/frontier.rs`:
+    - `CanonicalUrlNormalizerConfig` & `CrawlerUrlNormalizer`: deterministic crawling canonicalization stripping default ports (`:80`, `:443`), section fragments (`#heading`), default index files (`index.html`, `index.php`, etc. to root), trailing slashes on non-root paths, marketing tracking query parameters (`utm_*`, `fbclid`, `gclid`, etc.), and sorting functional query parameter keys alphabetically.
+    - `CrawlQueueItem`: min-heap ordered by priority, depth, and alphabetical canonical URL.
+    - `FrontierEnqueueDecision`: `Enqueued`, `AlreadySeen`, and `TrapBlocked`.
+    - `FrontierStats`: real-time accounting for `pending`, `visited`, `failed`, `duplicate_urls_skipped`, `duplicate_content_skipped`, and `traps_blocked`.
+    - `CrawlFrontier`: stateful priority queue coordinating URL canonicalization, URL deduplication, depth optimization (re-queueing candidates discovered at shorter path depths), loop/trap evaluation via `CrawlLoopDetector`, circular redirect loop prevention via `record_redirect_hop`, error tracking via `mark_failed`, and multi-tier content deduplication via `mark_visited` backed by `DuplicateRegistry` (BLAKE3 exact and 64-bit SimHash Hamming distance near-duplicates).
+  - Re-exported crawler frontier and loop detector types in `crates/web-extractor/src/crawler/mod.rs` and `crates/web-extractor/src/lib.rs`.
+  - Authored 14 integration test suites in `crates/web-extractor/tests/crawler_dedup_loop_test.rs` validating canonical URL normalization, path segment repetition traps, cyclic path sequences, path segment depth limits, query parameter count limits, repeated query keys, direct and multi-hop circular redirect loops, excessive redirect chains, frontier min-heap priority ordering, candidate URL deduplication, trap blocking, BLAKE3 exact content deduplication, SimHash near-duplicate detection, redirect loop tracking, and frontier metric accounting.
+  - 100% passing quality gates: 199 web-extractor tests passed, zero clippy warnings, zero fmt diffs, cargo deny passed, and 5/5 check-all gates passed.
+  - Formally certified **Phase 8.2 — Website crawling**.
+
 ### 2026-11-19 — Phase 8.2: Website Crawling (`8.2.3`)
 
 #### Added

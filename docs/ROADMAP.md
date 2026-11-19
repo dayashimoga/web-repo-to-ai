@@ -87,8 +87,8 @@
 - **Stage Acceptance Gate:** Reliable batch and large-source processing within bounded memory and CPU resources.
 - **Phases:**
   - `8.1` Batch URLs (`8.1.1` [ACCEPTED], `8.1.2` [ACCEPTED], `8.1.3` [ACCEPTED], `8.1.4` [ACCEPTED — PHASE 8.1 CERTIFIED])
-  - `8.2` Website crawling (`8.2.1`–`8.2.3` [ACCEPTED], `8.2.4` [NEXT])
-  - `8.3` Incremental processing (`8.3.1` – `8.3.4`)
+  - `8.2` Website crawling (`8.2.1`–`8.2.4` [ACCEPTED — PHASE 8.2 CERTIFIED])
+  - `8.3` Incremental processing (`8.3.1` [NEXT], `8.3.2` – `8.3.4`)
   - `8.4` Scalability (`8.4.1` – `8.4.4`)
 
 ### STAGE 9 — DEVELOPER AND AI AGENT INTEGRATIONS

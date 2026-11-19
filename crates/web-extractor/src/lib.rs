@@ -38,11 +38,15 @@ pub use browser::{
 };
 pub use compression::{BodyLimits, BoundedDecompressor, ContentEncoding};
 pub use crawler::{
-    CrawlBudgetStats, CrawlDecision, CrawlRejectionReason, CrawlRestrictions,
-    CrawlRestrictionsEvaluator, CrawlScope, DiscoveredInternalLink, InternalLinkDiscoverer,
-    InternalLinkDiscoveryConfig, PageLinkDiscoveryReport, QueryParamPolicy,
-    ABSOLUTE_MAX_CRAWL_DEPTH, DEFAULT_MAX_CRAWL_DEPTH, DEFAULT_MAX_CRAWL_PAGES,
-    DEFAULT_MAX_LINKS_PER_PAGE, MAX_CONTEXT_SNIPPET_LEN,
+    CanonicalUrlNormalizerConfig, CrawlBudgetStats, CrawlDecision, CrawlFrontier,
+    CrawlLoopDetector, CrawlQueueItem, CrawlRejectionReason, CrawlRestrictions,
+    CrawlRestrictionsEvaluator, CrawlScope, CrawlTrapReason, CrawlerUrlNormalizer,
+    DiscoveredInternalLink, FrontierEnqueueDecision, FrontierStats, InternalLinkDiscoverer,
+    InternalLinkDiscoveryConfig, LoopDetectorConfig, PageLinkDiscoveryReport, QueryParamPolicy,
+    ABSOLUTE_MAX_CRAWL_DEPTH, DEFAULT_INDEX_FILENAMES, DEFAULT_MAX_CRAWL_DEPTH,
+    DEFAULT_MAX_CRAWL_PAGES, DEFAULT_MAX_LINKS_PER_PAGE, DEFAULT_MAX_PATH_SEGMENTS,
+    DEFAULT_MAX_QUERY_KEY_REPEATS, DEFAULT_MAX_QUERY_PARAMS, DEFAULT_MAX_REDIRECT_CHAIN_LEN,
+    DEFAULT_MAX_SEGMENT_REPEATS, MAX_CONTEXT_SNIPPET_LEN,
 };
 pub use dedup::{
     CanonicalResolution, CanonicalSource, CanonicalUrlResolver, DedupOptions,
