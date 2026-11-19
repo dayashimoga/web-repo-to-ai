@@ -6,6 +6,38 @@
 
 ## [Unreleased] — Stage 9: Developer and AI Agent Integrations
 
+### 2026-11-19 — Phase 9.2: CLI (`9.2.1`)
+
+#### Added
+- **`[9.2.1]` URL conversion commands in `crates/cli`:**
+  - Scaffolded new workspace crate `crates/cli` (`web-repo-to-ai-cli`) with dual binaries: `web-repo-to-ai` (primary) and `web-repo-to-ai-cli` (alias).
+  - Implemented `clap`-based CLI argument parsing in `crates/cli/src/args.rs`:
+    - Root parser `Cli` with global flags (`--verbose`, `--quiet`, `--json`, `--config`).
+    - Subcommand `Commands::Url(UrlArgs)` accepting positional `url`, `-o, --output` (path or `-` for stdout), `-f, --format` (`markdown`, `txt`, `json`, `html`, `jsonl`, `zip`, `manifest`, `checksums`), `-b, --budget` (tokens ceiling, default 160,000), `-m, --model` (default `cl100k_base`), `--no-optimize`, `--timeout` (default 30s), `--user-agent`, `--api-url`, and `--api-key`.
+    - Strongly-typed `OutputFormat` enum with extension mappings and binary classification.
+  - Implemented Unix-compliant I/O and status writing in `crates/cli/src/output.rs`:
+    - `OutputWriter`: strict separation where artifact content is directed exclusively to stdout (or file), while status, progress, and diagnostics are sent to stderr.
+    - `CliJsonEnvelope`: structured JSON metadata output when `--json` is specified, reporting `success`, `url`, `format`, `tokens`, `bytes`, `duration_ms`, `output_path`, and `content`/`error`.
+  - Implemented error handling and deterministic exit codes in `crates/cli/src/error.rs`:
+    - Exit code `0`: Success.
+    - Exit code `1`: Validation error / invalid arguments / malformed URL / file I/O failure.
+    - Exit code `2`: Security violation / SSRF loopback/private/metadata IP block / DNS resolution failure / blocked network port.
+    - Exit code `3`: Content extraction failure / HTTP non-200 status / remote API error.
+    - Exit code `4`: Token budget or payload size limit exceeded.
+  - Implemented URL execution engine in `crates/cli/src/commands/url.rs`:
+    - Local headless conversion mode: In-process acquisition via `WebFetcher` and `SecureDnsResolver`, article extraction via `ArticleExtractor` with `DomParser` fallback, CDM v1.0 document construction via `CdmDocumentBuilder` and `CdmSectionBuilder`, deterministic document normalization via `DocumentNormalizer`, token counting and budget optimization via `ContextBudgetOptimizer`, and artifact export via `web-repo-to-ai-exporters`.
+    - Remote API client mode: When `--api-url` is specified, dispatches job submission (`POST /api/v1/jobs`), polls execution status (`GET /api/v1/jobs/:id`), downloads artifact (`GET /api/v1/jobs/:id/artifacts/:format`), and writes payload.
+  - Authored comprehensive integration test suite in `crates/cli/tests/url_command_test.rs`:
+    - `test_cli_help_and_version`: Validates `--help`, `url --help`, and `--version`.
+    - `test_invalid_args_and_validation_errors`: Validates missing URL, unsupported formats, forbidden schemes (`ftp://`), and malformed URL syntax trigger exit code 1.
+    - `test_security_ssrf_blocking_exit_code`: Validates loopback (`127.0.0.1`), private IP (`192.168.1.1`), cloud metadata (`169.254.169.254`), and dangerous ports (SSH 22) trigger exit code 2.
+    - `test_local_url_conversion_stdout_markdown`: Validates local headless conversion to stdout with clean markdown and zero stderr pollution.
+    - `test_local_url_conversion_multi_format_file_outputs`: Validates all 8 formats (`markdown`, `txt`, `json`, `html`, `jsonl`, `zip`, `manifest`, `checksums`) write non-empty, schema-valid files to disk.
+    - `test_budget_optimization_and_no_optimize_flag`: Validates token budget optimization and bypass via `--no-optimize`.
+    - `test_json_execution_envelope`: Validates structured `--json` execution envelope format.
+    - `test_verbose_and_quiet_flags`: Validates `-v` and `-q` CLI execution.
+  - Verified 8 CLI tests, 578 workspace tests, zero clippy warnings, zero fmt diffs, cargo deny clean, and 100% passing quality gates (5/5).
+
 ### 2026-11-19 — Phase 9.1: REST API (`9.1.4` & Phase 9.1 Certification)
 
 #### Added

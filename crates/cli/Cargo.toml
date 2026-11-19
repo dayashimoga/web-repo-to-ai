@@ -1,0 +1,45 @@
+[package]
+name = "web-repo-to-ai-cli"
+description = "Command-line interface (CLI) for web-repo-to-ai Universal URL & GitHub to AI converter"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[lib]
+name = "web_repo_to_ai_cli"
+path = "src/lib.rs"
+
+[[bin]]
+name = "web-repo-to-ai"
+path = "src/main.rs"
+
+[[bin]]
+name = "web-repo-to-ai-cli"
+path = "src/bin/alias.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+web-repo-to-ai-core = { workspace = true }
+web-repo-to-ai-cdm = { workspace = true }
+web-repo-to-ai-url-security = { workspace = true }
+web-repo-to-ai-web-extractor = { workspace = true }
+web-repo-to-ai-normalizer = { workspace = true }
+web-repo-to-ai-deduplication = { workspace = true }
+web-repo-to-ai-tokenizer = { workspace = true }
+web-repo-to-ai-context-optimizer = { workspace = true }
+web-repo-to-ai-exporters = { workspace = true }
+web-repo-to-ai-observability = { workspace = true }
+clap = { workspace = true }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "io-std", "io-util"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+url = { workspace = true }
+reqwest = { workspace = true, features = ["json"] }
+chrono = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true, features = ["env-filter", "fmt"] }

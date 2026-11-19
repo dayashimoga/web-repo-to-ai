@@ -5126,4 +5126,59 @@
   - Any attempt to define write or admin permissions triggers explicit rejection.
   - Secrets are completely masked in `Debug` and `Display` representations.
   - Environment loader correctly parses and validates real or simulated GitHub App credentials.
-... [truncated for diff preview]
+---
+
+### Stage 9 — Developer and AI Agent Integrations
+
+#### Phase 9.2 — CLI
+
+#### Subphase `9.2.1` — URL conversion commands in crates/cli
+- **Unique ID:** `9.2.1`
+- **Objective:** Deliver the primary CLI URL conversion commands in `crates/cli`, supporting dual-mode execution (local headless extraction and remote API client mode via `--api-url`), strict Unix stdout/stderr channel separation, deterministic exit codes (0..4), multi-format artifact generation, context token budgeting, and structured JSON execution metadata envelopes.
+- **Scope:** `crates/cli`, `Cargo.toml`, `Cargo.lock`.
+- **Prerequisites:** Phase 9.1 Certified.
+- **Files/Components Affected:**
+  - `crates/cli/Cargo.toml`
+  - `crates/cli/src/lib.rs`
+  - `crates/cli/src/main.rs`
+  - `crates/cli/src/bin/alias.rs`
+  - `crates/cli/src/args.rs`
+  - `crates/cli/src/output.rs`
+  - `crates/cli/src/error.rs`
+  - `crates/cli/src/commands/mod.rs`
+  - `crates/cli/src/commands/url.rs`
+  - `crates/cli/tests/url_command_test.rs`
+  - `Cargo.toml`, `Cargo.lock`
+- **Implementation Tasks:**
+  1. Scaffold `crates/cli` in `[workspace.members]` and root dependencies (`clap` with derive/env features).
+  2. Define strongly-typed CLI arguments in `crates/cli/src/args.rs`:
+     - Global flags: `--verbose`, `--quiet`, `--json`, `--config`.
+     - Subcommand: `Commands::Url(UrlArgs)`.
+     - Options: `url`, `--output`, `--format` (8 formats), `--budget`, `--model`, `--no-optimize`, `--timeout`, `--user-agent`, `--api-url`, `--api-key`.
+  3. Implement Unix channel separation in `crates/cli/src/output.rs`:
+     - Content output strictly to stdout or designated file.
+     - Logs, progress, and status strictly to stderr.
+     - Structured `CliJsonEnvelope` when `--json` is active.
+  4. Implement deterministic exit code mapping in `crates/cli/src/error.rs`:
+     - 0: Success.
+     - 1: Validation / args / syntax / file I/O.
+     - 2: Security / SSRF / DNS failure / blocked port.
+     - 3: Extraction failure / non-200 HTTP status / remote API error.
+     - 4: Token budget / size ceiling exceeded.
+  5. Implement local headless & remote execution engines in `crates/cli/src/commands/url.rs`:
+     - Local mode: `WebFetcher` + `ArticleExtractor` + `CdmDocumentBuilder` + `DocumentNormalizer` + `ContextBudgetOptimizer` + `Multi-Format Exporters`.
+     - Remote mode: `reqwest` client invoking `POST /api/v1/jobs`, status polling, and artifact retrieval.
+  6. Author 8 comprehensive integration tests in `crates/cli/tests/url_command_test.rs`.
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-cli`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - All 8 CLI integration tests pass cleanly.
+  - Multi-format file export generates non-empty, schema-valid files for all 8 formats.
+  - SSRF attacks against loopback, private IP, metadata IP, and blocked ports return exit code 2.
+  - Unix channel separation is maintained.
+  - Monorepo gates pass with 0 warnings and 0 failures.
+- **Status:** `ACCEPTED`
