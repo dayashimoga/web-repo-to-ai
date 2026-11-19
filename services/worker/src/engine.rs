@@ -12,6 +12,10 @@ use tokio_util::sync::CancellationToken;
 use tracing::{info, instrument};
 use web_repo_to_ai_core::error::CoreError;
 use web_repo_to_ai_core::id::BatchId;
+use web_repo_to_ai_job_engine::executor::BoundedParallelExecutor;
+use web_repo_to_ai_job_engine::incremental::{
+    FileSignature, IncrementalCandidate, IncrementalExecutionReport, IncrementalJobCoordinator,
+};
 use web_repo_to_ai_job_engine::models::{
     BatchExecutionSummary, BatchItemTask, BatchProgressUpdate,
 };
@@ -162,6 +166,84 @@ impl WorkerEngine {
         );
 
         Ok(summary)
+    }
+
+    /// Executes an incremental batch of tasks comparing current candidates against a baseline manifest.
+    ///
+    /// Unchanged items bypass execution and are resolved directly via `reuse_resolver`,
+    /// while added or modified items are executed concurrently within the worker's bounded concurrency ceiling.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CoreError`] if the worker is shutting down or incremental setup/execution fails.
+    #[instrument(skip(self, candidates, baseline, processor, reuse_resolver), fields(worker_id = %self.config.worker_id, total_candidates = candidates.len()))]
+    pub async fn execute_incremental_batch<T, R, FP, FR, FutP, FutR>(
+        &self,
+        batch_id: BatchId,
+        candidates: Vec<IncrementalCandidate<T>>,
+        baseline: &[FileSignature],
+        requested_parallelism: Option<usize>,
+        processor: FP,
+        reuse_resolver: FR,
+    ) -> Result<IncrementalExecutionReport<R>, CoreError>
+    where
+        T: Send + Sync + Clone + 'static,
+        R: Send + Sync + Clone + 'static,
+        FP: Fn(BatchItemTask<T>) -> FutP + Send + Sync + Clone + 'static,
+        FutP: Future<Output = Result<R, String>> + Send + 'static,
+        FR: Fn(&FileSignature) -> FutR + Send + Sync + 'static,
+        FutR: Future<Output = Result<R, String>> + Send + 'static,
+    {
+        if self.is_shutting_down() {
+            return Err(CoreError::JobEngine(
+                "Worker daemon is shutting down; incremental operation rejected".to_string(),
+            ));
+        }
+
+        let parallelism = requested_parallelism
+            .unwrap_or(self.config.default_batch_parallelism)
+            .clamp(1, self.config.max_concurrent_jobs);
+
+        let lease_secs = u64::from(self.config.lease_duration_seconds);
+        let exec_config =
+            web_repo_to_ai_job_engine::config::BatchExecutionConfig::with_parallelism(parallelism)
+                .map(|c| {
+                    c.with_batch_timeout(std::time::Duration::from_secs(lease_secs * 2))
+                        .with_item_timeout(std::time::Duration::from_secs(lease_secs))
+                })
+                .map_err(|e| CoreError::Validation {
+                    field: "exec_config".to_string(),
+                    reason: e.to_string(),
+                })?;
+
+        let executor = BoundedParallelExecutor::new(exec_config)
+            .map_err(|e| CoreError::JobEngine(e.to_string()))?;
+
+        let coordinator = IncrementalJobCoordinator::new(executor);
+
+        let report = coordinator
+            .execute_incremental(batch_id, candidates, baseline, processor, reuse_resolver)
+            .await
+            .map_err(|e| CoreError::JobEngine(e.to_string()))?;
+
+        self.metrics.record_batch_completed();
+        self.metrics
+            .record_item_outcome(report.processed_count, report.failed_count, 0, 0);
+        self.metrics
+            .record_incremental_reuse(report.reused_count, report.reused_bytes);
+
+        info!(
+            %batch_id,
+            total_candidates = report.total_candidates,
+            reused = report.reused_count,
+            processed = report.processed_count,
+            failed = report.failed_count,
+            cache_hit_ratio = report.cache_hit_ratio,
+            reused_bytes = report.reused_bytes,
+            "Worker engine incremental batch execution finished"
+        );
+
+        Ok(report)
     }
 
     /// Runs the worker background daemon loop until a shutdown signal is observed.

@@ -7815,16 +7815,93 @@
 
 ---
 
+#### Subphase `8.3.4` — Changed-file processing in crates/job-engine & services/worker
+- **Unique ID:** `8.3.4`
+- **Objective:** Implement differential file analysis, manifest change classification (`Unchanged`, `Added`, `Modified`, `Deleted`), and bounded incremental execution coordination in `crates/job-engine` and `services/worker`. Ensure unchanged files completely bypass re-processing and are resolved directly from cache/CAS, while changed files are scheduled through the bounded worker pool with conservation verification and atomic metric accounting.
+- **Scope:** `crates/job-engine/src/incremental.rs`, `crates/job-engine/src/lib.rs`, `crates/job-engine/tests/incremental_processing_test.rs`, `services/worker/src/metrics.rs`, `services/worker/src/engine.rs`, `services/worker/tests/worker_incremental_test.rs`.
+- **Prerequisites:** `8.3.3` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/job-engine/src/incremental.rs`
+  - `crates/job-engine/src/lib.rs`
+  - `crates/job-engine/tests/incremental_processing_test.rs`
+  - `services/worker/src/metrics.rs`
+  - `services/worker/src/engine.rs`
+  - `services/worker/tests/worker_incremental_test.rs`
+- **Implementation Tasks:**
+  1. Author `crates/job-engine/src/incremental.rs`:
+     - Define `FileSignature`: path, BLAKE3 digest, byte size, optional last modified timestamp.
+     - Define `ChangeCategory`: `Unchanged`, `Added`, `Modified`, `Deleted`.
+     - Define `ClassifiedChange`: file path paired with change category and optional old/new signatures.
+     - Implement `ChangedFileDiff` $O(N)$ differential analysis comparing base manifest vs target manifest with mathematical balance invariants (`base_total == unchanged + modified + deleted`, `target_total == unchanged + added + modified`).
+     - Define `IncrementalCandidate<T>`, `ReusedItem<R>`, and `IncrementalExecutionReport<R>` with cache hit ratio, bytes saved, and conservation verification (`total == reused + processed + failed`).
+     - Implement `IncrementalJobCoordinator`: coordinator running bounded parallel execution (`BoundedParallelExecutor`) exclusively on changed items (`Added` + `Modified`) while routing `Unchanged` items directly to the reuse resolver.
+  2. Extend `services/worker/src/metrics.rs`:
+     - Add atomic counters `incremental_items_reused` and `incremental_bytes_saved` to `WorkerMetrics` and `WorkerMetricsSnapshot`.
+     - Implement `record_incremental_reuse` method.
+  3. Extend `services/worker/src/engine.rs`:
+     - Implement `WorkerEngine::execute_incremental_batch` executing incremental tasks within worker concurrency limits and progress dispatch.
+  4. Author integration tests:
+     - `crates/job-engine/tests/incremental_processing_test.rs`: 4 comprehensive tests validating diff classification, zero-change execution, partial changed execution, failure tolerance, and conservation invariants.
+     - `services/worker/tests/worker_incremental_test.rs`: integration test validating worker incremental batch execution and telemetry counters.
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-job-engine`
+  - `cargo test -p web-repo-to-ai-worker`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell -ExecutionPolicy Bypass -File scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - Manifest diffing classifies changes into `Unchanged`, `Added`, `Modified`, and `Deleted` with $O(N)$ complexity and strict balance invariants.
+  - Unchanged files are routed directly to the reuse resolver without redundant re-processing or worker pool saturation.
+  - Changed items execute via bounded parallel execution with error isolation.
+  - Conservation invariant ($\text{total} == \text{reused} + \text{processed} + \text{failed}$) is strictly verified in `IncrementalExecutionReport`.
+  - Worker telemetry tracks `incremental_items_reused` and `incremental_bytes_saved`.
+  - 100% test pass rate across job-engine (19/19) and worker (16/16), zero clippy warnings, zero formatting diffs, cargo deny clean, and all 5 check-all gates pass.
+- **Risk Analysis:**
+  - Risk: Silent file drops or duplicate emissions during partial failures in incremental runs.
+  - Mitigation: Mathematical conservation check in `IncrementalExecutionReport::conservation_verified()` asserts zero unaccounted items; failure in individual items does not abort reuse of unchanged items.
+- **Rollback Plan:**
+  - Revert Subphase 8.3.4 additions via Git reset to commit `ac5ed0c`.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-job-engine`: 19 passed; 0 failed (15 unit, 4 incremental_processing_test).
+  - `cargo test -p web-repo-to-ai-worker`: 16 passed; 0 failed (9 lib unit, 1 main unit, 5 bounded_parallel_worker_test, 1 worker_incremental_test).
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings across all workspace targets.
+  - `cargo fmt --all -- --check`: formatting clean across workspace.
+  - `cargo deny check`: advisories ok, bans ok, licenses ok, sources ok.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures) across Bootstrap/Governance, Workflows, Rust Workspace (524 tests passed), Frontend Web (17 files, 213 passing vitest tests), and Resource Budget (Podman storage 0 B / 30 GB, 0%).
+- **Git Commit Reference:** `3ac5100`
+- **Status:** `ACCEPTED`
+
+---
+
+### PHASE 8.3 FORMAL CERTIFICATION
+
+- **Stage:** `STAGE 8 — LARGE REPOSITORIES, BATCH AND CRAWLING`
+- **Phase:** `Phase 8.3 — Incremental processing`
+- **Subphases Certified (4 of 4):**
+  - `8.3.1` (HTTP validators in crates/storage and crates/web-extractor) — `ACCEPTED`
+  - `8.3.2` (Git commit/blob caching in crates/storage and crates/github-extractor) — `ACCEPTED`
+  - `8.3.3` (Content-addressed storage in crates/storage) — `ACCEPTED`
+  - `8.3.4` (Changed-file processing in crates/job-engine & services/worker) — `ACCEPTED`
+- **Phase Deliverables Achieved:**
+  - RFC 7232/7231 HTTP validator caching, conditional headers (`If-None-Match`, `If-Modified-Since`), HTTP 304 Not Modified zero-download handling, and persistent PostgreSQL cache repository.
+  - Relational Git commit and blob persistence (`git_commit_cache`, `git_blob_cache`), tree diff classification (`TreeIncrementalDiff`), and cache-aware blob streaming (`IncrementalBlobExtractor`).
+  - Unified Content-Addressed Storage (`ContentAddressedStorage`, `CasEngine`) with dual cryptographic hashing (BLAKE3 + SHA-256), sharded key layout, deduplication detection, on-read corruption detection, and LRU pruning.
+  - Differential manifest change classification, bounded incremental parallel execution coordinator (`IncrementalJobCoordinator`), and worker incremental batch execution with conservation guarantees and telemetry metrics.
+- **Verification Summary:** All unit, integration, and monorepo quality gates passed with 0 warnings, 0 errors, and 0 failures.
+
+---
+
 ### Upcoming Subphase (Stage 8 — Large Repositories, Batch and Crawling)
 
-#### Phase 8.3 — Incremental processing
+#### Phase 8.4 — Scalability
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `8.3.4` | Changed-file processing | `8.3.3` (`ACCEPTED`) | `crates/job-engine/*`, `services/worker/*` | `NOT_STARTED` |
+| `8.4.1` | Adaptive concurrency | `8.3.4` (`ACCEPTED`) | `crates/job-engine/*`, `services/worker/*` | `NOT_STARTED` |
 
 ---
 
 ## STAGES 8 – 11 QUEUED LEDGER SUMMARY
 
-All subsequent subphases for **Stage 8** (`8.3.4`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.
+All subsequent subphases for **Stage 8** (`8.4.1`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.

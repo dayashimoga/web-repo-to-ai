@@ -12,6 +12,7 @@
 pub mod config;
 pub mod error;
 pub mod executor;
+pub mod incremental;
 pub mod models;
 pub mod pool;
 
@@ -22,6 +23,10 @@ pub use config::{
 };
 pub use error::JobEngineError;
 pub use executor::BoundedParallelExecutor;
+pub use incremental::{
+    ChangeCategory, ChangedFileDiff, ClassifiedChange, FileSignature, IncrementalCandidate,
+    IncrementalExecutionReport, IncrementalJobCoordinator, ReusedItem,
+};
 pub use models::{
     BatchExecutionSummary, BatchItemExecutionResult, BatchItemStatusOutcome, BatchItemTask,
     BatchProgressUpdate,

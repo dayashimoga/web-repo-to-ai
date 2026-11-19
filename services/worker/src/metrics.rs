@@ -18,6 +18,8 @@ pub struct WorkerServiceMetrics {
     items_cancelled: Arc<AtomicUsize>,
     active_jobs: Arc<AtomicUsize>,
     peak_concurrency: Arc<AtomicUsize>,
+    incremental_items_reused: Arc<AtomicUsize>,
+    incremental_bytes_saved: Arc<AtomicUsize>,
 }
 
 /// Serializable snapshot of worker metrics.
@@ -39,6 +41,10 @@ pub struct WorkerMetricsSnapshot {
     pub active_jobs: usize,
     /// Highest concurrency level observed simultaneously.
     pub peak_concurrency: usize,
+    /// Total items reused from cache during incremental processing.
+    pub incremental_items_reused: usize,
+    /// Total bytes saved through incremental reuse.
+    pub incremental_bytes_saved: usize,
 }
 
 impl WorkerServiceMetrics {
@@ -88,6 +94,14 @@ impl WorkerServiceMetrics {
         }
     }
 
+    /// Records incremental cache reuse savings.
+    pub fn record_incremental_reuse(&self, reused_count: usize, bytes_saved: u64) {
+        self.incremental_items_reused
+            .fetch_add(reused_count, Ordering::Relaxed);
+        self.incremental_bytes_saved
+            .fetch_add(bytes_saved as usize, Ordering::Relaxed);
+    }
+
     /// Produces an immutable metrics snapshot.
     #[must_use]
     pub fn snapshot(&self) -> WorkerMetricsSnapshot {
@@ -100,6 +114,8 @@ impl WorkerServiceMetrics {
             items_cancelled: self.items_cancelled.load(Ordering::Relaxed),
             active_jobs: self.active_jobs.load(Ordering::Relaxed),
             peak_concurrency: self.peak_concurrency.load(Ordering::Relaxed),
+            incremental_items_reused: self.incremental_items_reused.load(Ordering::Relaxed),
+            incremental_bytes_saved: self.incremental_bytes_saved.load(Ordering::Relaxed),
         }
     }
 }
@@ -113,6 +129,7 @@ mod tests {
         let metrics = WorkerServiceMetrics::new();
         metrics.record_batch_completed();
         metrics.record_item_outcome(4, 1, 1, 0);
+        metrics.record_incremental_reuse(5, 10240);
         metrics.update_active_workers(3);
 
         let snap = metrics.snapshot();
@@ -124,5 +141,7 @@ mod tests {
         assert_eq!(snap.items_cancelled, 0);
         assert_eq!(snap.active_jobs, 3);
         assert_eq!(snap.peak_concurrency, 3);
+        assert_eq!(snap.incremental_items_reused, 5);
+        assert_eq!(snap.incremental_bytes_saved, 10240);
     }
 }

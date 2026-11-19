@@ -6,6 +6,32 @@
 
 ## [Unreleased] — Stage 8: Large Repositories, Batch and Crawling
 
+### 2026-11-19 — Phase 8.3: Incremental Processing (`8.3.4`) & Phase 8.3 Formal Certification
+
+#### Added
+- **`[8.3.4]` Changed-File Processing & Incremental Execution in `crates/job-engine` and `services/worker`:**
+  - Implemented domain models and manifest diffing algorithms in `crates/job-engine/src/incremental.rs`:
+    - `FileSignature`: path, BLAKE3 digest, byte size, and optional last modified timestamp.
+    - `ChangeCategory`: `Unchanged`, `Added`, `Modified`, `Deleted`.
+    - `ClassifiedChange`: file path paired with change category and optional old/new signatures.
+    - `ChangedFileDiff`: $O(N)$ differential analysis comparing base manifest vs target manifest with mathematical balance invariant (`base_total == unchanged + modified + deleted`, `target_total == unchanged + added + modified`).
+    - `IncrementalCandidate<T>`: wraps candidate payload with classification metadata.
+    - `ReusedItem<R>`: represents directly cached/reused artifact bypassing re-computation.
+    - `IncrementalExecutionReport<R>`: execution summary with cache hit ratio, bytes saved, and mathematical conservation verification (`total == reused + processed + failed`).
+    - `IncrementalJobCoordinator`: coordinator running bounded parallel execution exclusively on changed items (`Added` + `Modified`) while routing `Unchanged` items directly to the reuse resolver.
+  - Extended worker execution engine and metrics in `services/worker`:
+    - `WorkerMetrics`: added atomic counters and snapshots for `incremental_items_reused` and `incremental_bytes_saved` (`record_incremental_reuse`).
+    - `WorkerEngine::execute_incremental_batch`: integrated incremental processing within worker concurrency limits and progress dispatch.
+  - Comprehensive integration test suites:
+    - `crates/job-engine/tests/incremental_processing_test.rs`: 4 integration tests validating manifest diffing, zero-change execution, partial changed execution, failure tolerance, and conservation invariants.
+    - `services/worker/tests/worker_incremental_test.rs`: integration test validating worker incremental batch execution and telemetry counters.
+  - 100% passing quality gates: 19 job-engine tests, 16 worker tests, zero clippy warnings, zero fmt diffs, cargo deny clean, and 5/5 check-all gates passed.
+
+#### Certified
+- **Phase 8.3 — Incremental processing (100% COMPLETED & FORMALLY CERTIFIED):**
+  - All 4 subphases (`8.3.1`, `8.3.2`, `8.3.3`, `8.3.4`) delivered, verified, and accepted.
+  - Next upcoming phase: `Phase 8.4 — Scalability` (`8.4.1 — Adaptive concurrency`).
+
 ### 2026-11-19 — Phase 8.3: Incremental Processing (`8.3.3`)
 
 #### Added
