@@ -6,6 +6,20 @@
 
 ## [Unreleased] — Stage 9: Developer and AI Agent Integrations
 
+### 2026-11-19 — Phase 9.1: REST API (`9.1.4` & Phase 9.1 Certification)
+
+#### Added
+- **`[9.1.4]` API Integration Tests & Phase 9.1 Certification in `services/api`:**
+  - Authored comprehensive end-to-end integration test suite in `services/api/tests/api_integration_test.rs`:
+    - `test_e2e_single_job_lifecycle_preview_events_and_artifacts`: Single job submission (`POST /api/v1/jobs`), pre-conversion 404 guard, CDM document storage seeding, preview generation (`GET /api/v1/jobs/:id/preview`) with file filtering and JSON override, SSE real-time event streaming (`GET /api/v1/jobs/:id/events` and `/stream`) emitting `phase`, `completeness`, `tokens`, `artifact`, and `done` events, and artifact streaming across all supported formats (`markdown`, `txt`, `json`, `html`, `jsonl`, `zip`, `manifest`, `checksums`) validating content types, headers, and ZIP signatures.
+    - `test_e2e_batch_job_submission_tracking_export_and_cancellation`: Multi-URL batch submission (`POST /api/v1/jobs/batch`), batch query (`GET /api/v1/jobs/batch/:id`), items list query (`GET /api/v1/jobs/batch/:id/items`), individual item query (`/items/:idx`), CDM completion seeding, consolidated multi-format exports (`markdown`, `json`, `jsonl`, `txt`, `zip`), batch artifact descriptor listing (`/artifacts`), batch cancellation (`POST /api/v1/jobs/batch/:id/cancel`), and batch listing (`GET /api/v1/jobs/batch`).
+    - `test_source_detection_and_classification_endpoints`: URL pre-validation and classification (`POST /api/v1/sources/detect`) across web pages, public GitHub repositories, and repository subtrees.
+    - `test_system_telemetry_health_and_root_endpoints`: Root landing descriptor (`GET /`), liveness probe (`GET /api/v1/health`), readiness probe with subsystem status evaluation (`GET /api/v1/ready`), and Prometheus telemetry exposition (`GET /api/v1/metrics`).
+    - `test_tenant_isolation_boundary_anti_enumeration`: Cross-tenant authorization boundaries, session isolation, and anti-enumeration 404 responses for API keys and jobs.
+    - `test_rfc7807_error_fidelity_and_validation`: RFC 7807 problem details validation on malformed UUIDs, unsupported export formats, and fallback routes.
+  - Formally certified **Phase 9.1: REST API** (`9.1.1` – `9.1.4` all `ACCEPTED`).
+  - 100% passing quality gates: 107 API tests, 570 workspace tests, zero clippy warnings, zero fmt diffs, cargo deny clean, and 5/5 check-all gates passed.
+
 ### 2026-11-19 — Phase 9.1: REST API (`9.1.3`)
 
 #### Added
