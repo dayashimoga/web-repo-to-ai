@@ -14,6 +14,7 @@
 pub mod article;
 pub mod browser;
 pub mod compression;
+pub mod crawler;
 pub mod dedup;
 pub mod docs;
 pub mod dom;
@@ -36,6 +37,10 @@ pub use browser::{
     DEFAULT_CLIENT_TIMEOUT, DEFAULT_MIN_CONTENT_DENSITY, DEFAULT_MIN_STATIC_TEXT_LENGTH,
 };
 pub use compression::{BodyLimits, BoundedDecompressor, ContentEncoding};
+pub use crawler::{
+    DiscoveredInternalLink, InternalLinkDiscoverer, InternalLinkDiscoveryConfig,
+    PageLinkDiscoveryReport, DEFAULT_MAX_LINKS_PER_PAGE, MAX_CONTEXT_SNIPPET_LEN,
+};
 pub use dedup::{
     CanonicalResolution, CanonicalSource, CanonicalUrlResolver, DedupOptions,
     DuplicateClassification, DuplicateRecord, DuplicateRegistry, SimHasher,

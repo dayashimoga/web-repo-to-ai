@@ -6,6 +6,30 @@
 
 ## [Unreleased] — Stage 8: Large Repositories, Batch and Crawling
 
+### 2026-11-19 — Phase 8.2: Website Crawling (`8.2.2`)
+
+#### Added
+- **`[8.2.2]` Internal Hyperlink Discovery and Classification Engine in `crates/web-extractor`:**
+  - Implemented internal link domain models in `crates/web-extractor/src/crawler/links.rs`:
+    - `DiscoveredInternalLink`: fully resolved and normalized destination `url`, `source_url`, normalized `anchor_text`, optional `title`, whitespace-split `rel` token list, boolean flags `is_content_link` and `is_pagination`, and `context_snippet`.
+    - `InternalLinkDiscoveryConfig`: builder methods and flags for `strip_fragments`, `strip_tracking_params`, `exclude_assets`, `respect_nofollow`, `allow_subdomains`, `max_links_per_page`, `extract_context_snippets`.
+    - `PageLinkDiscoveryReport`: resolved destination URLs, counts for external links, assets, anchors, filtered SSRF violations, dropped nofollow links, and diagnostic warnings.
+  - Implemented `InternalLinkDiscoverer` engine:
+    - HTML `<base href="...">` resolution overriding document source URL.
+    - Top-down DOM parent-map hierarchy indexing (`build_parent_map`) for semantic ancestor traversal.
+    - Content vs boilerplate navigation detection (`is_content_area_link`) penalizing `<nav>`, `<header>`, `<footer>`, `<aside>`, and navigation classes, while promoting `<main>`, `<article>`, and content classes.
+    - Pagination link detection (`is_pagination_link`) via `rel="next/prev"`, pagination classes, and directional text tokens (`Next Page`, `«`, `»`, `Older`, etc.).
+    - Surrounding sentence context snippet extraction (`extract_surrounding_context`) bounded by 140 characters.
+    - URL normalization: in-page fragment stripping (`#section`) and marketing tracking query parameter stripping (`utm_*`, `fbclid`, `gclid`, `ref`, etc.) using `url::form_urlencoded` while preserving functional query parameters.
+    - Asset file extension filtering against `ASSET_EXTENSIONS` (`.pdf`, `.zip`, `.png`, etc.).
+    - Subdomain policy filtering (`allow_subdomains`).
+    - `rel="nofollow"` policy enforcement (`respect_nofollow`).
+    - Zero-Trust SSRF security validation via `ValidatedUrl::parse(url, &policy)`.
+    - Deterministic 3-tier priority sorting: Tier 0 (primary content links), Tier 1 (pagination transitions), Tier 2 (boilerplate navigation), tied on alphabetical URL.
+  - Wired crawler module into `crates/web-extractor/src/crawler/mod.rs` and re-exported types in `crates/web-extractor/src/lib.rs`.
+  - Authored 14 comprehensive integration test suites in `crates/web-extractor/tests/internal_link_discovery_test.rs` validating basic link resolution, base tag overrides, boilerplate classification, pagination detection, asset filtering, fragment stripping, tracking parameter stripping, subdomain policies, nofollow policies, zero-trust SSRF rejection, link capping, context snippet extraction, priority sorting, and end-to-end mock HTTP discovery.
+  - 100% passing quality gates: 171 web-extractor tests passed, zero clippy warnings, zero fmt diffs, cargo deny passed, and 5/5 check-all gates passed.
+
 ### 2026-11-19 — Phase 8.2: Website Crawling (`8.2.1`)
 
 #### Added

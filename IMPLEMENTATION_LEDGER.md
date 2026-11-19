@@ -7426,10 +7426,82 @@
 
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `8.2.2` | Internal link discovery in crates/web-extractor | `8.2.1` (`ACCEPTED`) | `crates/web-extractor/*` | `NOT_STARTED` |
+| `8.2.2` | Internal link discovery in crates/web-extractor | `8.2.1` (`ACCEPTED`) | `crates/web-extractor/*` | `IN_PROGRESS` |
+
+---
+
+### Subphase `8.2.2` — Internal link discovery in crates/web-extractor
+- **Unique ID:** `8.2.2`
+- **Objective:** Implement automated discovery, normalization, semantic classification, and SSRF security validation of internal hyperlinks from HTML documents during website crawling in `crates/web-extractor`. Support `<base href="...">` resolution, in-page anchor fragment stripping, marketing tracking parameter stripping (`utm_*`, `fbclid`, etc.), asset exclusion (`.pdf`, `.zip`, etc.), subdomain policies, `rel="nofollow"` respect, and a 3-tier deterministic crawling priority sort (content links first, pagination transitions second, boilerplate navigation third).
+- **Scope:** `crates/web-extractor/src/crawler/links.rs`, `crates/web-extractor/src/crawler/mod.rs`, `crates/web-extractor/src/lib.rs`, `crates/web-extractor/tests/internal_link_discovery_test.rs`.
+- **Prerequisites:** `8.2.1` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/web-extractor/src/crawler/links.rs`
+  - `crates/web-extractor/src/crawler/mod.rs`
+  - `crates/web-extractor/src/lib.rs`
+  - `crates/web-extractor/tests/internal_link_discovery_test.rs`
+- **Implementation Tasks:**
+  1. Define domain models in `crates/web-extractor/src/crawler/links.rs`:
+     - `DiscoveredInternalLink`: fully resolved `url`, `source_url`, normalized `anchor_text`, optional `title`, tokenized `rel` attributes, semantic flags `is_content_link` and `is_pagination`, and `context_snippet`.
+     - `InternalLinkDiscoveryConfig`: `strip_fragments`, `strip_tracking_params`, `exclude_assets`, `respect_nofollow`, `allow_subdomains`, `max_links_per_page`, `extract_context_snippets`.
+     - `PageLinkDiscoveryReport`: resolved destination URLs, counts for external links, assets, anchors, filtered SSRF violations, and dropped nofollow links.
+  2. Implement `InternalLinkDiscoverer`:
+     - Methods `discover_from_url`, `discover_from_html`, and `discover_from_vdom`.
+     - HTML `<base href="...">` resolution overriding document source URL.
+     - Top-down DOM parent-map index construction (`build_parent_map`) for semantic ancestor traversal.
+     - Content vs boilerplate navigation detection (`is_content_area_link`) penalizing `<nav>`, `<header>`, `<footer>`, `<aside>`, and navigation classes, while promoting `<main>`, `<article>`, and content classes.
+     - Pagination link detection (`is_pagination_link`) via `rel="next/prev"`, pagination classes, and directional text tokens.
+     - Surrounding sentence context snippet extraction (`extract_surrounding_context`) up to 140 chars.
+     - Relative link resolution against effective base URL and scheme validation (`http`/`https` only, ignoring special schemes `javascript:`, `mailto:`, `tel:`, `data:`).
+     - Static asset extension filtering against `ASSET_EXTENSIONS`.
+     - Internal host boundary matching with configurable subdomain allowance.
+     - URL normalization: fragment stripping (`#section`) and marketing parameter stripping (`utm_*`, `fbclid`, `gclid`, `ref`, etc.) using `url::form_urlencoded`.
+     - Zero-Trust SSRF and private IP address validation via `ValidatedUrl::parse(url, &policy)`.
+     - Deterministic 3-tier priority sorting: Tier 0 (primary content links), Tier 1 (pagination transitions), Tier 2 (boilerplate navigation), tied on alphabetical URL.
+  3. Wire crawler module into `crates/web-extractor/src/crawler/mod.rs` and re-export types in `crates/web-extractor/src/lib.rs`.
+  4. Author 14 integration test suites in `crates/web-extractor/tests/internal_link_discovery_test.rs` covering basic link resolution, base tag overrides, boilerplate classification, pagination detection, asset filtering, fragment stripping, tracking parameter stripping, subdomain policies, nofollow policies, zero-trust SSRF rejection, link capping, context snippet extraction, priority sorting, and end-to-end mock HTTP discovery.
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-web-extractor`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - Discovered links resolve accurately against `<base href="...">` and document URLs.
+  - Links inside `<main>` and `<article>` are classified as content links; navigation links are classified as boilerplate.
+  - Pagination links (`rel="next/prev"`, `.pagination`, `Next Page`) are classified as pagination.
+  - In-page anchors (`#anchor`) and tracking parameters (`utm_*`, `fbclid`) are normalized without losing functional query parameters.
+  - Static downloadable assets (`.pdf`, `.zip`, etc.) are filtered out when enabled.
+  - Subdomains are partitioned according to `allow_subdomains` policy.
+  - `rel="nofollow"` links are dropped when `respect_nofollow` is enabled.
+  - Loopback and private IP links are rejected by SSRF policies.
+  - 100% of web-extractor tests pass (171/171), workspace clippy is clean, zero fmt diffs, cargo deny clean, and all monorepo gates pass (5/5).
+- **Risk Analysis:**
+  - Risk: Links targeting circular or infinite query tracking variations could cause crawl loops or memory bloat.
+  - Mitigation: URL normalization stripping tracking parameters, deduplication in `HashMap`, and `max_links_per_page` boundary caps.
+- **Rollback Plan:**
+  - Revert Subphase 8.2.2 additions via Git reset to commit `393cf6a`.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-web-extractor`: 171 tests passed (135 unit in `lib.rs`, 8 golden dataset, 14 sitemap discovery, 14 internal link discovery).
+  - `cargo clippy --workspace --all-targets -- -D warnings`: passed with 0 warnings.
+  - `cargo fmt --all -- --check`: verified clean formatting with 0 diffs.
+  - `cargo deny check`: passed (`advisories ok, bans ok, licenses ok, sources ok`).
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures) including 213 frontend vitest tests and 17.6% Podman storage footprint.
+- **Git Commit Reference:** `d7c33fc`
+- **Status:** `ACCEPTED`
+
+---
+
+### Upcoming Subphase (Stage 8 — Large Repositories, Batch and Crawling)
+
+#### Phase 8.2 — Website crawling
+
+| Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| `8.2.3` | Crawl-depth & domain restrictions in crates/web-extractor | `8.2.2` (`ACCEPTED`) | `crates/web-extractor/*` | `NOT_STARTED` |
 
 ---
 
 ## STAGES 8 – 11 QUEUED LEDGER SUMMARY
 
-All subsequent subphases for **Stage 8** (`8.2.2`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.
+All subsequent subphases for **Stage 8** (`8.2.3`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.
