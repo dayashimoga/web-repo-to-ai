@@ -6,6 +6,30 @@
 
 ## [Unreleased] — Stage 8: Large Repositories, Batch and Crawling
 
+### 2026-11-19 — Phase 8.4: Scalability (`8.4.2`)
+
+#### Added
+- **`[8.4.2]` Dual-Watermark Bounded Backpressure & Flow Control in `crates/job-engine` and `services/worker`:**
+  - Implemented backpressure regulation and flow-controlled queue in `crates/job-engine/src/backpressure.rs`:
+    - `BackpressureConfig`: configurable maximum capacity ceiling (`max_buffer_capacity`), dual watermarks (`high_watermark` default 80%, `low_watermark` default 40%), producer timeout, and load-shedding policies.
+    - `LoadSheddingStrategy`: policies for handling buffer saturation (`BlockProducer`, `DropOldest`, `DropNewest`, `RejectWithRetryAfter`).
+    - `BackpressureState`: operational state modeling (`Normal`, `Warning`, `Saturated`).
+    - `BackpressureStats`: point-in-time metrics tracking buffer depth, utilization ratio, total admitted, total drained, producer suspensions, and items shed.
+    - `BackpressureSlot`: RAII permit guard decrementing buffer depth and waking suspended producers via `tokio::sync::Notify` when depth drains below low watermark.
+    - `BackpressureController`: thread-safe coordinator managing admission permits with cooperative cancellation and timeout bounds.
+    - `FlowControlledQueue`: bounded thread-safe FIFO queue decoupling producers from consumers with backpressure flow control.
+    - `BackpressureParallelExecutor`: streaming batch executor maintaining bounded in-flight tasks and backpressure flow control.
+  - Added strongly-typed errors in `crates/job-engine/src/error.rs`:
+    - `JobEngineError::BackpressureQueueSaturated`: raised when buffer depth reaches capacity under rejection load-shedding strategies.
+    - `JobEngineError::BackpressureTimeout`: raised when producer wait duration exceeds configured ceiling.
+  - Extended worker daemon in `services/worker`:
+    - `WorkerServiceMetrics` & `WorkerMetricsSnapshot`: added atomic telemetry counters for `backpressure_events`, `backpressure_items_shed`, and `current_queue_depth` (`record_backpressure_stats`).
+    - `WorkerEngine::execute_flow_controlled_batch`: integrated flow-controlled batch execution within worker bounds and progress dispatch.
+  - Comprehensive integration test suites:
+    - `crates/job-engine/tests/backpressure_test.rs`: 6 tests validating configuration invariants, state transitions, load shedding (`DropNewest`), producer suspension and resume on drain, queue FIFO push/pop semantics, and flow-controlled batch execution.
+    - `services/worker/tests/worker_backpressure_test.rs`: integration test validating worker daemon flow-controlled batch execution and telemetry recording.
+  - 100% passing quality gates: 31 job-engine tests, 18 worker tests, zero clippy warnings, zero fmt diffs, cargo deny clean, and 5/5 check-all gates passed.
+
 ### 2026-11-19 — Phase 8.4: Scalability (`8.4.1`)
 
 #### Added

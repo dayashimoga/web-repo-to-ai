@@ -15,6 +15,7 @@ use web_repo_to_ai_core::id::BatchId;
 use web_repo_to_ai_job_engine::adaptive::{
     AdaptiveConcurrencyConfig, AdaptiveConcurrencyController, AdaptiveParallelExecutor,
 };
+use web_repo_to_ai_job_engine::backpressure::{BackpressureConfig, BackpressureParallelExecutor};
 use web_repo_to_ai_job_engine::executor::BoundedParallelExecutor;
 use web_repo_to_ai_job_engine::incremental::{
     FileSignature, IncrementalCandidate, IncrementalExecutionReport, IncrementalJobCoordinator,
@@ -347,6 +348,98 @@ impl WorkerEngine {
             backoffs = stats.total_backoffs,
             duration_ms = start.elapsed().as_millis(),
             "Worker engine adaptive batch execution finished"
+        );
+
+        Ok(summary)
+    }
+
+    /// Executes a batch of tasks applying bounded backpressure flow control across producers and workers.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CoreError::Execution`] if batch execution fails or is rejected during shutdown.
+    #[instrument(skip(self, tasks, backpressure_config, processor, progress_tx), fields(worker_id = %self.config.worker_id, total_items = tasks.len()))]
+    pub async fn execute_flow_controlled_batch<T, R, F, Fut>(
+        &self,
+        batch_id: BatchId,
+        tasks: Vec<BatchItemTask<T>>,
+        backpressure_config: Option<BackpressureConfig>,
+        processor: F,
+        progress_tx: Option<mpsc::Sender<BatchProgressUpdate>>,
+    ) -> Result<BatchExecutionSummary<R>, CoreError>
+    where
+        T: Send + Sync + 'static,
+        R: Send + Sync + 'static,
+        F: Fn(BatchItemTask<T>) -> Fut + Send + Sync + Clone + 'static,
+        Fut: Future<Output = Result<R, String>> + Send + 'static,
+    {
+        if self.is_shutting_down() {
+            return Err(CoreError::JobEngine(
+                "Worker daemon is shutting down; operation rejected".to_string(),
+            ));
+        }
+
+        let total_items = tasks.len();
+        let start = Instant::now();
+
+        let bp_config = match backpressure_config {
+            Some(cfg) => cfg,
+            None => {
+                let max_cap = self.config.max_concurrent_jobs * 4;
+                let high = (max_cap as f64 * 0.8).floor() as usize;
+                let low = (max_cap as f64 * 0.4).floor() as usize;
+                BackpressureConfig::new(max_cap, high, low).map_err(|e| CoreError::Validation {
+                    field: "backpressure_config".to_string(),
+                    reason: e.to_string(),
+                })?
+            }
+        };
+
+        let lease_secs = u64::from(self.config.lease_duration_seconds);
+        let batch_config =
+            web_repo_to_ai_job_engine::config::BatchExecutionConfig::with_parallelism(
+                self.config.default_batch_parallelism,
+            )
+            .map(|c| {
+                c.with_batch_timeout(std::time::Duration::from_secs(lease_secs * 2))
+                    .with_item_timeout(std::time::Duration::from_secs(lease_secs))
+            })
+            .map_err(|e| CoreError::Validation {
+                field: "batch_config".to_string(),
+                reason: e.to_string(),
+            })?;
+
+        let summary = BackpressureParallelExecutor::execute_flow_controlled(
+            batch_id,
+            tasks,
+            bp_config,
+            batch_config,
+            processor,
+            progress_tx,
+            Some(self.shutdown_token()),
+        )
+        .await
+        .map_err(|e| CoreError::JobEngine(e.to_string()))?;
+
+        self.metrics.record_batch_completed();
+        self.metrics.record_item_outcome(
+            summary.succeeded_count,
+            summary.failed_count,
+            summary.timed_out_count,
+            summary.cancelled_count,
+        );
+        self.metrics
+            .record_backpressure_stats(0, 0, summary.peak_concurrency);
+        self.metrics.update_active_workers(summary.peak_concurrency);
+
+        info!(
+            %batch_id,
+            total_items,
+            succeeded = summary.succeeded_count,
+            failed = summary.failed_count,
+            peak_concurrency = summary.peak_concurrency,
+            duration_ms = start.elapsed().as_millis(),
+            "Worker engine flow-controlled batch execution finished"
         );
 
         Ok(summary)

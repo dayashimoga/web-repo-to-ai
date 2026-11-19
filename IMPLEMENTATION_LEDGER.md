@@ -7961,12 +7961,81 @@
 
 #### Phase 8.4 — Scalability
 
+#### Subphase `8.4.2` — Backpressure in crates/job-engine & services/worker
+- **Unique ID:** `8.4.2`
+- **Objective:** Implement dual-watermark bounded backpressure flow control (`BackpressureConfig`, `BackpressureController`), producer suspension and resume mechanics, load-shedding strategies (`BlockProducer`, `DropOldest`, `DropNewest`, `RejectWithRetryAfter`), flow-controlled bounded queue (`FlowControlledQueue`), and backpressure parallel batch execution (`BackpressureParallelExecutor`, `WorkerEngine::execute_flow_controlled_batch`) in `crates/job-engine` and `services/worker`.
+- **Scope:** `crates/job-engine/src/backpressure.rs`, `crates/job-engine/src/error.rs`, `crates/job-engine/src/lib.rs`, `crates/job-engine/tests/backpressure_test.rs`, `services/worker/src/metrics.rs`, `services/worker/src/engine.rs`, `services/worker/tests/worker_backpressure_test.rs`.
+- **Prerequisites:** `8.4.1` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/job-engine/src/backpressure.rs`
+  - `crates/job-engine/src/error.rs`
+  - `crates/job-engine/src/lib.rs`
+  - `crates/job-engine/tests/backpressure_test.rs`
+  - `services/worker/src/metrics.rs`
+  - `services/worker/src/engine.rs`
+  - `services/worker/tests/worker_backpressure_test.rs`
+- **Implementation Tasks:**
+  1. Author `crates/job-engine/src/backpressure.rs`:
+     - Define `LoadSheddingStrategy`: `BlockProducer`, `DropOldest`, `DropNewest`, `RejectWithRetryAfter`.
+     - Define `BackpressureConfig`: `max_buffer_capacity`, `high_watermark`, `low_watermark`, `max_wait_timeout`, `shed_strategy`.
+     - Define `BackpressureState`: `Normal`, `Warning`, `Saturated`.
+     - Define `BackpressureStats`: point-in-time metrics snapshot.
+     - Implement `BackpressureSlot`: RAII slot token decrementing depth and waking suspended producers when depth drops below low watermark.
+     - Implement `BackpressureController`: thread-safe dual-watermark backpressure regulator coordinating admission permits, timeout enforcement, and cooperative cancellation.
+     - Implement `FlowControlledQueue`: high-performance thread-safe bounded FIFO queue wrapping `VecDeque` with backpressure regulation.
+     - Implement `BackpressureParallelExecutor`: streaming batch executor maintaining bounded in-flight tasks and backpressure flow control across producers and workers.
+  2. Extend `crates/job-engine/src/error.rs`:
+     - Add `JobEngineError::BackpressureQueueSaturated` and `JobEngineError::BackpressureTimeout`.
+  3. Re-export backpressure types in `crates/job-engine/src/lib.rs`.
+  4. Extend `services/worker/src/metrics.rs`:
+     - Add atomic counters `backpressure_events`, `backpressure_items_shed`, and `current_queue_depth` to `WorkerServiceMetrics` and `WorkerMetricsSnapshot`.
+     - Implement `record_backpressure_stats` telemetry recording method.
+  5. Extend `services/worker/src/engine.rs`:
+     - Implement `WorkerEngine::execute_flow_controlled_batch` executing flow-controlled tasks within worker concurrency limits and progress dispatch.
+  6. Author comprehensive integration tests:
+     - `crates/job-engine/tests/backpressure_test.rs`: 6 integration tests validating configuration boundaries, state transitions (Normal -> Warning -> Saturated -> Normal), load shedding (`DropNewest`), producer suspension and resume on drain, queue FIFO push/pop semantics, and flow-controlled batch execution.
+     - `services/worker/tests/worker_backpressure_test.rs`: integration test validating worker flow-controlled batch execution and telemetry recording.
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-job-engine`
+  - `cargo test -p web-repo-to-ai-worker`
+  - `cargo clippy --workspace --all-targets -- -D warnings`
+  - `cargo fmt --all -- --check`
+  - `cargo deny check`
+  - `powershell -ExecutionPolicy Bypass -File scripts/check-all.ps1`
+- **Acceptance Criteria:**
+  - Dual-watermark backpressure activates (`Saturated`) when buffer depth reaches high watermark (default 80%) and clears (`Normal`) when depth drains below low watermark (default 40%).
+  - Suspended producers wait asynchronously without thread blocking or busy spinning and wake up immediately upon drain.
+  - Load shedding policies (`DropNewest`, `RejectWithRetryAfter`) reject excess items with explicit domain errors.
+  - `FlowControlledQueue` preserves FIFO ordering and bounds memory footprint.
+  - Worker metrics track `backpressure_events`, `backpressure_items_shed`, and `current_queue_depth`.
+  - 100% test pass rate across job-engine (31/31) and worker (18/18), zero clippy warnings, zero formatting diffs, cargo deny clean, and all 5 check-all gates pass.
+- **Risk Analysis:**
+  - Risk: Deadlock if consumers stop draining while producers are blocked waiting for slots.
+  - Mitigation: `max_wait_timeout` guarantees producers do not hang indefinitely; cancellation token aborts blocked acquisitions immediately.
+- **Rollback Plan:**
+  - Revert Subphase 8.4.2 additions via Git reset to commit `8423f33`.
+- **Measurement / Empirical Evidence:**
+  - `cargo test -p web-repo-to-ai-job-engine`: 31 passed; 0 failed (15 unit, 6 adaptive, 6 backpressure, 4 incremental).
+  - `cargo test -p web-repo-to-ai-worker`: 18 passed; 0 failed (9 lib unit, 1 main unit, 5 bounded_parallel, 1 incremental, 1 adaptive, 1 backpressure).
+  - `cargo clippy --workspace --all-targets -- -D warnings`: 0 warnings across all workspace targets.
+  - `cargo fmt --all -- --check`: formatting clean across workspace.
+  - `cargo deny check`: advisories ok, bans ok, licenses ok, sources ok.
+  - `powershell scripts/check-all.ps1`: ALL 5 GATES PASSED (0 failures) across Bootstrap/Governance, Workflows, Rust Workspace (538 tests passed), Frontend Web (17 files, 213 passing vitest tests), and Resource Budget (Podman storage 0 B / 30 GB, 0%).
+- **Git Commit Reference:** `f312d21`
+- **Status:** `ACCEPTED`
+
+---
+
+### Upcoming Subphase (Stage 8 — Large Repositories, Batch and Crawling)
+
+#### Phase 8.4 — Scalability
+
 | Subphase ID | Objective | Prerequisites | Affected Files / Components | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `8.4.2` | Backpressure | `8.4.1` (`ACCEPTED`) | `crates/job-engine/*`, `services/worker/*` | `NOT_STARTED` |
+| `8.4.3` | Streaming large exports | `8.4.2` (`ACCEPTED`) | `crates/job-engine/*`, `crates/exporters/*`, `services/worker/*` | `NOT_STARTED` |
 
 ---
 
 ## STAGES 8 – 11 QUEUED LEDGER SUMMARY
 
-All subsequent subphases for **Stage 8** (`8.4.2`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.
+All subsequent subphases for **Stage 8** (`8.4.3`–`8.4.4`), **Stage 9** (`9.1.1`–`9.4.4`), **Stage 10** (`10.1.1`–`10.5.4`), and **Stage 11** (`11.1.1`–`11.4.5`) are defined in [ROADMAP.md](./ROADMAP.md) and currently hold status `NOT_STARTED`. Each subphase is expanded into its full 14-attribute block in this ledger immediately upon entering `IN_PROGRESS`.

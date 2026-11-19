@@ -64,4 +64,20 @@ pub enum JobEngineError {
     /// A batch contains no actionable items to execute.
     #[error("Batch submission is empty; at least 1 item is required")]
     EmptyBatch,
+
+    /// The backpressure queue is saturated and new items cannot be admitted.
+    #[error("Backpressure queue saturated: current depth {current_depth} >= capacity {capacity}")]
+    BackpressureQueueSaturated {
+        /// Current queue depth.
+        current_depth: usize,
+        /// Maximum capacity.
+        capacity: usize,
+    },
+
+    /// Timed out waiting for backpressure capacity to become available.
+    #[error("Timed out after {duration_ms}ms waiting for backpressure capacity")]
+    BackpressureTimeout {
+        /// Duration in milliseconds waited.
+        duration_ms: u64,
+    },
 }

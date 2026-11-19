@@ -10,6 +10,7 @@
 #![warn(missing_docs)]
 
 pub mod adaptive;
+pub mod backpressure;
 pub mod config;
 pub mod error;
 pub mod executor;
@@ -24,6 +25,12 @@ pub use adaptive::{
     DomainAdaptiveConcurrencyManager, DEFAULT_COOLDOWN_DURATION, DEFAULT_DECREASE_FACTOR,
     DEFAULT_INCREASE_STEP, DEFAULT_INITIAL_CONCURRENCY, DEFAULT_MAX_CONCURRENCY,
     DEFAULT_MIN_CONCURRENCY, DEFAULT_SUCCESS_THRESHOLD,
+};
+pub use backpressure::{
+    BackpressureConfig, BackpressureController, BackpressureParallelExecutor, BackpressureSlot,
+    BackpressureState, BackpressureStats, FlowControlledQueue, LoadSheddingStrategy,
+    DEFAULT_HIGH_WATERMARK_RATIO, DEFAULT_LOW_WATERMARK_RATIO, DEFAULT_MAX_BUFFER_CAPACITY,
+    DEFAULT_MAX_WAIT_TIMEOUT,
 };
 pub use config::{
     BatchExecutionConfig, DEFAULT_BATCH_TIMEOUT_SECONDS, DEFAULT_ITEM_TIMEOUT_SECONDS,

@@ -24,6 +24,9 @@ pub struct WorkerServiceMetrics {
     adaptive_backoffs: Arc<AtomicUsize>,
     adaptive_rate_limits: Arc<AtomicUsize>,
     current_adaptive_limit: Arc<AtomicUsize>,
+    backpressure_events: Arc<AtomicUsize>,
+    backpressure_items_shed: Arc<AtomicUsize>,
+    current_queue_depth: Arc<AtomicUsize>,
 }
 
 /// Serializable snapshot of worker metrics.
@@ -57,6 +60,12 @@ pub struct WorkerMetricsSnapshot {
     pub adaptive_rate_limits: usize,
     /// Current dynamically allocated concurrency ceiling.
     pub current_adaptive_limit: usize,
+    /// Total backpressure throttle/suspension events.
+    pub backpressure_events: usize,
+    /// Total items rejected or discarded due to backpressure saturation.
+    pub backpressure_items_shed: usize,
+    /// Point-in-time queued item depth.
+    pub current_queue_depth: usize,
 }
 
 impl WorkerServiceMetrics {
@@ -132,6 +141,16 @@ impl WorkerServiceMetrics {
             .store(current_limit, Ordering::Relaxed);
     }
 
+    /// Records backpressure flow control events and queue depth.
+    pub fn record_backpressure_stats(&self, events: u64, items_shed: u64, queue_depth: usize) {
+        self.backpressure_events
+            .fetch_add(events as usize, Ordering::Relaxed);
+        self.backpressure_items_shed
+            .fetch_add(items_shed as usize, Ordering::Relaxed);
+        self.current_queue_depth
+            .store(queue_depth, Ordering::Relaxed);
+    }
+
     /// Produces an immutable metrics snapshot.
     #[must_use]
     pub fn snapshot(&self) -> WorkerMetricsSnapshot {
@@ -150,6 +169,9 @@ impl WorkerServiceMetrics {
             adaptive_backoffs: self.adaptive_backoffs.load(Ordering::Relaxed),
             adaptive_rate_limits: self.adaptive_rate_limits.load(Ordering::Relaxed),
             current_adaptive_limit: self.current_adaptive_limit.load(Ordering::Relaxed),
+            backpressure_events: self.backpressure_events.load(Ordering::Relaxed),
+            backpressure_items_shed: self.backpressure_items_shed.load(Ordering::Relaxed),
+            current_queue_depth: self.current_queue_depth.load(Ordering::Relaxed),
         }
     }
 }
@@ -165,6 +187,7 @@ mod tests {
         metrics.record_item_outcome(4, 1, 1, 0);
         metrics.record_incremental_reuse(5, 10240);
         metrics.record_adaptive_stats(3, 1, 1, 6);
+        metrics.record_backpressure_stats(2, 0, 8);
         metrics.update_active_workers(3);
 
         let snap = metrics.snapshot();
@@ -182,5 +205,8 @@ mod tests {
         assert_eq!(snap.adaptive_backoffs, 1);
         assert_eq!(snap.adaptive_rate_limits, 1);
         assert_eq!(snap.current_adaptive_limit, 6);
+        assert_eq!(snap.backpressure_events, 2);
+        assert_eq!(snap.backpressure_items_shed, 0);
+        assert_eq!(snap.current_queue_depth, 8);
     }
 }
