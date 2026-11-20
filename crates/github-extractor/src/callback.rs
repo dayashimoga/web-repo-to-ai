@@ -71,6 +71,28 @@ pub struct ValidatedOAuthCallback {
     pub state: OAuthState,
 }
 
+/// Helper decoding percent-encoded path bytes. Returns None if encoding is malformed.
+fn percent_decode_path(s: &str) -> Option<String> {
+    let bytes = s.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'%' {
+            if i + 2 >= bytes.len() {
+                return None;
+            }
+            let hex_sub = &s[i + 1..i + 3];
+            let byte = u8::from_str_radix(hex_sub, 16).ok()?;
+            out.push(byte);
+            i += 3;
+        } else {
+            out.push(bytes[i]);
+            i += 1;
+        }
+    }
+    String::from_utf8(out).ok()
+}
+
 /// Open redirect vulnerability defense.
 pub struct OpenRedirectGuard;
 
@@ -78,7 +100,7 @@ impl OpenRedirectGuard {
     /// Returns true if the target path is a safe relative redirect path.
     ///
     /// Rejects protocol-relative URLs (`//attacker.com`), backslash variants (`/\`, `\\`),
-    /// and control characters.
+    /// control characters, and percent-encoded obfuscation sequences (`%2f%2f`, `%5c`, `%00`, `%0d%0a`).
     #[must_use]
     pub fn is_safe_relative_path(path: &str) -> bool {
         let trimmed = path.trim();
@@ -91,9 +113,32 @@ impl OpenRedirectGuard {
             return false;
         }
 
-        // Check for control characters or newlines
-        if trimmed.chars().any(|c| c.is_control() || c == '\\') {
+        // Check for control characters, backslashes, or path traversal segments
+        if trimmed.chars().any(|c| c.is_control() || c == '\\') || trimmed.contains("..") {
             return false;
+        }
+
+        // Percent-decoded evaluation: blocks %2f%2f (//), %5c (\), %00 (null byte), %0d%0a (CRLF), %2e%2e (..)
+        if trimmed.contains('%') {
+            let decoded = match percent_decode_path(trimmed) {
+                Some(d) => d,
+                None => return false,
+            };
+            let dec_trimmed = decoded.trim();
+            if !dec_trimmed.starts_with('/') {
+                return false;
+            }
+            if dec_trimmed.starts_with("//")
+                || dec_trimmed.starts_with("/\\")
+                || dec_trimmed.starts_with("/\t")
+            {
+                return false;
+            }
+            if dec_trimmed.chars().any(|c| c.is_control() || c == '\\')
+                || dec_trimmed.contains("..")
+            {
+                return false;
+            }
         }
 
         true
@@ -118,6 +163,11 @@ impl OpenRedirectGuard {
             Ok(u) => u,
             Err(_) => return false,
         };
+
+        // Reject embedded userinfo (e.g. https://attacker:pass@app.example.com)
+        if !parsed.username().is_empty() || parsed.password().is_some() {
+            return false;
+        }
 
         // Reject non-http(s) schemes (e.g. javascript:, data:, vbscript:)
         let scheme = parsed.scheme();

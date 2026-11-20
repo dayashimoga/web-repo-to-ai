@@ -7266,3 +7266,86 @@
   - 954+ tests passing across the workspace (638 Rust + 213 web + 103 extension).
   - `scripts/check-all.ps1` 100% passing across all 5 quality gates with 0 failures.
 - **Status:** `ACCEPTED`
+
+
+#### Subphase `11.1.3` — OAuth & access-control audit
+- **Unique ID:** `11.1.3`
+- **Objective:** Execute exhaustive security audit and hardening of GitHub App OAuth flows, callback redirect guards, state CSRF nonces, webhook HMAC signature verification, delivery replay tracking, API RBAC scope hierarchies, cross-tenant anti-enumeration isolation, token storage envelope encryption with AAD binding, and header injection validation across `crates/github-extractor` and `services/api`.
+- **Scope:** `crates/github-extractor/src/callback.rs`, `crates/github-extractor/src/oauth.rs`, `crates/github-extractor/tests/oauth_access_control_audit_test.rs`, `services/api/tests/access_control_audit_test.rs`, `scripts/check-all.ps1`, and project tracking ledgers.
+- **Prerequisites:** `11.1.2` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/github-extractor/src/callback.rs`: Hardened `OpenRedirectGuard` with zero-dependency URL percent-decoding (`percent_decode_path`), rejecting obfuscated protocol-relative paths (`/%2f/`, `/%2f`), percent-encoded backslashes (`/%5c`, `/%5C`), null bytes (`%00`), CRLF headers (`%0d%0a`, `%0a`), path traversals (`..` and `%2e%2e`), and embedded userinfo credentials (`username:password@`).
+  - `crates/github-extractor/src/oauth.rs`: Hardened `InMemoryOAuthStateStore::validate_and_consume` with strict bidirectional session validation, rejecting omitted session ID when state was session-bound, and rejecting cross-session state injection.
+  - `crates/github-extractor/tests/oauth_access_control_audit_test.rs`: Authored 6 adversarial tests covering CSRF state entropy (256-bit BLAKE3 hex), TTL expiration (10 min), strict single-use consumption, cross-session state injection rejection, 25+ open-redirect attack payloads matrix, webhook HMAC-SHA256 signature tampering rejection, webhook delivery GUID replay rejection, and GitHub App RS256 JWT claim boundaries and read-only scope enforcement.
+  - `services/api/tests/access_control_audit_test.rs`: Authored 4 integration tests covering RBAC scope hierarchy enforcement across operational and administrative endpoints (`read`, `write`, `admin`, anonymous 401s, session implicit admin); anti-enumeration cross-tenant isolation returning uniform RFC 7807 404 Problem Details for cross-tenant keys and jobs; token storage envelope encryption with AAD session binding and revocation hygiene; and adversarial `X-Session-ID` injection rejection.
+  - `scripts/check-all.ps1`: Tuned `cargo test` concurrency bound to `--jobs 2`, preventing Windows memory and paging file exhaustion during full workspace test execution.
+  - Project tracking ledgers (`PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`, `IMPLEMENTATION_LEDGER.md`).
+- **Implementation Tasks:**
+  1. Hardened `OpenRedirectGuard` in `crates/github-extractor/src/callback.rs`:
+     - Added `percent_decode_path` helper for recursive/comprehensive percent decoding without external dependencies.
+     - Hardened `is_safe_relative_path` to evaluate both raw string and percent-decoded representations, rejecting protocol-relative slashes (`//`, `/%2f/`, `/%2f`), backslashes (`\`, `/%5c`, `/%5C`), control characters and CRLF sequences (`%0d%0a`, `%0a`), null bytes (`%00`), and directory traversal sequences (`..`, `%2e%2e`).
+     - Hardened `is_safe_redirect` to evaluate absolute redirect targets and reject embedded user credentials (`parsed.username()`, `parsed.password()`).
+  2. Enforced bidirectional session binding in `crates/github-extractor/src/oauth.rs`:
+     - Hardened `InMemoryOAuthStateStore::validate_and_consume`: if state was bound to a session (`saved.session_id.is_some()`), omitting the session parameter (`expected_session_id.is_none()`) is rejected; if session is provided, it must match the bound session exactly.
+  3. Authored adversarial OAuth & access-control test suite in `crates/github-extractor/tests/oauth_access_control_audit_test.rs` (6 tests):
+     - `test_audit_oauth_state_entropy_expiration_and_single_use`: Validated 256-bit BLAKE3 hex cryptographic uniqueness across 100 generations, 10-minute TTL expiration, and single-use invalidation.
+     - `test_audit_oauth_cross_session_state_injection_rejection`: Validated cross-session state redemption rejection and rejection of omitted session ID when state was session-bound.
+     - `test_audit_open_redirect_adversarial_matrix`: Evaluated 25+ attack payloads spanning protocol-relative paths, percent-encoded slashes, backslashes, CRLF header injection, null-byte injection, tab characters, directory traversal, embedded userinfo, port mismatch, and scheme downgrades.
+     - `test_audit_webhook_tamper_signature_rejection`: Validated constant-time HMAC-SHA256 signature checking rejecting tampered payloads, incorrect secrets, and corrupted signatures.
+     - `test_audit_webhook_replay_and_duplicate_delivery`: Validated sliding window delivery GUID tracking rejecting replayed webhook deliveries.
+     - `test_audit_github_app_jwt_and_permission_boundaries`: Validated GitHub App RS256 JWT claim boundaries (`iss`, `iat`, `exp`), 10-minute expiration ceiling, and installation token scope verification.
+  4. Authored API access-control & RBAC audit test suite in `services/api/tests/access_control_audit_test.rs` (4 tests):
+     - `test_audit_rbac_scope_hierarchy_enforcement`: Proved strict RBAC scope enforcement across anonymous callers (401 Unauthorized), read-only keys (403 Forbidden on key management), write keys (403 Forbidden on key management), admin keys (201 Created and 200 OK on key management), and session callers (implicit admin scope).
+     - `test_audit_anti_enumeration_cross_tenant_isolation`: Proved uniform RFC 7807 404 Not Found responses with `RESOURCE_NOT_FOUND` problem details when querying or revoking foreign tenant keys and jobs without leaking resource existence.
+     - `test_audit_token_storage_envelope_encryption_and_aad_binding`: Proved AES-256-GCM authenticated envelope encryption at rest with AAD session binding, cross-tenant isolation, and zero-trace revocation hygiene.
+     - `test_audit_session_header_validation_and_injection`: Proved rejection of malformed or adversarial `X-Session-ID` values (non-hex, SQL injection, XSS, directory traversal, truncated/oversized UUIDs, whitespace) with 400 Bad Request, and HTTP framing rejection of CRLF/null bytes.
+  5. Tuned monorepo quality check concurrency:
+     - Configured `--jobs 2` for `cargo test` in `scripts/check-all.ps1`, eliminating Windows memory/paging file exhaustion during full workspace test execution.
+  6. Full Workspace Verification:
+     - Verified all 151+ tests in `crates/github-extractor` pass.
+     - Verified all 118+ tests in `services/api` pass.
+     - Verified all 964+ tests across the monorepo pass cleanly.
+     - Verified zero clippy warnings under `-D warnings`, zero formatting diffs, clean `cargo deny check`, and 100% passing quality gates (5/5).
+  7. Synchronized all project tracking ledgers (`PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`, `IMPLEMENTATION_LEDGER.md`).
+- **Acceptance Criteria:**
+  - `OpenRedirectGuard` rejects all 25+ adversarial open-redirect payloads including percent-encoded evasion vectors.
+  - OAuth CSRF state nonces are 256-bit cryptographically unique, expire after 10 minutes, and strictly single-use.
+  - Cross-session OAuth state redemption is strictly rejected with session mismatch errors.
+  - Webhook signatures strictly verify HMAC-SHA256, and duplicate delivery GUIDs within sliding window are rejected.
+  - GitHub App RS256 JWTs strictly observe RFC 7519 claim invariants and 10-minute expiration ceilings.
+  - RBAC scopes enforce least privilege: anonymous callers receive 401, insufficient scopes receive 403, admin callers succeed.
+  - Cross-tenant queries and revocations return uniform RFC 7807 404 Not Found problem details without resource enumeration.
+  - Token storage envelope encryption enforces AES-256-GCM with AAD session binding, and revocation zeroes credentials.
+  - Adversarial `X-Session-ID` headers are rejected with 400 Bad Request.
+  - Zero mock or placeholder implementations in production code paths.
+  - All 5 monorepo quality gates passing via `scripts/check-all.ps1`.
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-github-extractor --test oauth_access_control_audit_test` (6 tests passing)
+  - `cargo test -p web-repo-to-ai-api --test access_control_audit_test` (4 tests passing)
+  - `cargo clippy --workspace --all-targets --jobs 4 -- -D warnings` (Clean, zero warnings)
+  - `cargo fmt --all -- --check` (Clean, zero diffs)
+  - `cargo deny check` (Advisories ok, bans ok, licenses ok, sources ok)
+  - `powershell -ExecutionPolicy Bypass -File scripts/check-all.ps1` (All 5 gates passed with 0 failures)
+- **Tests:**
+  - `crates/github-extractor/tests/oauth_access_control_audit_test.rs` (6 tests)
+  - `services/api/tests/access_control_audit_test.rs` (4 tests)
+  - `crates/github-extractor/src/lib.rs` (145+ unit & integration tests)
+  - `services/api/src/lib.rs` (114+ unit & integration tests)
+- **Security Considerations:**
+  - Percent-decoding path targets before evaluation neutralizes double-encoding and proxy-normalization bypasses.
+  - Bidirectional session checking prevents state-injection and login CSRF attacks.
+  - Constant-time HMAC comparison prevents timing attacks on webhook endpoints.
+  - Anti-enumeration uniform 404s prevent unauthorized callers from discovering the existence of other tenants' resources.
+  - AAD binding in AES-256-GCM guarantees ciphertext cannot be decrypted under a different tenant's session.
+- **Performance Considerations:**
+  - In-memory state store and delivery tracker use sliding TTL windows with lazy pruning, bounding memory usage.
+  - Fast-path checks in `OpenRedirectGuard` avoid unnecessary allocations for standard relative paths.
+  - Bounded concurrency (`--jobs 2`) in test execution prevents system memory exhaustion.
+- **Documentation Requirements:**
+  - `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`, `IMPLEMENTATION_LEDGER.md`.
+- **Validation Evidence:**
+  - 151+ tests passing in `crates/github-extractor`.
+  - 118+ tests passing in `services/api`.
+  - 964+ tests passing across the workspace (648 Rust + 213 web + 103 extension).
+  - `scripts/check-all.ps1` 100% passing across all 5 quality gates with 0 failures.
+- **Status:** `ACCEPTED`

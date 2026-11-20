@@ -6,9 +6,9 @@
 **Last Completed Stage:** `STAGE 10 — ADVANCED DOCUMENTS AND CONTENT` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Last Completed Phase:** `Phase 10.5 — Optional local and external AI provider adapters` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Active Subphase:** `None`  
-**Last Completed Subphase:** `11.1.2 — SSRF & network security (hardened zero-trust SSRF defenses in crates/url-security with RFC 6874 IPv6 zone identifier stripping, percent-encoded host decoding, ASCII control character & CRLF injection elimination, and unified blocked ports matrix; authored 7 adversarial SSRF tests in crates/url-security/tests/ssrf_adversarial_test.rs; authored 10 hop-by-hop redirect security tests in crates/web-extractor/tests/redirect_ssrf_test.rs; updated scripts/check-all.ps1 clippy jobs bound; verified with 28 url-security tests, 202 web-extractor tests, 954+ total workspace tests, and all 5 quality gates passing)` (`ACCEPTED`)  
+**Last Completed Subphase:** `11.1.3 — OAuth & access-control audit (hardened OAuth callback OpenRedirectGuard with percent-decoded path traversal, protocol-relative, userinfo, and null/CRLF elimination; enforced bidirectional session binding in InMemoryOAuthStateStore; authored 6 adversarial tests in crates/github-extractor/tests/oauth_access_control_audit_test.rs; authored 4 API access-control audit tests in services/api/tests/access_control_audit_test.rs; tuned scripts/check-all.ps1 test concurrency to --jobs 2 for memory stability; verified with 151+ github-extractor tests, 118+ api tests, 964+ total workspace tests, and 100% passing quality gates)` (`ACCEPTED`)  
 **Next Upcoming Phase:** `Phase 11.1 — Security`  
-**Next Upcoming Subphase:** `11.1.3 — OAuth & access-control audit`
+**Next Upcoming Subphase:** `11.1.4 — Dependency & secrets audit`
 
 ---
 
@@ -298,6 +298,13 @@ In Stage 11 ("Production Certification"):
     - Hop-by-Hop Redirect Security Test Suite (`crates/web-extractor/tests/redirect_ssrf_test.rs`): Implemented 10 tests validating `RedirectTracker` and `WebFetcher` rejection of redirects to loopback addresses, cloud metadata (`169.254.169.254`, `metadata.google.internal`), RFC 1918 subnets, dangerous schemes, and administrative ports; immediate cyclic redirect loop aborts; maximum redirect hop ceilings; and end-to-end multi-hop provenance tracking.
     - Monorepo Verification Concurrency Bounds (`scripts/check-all.ps1`): Added `--jobs 4` to `cargo clippy`, eliminating Windows paging file exhaustion (`os error 1455`) during monorepo quality audits.
     - Quality & Verification: 28 url-security tests passing; 202 web-extractor tests passing; 954+ total workspace tests passing (638 Rust + 213 web + 103 extension). Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean, and 100% passing quality gates (5/5).
+  - Subphase `11.1.3` delivered exhaustive OAuth and access-control audit defenses and integration test suites:
+    - Hardened Open-Redirect and Callback Security (`crates/github-extractor/src/callback.rs`): Hardened `OpenRedirectGuard` with zero-dependency URL percent-decoding (`percent_decode_path`), rejecting obfuscated protocol-relative paths (`/%2f/`, `/%2f`), backslashes (`/%5c`, `/%5C`), null bytes (`%00`), CRLF headers (`%0d%0a`, `%0a`), path traversals (`..` and `%2e%2e`), and embedded userinfo credentials (`username:password@`).
+    - Bidirectional Session Binding (`crates/github-extractor/src/oauth.rs`): Enforced strict bidirectional session validation in `InMemoryOAuthStateStore::validate_and_consume`—rejecting any attempt to omit session ID when state was session-bound, and rejecting cross-session state injection.
+    - Adversarial OAuth & Access-Control Test Suite (`crates/github-extractor/tests/oauth_access_control_audit_test.rs`): Authored 6 adversarial tests covering CSRF state entropy (256-bit BLAKE3 hex), TTL expiration and strict single-use consumption; cross-session state injection rejection; comprehensive open-redirect adversarial matrix (25+ attack payloads); webhook HMAC-SHA256 signature tampering rejection; webhook delivery GUID replay rejection; and GitHub App RS256 JWT claim boundaries and read-only scope enforcement.
+    - Comprehensive API Access-Control & RBAC Audit (`services/api/tests/access_control_audit_test.rs`): Authored 4 integration tests validating RBAC scope hierarchy enforcement across operational and administrative endpoints (`read`, `write`, `admin`, anonymous 401s, session implicit admin); anti-enumeration cross-tenant isolation returning uniform RFC 7807 404 Problem Details for cross-tenant keys and jobs; token storage envelope encryption with AAD session binding and revocation hygiene; and adversarial `X-Session-ID` injection rejection.
+    - Quality Gate Concurrency Tuning (`scripts/check-all.ps1`): Tuned `cargo test` in `scripts/check-all.ps1` to `--jobs 2`, eliminating Windows memory/paging file exhaustion during full monorepo quality gate audits.
+    - Quality & Verification: 151+ github-extractor tests passing; 118+ api tests passing; 964+ total workspace tests passing (648 Rust + 213 web + 103 extension). Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean, and 100% passing quality gates (5/5).
 
 ---
 
@@ -305,12 +312,12 @@ In Stage 11 ("Production Certification"):
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 182 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4`, `10.3.1` – `10.3.4`, `10.4.1` – `10.4.4`, `10.5.1`, `10.5.2`, `10.5.3`, `10.5.4`, `11.1.1`, `11.1.2` |
+| `ACCEPTED` | 183 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4`, `10.3.1` – `10.3.4`, `10.4.1` – `10.4.4`, `10.5.1`, `10.5.2`, `10.5.3`, `10.5.4`, `11.1.1`, `11.1.2`, `11.1.3` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 14 | `11.1.3` – `11.4.5` |
+| `NOT_STARTED` | 13 | `11.1.4` – `11.4.5` |
 | `Total` | **196** | `Stage 0` – `Stage 11` |
 
 ---

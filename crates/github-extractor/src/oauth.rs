@@ -392,13 +392,25 @@ impl OAuthStateStore for InMemoryOAuthStateStore {
             ));
         }
 
-        if let (Some(expected), Some(actual)) = (expected_session_id, &state.session_id) {
-            if !constant_time_eq(expected.as_bytes(), actual.as_bytes()) {
+        if let Some(expected) = expected_session_id {
+            if let Some(actual) = &state.session_id {
+                if !constant_time_eq(expected.as_bytes(), actual.as_bytes()) {
+                    return Err(GitHubExtractorError::AppConfiguration(
+                        "OAuth state session mismatch: state does not belong to the current session"
+                            .to_string(),
+                    ));
+                }
+            } else {
                 return Err(GitHubExtractorError::AppConfiguration(
-                    "OAuth state session mismatch: state does not belong to the current session"
+                    "OAuth state session mismatch: state has no bound session, but session was expected"
                         .to_string(),
                 ));
             }
+        } else if state.session_id.is_some() {
+            return Err(GitHubExtractorError::AppConfiguration(
+                "OAuth state session mismatch: state was bound to a session, but no session was provided in callback"
+                    .to_string(),
+            ));
         }
 
         Ok(state)

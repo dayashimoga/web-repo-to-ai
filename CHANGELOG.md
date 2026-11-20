@@ -6,6 +6,38 @@
 
 ## [Unreleased] — Stage 11: Production Certification
 
+### 2026-11-20 — Phase 11.1: Security (`11.1.3`)
+
+#### Added
+- **`[11.1.3]` OAuth and access-control audit defenses and integration test suites (`crates/github-extractor`, `services/api`):**
+  - Hardened Open-Redirect & Callback Security (`crates/github-extractor/src/callback.rs`):
+    - Implemented `percent_decode_path` helper in `OpenRedirectGuard`.
+    - Hardened `is_safe_relative_path` to reject obfuscated protocol-relative paths (`/%2f/`, `/%2f`), backslashes (`/%5c`, `/%5C`), null bytes (`%00`), CRLF headers (`%0d%0a`, `%0a`), and directory traversal sequences (`..` and `%2e%2e`).
+    - Hardened `is_safe_redirect` to reject embedded userinfo credentials (`username:password@`).
+  - Bidirectional Session Binding (`crates/github-extractor/src/oauth.rs`):
+    - Enforced strict bidirectional session validation in `InMemoryOAuthStateStore::validate_and_consume`: rejecting callbacks that omit session ID when state was session-bound, and rejecting cross-session state injection.
+  - Adversarial OAuth & Access-Control Test Suite (`crates/github-extractor/tests/oauth_access_control_audit_test.rs`):
+    - Authored 6 adversarial tests:
+      1. `test_audit_oauth_state_entropy_expiration_and_single_use`: Proves 256-bit BLAKE3 hex cryptographic uniqueness across 100 generations, 10-minute TTL expiration, and strict single-use consumption.
+      2. `test_audit_oauth_cross_session_state_injection_rejection`: Proves rejection of cross-session state injection and rejection of omitted session ID when bound to a session.
+      3. `test_audit_open_redirect_adversarial_matrix`: Tests 25+ adversarial open-redirect payloads (protocol-relative, percent-encoded slashes, backslashes, CRLF header injection, null bytes, tabs, path traversal, userinfo credentials, port mismatch, scheme downgrade).
+      4. `test_audit_webhook_tamper_signature_rejection`: Proves constant-time HMAC-SHA256 signature verification rejecting tampered payloads, incorrect secrets, and corrupted signatures.
+      5. `test_audit_webhook_replay_and_duplicate_delivery`: Proves sliding window delivery GUID tracking rejecting replayed webhook deliveries.
+      6. `test_audit_github_app_jwt_and_permission_boundaries`: Proves GitHub App RS256 JWT claim boundaries (`iss`, `iat`, `exp`), standard 10-minute expiration, and installation token scope verification.
+  - Comprehensive API Access-Control & RBAC Audit Suite (`services/api/tests/access_control_audit_test.rs`):
+    - Authored 4 integration tests:
+      1. `test_audit_rbac_scope_hierarchy_enforcement`: Proves strict RBAC scope enforcement across anonymous callers (401 Unauthorized), read-only keys (403 Forbidden on key management), write keys (403 Forbidden on key management), admin keys (201 Created and 200 OK on key management), and session callers (implicit admin scope).
+      2. `test_audit_anti_enumeration_cross_tenant_isolation`: Proves uniform RFC 7807 404 Not Found responses with `RESOURCE_NOT_FOUND` problem details when querying or revoking foreign tenant keys and jobs without leaking resource existence.
+      3. `test_audit_token_storage_envelope_encryption_and_aad_binding`: Proves AES-256-GCM authenticated envelope encryption at rest with AAD session binding, cross-tenant isolation, and zero-trace revocation hygiene.
+      4. `test_audit_session_header_validation_and_injection`: Proves rejection of malformed or adversarial `X-Session-ID` values (non-hex, SQL injection, XSS, directory traversal, truncated/oversized UUIDs, whitespace) with 400 Bad Request, and HTTP framing rejection of CRLF/null bytes.
+  - Monorepo Quality Gate Concurrency Tuning (`scripts/check-all.ps1`):
+    - Tuned `cargo test` concurrency bound to `--jobs 2` in `scripts/check-all.ps1`, preventing Windows memory and paging file exhaustion during full workspace test execution.
+  - Quality & Verification:
+    - 151+ passing tests in `crates/github-extractor`.
+    - 118+ passing tests in `services/api`.
+    - 964+ monorepo workspace tests passing.
+    - All 5 monorepo quality gates passing via `scripts/check-all.ps1` with 0 failures.
+
 ### 2026-11-20 — Phase 11.1: Security (`11.1.2`)
 
 #### Added

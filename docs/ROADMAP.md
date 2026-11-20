@@ -114,7 +114,7 @@
 - **Deliverable:** Verified, deployable production release with SBOMs, checksums, and certification report.
 - **Stage Acceptance Gate:** All critical security, performance, reliability, and release gates proven with repeatable objective evidence.
 - **Phases:**
-  - `11.1` Security (`11.1.1` [ACCEPTED], `11.1.2` [ACCEPTED], `11.1.3` – `11.1.4`)
+  - `11.1` Security (`11.1.1` [ACCEPTED], `11.1.2` [ACCEPTED], `11.1.3` [ACCEPTED], `11.1.4`)
   - `11.2` Performance (`11.2.1` – `11.2.4`)
   - `11.3` Reliability (`11.3.1` – `11.3.4`)
   - `11.4` Release (`11.4.1` – `11.4.5`)
