@@ -471,6 +471,30 @@ pub struct AiHealthStatus {
     pub latency_ms: u64,
 }
 
+impl AiHealthStatus {
+    /// Create a healthy status.
+    pub fn healthy(provider: AiProviderType, status_message: impl Into<String>) -> Self {
+        Self {
+            is_healthy: true,
+            provider,
+            status_message: status_message.into(),
+            available_models_count: 1,
+            latency_ms: 0,
+        }
+    }
+
+    /// Create a degraded status.
+    pub fn degraded(provider: AiProviderType, status_message: impl Into<String>) -> Self {
+        Self {
+            is_healthy: false,
+            provider,
+            status_message: status_message.into(),
+            available_models_count: 0,
+            latency_ms: 0,
+        }
+    }
+}
+
 /// Focus area for document summarization.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]

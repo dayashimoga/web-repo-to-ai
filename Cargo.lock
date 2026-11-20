@@ -2849,6 +2849,7 @@ dependencies = [
  "thiserror 1.0.69",
  "tokio",
  "tracing",
+ "url",
  "uuid",
  "web-repo-to-ai-core",
 ]

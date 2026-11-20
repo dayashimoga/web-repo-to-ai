@@ -23,6 +23,7 @@ chrono = { workspace = true, features = ["serde", "clock"] }
 tokio = { workspace = true, features = ["sync", "time", "macros", "rt"] }
 uuid = { workspace = true, features = ["v4", "serde"] }
 reqwest = { workspace = true, features = ["json"] }
+url = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["full"] }

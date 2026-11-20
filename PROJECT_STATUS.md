@@ -6,9 +6,9 @@
 **Last Completed Stage:** `STAGE 9 — DEVELOPER AND AI AGENT INTEGRATIONS` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Last Completed Phase:** `Phase 10.4 — RAG chunk generation` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Active Subphase:** `None`  
-**Last Completed Subphase:** `10.5.2 — Local Ollama / OpenAI-compatible adapter (crates/ai-adapter: OllamaAiAdapter supporting local Ollama daemon /api/chat, /api/embed, /api/tags; OpenAiAiAdapter supporting OpenAI endpoints, vLLM, LM Studio /chat/completions, /embeddings, /models; robust error mapping and Bearer authentication; verified with 41 unit/integration tests across 6 test suites)` (`ACCEPTED`)  
+**Last Completed Subphase:** `10.5.3 — Strict opt-in guardrails & zero-key fallback (crates/ai-adapter: AiOptInPolicy with Disabled, LocalOnly, and AllowRemote execution modes; cloud metadata isolation; secret masking and redaction in logs/debug formats; ZeroKeyFallbackEngine for deterministic extractive summarization, heuristic section enrichment, and Blake3 L2 unit-norm embeddings; ResilientAiAdapter decorator with seamless error degradation; verified with 66 crate tests and 13 new integration tests)` (`ACCEPTED`)  
 **Next Upcoming Phase:** `Phase 10.5 — Optional local and external AI provider adapters`  
-**Next Upcoming Subphase:** `10.5.3 — Strict opt-in guardrails & zero-key fallback`
+**Next Upcoming Subphase:** `10.5.4 — Adapter contract & isolation tests`
 
 ---
 
@@ -263,6 +263,13 @@ In Stage 10 ("Advanced Documents and Content"):
     - Local Ollama Daemon Adapter (`crates/ai-adapter/src/ollama.rs`): Implemented `OllamaAiAdapter` connecting to local Ollama endpoints (default `http://localhost:11434`), supporting `GET /api/tags` model catalog discovery, `POST /api/chat` chat completions with JSON format mode and options mapping (temperature, top_p, num_predict, stop, seed), `POST /api/embed` batch embeddings with fallback to legacy `POST /api/embeddings`, and health check probing.
     - OpenAI-Compatible REST Adapter (`crates/ai-adapter/src/openai.rs`): Implemented `OpenAiAiAdapter` supporting standard OpenAI endpoints or OpenAI-compatible local inference servers (vLLM, LM Studio, LocalAI, Ollama `/v1`), supporting Bearer token authorization, `GET /models` enumeration, `POST /chat/completions` with JSON object formatting, `POST /embeddings` with dimension specification, and rate limit retry-after header parsing.
     - Quality & Verification: Authored 16 new integration tests across `tests/ollama_adapter_test.rs` (8 tests) and `tests/openai_adapter_test.rs` (8 tests) backed by local loopback HTTP servers. Total crate tests expanded to 41 across 6 test suites; workspace tests expanded to 908+ passing tests. Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean, and 100% passing quality gates (5/5).
+  - Subphase `10.5.3` delivered strict opt-in guardrails, secret redaction, and zero-key fallback in `crates/ai-adapter` (`web-repo-to-ai-ai-adapter`):
+    - Strict Opt-In Policy Guardrails (`crates/ai-adapter/src/guardrails.rs`): Implemented `AiOptInPolicy` and `AiExecutionMode` (`Disabled`, `LocalOnly`, `AllowRemote`). Enforces Section 3.4 of the GLOBAL_ENGINEERING_CONTRACT: AI usage is 100% opt-in (disabled by default). In `LocalOnly` mode, only local inference instances (`localhost`, `127.0.0.1`, `[::1]`, container hosts `host.docker.internal`, `ollama`, `vllm`, `localai`) are permitted, blocking all cloud egress with `AiAdapterError::PolicyViolation`. Strictly isolates cloud metadata services (`169.254.169.254`, `metadata.google.internal`) under all operational modes. Includes environment variable discovery via `AiOptInPolicy::from_env()` (`AI_ENABLED`, `AI_EXECUTION_MODE`, `AI_ALLOW_REMOTE`).
+    - Secret Redaction & Protection (`crates/ai-adapter/src/secret.rs`): Implemented `mask_secret` (preserving first 3 and last 4 characters, e.g. `sk-...cdef`) and `redact_secrets_from_text` (scrubbing explicit secrets and `Bearer <token>` patterns from error strings and traces). Implemented custom `std::fmt::Debug` for `AiClientConfig` ensuring raw API keys and Bearer tokens are never leaked to logs or telemetry.
+    - Zero-Key Fallback Engine (`crates/ai-adapter/src/fallback.rs`): Implemented `ZeroKeyFallbackEngine` providing high-fidelity, deterministic CPU-only operations executing without AI keys or network access: extractive markdown summarization structured by analytical focus (`Architecture`, `Security`, `ApiOverview`, `General`), heuristic section enrichment (syntactic tags, code signatures, concepts), Blake3-derived $L_2$ unit-normalized embeddings ($|v|_2 = 1.0$) with bit-for-bit repeatability, and offline chat completions.
+    - Resilient Adapter Decorator (`crates/ai-adapter/src/resilient.rs`): Implemented `ResilientAiAdapter` wrapping primary adapters with policy guardrails and zero-key fallback. Immediately delegates to `ZeroKeyFallbackEngine` when disabled by policy, and gracefully degrades to zero-key fallbacks when primary providers encounter connection failures, timeouts, 401s, 429s, or 503s.
+    - Registry Integration (`crates/ai-adapter/src/registry.rs`): Extended `AiAdapterRegistry` with dynamic policy configuration (`with_policy`, `set_policy`, `get_policy`), resilient wrapping (`set_resilient_adapter`), and instant zero-key resetting (`disable`).
+    - Quality & Verification: Authored 13 new integration tests in `tests/guardrails_and_fallback_test.rs` covering opt-in policy defaults, loopback validation, remote blocking, cloud metadata defenses, environment discovery, secret scrubbing, extractive summarization fidelity, Blake3 unit-norm embeddings repeatability, section enrichment, resilient fallback on provider failure, and registry integration. Total crate tests reached 66 (12 unit, 54 integration across 7 test suites); workspace tests expanded to 921+ passing tests. Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean, and 100% passing quality gates (5/5).
 
 ---
 
@@ -270,12 +277,12 @@ In Stage 10 ("Advanced Documents and Content"):
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 178 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4`, `10.3.1` – `10.3.4`, `10.4.1` – `10.4.4`, `10.5.1`, `10.5.2` |
+| `ACCEPTED` | 179 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4`, `10.3.1` – `10.3.4`, `10.4.1` – `10.4.4`, `10.5.1`, `10.5.2`, `10.5.3` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 18 | `10.5.3` – `11.4.5` |
+| `NOT_STARTED` | 17 | `10.5.4` – `11.4.5` |
 | `Total` | **196** | `Stage 0` – `Stage 11` |
 
 ---

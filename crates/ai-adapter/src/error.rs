@@ -9,6 +9,10 @@ pub enum AiAdapterError {
     #[error("AI provider is disabled: {0}")]
     ProviderDisabled(String),
 
+    /// Request violated execution policy guardrails (e.g. cloud call in LocalOnly mode).
+    #[error("AI guardrail policy violation: {0}")]
+    PolicyViolation(String),
+
     /// Missing, invalid, or expired API key or bearer token.
     #[error("AI provider authentication failed: {0}")]
     AuthenticationRequired(String),
@@ -81,6 +85,7 @@ impl AiAdapterError {
             | Self::ServerUnavailable { .. }
             | Self::Timeout(_) => true,
             Self::ProviderDisabled(_)
+            | Self::PolicyViolation(_)
             | Self::AuthenticationRequired(_)
             | Self::ContextLengthExceeded { .. }
             | Self::ModelNotFound { .. }
@@ -94,7 +99,7 @@ impl AiAdapterError {
     pub fn status_code(&self) -> Option<u16> {
         match self {
             Self::AuthenticationRequired(_) => Some(401),
-            Self::ProviderDisabled(_) => Some(403),
+            Self::ProviderDisabled(_) | Self::PolicyViolation(_) => Some(403),
             Self::ModelNotFound { .. } => Some(404),
             Self::InvalidRequest(_) | Self::ResponseParsingError(_) => Some(400),
             Self::ContextLengthExceeded { .. } => Some(413),

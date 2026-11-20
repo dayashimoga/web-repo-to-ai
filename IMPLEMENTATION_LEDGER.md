@@ -6967,3 +6967,82 @@
 
 
 
+---
+
+#### Subphase `10.5.3` — Strict opt-in guardrails & zero-key fallback in crates/ai-adapter
+- **Unique ID:** `10.5.3`
+- **Phase:** `Phase 10.5 — Optional local and external AI provider adapters`
+- **Prerequisites:** `10.5.2` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/ai-adapter/Cargo.toml`
+  - `crates/ai-adapter/src/guardrails.rs`
+  - `crates/ai-adapter/src/secret.rs`
+  - `crates/ai-adapter/src/fallback.rs`
+  - `crates/ai-adapter/src/resilient.rs`
+  - `crates/ai-adapter/src/registry.rs`
+  - `crates/ai-adapter/src/client.rs`
+  - `crates/ai-adapter/src/error.rs`
+  - `crates/ai-adapter/src/models.rs`
+  - `crates/ai-adapter/src/lib.rs`
+  - `crates/ai-adapter/README.md`
+  - `crates/ai-adapter/tests/guardrails_and_fallback_test.rs`
+- **Implementation Tasks:**
+  1. Add `url = { workspace = true }` dependency to `crates/ai-adapter/Cargo.toml`.
+  2. Implement `PolicyViolation` error variant in `src/error.rs` with `status_code() = 403` and `is_retryable() = false`.
+  3. Implement strict policy guardrails in `src/guardrails.rs`:
+     - `AiExecutionMode` (`Disabled`, `LocalOnly`, `AllowRemote`).
+     - `AiOptInPolicy`: defaults to `Disabled` with `allow_zero_key_fallback: true` (Section 3.4 GLOBAL_ENGINEERING_CONTRACT).
+     - Network boundary enforcement: `LocalOnly` mode permits loopback/LAN and container instances (`localhost`, `127.0.0.1`, `[::1]`, `host.docker.internal`, `host.containers.internal`, `ollama`, `vllm`, `localai`, `.local`) while blocking remote endpoints.
+     - Strict cloud metadata defense: blocks `169.254.169.254` and `metadata.google.internal` under all operational modes.
+     - Environment discovery: `AiOptInPolicy::from_env()` parsing `AI_ENABLED`, `AI_EXECUTION_MODE`, and `AI_ALLOW_REMOTE`.
+  4. Implement secret redaction utilities in `src/secret.rs`:
+     - `mask_secret` preserving first 3 and last 4 characters (`sk-...cdef`).
+     - `redact_secrets_from_text` scrubbing raw secrets and `Bearer <token>` patterns from error messages.
+     - Custom `std::fmt::Debug` on `AiClientConfig` to eliminate credential leakage.
+  5. Implement `ZeroKeyFallbackEngine` in `src/fallback.rs`:
+     - Extractive summarization: extracts title, outline headings, and salient thesis sentences structured by analytical focus (`Architecture`, `Security`, `ApiOverview`, `General`).
+     - Heuristic section enrichment: extracts code declaration symbols, syntactic tags, and language markers.
+     - Deterministic embeddings: Blake3-derived $L_2$ unit-normalized vectors ($|v|_2 = 1.0$) with bit-for-bit repeatability across requested dimensions.
+     - Offline chat completion with valid JSON support.
+  6. Implement `ResilientAiAdapter` in `src/resilient.rs`:
+     - Decorator wrapping any primary adapter with policy guardrails and zero-key CPU fallback.
+     - Automatic degradation to `ZeroKeyFallbackEngine` on provider errors (401, 429, 503, timeouts, network failures).
+  7. Extend `AiAdapterRegistry` in `src/registry.rs` with `with_policy`, `get_policy`, `set_policy`, `set_resilient_adapter`, and instant `disable()`.
+  8. Author comprehensive integration tests in `tests/guardrails_and_fallback_test.rs` (13 tests).
+  9. Update `crates/ai-adapter/README.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`, and `IMPLEMENTATION_LEDGER.md`.
+- **Acceptance Criteria:**
+  - AI subsystem disabled by default; zero external network dependencies without explicit opt-in.
+  - `LocalOnly` mode strictly blocks cloud egress while permitting local/container inference.
+  - Cloud metadata endpoints blocked unconditionally.
+  - API keys and Bearer tokens completely redacted from debug strings and error logs.
+  - Zero-key fallback engine executes cleanly on CPU without external keys or network.
+  - 100% test pass rate (66/66 crate tests passing).
+  - Monorepo quality gates passing (`scripts/check-all.ps1`).
+- **Tests:**
+  - `guardrails_and_fallback_test::test_guardrail_policy_disabled_by_default`
+  - `guardrails_and_fallback_test::test_guardrail_policy_local_only_mode`
+  - `guardrails_and_fallback_test::test_guardrail_policy_cloud_metadata_defense`
+  - `guardrails_and_fallback_test::test_guardrail_policy_from_env_discovery`
+  - `guardrails_and_fallback_test::test_secret_redaction_and_debug_formatting`
+  - `guardrails_and_fallback_test::test_secret_scrubbing_from_error_messages`
+  - `guardrails_and_fallback_test::test_zero_key_extractive_summarization_fidelity`
+  - `guardrails_and_fallback_test::test_zero_key_deterministic_embeddings_norm_and_repeatability`
+  - `guardrails_and_fallback_test::test_zero_key_section_enrichment`
+  - `guardrails_and_fallback_test::test_resilient_adapter_delegates_to_zero_key_when_disabled`
+  - `guardrails_and_fallback_test::test_resilient_adapter_seamless_fallback_on_primary_failure`
+  - `guardrails_and_fallback_test::test_resilient_adapter_error_propagation_when_fallback_disabled`
+  - `guardrails_and_fallback_test::test_registry_with_resilient_guardrails_integration`
+- **Security Considerations:**
+  - Strict enforcement of Section 3.4 of the GLOBAL_ENGINEERING_CONTRACT: zero external AI requirement.
+  - Secrets masked in debug representations and scrubbed from error logs.
+  - SSRF/cloud-metadata protection isolating `169.254.169.254` and `metadata.google.internal`.
+- **Performance Considerations:**
+  - Fast, deterministic CPU algorithms with zero network roundtrips in fallback mode.
+  - Constant memory bounds and zero allocations outside requested dimensions.
+- **Documentation Requirements:**
+  - `crates/ai-adapter/README.md`, `CHANGELOG.md`, `PROJECT_STATUS.md`, `TODO.md`, `ROADMAP.md`, `docs/ROADMAP.md`, `IMPLEMENTATION_LEDGER.md`.
+- **Validation Evidence:**
+  - 66/66 tests passing in `crates/ai-adapter`.
+  - 921+ tests passing across the workspace.
+  - Monorepo quality gates 100% passing (5/5 gates).
+- **Status:** `ACCEPTED`

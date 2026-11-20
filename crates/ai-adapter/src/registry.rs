@@ -2,21 +2,24 @@
 
 use crate::disabled::DisabledAiAdapter;
 use crate::error::AiAdapterError;
+use crate::guardrails::AiOptInPolicy;
 use crate::models::{
     AiHealthStatus, AiModelDescriptor, AiProviderType, ChatCompletionRequest,
     ChatCompletionResponse, DocumentSummarizationRequest, DocumentSummarizationResponse,
     EmbeddingRequest, EmbeddingResponse, SectionEnrichmentRequest, SectionEnrichmentResponse,
 };
+use crate::resilient::ResilientAiAdapter;
 use crate::traits::AiAdapter;
 use std::sync::{Arc, RwLock};
 
 /// Global or service-scoped registry holding the currently active AI provider adapter.
 ///
-/// Defaults to [`DisabledAiAdapter`] to guarantee zero external network dependencies
-/// or API key requirements unless explicitly opted in by user configuration.
+/// Defaults to [`DisabledAiAdapter`] with [`AiOptInPolicy::disabled()`] to guarantee zero external
+/// network dependencies or API key requirements unless explicitly opted in by user configuration.
 #[derive(Debug, Clone)]
 pub struct AiAdapterRegistry {
     active_adapter: Arc<RwLock<Arc<dyn AiAdapter>>>,
+    policy: Arc<RwLock<AiOptInPolicy>>,
 }
 
 impl Default for AiAdapterRegistry {
@@ -26,18 +29,36 @@ impl Default for AiAdapterRegistry {
 }
 
 impl AiAdapterRegistry {
-    /// Create a new registry initialized with the zero-key [`DisabledAiAdapter`].
+    /// Create a new registry initialized with the zero-key [`DisabledAiAdapter`] and default disabled policy.
     pub fn new() -> Self {
         Self {
             active_adapter: Arc::new(RwLock::new(Arc::new(DisabledAiAdapter::new()))),
+            policy: Arc::new(RwLock::new(AiOptInPolicy::disabled())),
         }
     }
 
-    /// Construct a registry initialized with a specific adapter.
+    /// Construct a registry initialized with a specific adapter and default disabled policy.
     pub fn with_adapter(adapter: Arc<dyn AiAdapter>) -> Self {
         Self {
             active_adapter: Arc::new(RwLock::new(adapter)),
+            policy: Arc::new(RwLock::new(AiOptInPolicy::disabled())),
         }
+    }
+
+    /// Set or update the registry's guardrail policy.
+    pub fn with_policy(self, policy: AiOptInPolicy) -> Self {
+        *self.policy.write().unwrap() = policy;
+        self
+    }
+
+    /// Retrieve a cloned copy of the active policy.
+    pub fn get_policy(&self) -> AiOptInPolicy {
+        self.policy.read().unwrap().clone()
+    }
+
+    /// Dynamically update the active policy at runtime.
+    pub fn set_policy(&self, policy: AiOptInPolicy) {
+        *self.policy.write().unwrap() = policy;
     }
 
     /// Retrieve a cloned reference to the currently active adapter.
@@ -51,8 +72,18 @@ impl AiAdapterRegistry {
         *guard = adapter;
     }
 
-    /// Reset the active adapter to the zero-key [`DisabledAiAdapter`].
+    /// Register a primary adapter wrapped in a [`ResilientAiAdapter`] with the current registry policy.
+    pub fn set_resilient_adapter(&self, primary: Arc<dyn AiAdapter>, fallback_on_error: bool) {
+        let policy = self.get_policy();
+        let resilient = Arc::new(
+            ResilientAiAdapter::new(primary, policy).with_fallback_on_error(fallback_on_error),
+        );
+        self.set_adapter(resilient);
+    }
+
+    /// Reset the active adapter to the zero-key [`DisabledAiAdapter`] and policy to disabled.
     pub fn disable(&self) {
+        self.set_policy(AiOptInPolicy::disabled());
         self.set_adapter(Arc::new(DisabledAiAdapter::new()));
     }
 

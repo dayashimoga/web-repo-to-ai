@@ -6,6 +6,34 @@
 
 ## [Unreleased] — Stage 10: Advanced Documents and Content
 
+### 2026-11-20 — Phase 10.5: Optional local and external AI provider adapters (`10.5.3`)
+
+#### Added
+- **`[10.5.3]` Strict opt-in guardrails & zero-key fallback in `crates/ai-adapter` (`web-repo-to-ai-ai-adapter`):**
+  - Strict Policy Guardrails & Network Boundaries (`crates/ai-adapter/src/guardrails.rs`):
+    - Implemented `AiOptInPolicy` and `AiExecutionMode` (`Disabled`, `LocalOnly`, `AllowRemote`). Enforces Section 3.4 of the GLOBAL_ENGINEERING_CONTRACT: AI usage is 100% opt-in (disabled by default).
+    - In `LocalOnly` mode, only local inference instances (`localhost`, `127.0.0.1`, `[::1]`, container hosts `host.docker.internal`, `host.containers.internal`, `ollama`, `vllm`, `localai`) are permitted; all cloud egress is blocked by policy with `AiAdapterError::PolicyViolation`.
+    - Cloud Metadata Isolation: Outbound calls to cloud metadata IP addresses (`169.254.169.254`, `metadata.google.internal`) are strictly forbidden under all modes to prevent SSRF credential theft.
+    - Environment Variable Discovery: `AiOptInPolicy::from_env()` discovers and merges `AI_ENABLED`, `AI_EXECUTION_MODE`, and `AI_ALLOW_REMOTE`.
+  - Secret Redaction & Protection (`crates/ai-adapter/src/secret.rs`):
+    - Implemented `mask_secret` redacting API keys and tokens for safe logging and telemetry (preserving first 3 and last 4 characters, e.g. `sk-...cdef`).
+    - Implemented `redact_secrets_from_text` scrubbing explicit secrets and `Bearer <token>` patterns from error strings and traces.
+    - Sanitized `AiClientConfig`: Custom `std::fmt::Debug` implementation preventing API key leakage in debug logs.
+  - Zero-Key Fallback Engine (`crates/ai-adapter/src/fallback.rs`):
+    - Implemented `ZeroKeyFallbackEngine` providing high-fidelity, deterministic CPU-only operations executing without AI keys or network access:
+      - Extractive Summarization: Extracts document title, outline headings, and salient thesis sentences structured by analytical focus (`Architecture`, `Security`, `ApiOverview`, `General`).
+      - Heuristic Section Enrichment: Extracts programming syntax tags, code signatures (`fn`, `struct`, `class`, `enum`), and conceptual headings.
+      - Deterministic Embeddings: Generates Blake3-derived, $L_2$ unit-normalized vectors ($|v|_2 = 1.0$) with bit-for-bit repeatability across requested dimensions.
+      - Fallback Chat Completions: Returns structured offline responses (including valid JSON if requested).
+  - Resilient AI Adapter Decorator (`crates/ai-adapter/src/resilient.rs`):
+    - Implemented `ResilientAiAdapter` wrapping primary adapters with policy guardrails and zero-key fallback.
+    - Immediately delegates to `ZeroKeyFallbackEngine` when disabled by policy, and gracefully degrades to zero-key fallbacks when primary providers encounter connection failures, timeouts, 401s, 429s, or 503s.
+  - Dynamic Runtime Registry Integration (`crates/ai-adapter/src/registry.rs`):
+    - Extended `AiAdapterRegistry` with dynamic policy configuration (`with_policy`, `set_policy`, `get_policy`), resilient wrapping (`set_resilient_adapter`), and instant zero-key resetting (`disable`).
+  - Integration & Verification Test Suites:
+    - Authored 13 new integration tests in `tests/guardrails_and_fallback_test.rs` covering opt-in policy defaults, loopback validation, remote blocking, cloud metadata defenses, environment discovery, secret scrubbing, extractive summarization fidelity, Blake3 unit-norm embeddings repeatability, section enrichment, resilient fallback on provider failure, and registry integration.
+    - Total crate tests reached 66 across 7 test suites; workspace tests expanded to 921+ passing tests with 0 warnings, 0 clippy diffs, clean `cargo deny check`, and 100% passing quality gates (5/5).
+
 ### 2026-11-20 — Phase 10.5: Optional local and external AI provider adapters (`10.5.2`)
 
 #### Added

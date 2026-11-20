@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use std::time::Duration;
 
 /// Configuration options for connecting to an AI provider HTTP endpoint.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct AiClientConfig {
     /// Base URL of the provider endpoint (e.g. `http://localhost:11434` or `https://api.openai.com/v1`).
     pub base_url: String,
@@ -25,6 +25,21 @@ pub struct AiClientConfig {
     pub project: Option<String>,
     /// Additional custom HTTP headers.
     pub custom_headers: HashMap<String, String>,
+}
+
+impl std::fmt::Debug for AiClientConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let masked = self.api_key.as_deref().map(crate::secret::mask_secret);
+        f.debug_struct("AiClientConfig")
+            .field("base_url", &self.base_url)
+            .field("api_key", &masked)
+            .field("timeout_secs", &self.timeout_secs)
+            .field("max_retries", &self.max_retries)
+            .field("organization", &self.organization)
+            .field("project", &self.project)
+            .field("custom_headers_count", &self.custom_headers.len())
+            .finish()
+    }
 }
 
 impl AiClientConfig {
@@ -51,6 +66,11 @@ impl AiClientConfig {
     pub fn with_api_key(mut self, api_key: impl Into<String>) -> Self {
         self.api_key = Some(api_key.into());
         self
+    }
+
+    /// Retrieve the safely masked API key for logging.
+    pub fn masked_api_key(&self) -> Option<String> {
+        self.api_key.as_deref().map(crate::secret::mask_secret)
     }
 
     /// Set request timeout in seconds.

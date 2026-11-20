@@ -1,7 +1,7 @@
 //! Provider-independent AI adapter trait and implementations for optional LLM assistance.
 //!
 //! Provides abstract interfaces, domain schemas, zero-key fallback implementations,
-//! in-memory test mocks, and thread-safe runtime registries for AI integration.
+//! policy guardrails, in-memory test mocks, and thread-safe runtime registries for AI integration.
 //!
 //! In accordance with Section 3.4 of the GLOBAL_ENGINEERING_CONTRACT ("Zero Mandatory
 //! External AI / Paid Dependencies"), all core document extraction, normalization,
@@ -12,17 +12,23 @@
 pub mod client;
 pub mod disabled;
 pub mod error;
+pub mod fallback;
+pub mod guardrails;
 pub mod mock;
 pub mod models;
 pub mod ollama;
 pub mod openai;
 pub mod registry;
+pub mod resilient;
+pub mod secret;
 pub mod traits;
 
 // Re-exports
 pub use client::AiClientConfig;
 pub use disabled::DisabledAiAdapter;
 pub use error::AiAdapterError;
+pub use fallback::ZeroKeyFallbackEngine;
+pub use guardrails::{AiExecutionMode, AiOptInPolicy};
 pub use mock::{MockAiAdapter, MockCallTracker};
 pub use models::{
     AiCapabilities, AiHealthStatus, AiModelDescriptor, AiProviderType, ChatChoice,
@@ -34,4 +40,6 @@ pub use models::{
 pub use ollama::OllamaAiAdapter;
 pub use openai::OpenAiAiAdapter;
 pub use registry::AiAdapterRegistry;
+pub use resilient::ResilientAiAdapter;
+pub use secret::{mask_secret, redact_secrets_from_text};
 pub use traits::AiAdapter;
