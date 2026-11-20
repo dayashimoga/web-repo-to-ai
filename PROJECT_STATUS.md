@@ -6,9 +6,9 @@
 **Last Completed Stage:** `STAGE 9 — DEVELOPER AND AI AGENT INTEGRATIONS` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Last Completed Phase:** `Phase 10.3 — Structured documents` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Active Subphase:** `None`  
-**Last Completed Subphase:** `10.3.4 — Structured document validation tests & Phase 10.3 Certification (crates/structured-extractor: 8 golden archetypes covering OpenAPI JSON/YAML, JSON Schema, YAML stream, CSV/TSV, Jupyter notebook, adversarial limits bomb; quantitative fidelity metrics with fragment recall >=95%, schema validity, <50ms throughput; cross-format validation suite with line/byte monotonicity, acyclic outline hierarchies, input rejection guarantees, and mathematical CompletenessReport invariants across all formats)` (`ACCEPTED`)  
+**Last Completed Subphase:** `10.4.1 — Semantic & AST-boundary chunking (crates/chunking: production-grade RAG chunking engine with AST-boundary code splitting for Rust/Python/TS/Go via code-intelligence, heading-aware Markdown hierarchy tracking with breadcrumb injection, tabular chunking preserving column headers across all slices, sliding window with overlap, token accounting via tokenizer crate, Blake3 deterministic chunk IDs, and sub-50ms performance across 21 unit/integration tests)` (`ACCEPTED`)  
 **Next Upcoming Phase:** `Phase 10.4 — RAG chunk generation`  
-**Next Upcoming Subphase:** `10.4.1 — Semantic & AST-boundary chunking`
+**Next Upcoming Subphase:** `10.4.2 — Citation & cross-reference metadata injection`
 
 ---
 
@@ -200,6 +200,15 @@ In Stage 10 ("Advanced Documents and Content"):
       - Validated robust error handling and structured rejection for empty strings, whitespace-only inputs, invalid JSON/YAML syntax, and corrupted payloads.
       - Validated strict mathematical `CompletenessReport` accounting (`discovered == extracted + excluded`) under adversarial limits across all structured formats.
     - Quality & Formal Certification: Authored 17 new integration tests across `tests/structured_golden_benchmark_test.rs` (10 tests) and `tests/structured_validation_test.rs` (7 tests). Total crate tests reached 74 (16 test suites); workspace tests reached 812+ passing tests. Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean, and 100% passing quality gates (5/5). Formally certified Phase 10.3 in full.
+- Phase 10.4 ("RAG chunk generation") is in progress:
+  - Subphase `10.4.1` delivered production-grade semantic and AST-boundary chunking in `crates/chunking` (`web-repo-to-ai-chunking`):
+    - Language-Aware AST Code Chunking (`crates/chunking/src/ast.rs`): Integrated `web-repo-to-ai-code-intelligence` for AST symbol boundary extraction across Rust, Python, TypeScript, JavaScript, Go, and generic languages. Preserves top-level preambles (imports, package statements) across chunk units. Implemented indentation-aware and brace-depth tracking scope detection. Cleanly splits oversized declarations at internal logical block boundaries with contextual signature headers (`// File: ... > Symbol: <name> (Part X)`).
+    - Heading-Aware Markdown & Prose Chunking (`crates/chunking/src/markdown.rs`): Implemented GitHub Flavored Markdown heading parser (`#` through `######`) with breadcrumb stack tracking. Injects hierarchical context headers (`> Context: Root > Section`) on split chunks and splits oversized prose along clean paragraph boundaries (`\n\n`).
+    - Structured & Tabular Chunking (`crates/chunking/src/structured.rs`): Implemented table-aware chunking preserving column headers and delimiter rows (`| --- |`) across **every chunk slice**, ensuring column identity is preserved in downstream vector embeddings.
+    - Sliding Window with Overlap (`crates/chunking/src/window.rs`): Implemented line-boundary-preserving rolling window chunking with configurable target/max tokens and overlap ratios.
+    - Token Accounting (`crates/chunking/src/token.rs`): Integrated `web-repo-to-ai-tokenizer` (`TokenizerRegistry`, BPE tokenizers) with fallback to fast calibrated heuristics, providing token counting, truncation, and tail overlap extraction.
+    - Adaptive Engine Orchestration (`crates/chunking/src/engine.rs`): Traverses `CdmDocument` sections and routes each section adaptively according to `SectionKind` (`Code`, `Prose`, `Markdown`, `TabularData`, `StructuredSpec`). Computes mathematical `ChunkingReport` aggregations and assigns deterministic Blake3 `ChunkId` values.
+    - Quality & Verification: Authored 20 integration tests across `tests/ast_chunking_test.rs` (6 tests), `tests/heading_chunking_test.rs` (4 tests), `tests/table_chunking_test.rs` (2 tests), `tests/sliding_window_test.rs` (2 tests), and `tests/engine_document_test.rs` (6 tests). Verified 21 crate tests passing, 833+ workspace tests passing, zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean, and 100% passing quality gates (5/5).
 
 ---
 
@@ -207,12 +216,12 @@ In Stage 10 ("Advanced Documents and Content"):
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 172 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4`, `10.3.1` – `10.3.4` |
+| `ACCEPTED` | 173 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4`, `10.3.1` – `10.3.4`, `10.4.1` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 24 | `10.4.1` – `11.4.5` |
+| `NOT_STARTED` | 23 | `10.4.2` – `11.4.5` |
 | **Total** | **196** | `Stage 0` – `Stage 11` |
 
 ---

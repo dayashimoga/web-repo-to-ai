@@ -6,6 +6,39 @@
 
 ## [Unreleased] — Stage 10: Advanced Documents and Content
 
+### 2026-11-20 — Phase 10.4: RAG chunk generation (`10.4.1`)
+
+#### Added
+- **`[10.4.1]` Semantic & AST-boundary chunking in `crates/chunking` (`web-repo-to-ai-chunking`):**
+  - Production Chunking Domain Models (`crates/chunking/src/model.rs`):
+    - Implemented `Chunk`, `ChunkId` (Blake3 hex digest derived from section coordinates and raw slice), `ChunkKind` (`CodeAst`, `CodeBlock`, `ProseHeading`, `ProseBlock`, `TabularData`, `StructuredSpec`, `SlidingWindow`, `Generic`), `ChunkSymbolMetadata`, `ChunkContext`, `ChunkingStrategy` (`Adaptive`, `SemanticAst`, `HeadingAware`, `FixedWindowWithOverlap`), `ChunkingConfig` with comprehensive parameter validation, and `ChunkingReport` tracking chunk aggregations, tokens, and symbols.
+  - Token Accounting & Overlap Engine (`crates/chunking/src/token.rs`):
+    - Implemented `TokenCounter` integrating `TokenizerRegistry` from `web-repo-to-ai-tokenizer` with graceful fallback to `CalibratedHeuristicAdapter`.
+    - Implemented `truncate_to_tokens` and `extract_tail_overlap` preserving clean whitespace and line boundaries.
+  - Language-Aware AST Code Chunking (`crates/chunking/src/ast.rs`):
+    - Integrated `web-repo-to-ai-code-intelligence` for AST symbol boundary detection across Rust, Python, TypeScript, JavaScript, Go, and generic code.
+    - Preserved top-level preambles (imports, type definitions, package headers) across chunk units.
+    - Implemented indentation-aware and brace-depth tracking scope resolvers for clean declaration spans.
+    - Cleanly split oversized functions and classes at internal statement/block boundaries with contextual signature headers (`// File: ... > Symbol: <name> (Part X)`).
+  - Heading-Aware Prose & Markdown Chunking (`crates/chunking/src/markdown.rs`):
+    - Implemented GitHub Flavored Markdown heading parser (`#` through `######`) with breadcrumb stack tracking.
+    - Injected hierarchical context headers (`> Context: Root > Section`) on split chunks.
+    - Split oversized prose along clean paragraph boundaries (`\n\n`).
+  - Structured & Tabular Chunking (`crates/chunking/src/structured.rs`):
+    - Implemented table-aware chunking preserving column header rows and delimiter rows (`| --- |`) across **every chunk slice**, guaranteeing column identity retention in vector embeddings.
+    - Implemented structured spec chunking for OpenAPI, JSON Schema, and YAML manifests.
+  - Sliding Window with Overlap (`crates/chunking/src/window.rs`):
+    - Implemented line-boundary-preserving rolling window chunking with configurable target tokens, max tokens, and overlap step sizes.
+  - Orchestration Engine (`crates/chunking/src/engine.rs`):
+    - Implemented `Chunker::chunk_document`, `Chunker::chunk_section`, `Chunker::chunk_text`, and public top-level functions `chunk_document` and `chunk_text`.
+    - Traverses `CdmDocument` sections and routes adaptively based on `SectionKind`.
+  - Quality & Verification:
+    - Authored 20 integration tests across `tests/ast_chunking_test.rs` (6 tests), `tests/heading_chunking_test.rs` (4 tests), `tests/table_chunking_test.rs` (2 tests), `tests/sliding_window_test.rs` (2 tests), and `tests/engine_document_test.rs` (6 tests).
+    - 21 crate tests passing in `web-repo-to-ai-chunking`.
+    - 833+ workspace tests passing across the monorepo.
+    - Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean.
+    - Monorepo quality gate (`scripts/check-all.ps1`) 100% passing across all 5 gates.
+
 ### 2026-11-20 — Phase 10.3: Structured documents (`10.3.4`) — PHASE 10.3 FORMALLY CERTIFIED
 
 #### Added

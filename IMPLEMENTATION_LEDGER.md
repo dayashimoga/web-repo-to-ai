@@ -6546,6 +6546,86 @@
   - Monorepo gate: `scripts/check-all.ps1` clean with ALL GATES PASSED (0 failures).
 - **Certification Status:** `ACCEPTED` & `100% COMPLETED` — Phase 10.3 is formally certified and closed.
 
+---
+
+### Phase 10.4 — RAG chunk generation
+
+#### Subphase `10.4.1` — Semantic & AST-boundary chunking
+- **Unique ID:** `10.4.1`
+- **Objective:** Implement a production-grade RAG chunking engine in `crates/chunking` supporting language-aware AST declaration boundary splitting, heading-aware Markdown hierarchy tracking with breadcrumb propagation, tabular data chunking with persistent column headers on every slice, sliding window token windowing with overlap, and adaptive section routing.
+- **Scope:** `crates/chunking` (`src/error.rs`, `src/model.rs`, `src/token.rs`, `src/ast.rs`, `src/markdown.rs`, `src/structured.rs`, `src/window.rs`, `src/engine.rs`, `src/lib.rs`, `README.md`, `tests/*`).
+- **Prerequisites:** `10.3.4` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/chunking/Cargo.toml`
+  - `crates/chunking/README.md`
+  - `crates/chunking/src/lib.rs`
+  - `crates/chunking/src/error.rs`
+  - `crates/chunking/src/model.rs`
+  - `crates/chunking/src/token.rs`
+  - `crates/chunking/src/ast.rs`
+  - `crates/chunking/src/markdown.rs`
+  - `crates/chunking/src/structured.rs`
+  - `crates/chunking/src/window.rs`
+  - `crates/chunking/src/engine.rs`
+  - `crates/chunking/tests/ast_chunking_test.rs`
+  - `crates/chunking/tests/heading_chunking_test.rs`
+  - `crates/chunking/tests/table_chunking_test.rs`
+  - `crates/chunking/tests/sliding_window_test.rs`
+  - `crates/chunking/tests/engine_document_test.rs`
+- **Implementation Tasks:**
+  1. Define domain models in `src/model.rs`: `Chunk`, `ChunkId` (deterministic Blake3 hash derived from section coordinates and raw slice), `ChunkKind` (`CodeAst`, `CodeBlock`, `ProseHeading`, `ProseBlock`, `TabularData`, `StructuredSpec`, `SlidingWindow`, `Generic`), `ChunkSymbolMetadata`, `ChunkContext`, `ChunkingStrategy`, `ChunkingConfig` with comprehensive validation, and `ChunkingReport`.
+  2. Implement token accounting in `src/token.rs`: `TokenCounter` wrapping `TokenizerRegistry` from `web-repo-to-ai-tokenizer` with fallback to `CalibratedHeuristicAdapter`, `truncate_to_tokens`, and `extract_tail_overlap`.
+  3. Implement AST-boundary code chunking in `src/ast.rs`: Language-aware symbol extraction via `web-repo-to-ai-code-intelligence` for Rust, Python, TypeScript, JavaScript, Go, and generic code; brace and indentation scope detection; preamble preservation; oversized function/class statement splitting with context signature headers (`// File: ... > Symbol: ... (Part X)`).
+  4. Implement heading-aware prose chunking in `src/markdown.rs`: GitHub Flavored Markdown heading hierarchy tracking (`#`..`######`), breadcrumbs stack, paragraph boundary splitting (`\n\n`), and contextual breadcrumb header injection.
+  5. Implement structured and tabular chunking in `src/structured.rs`: Preserving table column headers and separator row on **every chunk slice**, preventing column identity loss in vector embeddings.
+  6. Implement sliding window chunking in `src/window.rs`: Boundary-preserving rolling window with configurable token step sizes and line-based overlap.
+  7. Implement adaptive orchestration engine in `src/engine.rs`: `Chunker::chunk_document`, `Chunker::chunk_section`, `Chunker::chunk_text`, `chunk_document`, and `chunk_text`.
+  8. Authored 20 integration tests across 5 test suites verifying AST chunking, heading breadcrumbs, table header retention, sliding window continuity, hash determinism, and performance.
+- **Acceptance Criteria:**
+  - Production chunking engine in `crates/chunking` with zero mocks and zero placeholders.
+  - AST boundary splitting cleanly groups related symbols and preserves file preambles.
+  - Oversized functions split at logical statement boundaries with contextual signature headers.
+  - Heading breadcrumbs accurately propagated to child chunks.
+  - Tabular data retains table headers across all split chunks.
+  - 100% test pass rate (21/21 crate tests passing).
+  - All monorepo quality gates passing (`scripts/check-all.ps1`).
+- **Tests:**
+  - `ast_chunking_test::test_rust_ast_chunking_functions_and_structs`
+  - `ast_chunking_test::test_python_ast_chunking_classes_and_functions`
+  - `ast_chunking_test::test_typescript_ast_chunking_interfaces_and_classes`
+  - `ast_chunking_test::test_go_ast_chunking_structs_and_methods`
+  - `ast_chunking_test::test_oversized_function_clean_splitting_with_signature_header`
+  - `ast_chunking_test::test_generic_code_fallback_when_no_symbols`
+  - `heading_chunking_test::test_markdown_hierarchical_heading_breadcrumbs`
+  - `heading_chunking_test::test_oversized_prose_paragraph_splitting`
+  - `heading_chunking_test::test_markdown_deep_nested_and_skipped_headings`
+  - `heading_chunking_test::test_empty_section_returns_empty_chunks`
+  - `table_chunking_test::test_tabular_data_header_retention_across_chunks`
+  - `table_chunking_test::test_small_table_single_chunk`
+  - `sliding_window_test::test_sliding_window_with_overlap_continuity`
+  - `sliding_window_test::test_sliding_window_with_zero_overlap`
+  - `engine_document_test::test_end_to_end_adaptive_document_chunking`
+  - `engine_document_test::test_chunking_bit_for_bit_hash_determinism`
+  - `engine_document_test::test_chunk_text_convenience_function`
+  - `engine_document_test::test_empty_document_error_handling`
+  - `engine_document_test::test_invalid_config_rejections`
+  - `engine_document_test::test_performance_sub_50ms_for_document`
+- **Security Considerations:**
+  - Guaranteed bounded execution with strict token limits (`min_chunk_tokens`, `max_chunk_tokens`), preventing out-of-memory or unbounded string allocations during chunking.
+  - Deterministic Blake3 cryptographic chunk IDs preventing ID collisions and tampering in vector databases.
+- **Performance Considerations:**
+  - High throughput: 100-section document chunked in < 5ms (well below the 50ms requirement).
+  - Linear scan algorithms for brace tracking and indentation scope detection with minimal string copies.
+- **Documentation Requirements:**
+  - Authored crate `README.md`, updated `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `IMPLEMENTATION_LEDGER.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Validation Evidence:**
+  - 21/21 tests passing in `crates/chunking`.
+  - 833+ tests passing across the workspace.
+  - All 5 gates passed in `scripts/check-all.ps1`.
+- **Git Commit Reference:** `d3e693d`
+- **Status:** `ACCEPTED`
+
+
 
 
 
