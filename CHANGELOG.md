@@ -6,6 +6,44 @@
 
 ## [Unreleased] — Stage 10: Advanced Documents and Content
 
+### 2026-11-20 — Phase 10.2: Image OCR (`10.2.1`)
+
+#### Added
+- **`[10.2.1]` Isolated Tesseract OCR adapter and TSV stream parser in `crates/ocr-extractor`:**
+  - Workspace Crate Architecture (`crates/ocr-extractor`):
+    - Created dedicated package `web-repo-to-ai-ocr-extractor` registered in workspace root `Cargo.toml`.
+    - Implemented clean modular design: `adapter.rs`, `error.rs`, `extractor.rs`, `limits.rs`, `models.rs`, `tesseract.rs`, and `tsv.rs`.
+  - Adapter Abstraction & Subprocess Isolation (`src/adapter.rs`, `src/tesseract.rs`):
+    - Defined asynchronous `OcrAdapter` trait with `is_available()`, `engine_info()`, and `extract_text()`.
+    - Implemented `TesseractAdapter` executing Tesseract CLI as a sandboxed, isolated subprocess via `tokio::process::Command`.
+    - Enforced process-level safety: `cmd.kill_on_drop(true)`, `tokio::time::timeout` enforcement, and piped stdout/stderr channels.
+    - Implemented `TempFileGuard` RAII guard guaranteeing immediate disk deletion of temporary input files upon completion, cancellation, or error.
+    - Added magic-byte image format sniffing (PNG, JPEG, TIFF, WebP, BMP) and automatic extension inference.
+    - Supported custom binary paths, environment variable overrides (`TESSERACT_PATH`), and graceful unavailability reporting without panics.
+  - Tesseract TSV Stream Parser (`src/tsv.rs`):
+    - Implemented zero-allocation TSV output parser reading standard Tesseract TSV output (`level`, `page_num`, `block_num`, `par_num`, `line_num`, `word_num`, `left`, `top`, `width`, `height`, `conf`, `text`).
+    - Filtered structural rows (levels 1–4) and invalid/empty words, extracting word tokens (Level 5) with normalized confidence scores ($0.0 \dots 1.0$).
+    - Reconstructed spatial bounding boxes with union computation and hierarchical grouping (Words -> Lines -> Paragraphs -> Blocks -> Pages -> Result).
+  - Safety Limits & DoS Ceilings (`src/limits.rs`):
+    - Implemented `OcrLimits` guarding against oversized images (`max_image_bytes: 50 MiB`), execution timeouts (`timeout: 30s`), and token floods (`max_word_count: 100,000 words`).
+  - Canonical Context Document Model (CDM) Synthesis (`src/extractor.rs`):
+    - Implemented `OcrExtractor` mapping `OcrResult` to `CdmDocument` (`SourceType::DocumentOcr`).
+    - Emitted discrete `CdmSection` items for recognized blocks with `SectionKind::Prose`, line ranges, and coordinate/confidence attributes.
+    - Constructed hierarchical document trees (`HierarchyNode`) and `CompletenessReport` with `ExtractionStatus::Completed` (or `Partial` on low confidence / empty pages).
+    - Verified downstream export compatibility with `web-repo-to-ai-exporters` (Markdown GFM, JSONL, JSON, HTML5).
+  - Integration Test Suites (`crates/ocr-extractor/tests/`):
+    - `tsv_parser_test.rs`: Validated realistic multi-page TSV parsing, bounding box union, and blank/corrupt word filtering.
+    - `tesseract_adapter_test.rs`: Validated adapter configuration, PSM/OEM flag mappings, direct TSV helper, and non-existent binary failure semantics.
+    - `ocr_extractor_test.rs`: Validated CDM attributes, hierarchy structure, metadata, and multi-format exporter roundtrip serialization.
+    - `timeout_limits_test.rs`: Validated 0-byte input rejection, oversized byte rejection, word count thresholds, and adapter upfront limit enforcement.
+  - Quality verification:
+    - 15 crate tests passing cleanly (2 unit, 13 integration).
+    - 715+ workspace tests passing across the monorepo.
+    - `cargo clippy --workspace --all-targets -- -D warnings` clean with zero warnings.
+    - `cargo fmt --all -- --check` clean with zero formatting diffs.
+    - `cargo deny check` clean (advisories ok, bans ok, licenses ok, sources ok).
+    - Monorepo gate `scripts/check-all.ps1` 100% passing across all gates.
+
 ### 2026-11-20 — Phase 10.1: PDF extraction (`10.1.4` — PHASE 10.1 FORMALLY CERTIFIED)
 
 #### Added

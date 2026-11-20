@@ -5980,3 +5980,61 @@
   - Monorepo quality gates pass 100% (5/5).
   - Phase 10.1 formally certified.
 - **Status:** `ACCEPTED`
+
+---
+
+### Phase 10.2 — Image OCR
+
+#### Subphase `10.2.1` — Isolated Tesseract OCR adapter
+- **Unique ID:** `10.2.1`
+- **Objective:** Implement dedicated workspace crate `crates/ocr-extractor` (`web-repo-to-ai-ocr-extractor`), asynchronous `OcrAdapter` trait, sandboxed `TesseractAdapter` process execution with timeout and memory safety, high-fidelity TSV stream parser, resource and DoS limits, and Canonical Context Document Model (`CdmDocument`) synthesis.
+- **Scope:** `Cargo.toml`, `crates/ocr-extractor/Cargo.toml`, `crates/ocr-extractor/README.md`, `crates/ocr-extractor/src/lib.rs`, `crates/ocr-extractor/src/error.rs`, `crates/ocr-extractor/src/limits.rs`, `crates/ocr-extractor/src/models.rs`, `crates/ocr-extractor/src/tsv.rs`, `crates/ocr-extractor/src/adapter.rs`, `crates/ocr-extractor/src/tesseract.rs`, `crates/ocr-extractor/src/extractor.rs`, `crates/ocr-extractor/tests/tsv_parser_test.rs`, `crates/ocr-extractor/tests/tesseract_adapter_test.rs`, `crates/ocr-extractor/tests/ocr_extractor_test.rs`, `crates/ocr-extractor/tests/timeout_limits_test.rs`, and project tracking ledgers.
+- **Prerequisites:** `10.1.4` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `Cargo.toml`: Added `"crates/ocr-extractor"` to `workspace.members` and `web-repo-to-ai-ocr-extractor = { path = "crates/ocr-extractor", version = "0.1.0" }` to `[workspace.dependencies]`.
+  - `crates/ocr-extractor/Cargo.toml`: Configured package with workspace inheritance, core/cdm dependencies, `tokio` (process, io-util, time, sync, fs), `async-trait`, `thiserror`, `serde`, `serde_json`, `tracing`, `blake3`, `chrono`, `url`, `uuid`, and `web-repo-to-ai-exporters` dev-dependency.
+  - `crates/ocr-extractor/README.md`: Documented architecture, capabilities, and safety invariants.
+  - `crates/ocr-extractor/src/error.rs`: Defined `OcrError` enum (`TesseractNotFound`, `AdapterUnavailable`, `ExecutionTimeout`, `ProcessFailed`, `InputLimitExceeded`, `ImageFormat`, `OutputParseError`, `Io`, `CdmConversion`).
+  - `crates/ocr-extractor/src/limits.rs`: Implemented `OcrLimits` (`max_image_bytes: 50 MiB`, `timeout: 30s`, `max_word_count: 100,000`, `max_pages: 200`) and input validation methods.
+  - `crates/ocr-extractor/src/models.rs`: Implemented `BoundingBox`, `OcrWord`, `OcrLine`, `OcrParagraph`, `OcrBlock`, `OcrPage`, `OcrResult`, `OcrEngineInfo`, `OcrInput`, `OcrOptions`, `PageSegmentationMode` (PSM 0–13), and `OcrEngineMode` (OEM 0–3).
+  - `crates/ocr-extractor/src/tsv.rs`: Implemented pure `parse_tesseract_tsv` parser extracting word tokens, normalizing confidence scores to $0.0 \dots 1.0$, aggregating bounding boxes, and building hierarchical text representations.
+  - `crates/ocr-extractor/src/adapter.rs`: Defined asynchronous `OcrAdapter` trait (`is_available`, `engine_info`, `extract_text`).
+  - `crates/ocr-extractor/src/tesseract.rs`: Implemented `TesseractAdapter` executing Tesseract CLI via `tokio::process::Command` with `kill_on_drop(true)`, timeout enforcement, RAII `TempFileGuard` temporary file cleanup, image format detection, and custom binary path support.
+  - `crates/ocr-extractor/src/extractor.rs`: Implemented `OcrExtractor` mapping `OcrResult` to `CdmDocument` (`SourceType::DocumentOcr`, `SectionKind::Prose`, line ranges, confidence metadata attributes, hierarchy tree, and `CompletenessReport`).
+  - `crates/ocr-extractor/src/lib.rs`: Exposed public crate interface and re-exports.
+  - `crates/ocr-extractor/tests/tsv_parser_test.rs`: Authored integration tests for multi-page TSV parsing, bounding box union, and word filtering (3 tests).
+  - `crates/ocr-extractor/tests/tesseract_adapter_test.rs`: Authored integration tests for binary configuration, flag mappings, direct TSV helper, and non-existent binary failure semantics (4 tests).
+  - `crates/ocr-extractor/tests/ocr_extractor_test.rs`: Authored integration tests for CDM mapping, prose sections, attributes, hierarchy, and multi-format exporter roundtrips across Markdown, JSONL, JSON, and HTML (2 tests).
+  - `crates/ocr-extractor/tests/timeout_limits_test.rs`: Authored integration tests for 0-byte input rejection, oversized byte rejection, word count thresholds, and upfront adapter limit enforcement (4 tests).
+- **Implementation Tasks:**
+  1. Updated root `Cargo.toml` workspace members and dependencies.
+  2. Created `crates/ocr-extractor/Cargo.toml` and `README.md`.
+  3. Implemented structured error types in `crates/ocr-extractor/src/error.rs`.
+  4. Implemented resource limits in `crates/ocr-extractor/src/limits.rs`.
+  5. Implemented domain models and enums in `crates/ocr-extractor/src/models.rs`.
+  6. Implemented Tesseract TSV output stream parser in `crates/ocr-extractor/src/tsv.rs`.
+  7. Implemented async `OcrAdapter` trait in `crates/ocr-extractor/src/adapter.rs`.
+  8. Implemented sandboxed `TesseractAdapter` in `crates/ocr-extractor/src/tesseract.rs`.
+  9. Implemented high-level `OcrExtractor` with CDM conversion in `crates/ocr-extractor/src/extractor.rs`.
+  10. Authored unit tests in `src/tsv.rs` and 4 integration test suites in `tests/`.
+  11. Verified zero clippy warnings under `-D warnings`, clean formatting (`cargo fmt --check`), and cargo deny compliance.
+  12. Executed full monorepo quality gate (`scripts/check-all.ps1`) with 100% passing results across all gates.
+  13. Updated project tracking ledgers (`PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `IMPLEMENTATION_LEDGER.md`, `ROADMAP.md`, `docs/ROADMAP.md`).
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-ocr-extractor` (15 tests passing: 2 unit, 13 integration)
+  - `cargo clippy --workspace --all-targets -- -D warnings` (Clean, zero warnings)
+  - `cargo fmt --all -- --check` (Clean, zero diffs)
+  - `cargo deny check` (Advisories ok, bans ok, licenses ok, sources ok)
+  - `powershell scripts/check-all.ps1` (All monorepo gates passed with 0 failures)
+- **Acceptance Criteria:**
+  - Dedicated `web-repo-to-ai-ocr-extractor` crate is integrated into workspace and conforms to repository crate standards.
+  - `OcrAdapter` trait provides clean asynchronous interface (`is_available`, `engine_info`, `extract_text`).
+  - `TesseractAdapter` executes Tesseract CLI child process with `kill_on_drop(true)`, timeout enforcement, and RAII cleanup.
+  - TSV parser accurately extracts word tokens, bounding boxes, normalized confidence scores ($0.0 \dots 1.0$), and layout hierarchy.
+  - Resource and DoS limits enforce image size bounds, timeouts, and word count ceilings.
+  - `OcrExtractor` generates compliant `CdmDocument` (`SourceType::DocumentOcr`, `SectionKind::Prose`, line ranges, confidence attributes) with verified downstream exporter compatibility.
+  - Missing host binaries fail gracefully with structured `OcrError::TesseractNotFound` without unhandled panics.
+  - All 15 crate tests and 715+ workspace tests pass cleanly.
+  - Storage hygiene preserved ($\ge 69.5$ GB free on `C:`).
+  - All monorepo quality gates pass with 0 failures.
+- **Status:** `ACCEPTED`

@@ -6,9 +6,9 @@
 **Last Completed Stage:** `STAGE 9 — DEVELOPER AND AI AGENT INTEGRATIONS` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Last Completed Phase:** `Phase 10.1 — PDF extraction` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Active Subphase:** `None`  
-**Last Completed Subphase:** `10.1.4 — PDF golden accuracy validation (crates/pdf-extractor: Golden PDF benchmark engine and fidelity evaluation suite across 7 real-world archetypes, reading order verification, table precision, scanned/encryption accuracy, and multi-format exporter roundtrip fidelity — PHASE 10.1 CERTIFIED)` (`ACCEPTED`)  
-**Next Upcoming Phase:** `Phase 10.2 — Image OCR`  
-**Next Upcoming Subphase:** `10.2.1 — Isolated Tesseract OCR adapter`
+**Last Completed Subphase:** `10.2.1 — Isolated Tesseract OCR adapter (crates/ocr-extractor: sandboxed tokio process adapter, TSV stream parser, confidence score normalization, resource & DoS limits, CDM DocumentOcr mapping)` (`ACCEPTED`)  
+**Next Upcoming Phase:** `Phase 10.2 — Image OCR` (`IN_PROGRESS`)  
+**Next Upcoming Subphase:** `10.2.2 — Image preprocessing & language selection`
 
 ---
 
@@ -126,6 +126,15 @@ In Stage 10 ("Advanced Documents and Content"):
     - Multi-Format Downstream Export Fidelity: Validated roundtrip serialization from PDF-extracted `CdmDocument` through `web-repo-to-ai-exporters` into GitHub Flavored Markdown (verified with `verify_markdown_syntax`), HTML5 (`verify_html_syntax`), JSON CDM v1.0 schema (`verify_json_syntax`), and JSONL (`verify_jsonl_syntax`).
     - Determinism & High Throughput: Proven bit-for-bit extraction determinism (BLAKE3 hash stability across consecutive extractions) and high-throughput execution (< 50ms per 10-page document).
     - Quality & Formal Certification: Authored 16 new integration tests across `crates/pdf-extractor/tests/golden_pdf_test.rs` (9 tests) and `crates/pdf-extractor/tests/fidelity_benchmark_test.rs` (7 tests). Total crate tests reached 44; workspace tests reached 700+ passing tests. Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean, and 100% passing quality gates (5/5). Formally certified Phase 10.1 in full.
+- Phase 10.2 ("Image OCR") is in progress:
+  - Subphase `10.2.1` delivered `crates/ocr-extractor` (`web-repo-to-ai-ocr-extractor`) providing isolated Tesseract CLI OCR adapter execution, TSV stream parser, confidence score normalization, resource and DoS limits, and Canonical Context Document Model (`CdmDocument`) synthesis:
+    - Dedicated Workspace Crate: Created `crates/ocr-extractor` integrated into root `Cargo.toml` workspace members and dependencies.
+    - Adapter Abstraction & CLI Sandbox (`crates/ocr-extractor/src/adapter.rs`, `src/tesseract.rs`): Defined async `OcrAdapter` trait (`is_available`, `engine_info`, `extract_text`). Implemented `TesseractAdapter` executing Tesseract CLI as an isolated, sandboxed child process via `tokio::process::Command` with `kill_on_drop(true)`, timeout cancellation, and RAII `TempFileGuard` temporary file cleanup. Supports image magic-byte format detection (PNG, JPEG, TIFF, WebP, BMP), explicit binary path configuration, and environment overrides (`TESSERACT_PATH`).
+    - TSV Stream Parser (`crates/ocr-extractor/src/tsv.rs`): Implemented pure, zero-allocation TSV output parser extracting word tokens (Level 5), bounding boxes (`BoundingBox` with union calculation), normalized confidence scores ($0.0 \dots 1.0$), line numbers, and paragraph hierarchies. Reconstructs text preserving line and paragraph breaks.
+    - Resource & DoS Limits (`crates/ocr-extractor/src/limits.rs`): Implemented `OcrLimits` enforcing `max_image_bytes` (50 MiB default), execution `timeout` (30s default), `max_word_count` (100,000 words default), and `max_pages` constraints.
+    - Domain Models (`crates/ocr-extractor/src/models.rs`): Implemented `BoundingBox`, `OcrWord`, `OcrLine`, `OcrParagraph`, `OcrBlock`, `OcrPage`, `OcrResult`, `OcrEngineInfo`, `OcrInput`, `OcrOptions`, `PageSegmentationMode` (PSM 0–13), and `OcrEngineMode` (OEM 0–3).
+    - CDM Conversion (`crates/ocr-extractor/src/extractor.rs`): Implemented `OcrExtractor` mapping `OcrResult` to `CdmDocument` (`SourceType::DocumentOcr`, `SectionKind::Prose`, line ranges, confidence metadata attributes, hierarchy tree, and `CompletenessReport`).
+    - Quality & Verification: Authored 15 tests across unit tests and integration tests in `crates/ocr-extractor/tests/`: TSV parser (`tsv_parser_test.rs`), Tesseract adapter (`tesseract_adapter_test.rs`), CDM converter and exporter roundtrip (`ocr_extractor_test.rs`), and timeout/resource limits (`timeout_limits_test.rs`). Verified with 15 crate tests, 715+ workspace tests, zero clippy warnings, zero fmt diffs, cargo deny clean, and 100% passing quality gates (5/5).
 
 ---
 
@@ -133,12 +142,12 @@ In Stage 10 ("Advanced Documents and Content"):
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 164 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4` |
+| `ACCEPTED` | 165 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 32 | `10.2.1` – `11.4.5` |
+| `NOT_STARTED` | 31 | `10.2.2` – `11.4.5` |
 | **Total** | **196** | `Stage 0` – `Stage 11` |
 
 ---
