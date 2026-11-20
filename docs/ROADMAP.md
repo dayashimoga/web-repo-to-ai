@@ -107,7 +107,7 @@
   - `10.1` PDF extraction (`10.1.1` [ACCEPTED], `10.1.2` [ACCEPTED], `10.1.3` [ACCEPTED], `10.1.4` [ACCEPTED] — **PHASE 10.1 CERTIFIED**)
   - `10.2` Image OCR (`10.2.1` [ACCEPTED], `10.2.2` [ACCEPTED], `10.2.3` [ACCEPTED], `10.2.4` [ACCEPTED] — **PHASE 10.2 CERTIFIED**)
   - `10.3` Structured documents (`10.3.1` [ACCEPTED], `10.3.2` [ACCEPTED], `10.3.3` [ACCEPTED], `10.3.4` [ACCEPTED] — **PHASE 10.3 CERTIFIED**)
-  - `10.4` RAG chunk generation (`10.4.1` [ACCEPTED], `10.4.2` [ACCEPTED], `10.4.3` [ACCEPTED], `10.4.4`)
+  - `10.4` RAG chunk generation (`10.4.1` [ACCEPTED], `10.4.2` [ACCEPTED], `10.4.3` [ACCEPTED], `10.4.4` [ACCEPTED] — **PHASE 10.4 CERTIFIED**)
   - `10.5` Optional local and external AI provider adapters (`10.5.1` – `10.5.4`)
 
 ### STAGE 11 — PRODUCTION CERTIFICATION

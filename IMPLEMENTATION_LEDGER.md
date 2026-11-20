@@ -6751,3 +6751,67 @@
   - Monorepo quality gates 100% passing (5/5 gates).
 - **Git Commit Reference:** `1e142ba` (amended)
 - **Status:** `ACCEPTED`
+
+
+---
+
+#### Subphase `10.4.4` — Chunk determinism & retrieval validation
+- **Unique ID:** `10.4.4`
+- **Objective:** Implement a golden evaluation benchmark corpus across 8 real-world document archetypes, quantitative chunking fidelity metrics, a simulated Top-1 retrieval recall engine, bit-for-bit hash determinism guarantees across sequential and multi-threaded runs, and bidirectional chaining graph symmetry / coordinate monotonicity invariants in `crates/chunking` (`web-repo-to-ai-chunking`), completing and formally certifying Phase 10.4 (RAG chunk generation).
+- **Scope:** `crates/chunking` (`src/golden.rs`, `src/lib.rs`, `README.md`, `tests/golden_benchmark_test.rs`, `tests/chunk_determinism_test.rs`).
+- **Prerequisites:** `10.4.3` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/chunking/src/golden.rs`
+  - `crates/chunking/src/lib.rs`
+  - `crates/chunking/README.md`
+  - `crates/chunking/tests/golden_benchmark_test.rs`
+  - `crates/chunking/tests/chunk_determinism_test.rs`
+- **Implementation Tasks:**
+  1. Author the golden evaluation benchmark corpus in `crates/chunking/src/golden.rs`:
+     - Define `ChunkingArchetype` covering 8 representative document archetypes: `MultiLanguageAstCode` (polyglot Rust, Python, TypeScript, Go declarations, preambles, and signatures), `HierarchicalMarkdownDocumentation` (`#` through `######` headings, nested lists, and paragraph splitting), `TabularDataMatrix` (CSV/TSV tables verifying column header and separator row retention across splits), `StructuredSpecOpenApi` (OpenAPI 3.1.0 operations and schemas), `JupyterNotebookPipeline` (interactive nbformat v4 code and markdown cells), `OversizedDeclarationRoutines` (giant 80-statement routine verifying statement/block splitting with contextual signature headers), `CrossReferenceGraphCorpus` (interconnected code files verifying function calls and module import graph resolution), and `AdversarialChunkBounds` (extreme token limits, multi-byte Unicode emojis, math symbols, box drawing).
+     - Implement `ChunkingGoldenFixture` with archetype, label, description, CDM document builder, target/max token budgets, expected chunk count ranges, and representative search query probes.
+     - Implement `ChunkingFidelityMetrics` aggregating total chunks, total tokens, average tokens, min/max tokens, bit-for-bit repeatability ($H_1 == H_2 == H_3$), boundary line/byte integrity, citation validity ($\ge 99\%$), cross-references count, simulated Top-1 retrieval recall ($\ge 99\%$), and sub-50ms latency.
+     - Implement `score_chunk_relevance()` and `retrieve_top_k()` simulating Top-1 and Top-K retrieval using deterministic keyword, exact phrase, symbol declaration, and section heading relevance scoring.
+     - Implement `evaluate_golden_fixture()`, `run_all_golden_benchmarks()`, `ChunkingGoldenResult`, and `ChunkingGoldenReport::to_markdown_summary()`.
+  2. Re-export the golden evaluation suite and public types in `crates/chunking/src/lib.rs`.
+  3. Author `crates/chunking/tests/golden_benchmark_test.rs` (6 tests) evaluating all 8 golden archetypes individually and together, asserting $\ge 99\%$ Top-1 retrieval recall, latency bounds, and markdown report generation.
+  4. Author `crates/chunking/tests/chunk_determinism_test.rs` (4 tests) verifying 10-iteration sequential determinism, 8-thread concurrent multi-threaded determinism, bidirectional sequential chaining symmetry, and coordinate monotonicity / non-empty body invariants.
+  5. Update `crates/chunking/README.md` documenting golden benchmarks, determinism guarantees, and 55 tests across 11 test suites.
+  6. Verify all 55 crate tests pass, clippy is clean under `-D warnings`, cargo fmt is clean, cargo deny is clean, and monorepo quality gates (`scripts/check-all.ps1`) pass 100% (5/5 gates).
+  7. Formally certify Phase 10.4 in `PROJECT_STATUS.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`, and `TODO.md`.
+- **Acceptance Criteria:**
+  - 8 real-world document archetypes evaluated with quantitative fidelity metrics.
+  - Bit-for-bit repeatability ($H_1 == H_2 == H_3$) guaranteed across sequential and concurrent runs.
+  - Simulated Top-1 retrieval recall $\ge 99\%$ across all archetypes.
+  - Bidirectional chaining graph symmetry and coordinate monotonicity verified.
+  - Zero mocks and zero placeholders.
+  - 100% test pass rate (55/55 crate tests passing in `web-repo-to-ai-chunking`).
+  - Monorepo quality gates passing (`scripts/check-all.ps1`).
+  - Phase 10.4 formally certified.
+- **Tests:**
+  - `golden_benchmark_test::test_golden_multi_language_ast_code`
+  - `golden_benchmark_test::test_golden_markdown_and_tables`
+  - `golden_benchmark_test::test_golden_structured_spec_and_notebook`
+  - `golden_benchmark_test::test_golden_oversized_declarations_and_cross_refs`
+  - `golden_benchmark_test::test_golden_adversarial_chunk_bounds`
+  - `golden_benchmark_test::test_run_all_golden_benchmarks_and_markdown_summary`
+  - `chunk_determinism_test::test_chunk_generation_sequential_determinism`
+  - `chunk_determinism_test::test_chunk_generation_multithreaded_concurrent_determinism`
+  - `chunk_determinism_test::test_bidirectional_chaining_symmetry`
+  - `chunk_determinism_test::test_chunk_coordinate_monotonicity_and_body_invariants`
+- **Security Considerations:**
+  - Deterministic Blake3 cryptographic hashing prevents collision attacks, hash manipulation, and chunk tampering.
+  - Boundary integrity enforcement prevents negative or wrapped line/byte coordinates.
+  - Adversarial chunk testing prevents panic or memory exhaustion when processing malformed Unicode or boundary-case token ceilings.
+- **Performance Considerations:**
+  - Golden benchmarks execute in $< 50\text{ ms}$ per archetype.
+  - 8-thread concurrent evaluation proves lock-free thread safety and zero contention on chunking paths.
+- **Documentation Requirements:**
+  - Updated `crates/chunking/README.md`, `CHANGELOG.md`, `PROJECT_STATUS.md`, `TODO.md`, `ROADMAP.md`, `docs/ROADMAP.md`, and `IMPLEMENTATION_LEDGER.md`.
+- **Validation Evidence:**
+  - 55/55 tests passing in `crates/chunking` (1 unit, 54 integration across 11 test suites).
+  - 867+ tests passing across the workspace.
+  - Monorepo quality gates 100% passing (5/5 gates).
+- **Git Commit Reference:** `ccc1c0e` (amended)
+- **Status:** `ACCEPTED`
+

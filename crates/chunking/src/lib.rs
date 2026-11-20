@@ -15,6 +15,7 @@ pub mod cross_ref;
 pub mod engine;
 pub mod error;
 pub mod export;
+pub mod golden;
 pub mod markdown;
 pub mod model;
 pub mod structured;
@@ -32,6 +33,11 @@ pub use export::{
     CohereRecord, GenericRagRecord, MilvusEntity, OpenAiBatchBody, OpenAiBatchRequest,
     PineconeBatch, PineconeRecord, QdrantBatch, QdrantPoint, VectorSchemaValidator, VectorTarget,
     WeaviateBatch, WeaviateObject,
+};
+pub use golden::{
+    evaluate_golden_fixture, get_all_golden_fixtures, run_all_golden_benchmarks,
+    score_chunk_relevance, ChunkingArchetype, ChunkingFidelityMetrics, ChunkingGoldenFixture,
+    ChunkingGoldenReport, ChunkingGoldenResult, RetrievalBenchmarkQuery,
 };
 pub use markdown::chunk_markdown_section;
 pub use model::{

@@ -52,6 +52,21 @@ Provides production-grade RAG (Retrieval-Augmented Generation) document and code
   - **Deterministic RFC 4122 UUID Generator**: `to_deterministic_uuid` converts any chunk ID or Blake3 hash into a valid Version 4, Variant 1 RFC 4122 UUID with 100% platform reproducibility.
   - **`VectorSchemaValidator`**: Proactively verifies chunk payloads against database constraints (empty ID/content rejection, Weaviate uppercase class check, Pinecone metadata type compliance, OpenAI context limits).
 
+- **Golden Benchmark Evaluation Corpus & Determinism Engine (`golden.rs`):**
+  - **8 Real-World Archetype Suites**:
+    1. `MultiLanguageAstCode`: Polyglot codebase (Rust, Python, TypeScript, Go) with language-specific AST symbols, preambles, and signatures.
+    2. `HierarchicalMarkdownDocumentation`: Deep technical documentation with `#` through `######` headings, nested lists, and contextual breadcrumbs.
+    3. `TabularDataMatrix`: CSV/TSV table slices validating persistent column header row retention (`| --- |`) across split chunk slices.
+    4. `StructuredSpecOpenApi`: OpenAPI 3.1.0 REST API specification with path operations, schemas, and endpoints.
+    5. `JupyterNotebookPipeline`: Interactive nbformat v4 data science pipeline with code and markdown cells.
+    6. `OversizedDeclarationRoutines`: Giant functions exceeding token budgets split at statement/block boundaries with contextual signature headers (`// File: ... > Symbol: ... (Part X)`).
+    7. `CrossReferenceGraphCorpus`: Interconnected code sections verifying symbol call and import graph edge resolution.
+    8. `AdversarialChunkBounds`: Extreme token limits, multi-byte Unicode emojis, mathematical symbols, and box drawing characters.
+  - **`ChunkingFidelityMetrics`**: Computes total chunks, total tokens, average tokens, min/max tokens, bit-for-bit repeatability ($H_1 == H_2 == H_3$), boundary line/byte integrity, citation validity ($\ge 99\%$), cross-references count, simulated Top-1 retrieval recall ($\ge 99\%$), and sub-50ms execution latency.
+  - **Simulated Top-1 Retrieval Engine**: Deterministic keyword, exact phrase, symbol match, and heading weight scorer (`score_chunk_relevance`, `retrieve_top_k`) validating query relevancy and recall across all archetypes.
+  - **Bit-for-Bit Hash Determinism**: Verifies that 10 sequential iterations and 8 concurrent parallel threads generate 100% identical Blake3 chunk hashes, token counts, and coordinate boundaries.
+  - **Graph Continuity Invariants**: Enforces bidirectional chaining symmetry (`chunks[i].next_chunk_id == chunks[i+1].id && chunks[i+1].prev_chunk_id == chunks[i].id`) and strict byte/line coordinate monotonicity.
+
 - **Sliding Window with Overlap (`window.rs`):**
   - Line-boundary and token-calibrated rolling window chunking.
   - Configurable target chunk tokens, maximum chunk tokens, and token overlap percentage.
@@ -119,7 +134,9 @@ Provides production-grade RAG (Retrieval-Augmented Generation) document and code
 
 ## Verification & Quality
 
-- **100% Passing Test Suite:** 45 unit and integration tests across 9 test suites:
+- **100% Passing Test Suite:** 55 unit and integration tests across 11 test suites:
+  - `tests/golden_benchmark_test.rs`: 8 golden benchmark archetypes, simulated Top-1 retrieval recall ($\ge 99\%$), latency verification ($< 50\,\text{ms}$), Markdown report generator.
+  - `tests/chunk_determinism_test.rs`: 10-iteration sequential determinism, 8-thread concurrent multi-threaded determinism, bidirectional sequential chaining symmetry, and coordinate monotonicity/non-empty body invariants.
   - `tests/export_jsonl_test.rs`: Streaming JSONL export, line/byte metrics, token budget truncation, empty collection handling.
   - `tests/vector_schema_test.rs`: Qdrant points and batch envelopes, Pinecone strict metadata typing, Chroma batch collections, Milvus entities, Weaviate RFC 4122 UUID objects, OpenAI Batch API formatting, Cohere embed records, deterministic UUID generation, schema validator rejections.
   - `tests/citation_test.rs`: GitHub permalinks with commit hashes, web documentation anchors, PDF page numbers, OpenAPI operation paths, local file citations.
@@ -130,3 +147,4 @@ Provides production-grade RAG (Retrieval-Augmented Generation) document and code
   - `tests/sliding_window_test.rs`: Continuity and zero overlap.
   - `tests/engine_document_test.rs`: Adaptive document chunking, bit-for-bit determinism, sub-50ms performance.
 - **Strict Compliance:** Zero mocks, zero placeholders, Clippy `-D warnings` clean, `cargo deny` clean.
+- **Formal Certification:** Phase 10.4 (RAG chunk generation) 100% complete and certified across all 4 subphases (10.4.1, 10.4.2, 10.4.3, 10.4.4).

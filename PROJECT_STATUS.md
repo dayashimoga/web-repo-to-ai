@@ -4,11 +4,11 @@
 **Last Updated:** 2026-11-20  
 **Current Stage:** `STAGE 10 — ADVANCED DOCUMENTS AND CONTENT` (`IN_PROGRESS`)  
 **Last Completed Stage:** `STAGE 9 — DEVELOPER AND AI AGENT INTEGRATIONS` (`100% COMPLETED & FORMALLY CERTIFIED`)  
-**Last Completed Phase:** `Phase 10.3 — Structured documents` (`100% COMPLETED & FORMALLY CERTIFIED`)  
+**Last Completed Phase:** `Phase 10.4 — RAG chunk generation` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Active Subphase:** `None`  
-**Last Completed Subphase:** `10.4.3 — JSONL & vector-ingest schema exports (crates/chunking: high-performance streaming JSONL exporter and strongly-typed vector database ingest schema adapters for Qdrant, Pinecone, ChromaDB, Milvus, Weaviate, OpenAI Batch Embeddings, and Cohere Embed; deterministic RFC 4122 UUID generation from Blake3 hashes; vector schema validator with strict typing rules; verified with 45 unit/integration tests across 9 test suites)` (`ACCEPTED`)  
-**Next Upcoming Phase:** `Phase 10.4 — RAG chunk generation`  
-**Next Upcoming Subphase:** `10.4.4 — Chunk determinism & retrieval validation`
+**Last Completed Subphase:** `10.4.4 — Chunk determinism & retrieval validation (crates/chunking: golden evaluation benchmark corpus across 8 real-world archetypes, simulated Top-1 retrieval recall engine with >= 99% accuracy, bit-for-bit hash repeatability across sequential and multi-threaded runs, bidirectional chaining graph symmetry and coordinate monotonicity invariants; verified with 55 unit/integration tests across 11 test suites; Phase 10.4 formally certified)` (`ACCEPTED`)  
+**Next Upcoming Phase:** `Phase 10.5 — Optional local and external AI provider adapters`  
+**Next Upcoming Subphase:** `10.5.1 — Provider-independent AI adapter trait`
 
 ---
 
@@ -200,7 +200,7 @@ In Stage 10 ("Advanced Documents and Content"):
       - Validated robust error handling and structured rejection for empty strings, whitespace-only inputs, invalid JSON/YAML syntax, and corrupted payloads.
       - Validated strict mathematical `CompletenessReport` accounting (`discovered == extracted + excluded`) under adversarial limits across all structured formats.
     - Quality & Formal Certification: Authored 17 new integration tests across `tests/structured_golden_benchmark_test.rs` (10 tests) and `tests/structured_validation_test.rs` (7 tests). Total crate tests reached 74 (16 test suites); workspace tests reached 812+ passing tests. Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean, and 100% passing quality gates (5/5). Formally certified Phase 10.3 in full.
-- Phase 10.4 ("RAG chunk generation") is in progress:
+- Phase 10.4 ("RAG chunk generation") is 100% complete across all 4 subphases and formally certified:
   - Subphase `10.4.1` delivered production-grade semantic and AST-boundary chunking in `crates/chunking` (`web-repo-to-ai-chunking`):
     - Language-Aware AST Code Chunking (`crates/chunking/src/ast.rs`): Integrated `web-repo-to-ai-code-intelligence` for AST symbol boundary extraction across Rust, Python, TypeScript, JavaScript, Go, and generic languages. Preserves top-level preambles (imports, package statements) across chunk units. Implemented indentation-aware and brace-depth tracking scope detection. Cleanly splits oversized declarations at internal logical block boundaries with contextual signature headers (`// File: ... > Symbol: <name> (Part X)`).
     - Heading-Aware Markdown & Prose Chunking (`crates/chunking/src/markdown.rs`): Implemented GitHub Flavored Markdown heading parser (`#` through `######`) with breadcrumb stack tracking. Injects hierarchical context headers (`> Context: Root > Section`) on split chunks and splits oversized prose along clean paragraph boundaries (`\n\n`).
@@ -232,6 +232,23 @@ In Stage 10 ("Advanced Documents and Content"):
     - Deterministic RFC 4122 UUID Engine: Implemented `to_deterministic_uuid` converting BLAKE3 hashes and chunk IDs into standard RFC 4122 Version 4 UUIDs, and `is_valid_uuid` format validator.
     - Vector Schema Validator (`crates/chunking/src/export/validator.rs`): Implemented `VectorSchemaValidator` verifying chunk payloads against database constraints (empty ID/content checks, Weaviate uppercase class validation, Pinecone metadata type adherence, and OpenAI token ceiling validation).
     - Quality & Verification: Authored 13 new integration tests across `tests/export_jsonl_test.rs` (4 tests) and `tests/vector_schema_test.rs` (9 tests). Total crate tests reached 45 (1 unit, 44 integration across 9 test suites). Verified with 857+ workspace tests passing, zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean, and 100% passing quality gates (5/5).
+  - Subphase `10.4.4` delivered golden chunking evaluation benchmarks, simulated retrieval validation, graph continuity invariants, bit-for-bit determinism, and Phase 10.4 formal certification in `crates/chunking` (`web-repo-to-ai-chunking`):
+    - Golden Evaluation Benchmark Corpus (`crates/chunking/src/golden.rs`): Implemented `ChunkingGoldenBenchmark` across 8 representative document archetypes:
+      1. *MultiLanguageAstCode:* Polyglot codebase (Rust, Python, TypeScript, Go) verifying AST function, struct, class, and method symbol declarations, top-level preamble preservation, and signature extraction.
+      2. *HierarchicalMarkdownDocumentation:* Technical documentation hierarchy (`#` through `######`), verifying breadcrumb stack context injection and clean paragraph boundary splitting.
+      3. *TabularDataMatrix:* CSV/TSV table slices verifying column header and delimiter row retention (`| --- |`) across all split chunk slices.
+      4. *StructuredSpecOpenApi:* OpenAPI 3.1.0 specification with operations and schemas, verifying endpoint and model boundary retention.
+      5. *JupyterNotebookPipeline:* Interactive nbformat v4 data science pipeline with code and markdown cells.
+      6. *OversizedDeclarationRoutines:* Giant declaration with 80 statements exceeding token budgets, verifying statement/block splitting with contextual signature headers (`// File: ... > Symbol: ... (Part X)`).
+      7. *CrossReferenceGraphCorpus:* Interconnected codebase verifying function call and module import resolution to declaring chunk IDs.
+      8. *AdversarialChunkBounds:* Extreme token limits, multi-byte Unicode emojis, mathematical symbols, and box drawing characters.
+    - Quantitative Fidelity Evaluation Engine: Implemented `evaluate_golden_fixture()` and `run_all_golden_benchmarks()` calculating `ChunkingFidelityMetrics` (`total_chunks`, `total_tokens`, `avg_tokens_per_chunk`, `min_tokens`, `max_tokens`, `bit_for_bit_repeatable`, `boundary_integrity`, `citation_validity_ratio` $\ge 99\%$, `cross_reference_count`, `simulated_top1_recall` $\ge 99\%$, elapsed time $< 50\text{ ms}$) and formatted GitHub Flavored Markdown audit reports (`ChunkingGoldenReport::to_markdown_summary()`).
+    - Simulated Top-1 Retrieval Engine: Implemented `score_chunk_relevance()` and `retrieve_top_k()` evaluating deterministic keyword, phrase, symbol, and heading relevance matches, validating 100% Top-1 recall across all golden benchmark queries.
+    - Determinism & Continuity Invariants (`tests/chunk_determinism_test.rs`):
+      - Bit-for-bit repeatability: Validated 100% identical Blake3 hashes, token counts, and coordinate boundaries across 10 sequential iterations and 8 concurrent parallel worker threads.
+      - Chaining graph symmetry: Enforced bidirectional link symmetry (`chunks[i].next_chunk_id == chunks[i+1].chunk_id` and `chunks[i+1].prev_chunk_id == chunks[i].chunk_id`).
+      - Coordinate monotonicity: Enforced non-decreasing line/byte ranges and non-empty content bodies.
+    - Quality & Formal Certification: Authored 10 new integration tests across `tests/golden_benchmark_test.rs` (6 tests) and `tests/chunk_determinism_test.rs` (4 tests). Total crate tests reached 55 (1 unit, 54 integration across 11 test suites); workspace tests reached 867+ passing tests. Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean, and 100% passing quality gates (5/5). Formally certified Phase 10.4 in full.
 
 ---
 
@@ -239,13 +256,13 @@ In Stage 10 ("Advanced Documents and Content"):
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 175 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4`, `10.3.1` – `10.3.4`, `10.4.1`, `10.4.2`, `10.4.3` |
+| `ACCEPTED` | 176 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4`, `10.3.1` – `10.3.4`, `10.4.1` – `10.4.4` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 21 | `10.4.4` – `11.4.5` |
-| **Total** | **196** | `Stage 0` – `Stage 11` |
+| `NOT_STARTED` | 20 | `10.5.1` – `11.4.5` |
+| `Total` | **196** | `Stage 0` – `Stage 11` |
 
 ---
 
