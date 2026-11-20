@@ -6310,6 +6310,79 @@
   - 17/17 tests passing in `crates/structured-extractor`.
   - 755+ tests passing across the workspace.
   - All 5 gates passed in `scripts/check-all.ps1`.
+- **Git Commit Reference:** `ef60c44`
+- **Status:** `ACCEPTED`
+
+---
+
+#### Subphase `10.3.2` — CSV/TSV & tabular data normalization
+- **Unique ID:** `10.3.2`
+- **Objective:** Implement and verify RFC 4180 CSV/TSV and delimited tabular data extraction, automated delimiter sniffing, header detection heuristics, column type inference and statistical profiling, ragged row alignment, null value normalization, tabular CDM document synthesis, and multi-format export fidelity benchmarks in `crates/structured-extractor` (`web-repo-to-ai-structured-extractor`).
+- **Scope:** `crates/structured-extractor/src/tabular.rs`, `src/models.rs`, `src/detector.rs`, `src/error.rs`, `src/extractor.rs`, `src/lib.rs`, `README.md`, and integration test suites.
+- **Prerequisites:** `10.3.1` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/structured-extractor/src/error.rs`
+  - `crates/structured-extractor/src/models.rs`
+  - `crates/structured-extractor/src/detector.rs`
+  - `crates/structured-extractor/src/tabular.rs`
+  - `crates/structured-extractor/src/extractor.rs`
+  - `crates/structured-extractor/src/lib.rs`
+  - `crates/structured-extractor/README.md`
+  - `crates/structured-extractor/tests/tabular_extraction_test.rs`
+  - `crates/structured-extractor/tests/tabular_normalization_test.rs`
+  - `crates/structured-extractor/tests/tabular_limits_test.rs`
+  - `crates/structured-extractor/tests/tabular_export_fidelity_test.rs`
+- **Implementation Tasks:**
+  1. Add `InvalidTabular` variant to `StructuredError`.
+  2. Implement tabular models: `TabularDelimiter`, `ColumnDataType`, `ColumnStats`, `TabularTable` with serializers (`to_markdown`, `to_html`, `to_csv`, `to_json_records`, `to_summary_markdown`, `data_density`).
+  3. Extend `StructuredLimits` with `max_tabular_rows`, `max_tabular_columns`, `max_cell_bytes`, `truncate_on_row_limit`.
+  4. Extend `StructuredOptions` with `tabular_trim_whitespace`, `tabular_normalize_nulls`, `tabular_infer_types`, `tabular_include_summary_section`, `tabular_include_data_section`, `tabular_max_preview_rows`.
+  5. Implement delimiter sniffer `sniff_delimiter` analyzing candidate delimiters (comma, tab, semicolon, pipe) across sample lines.
+  6. Implement RFC 4180 streaming state machine parser `parse_records_raw` handling quoted fields, commas/delimiters within quotes, newlines within quotes, and escaped quotes (`""`).
+  7. Implement header sniffer `sniff_has_headers` using type disparity heuristics, uniqueness checks, and semantic header keywords.
+  8. Implement column type inference `infer_column_type` classifying into `Integer`, `Float`, `Boolean`, `DateTime`, or `String`.
+  9. Implement normalization: padding ragged rows to uniform column count, null value normalization, and whitespace trimming.
+  10. Integrate `convert_tabular_to_cdm` into `StructuredExtractor` generating Summary & Schema Overview (`SectionKind::Prose`) and Data Table (`SectionKind::Table`), metadata attributes, hierarchical tree, and mathematical `CompletenessReport` (`discovered == extracted + excluded`).
+  11. Author 20 integration tests verifying extraction, normalization, limits, downstream multi-format export fidelity, bit-for-bit hash determinism, and high throughput (< 50ms for 5,000 rows).
+- **Acceptance Criteria:**
+  - Robust RFC 4180 parsing, automated delimiter sniffing, header detection, column profiling, and tabular CDM synthesis with zero mocks or placeholders.
+  - Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean.
+  - All 37 crate tests passing; all 5 monorepo quality gates passing (`scripts/check-all.ps1`).
+- **Tests:**
+  - `tabular_extraction_test::test_rfc4180_csv_parsing_and_escapes`
+  - `tabular_extraction_test::test_tsv_sniffing_and_parsing`
+  - `tabular_extraction_test::test_semicolon_separated_european_format`
+  - `tabular_extraction_test::test_pipe_separated_values`
+  - `tabular_extraction_test::test_header_detection_heuristics`
+  - `tabular_extraction_test::test_column_type_inference`
+  - `tabular_extraction_test::test_column_statistics_profiling`
+  - `tabular_normalization_test::test_ragged_rows_padding_and_alignment`
+  - `tabular_normalization_test::test_null_value_normalization`
+  - `tabular_normalization_test::test_whitespace_trimming_toggle`
+  - `tabular_normalization_test::test_tabular_cdm_synthesis_and_sections`
+  - `tabular_limits_test::test_tabular_graceful_row_truncation`
+  - `tabular_limits_test::test_tabular_strict_row_limit_rejection`
+  - `tabular_limits_test::test_tabular_max_cell_bytes_limit`
+  - `tabular_limits_test::test_tabular_max_columns_limit`
+  - `tabular_export_fidelity_test::test_tabular_markdown_export_fidelity`
+  - `tabular_export_fidelity_test::test_tabular_html_export_fidelity`
+  - `tabular_export_fidelity_test::test_tabular_json_and_jsonl_export_fidelity`
+  - `tabular_export_fidelity_test::test_tabular_extraction_bit_for_bit_determinism`
+  - `tabular_export_fidelity_test::test_tabular_high_throughput_benchmark`
+- **Security Considerations:**
+  - Input byte bounds, row limits, cell size caps (64 KiB), and column count caps prevent memory exhaustion attacks from malicious CSV/TSV bombs.
+  - Escaped characters and multiline cell content are isolated safely to prevent injection or corruption.
+  - Mathematical completeness accounting prevents hidden data drop or silent omissions.
+- **Performance Considerations:**
+  - Single-pass state machine executes without backtracking or regex overhead.
+  - 5,000 tabular rows parsed, profiled, and synthesized into CDM in < 15ms (well under the 50ms ceiling).
+  - Bit-for-bit extraction determinism proven across consecutive executions.
+- **Documentation Requirements:**
+  - Updated crate `README.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `IMPLEMENTATION_LEDGER.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Validation Evidence:**
+  - 37/37 tests passing in `crates/structured-extractor`.
+  - 775+ tests passing across the workspace.
+  - All 5 gates passed in `scripts/check-all.ps1`.
 - **Git Commit Reference:** Pending working directory commit.
 - **Status:** `ACCEPTED`
 

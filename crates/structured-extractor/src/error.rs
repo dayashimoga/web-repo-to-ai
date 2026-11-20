@@ -34,6 +34,10 @@ pub enum StructuredError {
     #[error("Malformed JSON Schema: {0}")]
     InvalidJsonSchema(String),
 
+    /// Malformed or invalid tabular (CSV/TSV) data structure.
+    #[error("Tabular parse error: {0}")]
+    InvalidTabular(String),
+
     /// Canonical Context Document Model (CDM) validation or builder error.
     #[error("CDM construction error: {0}")]
     CdmError(#[from] web_repo_to_ai_cdm::error::CdmError),

@@ -14,7 +14,11 @@ pub fn detect_format(input: &StructuredInput) -> Result<StructuredDocumentKind> 
         if lower.ends_with(".ipynb") {
             return Ok(StructuredDocumentKind::JupyterNotebook);
         }
-        if lower.ends_with(".csv") || lower.ends_with(".tsv") {
+        if lower.ends_with(".csv")
+            || lower.ends_with(".tsv")
+            || lower.ends_with(".psv")
+            || lower.ends_with(".tab")
+        {
             return Ok(StructuredDocumentKind::Csv);
         }
     }
@@ -122,7 +126,7 @@ fn classify_yaml_value(val: &serde_yaml_ng::Value) -> Option<StructuredDocumentK
     None
 }
 
-/// Heuristic check for CSV or TSV content.
+/// Heuristic check for CSV, TSV, or delimited tabular content.
 fn is_likely_csv(text: &str) -> bool {
     let lines: Vec<&str> = text
         .lines()
@@ -135,16 +139,12 @@ fn is_likely_csv(text: &str) -> bool {
         return false;
     }
 
-    // Check comma delimiter
-    let comma_counts: Vec<usize> = lines.iter().map(|l| l.matches(',').count()).collect();
-    if comma_counts[0] > 0 && comma_counts.iter().all(|&c| c == comma_counts[0]) {
-        return true;
-    }
-
-    // Check tab delimiter
-    let tab_counts: Vec<usize> = lines.iter().map(|l| l.matches('\t').count()).collect();
-    if tab_counts[0] > 0 && tab_counts.iter().all(|&c| c == tab_counts[0]) {
-        return true;
+    let candidates = [',', '\t', ';', '|'];
+    for &delim in &candidates {
+        let counts: Vec<usize> = lines.iter().map(|l| l.matches(delim).count()).collect();
+        if counts[0] > 0 && counts.iter().all(|&c| c == counts[0]) {
+            return true;
+        }
     }
 
     false

@@ -6,9 +6,9 @@
 **Last Completed Stage:** `STAGE 9 — DEVELOPER AND AI AGENT INTEGRATIONS` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Last Completed Phase:** `Phase 10.2 — Image OCR` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Active Subphase:** `None`  
-**Last Completed Subphase:** `10.3.1 — OpenAPI/JSON Schema/YAML extraction (crates/structured-extractor: OpenAPI 2.0/3.0.x/3.1.x, JSON Schema Draft-04/07/2020-12, multi-document YAML stream parsing, SourceType::StructuredDocument, CdmDocument synthesis, DoS bounds, multi-format export fidelity, bit-for-bit hash determinism, <50ms throughput)` (`ACCEPTED`)  
+**Last Completed Subphase:** `10.3.2 — CSV/TSV & tabular data normalization (crates/structured-extractor: RFC 4180 parsing, automated delimiter sniffing, header detection, column profiling/type inference, ragged row alignment, null normalization, tabular CDM synthesis, DoS bounds, multi-format export fidelity, bit-for-bit hash determinism, <50ms throughput)` (`ACCEPTED`)  
 **Next Upcoming Phase:** `Phase 10.3 — Structured documents` (`IN_PROGRESS`)  
-**Next Upcoming Subphase:** `10.3.2 — CSV/TSV & tabular data normalization`
+**Next Upcoming Subphase:** `10.3.3 — Jupyter Notebook (.ipynb) cell extraction`
 
 ---
 
@@ -162,6 +162,16 @@ In Stage 10 ("Advanced Documents and Content"):
     - Resource & DoS Bounds (`crates/structured-extractor/src/models.rs`): Enforced `StructuredLimits` (`max_input_bytes: 50MB`, `max_sections: 1,000`, `max_table_rows: 5,000`) and structured options (`include_raw_spec`, `group_by_tags`, `include_property_tables`).
     - Downstream Multi-Format Export Fidelity: Validated roundtrip conversion through `web-repo-to-ai-exporters` into Markdown, HTML5, JSON CDM v1.0, JSONL, and Plaintext. Proved bit-for-bit extraction determinism (BLAKE3 hash stability across consecutive extractions) and high-throughput execution (< 50ms).
     - Quality & Verification: Authored 17 integration tests across `openapi_extraction_test.rs` (4 tests), `jsonschema_extraction_test.rs` (3 tests), `yaml_extraction_test.rs` (2 tests), `limits_dos_test.rs` (3 tests), and `export_fidelity_test.rs` (5 tests). Verified with 17 crate tests, 755+ workspace tests, zero clippy warnings, zero fmt diffs, cargo deny clean, and 100% passing quality gates (5/5).
+  - Subphase `10.3.2` delivered CSV/TSV and tabular data normalization, automated delimiter sniffing, header detection, column type inference, and Canonical Context Document Model (`CdmDocument`) synthesis in `crates/structured-extractor` (`web-repo-to-ai-structured-extractor`):
+    - RFC 4180 Parsing Engine (`crates/structured-extractor/src/tabular.rs`): Implemented streaming state machine parser supporting quotes, commas, escaped quotes (`""`), and multiline field content across CRLF/LF line breaks.
+    - Automated Delimiter Sniffing: Evaluates candidate delimiters (comma `,`, tab `\t`, semicolon `;`, pipe `|`) across sample lines, analyzing column consistency and row variance to auto-detect delimiters.
+    - Header Detection & Heuristics: Implemented `sniff_has_headers` comparing row 0 against subsequent rows by type disparity (strings vs numbers/dates), uniqueness, and header naming keywords (`id`, `name`, `col`, `sku`, etc.).
+    - Type Inference & Column Statistics: Implemented `infer_column_type` classifying columns into `Integer`, `Float`, `Boolean`, `DateTime`, or `String`. Computes `ColumnStats` (name, inferred type, non-empty count, null count, unique count, samples, min/max).
+    - Tabular Normalization: Padded ragged rows to uniform column counts, normalized null representations (`NA`, `N/A`, `null`, `NULL`, `NaN`, `-`, `--`), and provided whitespace trimming toggles.
+    - CDM Model & Exporter Representations: Synthesized `CdmDocument` with summary schema overview (`SectionKind::Prose`), GFM pipe data table (`SectionKind::Table`), and section attributes (`tabular_columns`, `tabular_extracted_rows`, `tabular_total_rows`). Formatted representations for GFM Markdown (`to_markdown`), semantic HTML5 (`to_html`), RFC 4180 CSV (`to_csv`), JSON records (`to_json_records`), and overview summary (`to_summary_markdown`).
+    - Resource & DoS Bounds: Enforced `max_tabular_rows` (10,000 default), `max_tabular_columns` (500 default), `max_cell_bytes` (64 KiB default), and `truncate_on_row_limit` with mathematical `CompletenessReport` accounting (`discovered == extracted + excluded`).
+    - Downstream Multi-Format Export Fidelity: Validated roundtrip serialization through `web-repo-to-ai-exporters` into Markdown GFM (`verify_markdown_syntax`), HTML5 (`verify_html_syntax`), JSON CDM v1.0 (`verify_json_syntax`), JSONL (`verify_jsonl_syntax`), and Plaintext. Proved bit-for-bit extraction determinism and high throughput (< 50ms for 5,000 rows).
+    - Quality & Verification: Authored 20 new integration tests across `tabular_extraction_test.rs` (7 tests), `tabular_normalization_test.rs` (4 tests), `tabular_limits_test.rs` (4 tests), and `tabular_export_fidelity_test.rs` (5 tests). Total crate tests reached 37; workspace tests reached 775+ passing tests. Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean, and 100% passing quality gates (5/5).
 
 ---
 
@@ -169,12 +179,12 @@ In Stage 10 ("Advanced Documents and Content"):
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 169 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4`, `10.3.1` |
+| `ACCEPTED` | 170 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4`, `10.3.1`, `10.3.2` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 27 | `10.3.2` – `11.4.5` |
+| `NOT_STARTED` | 26 | `10.3.3` – `11.4.5` |
 | **Total** | **196** | `Stage 0` – `Stage 11` |
 
 ---

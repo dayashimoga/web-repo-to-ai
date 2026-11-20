@@ -6,6 +6,49 @@
 
 ## [Unreleased] — Stage 10: Advanced Documents and Content
 
+### 2026-11-20 — Phase 10.3: Structured documents (`10.3.2`)
+
+#### Added
+- **`[10.3.2]` CSV/TSV & tabular data normalization in `crates/structured-extractor`:**
+  - RFC 4180 Parsing Engine (`crates/structured-extractor/src/tabular.rs`):
+    - Implemented streaming state machine parser handling unquoted fields, quoted fields, field separators within quotes, multiline record content, and escaped double-quotes (`""`).
+  - Automated Delimiter Sniffing (`sniff_delimiter`):
+    - Evaluates candidate delimiters (comma `,`, tab `\t`, semicolon `;`, pipe `|`) across sample input lines.
+    - Computes field count consistency and variance to automatically sniff delimiters with zero manual configuration.
+  - Header Detection & Heuristics (`sniff_has_headers`):
+    - Analyzes row 0 vs subsequent data rows using type disparity heuristics (strings vs numbers/dates), cell uniqueness, and semantic header keywords (`id`, `name`, `col`, `column`, `sku`, `price`, etc.).
+  - Type Inference & Column Statistics (`infer_column_type`, `ColumnStats`):
+    - Infers granular column data types: `Integer`, `Float`, `Boolean`, `DateTime`, or `String`.
+    - Computes comprehensive column profiles: non-empty count, null count, distinct unique value count, sample values, and min/max values.
+  - Tabular Normalization:
+    - Normalizes ragged rows with automatic cell padding or extension to uniform column counts.
+    - Normalizes common null representations (`NA`, `N/A`, `null`, `NULL`, `NaN`, `-`, `--`) to empty strings.
+    - Supports whitespace trimming controls (`tabular_trim_whitespace`).
+  - Tabular CDM Model Synthesis & Multi-Format Serializers (`crates/structured-extractor/src/extractor.rs`):
+    - Transforms parsed tabular datasets into `CdmDocument` (`SourceType::StructuredDocument`).
+    - Synthesizes Summary & Schema Overview section (`SectionKind::Prose`) with Markdown summary table and column profiles.
+    - Synthesizes Data Table section (`SectionKind::Table`) with clean GitHub Flavored Markdown (GFM) pipe table representation (`to_markdown`).
+    - Implemented serializers: GFM Markdown table (`to_markdown`), semantic HTML5 `<table>` (`to_html`), RFC 4180 CSV (`to_csv`), JSON records array (`to_json_records`), and overview summary (`to_summary_markdown`).
+    - Injected tabular section attributes (`tabular_columns`, `tabular_extracted_rows`, `tabular_total_rows`, `content_type: "table/markdown"`).
+    - Attached tabular document metadata (`tabular_delimiter`, `tabular_total_rows`, `tabular_extracted_rows`, `tabular_columns`, `tabular_has_header`, `tabular_truncated`, `tabular_data_density`).
+    - Built hierarchical tree (`HierarchyNode`) with root and section children.
+    - Formulated mathematical `CompletenessReport` maintaining `discovered == extracted + excluded`.
+  - Resource Bounds & DoS Ceilings (`crates/structured-extractor/src/models.rs`):
+    - Enforced `max_tabular_rows` (10,000 default), `max_tabular_columns` (500 default), `max_cell_bytes` (64 KiB default), and graceful row truncation (`truncate_on_row_limit`).
+  - Downstream Multi-Format Export Fidelity & Determinism:
+    - Validated roundtrip serialization through `web-repo-to-ai-exporters` into GitHub Flavored Markdown (`verify_markdown_syntax`), HTML5 (`verify_html_syntax`), JSON CDM v1.0 (`verify_json_syntax`), JSONL (`verify_jsonl_syntax`), and Plaintext.
+    - Proved bit-for-bit extraction determinism (BLAKE3 hash stability across consecutive extractions).
+    - Demonstrated high throughput (< 50ms for 5,000 tabular rows).
+  - Integration Test Suites:
+    - Authored 20 integration tests across `tabular_extraction_test.rs` (7 tests), `tabular_normalization_test.rs` (4 tests), `tabular_limits_test.rs` (4 tests), and `tabular_export_fidelity_test.rs` (5 tests).
+  - Quality verification:
+    - 37 crate tests passing cleanly in `web-repo-to-ai-structured-extractor`.
+    - 775+ workspace tests passing across the monorepo.
+    - `cargo clippy --workspace --all-targets -- -D warnings` clean with zero warnings.
+    - `cargo fmt --all -- --check` clean with zero formatting diffs.
+    - `cargo deny check` clean (advisories ok, bans ok, licenses ok, sources ok).
+    - Monorepo quality gate (`scripts/check-all.ps1`) 100% passing across all 5 gates.
+
 ### 2026-11-20 — Phase 10.3: Structured documents (`10.3.1`)
 
 #### Added

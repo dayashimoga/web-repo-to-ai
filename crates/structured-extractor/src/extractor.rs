@@ -10,9 +10,10 @@ use crate::error::{Result, StructuredError};
 use crate::jsonschema::parse_json_schema;
 use crate::models::{
     JsonSchemaDoc, OpenApiOperation, OpenApiPath, OpenApiSpec, StructuredDocumentKind,
-    StructuredInput, StructuredOptions, YamlDocument,
+    StructuredInput, StructuredOptions, TabularTable, YamlDocument,
 };
 use crate::openapi::parse_openapi;
+use crate::tabular::parse_tabular;
 use crate::yaml::parse_yaml_stream;
 
 use web_repo_to_ai_cdm::{
@@ -56,9 +57,9 @@ impl StructuredExtractor {
                 self.convert_yaml_to_cdm(&docs, input, options)?
             }
             StructuredDocumentKind::Csv => {
-                return Err(StructuredError::UnrecognizedFormat(
-                    "CSV/TSV extraction is handled in Subphase 10.3.2".to_string(),
-                ))
+                let table_name = input.filename.clone();
+                let table = parse_tabular(text, None, table_name, options)?;
+                self.convert_tabular_to_cdm(&table, input, options)?
             }
             StructuredDocumentKind::JupyterNotebook => {
                 return Err(StructuredError::UnrecognizedFormat(
@@ -721,6 +722,186 @@ impl StructuredExtractor {
             .hierarchy(root_node)
             .completeness(completeness)
             .extraction_status(ExtractionStatus::Completed);
+
+        Ok(builder.build())
+    }
+
+    /// Converts a parsed `TabularTable` into a rich, validated `CdmDocument`.
+    pub fn convert_tabular_to_cdm(
+        &self,
+        table: &TabularTable,
+        input: &StructuredInput,
+        options: &StructuredOptions,
+    ) -> Result<CdmDocument> {
+        let (source_identity, source_url) = build_source_identity(input, "dataset.csv");
+        let title = table
+            .name
+            .clone()
+            .or_else(|| input.filename.clone())
+            .unwrap_or_else(|| "Tabular Dataset".to_string());
+
+        let mut extra_meta = BTreeMap::new();
+        extra_meta.insert("format".to_string(), "tabular".to_string());
+        extra_meta.insert(
+            "tabular_delimiter".to_string(),
+            table.delimiter.display_name().to_string(),
+        );
+        extra_meta.insert(
+            "tabular_delimiter_char".to_string(),
+            table.delimiter.as_char().to_string(),
+        );
+        extra_meta.insert(
+            "tabular_total_rows".to_string(),
+            table.total_rows.to_string(),
+        );
+        extra_meta.insert(
+            "tabular_extracted_rows".to_string(),
+            table.extracted_rows.to_string(),
+        );
+        extra_meta.insert(
+            "tabular_columns".to_string(),
+            table.columns.len().to_string(),
+        );
+        extra_meta.insert(
+            "tabular_has_header".to_string(),
+            table.has_headers.to_string(),
+        );
+        extra_meta.insert("tabular_truncated".to_string(), table.truncated.to_string());
+        extra_meta.insert(
+            "tabular_data_density".to_string(),
+            format!("{:.4}", table.data_density()),
+        );
+
+        let metadata = DocumentMetadata {
+            title: Some(title.clone()),
+            description: Some(format!(
+                "Tabular dataset containing {} columns and {} rows",
+                table.columns.len(),
+                table.extracted_rows
+            )),
+            authors: Vec::new(),
+            license: None,
+            primary_language: Some(match table.delimiter {
+                crate::models::TabularDelimiter::Tab => "tsv".to_string(),
+                _ => "csv".to_string(),
+            }),
+            language_breakdown: BTreeMap::new(),
+            published_at: None,
+            modified_at: None,
+            tags: vec!["csv".to_string(), "tabular".to_string()],
+            extra: extra_meta,
+        };
+
+        let mut builder = CdmDocumentBuilder::new(
+            source_identity,
+            SourceType::StructuredDocument,
+            source_url.clone(),
+        )
+        .content_type(match table.delimiter {
+            crate::models::TabularDelimiter::Tab => "text/tab-separated-values",
+            _ => "text/csv",
+        })
+        .metadata(metadata);
+
+        let mut root_node = HierarchyNode::root(&title);
+        let mut sec_counter = 0;
+
+        // 1. Overview & Schema Summary Section
+        if options.tabular_include_summary_section {
+            sec_counter += 1;
+            let summary_id = format!("sec_{:03}_summary", sec_counter);
+            let summary_md = table.to_summary_markdown();
+            let summary_lines = summary_md.lines().count().max(1) as u32;
+            let summary_bytes = summary_md.len() as u64;
+
+            let sec = CdmSectionBuilder::new(
+                summary_id.clone(),
+                source_url.clone(),
+                SectionKind::Prose,
+                summary_md,
+            )
+            .title(format!("{title} - Summary & Schema"))
+            .original_path("summary.md")
+            .line_range(1, summary_lines)
+            .byte_range(0, summary_bytes)
+            .attribute("content_type", "summary")
+            .attribute("tabular_columns", table.columns.len().to_string())
+            .attribute("tabular_extracted_rows", table.extracted_rows.to_string());
+
+            builder = builder.add_section(sec.build());
+
+            root_node.add_child(HierarchyNode {
+                id: summary_id.clone(),
+                name: "Summary & Schema".to_string(),
+                path: "summary.md".to_string(),
+                kind: HierarchyKind::Section,
+                section_id: Some(summary_id),
+                children: Vec::new(),
+                byte_size: Some(summary_bytes),
+                line_count: Some(summary_lines),
+            });
+        }
+
+        // 2. Data Table Section
+        if options.tabular_include_data_section {
+            sec_counter += 1;
+            let data_id = format!("sec_{:03}_data", sec_counter);
+            let data_md = table.to_markdown(Some(options.tabular_max_preview_rows));
+            let data_lines = data_md.lines().count().max(1) as u32;
+            let data_bytes = data_md.len() as u64;
+
+            let sec = CdmSectionBuilder::new(
+                data_id.clone(),
+                source_url.clone(),
+                SectionKind::Table,
+                data_md,
+            )
+            .title(format!("{title} - Data Table"))
+            .original_path("data.md")
+            .line_range(1, data_lines)
+            .byte_range(0, data_bytes)
+            .attribute("content_type", "table/markdown")
+            .attribute("tabular_columns", table.columns.len().to_string())
+            .attribute("tabular_extracted_rows", table.extracted_rows.to_string())
+            .attribute("tabular_total_rows", table.total_rows.to_string());
+
+            builder = builder.add_section(sec.build());
+
+            root_node.add_child(HierarchyNode {
+                id: data_id.clone(),
+                name: "Data Table".to_string(),
+                path: "data.md".to_string(),
+                kind: HierarchyKind::Section,
+                section_id: Some(data_id),
+                children: Vec::new(),
+                byte_size: Some(data_bytes),
+                line_count: Some(data_lines),
+            });
+        }
+
+        let total_items = table.total_rows as u64;
+        let extracted_items = table.extracted_rows as u64;
+        let excluded_items = total_items.saturating_sub(extracted_items);
+
+        let completeness = CompletenessReport::new(
+            total_items,
+            extracted_items,
+            extracted_items,
+            excluded_items,
+            0,
+            0,
+        );
+
+        let status = if table.truncated {
+            ExtractionStatus::Partial
+        } else {
+            ExtractionStatus::Completed
+        };
+
+        builder = builder
+            .hierarchy(root_node)
+            .completeness(completeness)
+            .extraction_status(status);
 
         Ok(builder.build())
     }
