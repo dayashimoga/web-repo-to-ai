@@ -5,8 +5,10 @@
 
 use crate::error::Result;
 use crate::layout::{LayoutOptions, PdfLayoutEngine};
+use crate::limits::PdfLimits;
 use crate::models::{OutlineItem, PdfDocument, TextBlockKind};
-use crate::parser::PdfParser;
+use crate::parser::{PdfParser, PdfParserOptions};
+use crate::scanned::ScannedDetectorOptions;
 use std::collections::BTreeMap;
 use web_repo_to_ai_cdm::{
     CdmDocument, CdmDocumentBuilder, CdmSectionBuilder, CompletenessReport, DocumentMetadata,
@@ -24,6 +26,14 @@ pub struct PdfExtractionOptions {
     pub header_font_size_threshold: f64,
     /// Whether to detect and order multi-column text layouts.
     pub detect_columns: bool,
+    /// Optional password to authenticate and decrypt protected PDF documents.
+    pub password: Option<String>,
+    /// Resource and safety limits for processing.
+    pub limits: PdfLimits,
+    /// Scanned page detection options.
+    pub scanned_options: ScannedDetectorOptions,
+    /// Whether to enforce PDF permissions (e.g. failing if `can_copy` is false).
+    pub enforce_permissions: bool,
 }
 
 impl Default for PdfExtractionOptions {
@@ -33,6 +43,10 @@ impl Default for PdfExtractionOptions {
             include_page_numbers: true,
             header_font_size_threshold: 13.0,
             detect_columns: true,
+            password: None,
+            limits: PdfLimits::default(),
+            scanned_options: ScannedDetectorOptions::default(),
+            enforce_permissions: false,
         }
     }
 }
@@ -64,8 +78,14 @@ impl PdfExtractor {
             ..Default::default()
         };
         let layout_engine = PdfLayoutEngine::new(layout_opts);
+        let parser_opts = PdfParserOptions {
+            password: self.options.password.clone(),
+            limits: self.options.limits,
+            scanned_options: self.options.scanned_options.clone(),
+            enforce_permissions: self.options.enforce_permissions,
+        };
         let parser = PdfParser::with_layout_engine(layout_engine);
-        parser.parse(bytes)
+        parser.parse_with_options(bytes, &parser_opts)
     }
 
     /// Extracts and maps the PDF document into a Canonical Context Document Model (`CdmDocument`).
@@ -110,6 +130,38 @@ impl PdfExtractor {
             "total_estimated_tokens".to_string(),
             pdf_doc.total_estimated_tokens.to_string(),
         );
+        custom_meta.insert(
+            "is_scanned".to_string(),
+            pdf_doc
+                .scanned_analysis
+                .is_predominantly_scanned
+                .to_string(),
+        );
+        custom_meta.insert(
+            "scanned_page_count".to_string(),
+            pdf_doc.scanned_analysis.scanned_page_count.to_string(),
+        );
+        custom_meta.insert(
+            "scanned_ratio".to_string(),
+            format!("{:.4}", pdf_doc.scanned_analysis.scanned_ratio),
+        );
+        custom_meta.insert(
+            "ocr_recommended".to_string(),
+            pdf_doc.scanned_analysis.ocr_recommended.to_string(),
+        );
+        if let Some(ref enc) = pdf_doc.encryption_info {
+            custom_meta.insert("is_encrypted".to_string(), "true".to_string());
+            if let Some(ref h) = enc.handler {
+                custom_meta.insert("encryption_handler".to_string(), h.clone());
+            }
+            custom_meta.insert(
+                "can_copy".to_string(),
+                enc.allows_content_copying().to_string(),
+            );
+        }
+        if pdf_doc.truncated_by_limit {
+            custom_meta.insert("truncated_by_limit".to_string(), "true".to_string());
+        }
 
         let authors: Vec<String> = pdf_doc.metadata.author.clone().into_iter().collect();
 
@@ -167,7 +219,14 @@ impl PdfExtractor {
                 .attribute("rotation", page.dimensions.rotation.to_string())
                 .attribute("block_count", page.blocks.len().to_string())
                 .attribute("table_count", "0".to_string())
-                .attribute("content_type", "text/prose".to_string());
+                .attribute("content_type", "text/prose".to_string())
+                .attribute("is_scanned", page.is_scanned.to_string())
+                .attribute("text_density", format!("{:.6}", page.text_density))
+                .attribute("image_count", page.images.len().to_string())
+                .attribute(
+                    "scanned_confidence",
+                    format!("{:.4}", page.scanned_confidence),
+                );
 
                 builder = builder.add_section(sec_builder.build());
             } else {
@@ -201,7 +260,14 @@ impl PdfExtractor {
                     .attribute("rotation", page.dimensions.rotation.to_string())
                     .attribute("block_count", page.blocks.len().to_string())
                     .attribute("table_count", page.tables.len().to_string())
-                    .attribute("content_type", "text/prose".to_string());
+                    .attribute("content_type", "text/prose".to_string())
+                    .attribute("is_scanned", page.is_scanned.to_string())
+                    .attribute("text_density", format!("{:.6}", page.text_density))
+                    .attribute("image_count", page.images.len().to_string())
+                    .attribute(
+                        "scanned_confidence",
+                        format!("{:.4}", page.scanned_confidence),
+                    );
 
                     builder = builder.add_section(sec_builder.build());
                 }
@@ -294,19 +360,29 @@ impl PdfExtractor {
 
         builder = builder.hierarchy(root_node);
 
-        // Set completeness report: 100% of discovered pages were extracted
+        // Set completeness report: extracted vs excluded by limit
+        let extracted_pages = pdf_doc.pages.len() as u64;
+        let excluded_pages = (pdf_doc.total_pages as u64).saturating_sub(extracted_pages);
+
         let completeness = CompletenessReport::new(
             pdf_doc.total_pages as u64,
             pdf_doc.total_pages as u64,
-            pdf_doc.pages.len() as u64,
-            0,
+            extracted_pages,
+            excluded_pages,
             0,
             0,
         );
 
+        let extraction_status =
+            if pdf_doc.truncated_by_limit || pdf_doc.scanned_analysis.is_predominantly_scanned {
+                ExtractionStatus::Partial
+            } else {
+                ExtractionStatus::Completed
+            };
+
         builder = builder
             .completeness(completeness)
-            .extraction_status(ExtractionStatus::Completed);
+            .extraction_status(extraction_status);
 
         Ok(builder.build())
     }

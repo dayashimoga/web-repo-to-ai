@@ -215,6 +215,14 @@ pub struct PdfPage {
     pub char_count: usize,
     /// Estimated token count (using standard 4 chars/token heuristic).
     pub estimated_tokens: usize,
+    /// Raster image XObjects detected on this page.
+    pub images: Vec<crate::scanned::PdfImageInfo>,
+    /// Whether this page was classified as a scanned image page.
+    pub is_scanned: bool,
+    /// Character density in characters per point squared.
+    pub text_density: f64,
+    /// Confidence score that this page is scanned (0.0 to 1.0).
+    pub scanned_confidence: f64,
 }
 
 /// Hierarchical bookmark or outline item from the PDF document catalog.
@@ -243,4 +251,10 @@ pub struct PdfDocument {
     pub total_characters: usize,
     /// Total estimated tokens across all pages.
     pub total_estimated_tokens: usize,
+    /// Document encryption metadata, if the document is encrypted.
+    pub encryption_info: Option<crate::encryption::EncryptionInfo>,
+    /// Scanned document classification and text density analysis.
+    pub scanned_analysis: crate::scanned::ScannedDocumentAnalysis,
+    /// Whether document page extraction was truncated by safety limits.
+    pub truncated_by_limit: bool,
 }

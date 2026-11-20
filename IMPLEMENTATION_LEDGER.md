@@ -5882,3 +5882,55 @@
   - Disk space constraint satisfied ($\ge 70$ GB free on `C:`).
   - All 5 monorepo quality gates pass with 0 failures.
 - **Status:** `ACCEPTED`
+
+---
+
+#### Subphase `10.1.3` — Scanned/encrypted PDF detection & limits
+- **Unique ID:** `10.1.3`
+- **Objective:** Implement scanned document detection via image analysis and text density heuristics, OCR flagging, encryption dictionary parsing and permission enforcement, and DoS safety limits with graceful truncation in `crates/pdf-extractor` (`web-repo-to-ai-pdf-extractor`).
+- **Scope:** `crates/pdf-extractor/src/scanned.rs`, `crates/pdf-extractor/src/encryption.rs`, `crates/pdf-extractor/src/limits.rs`, `crates/pdf-extractor/src/error.rs`, `crates/pdf-extractor/src/models.rs`, `crates/pdf-extractor/src/parser.rs`, `crates/pdf-extractor/src/extractor.rs`, `crates/pdf-extractor/src/lib.rs`, `crates/pdf-extractor/tests/*`, and project tracking ledgers.
+- **Prerequisites:** `10.1.2` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/pdf-extractor/src/scanned.rs`: Created scanned detection and image analysis module with `PdfImageInfo`, `ScannedPageAnalysis`, `ScannedDocumentAnalysis`, `ScannedDetectorOptions`, `extract_page_images`, `analyze_page_scanned`, and `analyze_document_scanned`. Traverses page `/Resources` -> `/XObject` dictionaries, measures text density (`char_count / (width * height)`), identifies pure/sparse scanned pages, and computes document-level OCR recommendations.
+  - `crates/pdf-extractor/src/encryption.rs`: Created encryption and permissions module with `PdfPermissions` (decoding ISO 32000-1 Table 22 32-bit permission bitmask into `can_print`, `can_modify`, `can_copy`, `can_annotate`, `can_fill_forms`, `can_extract_for_accessibility`, `can_assemble`, and `can_print_high_quality`), `EncryptionInfo`, `extract_encryption_info`, and `extract_raw_encryption_info` (parsing trailer and raw bytes for `/Encrypt`).
+  - `crates/pdf-extractor/src/limits.rs`: Created resource limits module with `PdfLimits` enforcing bounded execution against DoS and decompression bombs (`max_file_size_bytes`, `max_page_count`, `max_spans_per_page`, `max_total_characters`, `max_table_cells`, `max_decompressed_stream_bytes`, `truncate_on_page_limit`).
+  - `crates/pdf-extractor/src/error.rs`: Added structured error variants `PasswordRequired`, `InvalidPassword`, `PermissionDenied`, and `LimitExceeded` while maintaining `EncryptedDocument` backward compatibility.
+  - `crates/pdf-extractor/src/models.rs`: Extended `PdfPage` with `images`, `is_scanned`, `text_density`, and `scanned_confidence`. Extended `PdfDocument` with `encryption_info`, `scanned_analysis`, and `truncated_by_limit`.
+  - `crates/pdf-extractor/src/parser.rs`: Added `PdfParserOptions` (with `password`, `limits`, `scanned_options`, `enforce_permissions`), implemented `parse_with_options`, integrated `lopdf::LoadOptions::with_password`, enforced file size and page count limits, extracted page images, and executed scanned analysis.
+  - `crates/pdf-extractor/src/extractor.rs`: Updated `PdfExtractionOptions` with parser options, injected scanned metadata and encryption metadata into `CdmDocument`, attached section attributes, and updated `CompletenessReport` with mathematical invariant accounting (`discovered = extracted + excluded`) and `ExtractionStatus::Partial` on limit truncation or predominantly scanned documents.
+  - `crates/pdf-extractor/src/lib.rs`: Re-exported `encryption`, `limits`, and `scanned` modules and types.
+  - `crates/pdf-extractor/tests/scanned_test.rs`: Authored 2 integration tests covering mixed digital/scanned/blank page detection, image inspection, text density heuristics, and predominantly scanned CDM mapping.
+  - `crates/pdf-extractor/tests/limits_test.rs`: Authored 3 integration tests covering file size limit rejection, strict page limit rejection, and graceful truncation completeness accounting.
+  - `crates/pdf-extractor/tests/encryption_test.rs`: Authored 4 integration tests covering permission flags decoding, encryption info helpers, encrypted document rejection without password, and raw trailer extraction.
+- **Implementation Tasks:**
+  1. Created resource safety limits module in `crates/pdf-extractor/src/limits.rs`.
+  2. Created encryption and permission analysis module in `crates/pdf-extractor/src/encryption.rs`.
+  3. Created scanned document detection and image analysis module in `crates/pdf-extractor/src/scanned.rs`.
+  4. Extended `PdfError` in `crates/pdf-extractor/src/error.rs` with `PasswordRequired`, `InvalidPassword`, `PermissionDenied`, and `LimitExceeded`.
+  5. Extended `PdfPage` and `PdfDocument` in `crates/pdf-extractor/src/models.rs`.
+  6. Implemented `parse_with_options` in `crates/pdf-extractor/src/parser.rs` enforcing limits, password loading, and scanned page analysis.
+  7. Refined CDM mapping in `crates/pdf-extractor/src/extractor.rs` injecting scanned/encryption metadata, section attributes, and completeness reports.
+  8. Authored 9 integration tests across `scanned_test.rs`, `limits_test.rs`, and `encryption_test.rs` (28 crate tests total).
+  9. Verified clean compilation, zero clippy warnings (`-D warnings`), clean formatting (`cargo fmt --check`), and cargo deny compliance.
+  10. Executed full monorepo quality gate (`scripts/check-all.ps1`) with 100% passing results across all 5 gates.
+  11. Updated project tracking ledgers (`PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `IMPLEMENTATION_LEDGER.md`).
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-pdf-extractor` (28 tests passing)
+  - `cargo clippy -p web-repo-to-ai-pdf-extractor --all-targets -- -D warnings` (Clean, zero warnings)
+  - `cargo fmt --all -- --check` (Clean, zero diffs)
+  - `cargo deny check` (Advisories ok, bans ok, licenses ok, sources ok)
+  - `powershell scripts/check-all.ps1` (All 5 gates passed with 0 failures)
+- **Acceptance Criteria:**
+  - Raster image XObjects extracted from `/Resources` -> `/XObject` with pixel dimensions and compression filters.
+  - Text density and image coverage heuristics identify pure scanned pages (confidence 1.0) and sparse scanned pages.
+  - Scanned document summary computes `scanned_page_count`, `scanned_ratio`, `is_predominantly_scanned`, and `ocr_recommended`.
+  - PDF encryption dictionaries parsed with ISO 32000-1 Table 22 permission bitmask decoding.
+  - Password decryption supported via `lopdf::LoadOptions::with_password` with structured errors for missing or invalid passwords.
+  - Resource safety limits enforce bounds on file size, page counts, spans, and decompressed stream sizes.
+  - Graceful page truncation preserves completeness accounting invariant (`discovered = extracted + excluded`).
+  - CDM document metadata and page sections reflect scanned and encryption provenance attributes.
+  - Zero-mock policy adhered to across all PDF extraction and analysis components.
+  - All 28 crate integration tests and 684+ workspace tests pass cleanly.
+  - Disk space constraint satisfied ($\ge 70$ GB free on `C:`).
+  - All 5 monorepo quality gates pass with 0 failures.
+- **Status:** `ACCEPTED`

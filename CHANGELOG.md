@@ -6,6 +6,42 @@
 
 ## [Unreleased] — Stage 10: Advanced Documents and Content
 
+### 2026-11-20 — Phase 10.1: PDF extraction (`10.1.3`)
+
+#### Added
+- **`[10.1.3]` Scanned/encrypted PDF detection & limits in `crates/pdf-extractor`:**
+  - Scanned Document Detection & Image Analysis (`crates/pdf-extractor/src/scanned.rs`):
+    - `PdfImageInfo`: Raster image XObject metadata tracking object ID, name, pixel dimensions (`pixel_width`, `pixel_height`), color space (`DeviceRGB`, `DeviceGray`), bits per component, and compression filter (`DCTDecode`, etc.).
+    - `extract_page_images`: Discovers and resolves raster image XObjects in `/Resources` -> `/XObject` across direct and indirect dictionary references.
+    - `ScannedDetectorOptions`: Configurable heuristics with `min_chars_per_page: 50`, `min_text_density: 0.0002` chars/pt², and `predominantly_scanned_threshold: 0.50`.
+    - `analyze_page_scanned`: Computes text density (`char_count / (width * height)`), identifies pure scanned pages (`image_count > 0` and 0 characters, confidence 1.0) and sparse scanned pages (`char_count < min_chars_per_page` or low text density with images, confidence 0.75–0.85). Distinguishes blank pages from scanned pages.
+    - `analyze_document_scanned`: Aggregates document-level metrics (`scanned_page_count`, `scanned_ratio`, `is_predominantly_scanned`, `ocr_recommended`).
+  - Encrypted PDF Detection & Permission Enforcement (`crates/pdf-extractor/src/encryption.rs`):
+    - `PdfPermissions`: Decodes standard 32-bit permission bitmasks (ISO 32000-1, Table 22) into `can_print`, `can_modify`, `can_copy`, `can_annotate`, `can_fill_forms`, `can_extract_for_accessibility`, `can_assemble`, and `can_print_high_quality`.
+    - `EncryptionInfo`: Structured encryption metadata including algorithm version (`V`), revision (`R`), handler (`Standard`), user/owner password presence, and human-readable algorithm description.
+    - `extract_encryption_info`: Extracts encryption metadata from `lopdf::Document` trailer `/Encrypt` dictionaries.
+    - `extract_raw_encryption_info`: Scans raw PDF byte streams to parse `/Encrypt` dictionaries when low-level parser locks prevent xref loading.
+    - Password decryption: Integrates `lopdf::LoadOptions::with_password` and surfaces structured errors `PdfError::PasswordRequired`, `PdfError::InvalidPassword`, and `PdfError::PermissionDenied`.
+  - Resource and Safety Limits (`crates/pdf-extractor/src/limits.rs`):
+    - `PdfLimits`: Enforces bounded memory, file size, page count, and decompression execution (`max_file_size_bytes: 50MB`, `max_page_count: 500`, `max_spans_per_page: 50,000`, `max_total_characters: 5,000,000`, `max_table_cells: 10,000`, `max_decompressed_stream_bytes: 20MB`).
+    - Provides preset profiles (`PdfLimits::strict()` and `PdfLimits::permissive()`).
+    - Graceful page truncation: Supports `truncate_on_page_limit = true` processing pages up to `max_page_count` with `CompletenessReport` accounting (`discovered = extracted + excluded`) and `ExtractionStatus::Partial`.
+  - CDM Mapping Refinement (`crates/pdf-extractor/src/extractor.rs`):
+    - Attached document metadata: `is_scanned`, `scanned_page_count`, `scanned_ratio`, `ocr_recommended`, `is_encrypted`, `encryption_handler`, `can_copy`, and `truncated_by_limit`.
+    - Injected section attributes: `is_scanned`, `text_density`, `image_count`, and `scanned_confidence`.
+    - Updated `CompletenessReport` and set `ExtractionStatus::Partial` when predominantly scanned or truncated.
+  - Comprehensive Integration Test Suite (`crates/pdf-extractor/tests/`):
+    - `scanned_test.rs`: 2 tests covering mixed digital/scanned/blank page detection, text density heuristics, and predominantly scanned CDM mapping.
+    - `limits_test.rs`: 3 tests covering file size limit rejection, strict page limit rejection, and graceful truncation completeness accounting.
+    - `encryption_test.rs`: 4 tests covering permission flags decoding, encryption info helpers, encrypted document rejection without password, and raw trailer extraction.
+  - Quality verification:
+    - 28 crate integration tests passing cleanly.
+    - 684+ workspace tests passing across the monorepo.
+    - `cargo clippy -p web-repo-to-ai-pdf-extractor --all-targets -- -D warnings` clean with zero warnings.
+    - `cargo fmt --all -- --check` clean with zero formatting diffs.
+    - `cargo deny check` clean (advisories ok, bans ok, licenses ok, sources ok).
+    - Monorepo quality gate (`scripts/check-all.ps1`) 100% passing (5/5 gates).
+
 ### 2026-11-20 — Phase 10.1: PDF extraction (`10.1.2`)
 
 #### Added

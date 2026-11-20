@@ -3,57 +3,137 @@
 //! Low-level PDF structure traversal, header validation, object tree resolution,
 //! content stream decoding, font state tracking, and layout integration.
 
+use crate::encryption::{extract_encryption_info, extract_raw_encryption_info, PdfPermissions};
 use crate::error::{PdfError, Result};
 use crate::layout::PdfLayoutEngine;
+use crate::limits::PdfLimits;
 use crate::models::{
     BoundingBox, OutlineItem, PageDimensions, PdfDocument, PdfMetadata, PdfPage, PdfSpan,
 };
+use crate::scanned::{
+    analyze_document_scanned, analyze_page_scanned, extract_page_images, ScannedDetectorOptions,
+    ScannedDocumentAnalysis, ScannedPageAnalysis,
+};
 use chrono::{DateTime, Utc};
 use lopdf::{Document, Object};
+
+/// Comprehensive configuration options for the PDF parser.
+#[derive(Debug, Clone, Default)]
+pub struct PdfParserOptions {
+    /// Optional password to authenticate and decrypt protected PDF documents.
+    pub password: Option<String>,
+    /// Resource and safety limits for processing.
+    pub limits: PdfLimits,
+    /// Scanned page detection options.
+    pub scanned_options: ScannedDetectorOptions,
+    /// Whether to enforce PDF permissions (e.g. failing if `can_copy` is false).
+    pub enforce_permissions: bool,
+}
 
 /// High-performance pure Rust parser for PDF document structures.
 #[derive(Debug, Default)]
 pub struct PdfParser {
     layout_engine: PdfLayoutEngine,
+    options: PdfParserOptions,
 }
 
 impl PdfParser {
-    /// Creates a new `PdfParser` with default layout engine settings.
+    /// Creates a new `PdfParser` with default layout engine and parser settings.
     #[must_use]
     pub fn new() -> Self {
         Self {
             layout_engine: PdfLayoutEngine::default(),
+            options: PdfParserOptions::default(),
         }
     }
 
     /// Creates a `PdfParser` with a custom `PdfLayoutEngine`.
     #[must_use]
-    pub const fn with_layout_engine(layout_engine: PdfLayoutEngine) -> Self {
-        Self { layout_engine }
+    pub fn with_layout_engine(layout_engine: PdfLayoutEngine) -> Self {
+        Self {
+            layout_engine,
+            options: PdfParserOptions::default(),
+        }
     }
 
-    /// Parses a complete PDF document from raw in-memory bytes.
+    /// Creates a `PdfParser` with custom `PdfParserOptions`.
+    #[must_use]
+    pub fn with_options(mut self, options: PdfParserOptions) -> Self {
+        self.options = options;
+        self
+    }
+
+    /// Parses a complete PDF document from raw in-memory bytes using default parser options.
     pub fn parse(&self, bytes: &[u8]) -> Result<PdfDocument> {
+        self.parse_with_options(bytes, &self.options)
+    }
+
+    /// Parses a complete PDF document from raw in-memory bytes using explicit options.
+    pub fn parse_with_options(
+        &self,
+        bytes: &[u8],
+        options: &PdfParserOptions,
+    ) -> Result<PdfDocument> {
         if bytes.is_empty() {
             return Err(PdfError::EmptyDocument);
+        }
+
+        // Validate file size limit
+        if bytes.len() > options.limits.max_file_size_bytes {
+            return Err(PdfError::LimitExceeded {
+                limit_name: "file_size_bytes".to_string(),
+                max_allowed: options.limits.max_file_size_bytes,
+                actual: bytes.len(),
+            });
         }
 
         // Validate PDF magic header
         let version = self.extract_pdf_version(bytes)?;
 
-        // Load document through lopdf
-        let doc = Document::load_mem(bytes).map_err(|err| {
-            let msg = err.to_string();
-            if msg.to_lowercase().contains("encrypt") {
-                PdfError::EncryptedDocument
-            } else {
-                PdfError::MalformedStructure(format!("Failed to parse PDF xref or trailer: {msg}"))
-            }
-        })?;
+        // Prepare lopdf LoadOptions
+        let mut load_opts = lopdf::LoadOptions::default();
+        if let Some(ref pass) = options.password {
+            load_opts.password = Some(pass.clone());
+        }
+        load_opts.max_decompressed_size = Some(options.limits.max_decompressed_stream_bytes);
 
-        // Guard against encrypted PDFs
-        if doc.is_encrypted() {
+        // Load document through lopdf
+        let doc = match Document::load_mem_with_options(bytes, load_opts) {
+            Ok(doc) => doc,
+            Err(err) => {
+                let msg = err.to_string();
+                let lower = msg.to_lowercase();
+                if lower.contains("encrypt") || lower.contains("password") {
+                    if options.password.is_some() {
+                        return Err(PdfError::InvalidPassword);
+                    }
+                    if let Some(info) = extract_raw_encryption_info(bytes) {
+                        return Err(PdfError::PasswordRequired {
+                            info: Box::new(info),
+                        });
+                    }
+                    return Err(PdfError::EncryptedDocument);
+                }
+                return Err(PdfError::MalformedStructure(format!(
+                    "Failed to parse PDF xref or trailer: {msg}"
+                )));
+            }
+        };
+
+        // Extract encryption metadata
+        let encryption_info = extract_encryption_info(&doc);
+
+        // Guard against encrypted PDFs without password or with disallowed permissions
+        if doc.is_encrypted() && options.password.is_none() {
             return Err(PdfError::EncryptedDocument);
+        } else if let Some(ref info) = encryption_info {
+            if options.enforce_permissions && !info.allows_content_copying() {
+                return Err(PdfError::PermissionDenied {
+                    permissions: Box::new(
+                        info.permissions.unwrap_or_else(PdfPermissions::all_allowed),
+                    ),
+                });
+            }
         }
 
         // Extract metadata dictionary
@@ -73,20 +153,65 @@ impl PdfParser {
                 total_pages: 0,
                 total_characters: 0,
                 total_estimated_tokens: 0,
+                encryption_info,
+                scanned_analysis: ScannedDocumentAnalysis::default(),
+                truncated_by_limit: false,
             });
         }
 
+        // Check page count limit
+        let mut truncated_by_limit = false;
+        let pages_to_take = if total_pages > options.limits.max_page_count {
+            if !options.limits.truncate_on_page_limit {
+                return Err(PdfError::LimitExceeded {
+                    limit_name: "page_count".to_string(),
+                    max_allowed: options.limits.max_page_count as usize,
+                    actual: total_pages as usize,
+                });
+            }
+            truncated_by_limit = true;
+            options.limits.max_page_count as usize
+        } else {
+            total_pages as usize
+        };
+
         // Parse each page
-        let mut pages = Vec::with_capacity(page_map.len());
+        let mut pages = Vec::with_capacity(pages_to_take);
+        let mut page_scanned_list = Vec::with_capacity(pages_to_take);
         let mut total_characters = 0;
         let mut total_estimated_tokens = 0;
 
-        for (page_num, page_obj_id) in page_map {
-            let page = self.parse_page(&doc, page_num, page_obj_id)?;
+        for (page_num, page_obj_id) in page_map.into_iter().take(pages_to_take) {
+            let page = self.parse_page(&doc, page_num, page_obj_id, options)?;
             total_characters += page.char_count;
             total_estimated_tokens += page.estimated_tokens;
+
+            let page_scanned = ScannedPageAnalysis {
+                page_number: page.page_number,
+                char_count: page.char_count,
+                text_density: page.text_density,
+                image_count: page.images.len(),
+                images: page.images.clone(),
+                is_scanned: page.is_scanned,
+                confidence: page.scanned_confidence,
+                reason: if page.is_scanned {
+                    format!("Scanned page with {} images", page.images.len())
+                } else {
+                    format!("Digital text ({} chars)", page.char_count)
+                },
+            };
+            page_scanned_list.push(page_scanned);
             pages.push(page);
+
+            if total_characters > options.limits.max_total_characters {
+                truncated_by_limit = true;
+                break;
+            }
         }
+
+        // Aggregate scanned document analysis
+        let scanned_analysis =
+            analyze_document_scanned(&page_scanned_list, &options.scanned_options);
 
         // Extract outline bookmarks
         let outline = self.extract_outlines(&doc);
@@ -98,6 +223,9 @@ impl PdfParser {
             total_pages,
             total_characters,
             total_estimated_tokens,
+            encryption_info,
+            scanned_analysis,
+            truncated_by_limit,
         })
     }
 
@@ -182,6 +310,7 @@ impl PdfParser {
         doc: &Document,
         page_num: u32,
         page_obj_id: (u32, u16),
+        options: &PdfParserOptions,
     ) -> Result<PdfPage> {
         let dimensions = self.extract_page_dimensions(doc, page_obj_id);
 
@@ -195,6 +324,11 @@ impl PdfParser {
                     spans = synthesize_spans_from_text(&text, &dimensions);
                 }
             }
+        }
+
+        // Enforce maximum spans per page limit
+        if spans.len() > options.limits.max_spans_per_page {
+            spans.truncate(options.limits.max_spans_per_page);
         }
 
         // Build spatial layout blocks and detect tables
@@ -221,6 +355,18 @@ impl PdfParser {
         let char_count = raw_text.chars().count();
         let estimated_tokens = char_count.div_ceil(4);
 
+        // Extract raster images
+        let images = extract_page_images(doc, page_obj_id);
+
+        // Run scanned page analysis
+        let scanned = analyze_page_scanned(
+            page_num,
+            &dimensions,
+            char_count,
+            &images,
+            &options.scanned_options,
+        );
+
         Ok(PdfPage {
             page_number: page_num,
             dimensions,
@@ -231,6 +377,10 @@ impl PdfParser {
             raw_text,
             char_count,
             estimated_tokens,
+            images,
+            is_scanned: scanned.is_scanned,
+            text_density: scanned.text_density,
+            scanned_confidence: scanned.confidence,
         })
     }
 

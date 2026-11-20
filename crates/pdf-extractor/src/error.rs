@@ -26,6 +26,37 @@ pub enum PdfError {
     #[error("PDF document is encrypted or password-protected")]
     EncryptedDocument,
 
+    /// Password is required to decrypt and view the document.
+    #[error("Password required for encrypted PDF document")]
+    PasswordRequired {
+        /// Structured encryption metadata.
+        info: Box<crate::encryption::EncryptionInfo>,
+    },
+
+    /// The password supplied for an encrypted PDF is invalid or incorrect.
+    #[error("Invalid password provided for encrypted PDF document")]
+    InvalidPassword,
+
+    /// Permission denied: PDF document security handler explicitly disallows content copying.
+    #[error("Permission denied: PDF document permissions prohibit content extraction")]
+    PermissionDenied {
+        /// Decoded permission flags.
+        permissions: Box<crate::encryption::PdfPermissions>,
+    },
+
+    /// Resource limit exceeded (e.g. file size, page count, spans, or decompressed stream).
+    #[error(
+        "PDF resource limit exceeded for {limit_name}: maximum allowed {max_allowed}, got {actual}"
+    )]
+    LimitExceeded {
+        /// Name of the exceeded limit.
+        limit_name: String,
+        /// Maximum allowed value under current policy.
+        max_allowed: usize,
+        /// Actual observed value in the document.
+        actual: usize,
+    },
+
     /// Requested page index is outside the document's page range.
     #[error("Page index {requested} out of range (total pages: {total})")]
     PageOutOfRange {

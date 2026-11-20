@@ -6,8 +6,8 @@
 **Last Completed Stage:** `STAGE 9 — DEVELOPER AND AI AGENT INTEGRATIONS` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Last Completed Phase:** `Phase 9.4 — Browser integration` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Active Subphase:** `None`  
-**Last Completed Subphase:** `10.1.2 — Multi-column and table extraction (crates/pdf-extractor: Spatial alignment analysis, multi-column table detection, Markdown/HTML/CSV serialization, CDM SectionKind::Table and SectionKind::Prose separation, running header/footer separation, hierarchy outline building, and coordinate-precise provenance attribution)` (`ACCEPTED`)  
-**Next Upcoming Subphase:** `10.1.3 — Scanned/encrypted PDF detection & limits`
+**Last Completed Subphase:** `10.1.3 — Scanned/encrypted PDF detection & limits (crates/pdf-extractor: Text density and raster image coverage heuristics for scanned document detection, OCR flagging, encryption dictionary parsing and permission enforcement, DoS safety limits for file size, page count, and stream decompression with graceful truncation)` (`ACCEPTED`)  
+**Next Upcoming Subphase:** `10.1.4 — PDF golden accuracy validation`
 
 ---
 
@@ -106,6 +106,12 @@ In Stage 10 ("Advanced Documents and Content"):
     - PDF Models & Parser Extensions (`crates/pdf-extractor/src/models.rs`, `src/parser.rs`): Extended `PdfPage` with `pub tables: Vec<PdfTable>`, `pub headers: Vec<PdfTextBlock>`, and `pub footers: Vec<PdfTextBlock>`. Updated `PdfParser::parse_page` to run layout detection, populate tables/headers/footers, and compute page `raw_text` from content blocks while filtering running headers and footers.
     - CDM Mapping Refinement (`crates/pdf-extractor/src/extractor.rs`): Updated `PdfExtractor::convert_to_cdm` to emit discrete `SectionKind::Table` sections for detected tables with table-specific provenance attributes (`table_id`, `table_columns`, `table_rows`, `content_type: "table/markdown"`), separate `SectionKind::Prose` sections for page body text, attach running headers/footers to document metadata, and construct hierarchical outline trees (`HierarchyNode`) from PDF bookmark items.
     - Quality & Verification: Authored 9 new integration tests across `crates/pdf-extractor/tests/table_test.rs` (5 tests: GFM markdown, HTML table, CSV, spatial line table detection with caption, sparse table handling), `crates/pdf-extractor/tests/provenance_test.rs` (3 tests: section provenance, table provenance, page provenance), and `crates/pdf-extractor/tests/table_extractor_test.rs` (1 test: end-to-end multi-page PDF with table and outline bookmarks). Verified with 19 crate tests, 675+ workspace tests, zero clippy warnings, zero fmt diffs, cargo deny clean, and 100% passing quality gates (5/5).
+  - Subphase `10.1.3` delivered scanned document detection, image analysis heuristics, encrypted document handling with permission decoding, and resource safety limits in `crates/pdf-extractor` (`web-repo-to-ai-pdf-extractor`):
+    - Scanned Document Detection & Image Analysis (`crates/pdf-extractor/src/scanned.rs`): Implemented `extract_page_images` traversing page `/Resources` -> `/XObject` dictionaries to extract raster image dimensions, color spaces, and filters. Implemented `analyze_page_scanned` and `analyze_document_scanned` computing character text density (`char_count / (width * height)`), identifying pure scanned bitmap pages (`image_count > 0` with 0 characters, confidence 1.0) and sparse scanned pages (`char_count < min_chars_per_page` or low text density). Formulates `ScannedDocumentAnalysis` computing `scanned_page_count`, `scanned_ratio`, `is_predominantly_scanned`, and `ocr_recommended`.
+    - Encryption Analysis & Permission Enforcement (`crates/pdf-extractor/src/encryption.rs`): Implemented `PdfPermissions` decoding ISO 32000-1 Table 22 32-bit permission bitmasks (`can_print`, `can_modify`, `can_copy`, `can_annotate`, `can_fill_forms`, `can_extract_for_accessibility`, `can_assemble`, `can_print_high_quality`). Implemented `extract_encryption_info` and `extract_raw_encryption_info` inspecting standard encryption dictionaries (`/Encrypt`, `/Filter`, `/V`, `/R`, `/P`, `/U`, `/O`). Supports password decryption via `lopdf::LoadOptions::with_password` and returns structured errors `PdfError::PasswordRequired`, `PdfError::InvalidPassword`, and `PdfError::PermissionDenied`.
+    - Safety & Resource Limits (`crates/pdf-extractor/src/limits.rs`): Implemented `PdfLimits` enforcing bounded execution against DoS and decompression bombs (`max_file_size_bytes: 50MB`, `max_page_count: 500`, `max_spans_per_page: 50,000`, `max_total_characters: 5,000,000`, `max_table_cells: 10,000`, `max_decompressed_stream_bytes: 20MB`). Supports strict rejection via `PdfError::LimitExceeded` or graceful truncation (`truncate_on_page_limit = true`) with mathematical completeness accounting (`discovered = extracted + excluded`).
+    - CDM & Completeness Integration (`crates/pdf-extractor/src/extractor.rs`): Injected scanned metadata (`is_scanned`, `scanned_page_count`, `scanned_ratio`, `ocr_recommended`), encryption metadata (`is_encrypted`, `encryption_handler`, `can_copy`), and page section attributes (`is_scanned`, `text_density`, `image_count`, `scanned_confidence`). Emits `ExtractionStatus::Partial` when predominantly scanned or truncated by limits.
+    - Quality & Verification: Authored 9 new integration tests across `crates/pdf-extractor/tests/scanned_test.rs` (2 tests: mixed digital/scanned/blank detection, predominantly scanned CDM mapping), `crates/pdf-extractor/tests/limits_test.rs` (3 tests: file size rejection, strict page limit rejection, graceful truncation completeness), and `crates/pdf-extractor/tests/encryption_test.rs` (4 tests: permission decoding, encryption info helpers, encrypted rejection without password, raw trailer extraction). Verified with 28 crate tests, 684+ workspace tests, zero clippy warnings, zero fmt diffs, cargo deny clean, and 100% passing quality gates (5/5).
 
 ---
 
@@ -113,12 +119,12 @@ In Stage 10 ("Advanced Documents and Content"):
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 162 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.2` |
+| `ACCEPTED` | 163 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.3` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 34 | `10.1.3` – `11.4.5` |
+| `NOT_STARTED` | 33 | `10.1.4` – `11.4.5` |
 | **Total** | **196** | `Stage 0` – `Stage 11` |
 
 ---
