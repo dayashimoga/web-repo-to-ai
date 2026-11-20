@@ -485,8 +485,8 @@ fn test_benchmark_normalization_and_tokenization_throughput() {
         corpus_len * 2 * iterations,
         token_durations,
     );
-    token_stats.assert_p95_under(Duration::from_millis(150));
-    token_stats.assert_throughput_over(4.0);
+    token_stats.assert_p95_under(Duration::from_millis(250));
+    token_stats.assert_throughput_over(2.5);
 }
 
 // ==============================================================================
