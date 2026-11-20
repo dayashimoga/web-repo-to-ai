@@ -6,6 +6,7 @@ use std::collections::BTreeMap;
 use web_repo_to_ai_cdm::{ByteRange, CdmSection, LineRange};
 use web_repo_to_ai_core::DocumentId;
 
+use crate::citation::generate_chunk_citation;
 use crate::error::ChunkResult;
 use crate::model::{Chunk, ChunkId, ChunkKind, ChunkingConfig, ChunkingReport};
 use crate::token::TokenCounter;
@@ -49,6 +50,15 @@ pub fn chunk_sliding_window(
         let token_count = token_counter.count(&content);
         let chunk_id = ChunkId::generate(document_id, section_index, 0, &content_hash);
 
+        let line_range = section.line_range.unwrap_or_else(|| LineRange::new(1, 1));
+        let citation = Some(generate_chunk_citation(
+            None,
+            section,
+            &chunk_id,
+            &line_range,
+            None,
+        ));
+
         let chunk = Chunk {
             chunk_id,
             document_id: *document_id,
@@ -58,7 +68,7 @@ pub fn chunk_sliding_window(
             title: Some(file_path.to_string()),
             original_path: section.original_path.clone(),
             source_url: section.source_url.clone(),
-            line_range: section.line_range.unwrap_or_else(|| LineRange::new(1, 1)),
+            line_range,
             byte_range: section.byte_range.unwrap_or_else(|| ByteRange::new(0, 0)),
             content,
             raw_content,
@@ -70,6 +80,11 @@ pub fn chunk_sliding_window(
             kind: ChunkKind::SlidingWindow,
             ast_symbols: Vec::new(),
             metadata: BTreeMap::new(),
+            citation,
+            cross_references: Vec::new(),
+            prev_chunk_id: None,
+            next_chunk_id: None,
+            parent_chunk_id: None,
         };
 
         report.window_chunks_count += 1;
@@ -124,6 +139,15 @@ pub fn chunk_sliding_window(
             metadata.insert("has_overlap_prefix".to_string(), "true".to_string());
         }
 
+        let line_range = LineRange::new(start_line, end_line);
+        let citation = Some(generate_chunk_citation(
+            None,
+            section,
+            &chunk_id,
+            &line_range,
+            None,
+        ));
+
         chunks.push(Chunk {
             chunk_id,
             document_id: *document_id,
@@ -133,7 +157,7 @@ pub fn chunk_sliding_window(
             title: Some(format!("{file_path} (Window {part_idx})")),
             original_path: section.original_path.clone(),
             source_url: section.source_url.clone(),
-            line_range: LineRange::new(start_line, end_line),
+            line_range,
             byte_range: ByteRange::new(0, 0),
             content,
             raw_content,
@@ -145,6 +169,11 @@ pub fn chunk_sliding_window(
             kind: ChunkKind::SlidingWindow,
             ast_symbols: Vec::new(),
             metadata,
+            citation,
+            cross_references: Vec::new(),
+            prev_chunk_id: None,
+            next_chunk_id: None,
+            parent_chunk_id: None,
         });
 
         if window_end >= lines.len() {

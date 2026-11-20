@@ -6,6 +6,7 @@ use std::collections::BTreeMap;
 use web_repo_to_ai_cdm::{ByteRange, CdmSection, LineRange, SectionKind};
 use web_repo_to_ai_core::DocumentId;
 
+use crate::citation::generate_chunk_citation;
 use crate::error::ChunkResult;
 use crate::model::{Chunk, ChunkId, ChunkKind, ChunkingConfig, ChunkingReport};
 use crate::token::TokenCounter;
@@ -155,6 +156,15 @@ fn chunk_table_section(
                 (!header_prefix.is_empty()).to_string(),
             );
 
+            let line_range = LineRange::new(1, chunk_end_line);
+            let citation = Some(generate_chunk_citation(
+                None,
+                section,
+                &chunk_id,
+                &line_range,
+                None,
+            ));
+
             chunks.push(Chunk {
                 chunk_id,
                 document_id: *document_id,
@@ -164,7 +174,7 @@ fn chunk_table_section(
                 title: Some(format!("{file_path} (Table Part {part_idx})")),
                 original_path: section.original_path.clone(),
                 source_url: section.source_url.clone(),
-                line_range: LineRange::new(1, chunk_end_line),
+                line_range,
                 byte_range: ByteRange::new(0, 0),
                 content,
                 raw_content,
@@ -176,6 +186,11 @@ fn chunk_table_section(
                 kind: ChunkKind::Table,
                 ast_symbols: Vec::new(),
                 metadata,
+                citation,
+                cross_references: Vec::new(),
+                prev_chunk_id: None,
+                next_chunk_id: None,
+                parent_chunk_id: None,
             });
 
             current_rows.clear();
@@ -224,6 +239,15 @@ fn chunk_table_section(
             (!header_prefix.is_empty()).to_string(),
         );
 
+        let line_range = LineRange::new(1, chunk_end_line);
+        let citation = Some(generate_chunk_citation(
+            None,
+            section,
+            &chunk_id,
+            &line_range,
+            None,
+        ));
+
         chunks.push(Chunk {
             chunk_id,
             document_id: *document_id,
@@ -233,7 +257,7 @@ fn chunk_table_section(
             title: Some(format!("{file_path} (Table Part {part_idx})")),
             original_path: section.original_path.clone(),
             source_url: section.source_url.clone(),
-            line_range: LineRange::new(1, chunk_end_line),
+            line_range,
             byte_range: ByteRange::new(0, 0),
             content,
             raw_content,
@@ -245,6 +269,11 @@ fn chunk_table_section(
             kind: ChunkKind::Table,
             ast_symbols: Vec::new(),
             metadata,
+            citation,
+            cross_references: Vec::new(),
+            prev_chunk_id: None,
+            next_chunk_id: None,
+            parent_chunk_id: None,
         });
     }
 
@@ -305,6 +334,15 @@ fn chunk_generic_structured_section(
             metadata.insert(k.clone(), v.clone());
         }
 
+        let line_range = section.line_range.unwrap_or_else(|| LineRange::new(1, 1));
+        let citation = Some(generate_chunk_citation(
+            None,
+            section,
+            &chunk_id,
+            &line_range,
+            None,
+        ));
+
         let chunk = Chunk {
             chunk_id,
             document_id: *document_id,
@@ -314,7 +352,7 @@ fn chunk_generic_structured_section(
             title: Some(file_path.to_string()),
             original_path: section.original_path.clone(),
             source_url: section.source_url.clone(),
-            line_range: section.line_range.unwrap_or_else(|| LineRange::new(1, 1)),
+            line_range,
             byte_range: section.byte_range.unwrap_or_else(|| ByteRange::new(0, 0)),
             content,
             raw_content,
@@ -326,6 +364,11 @@ fn chunk_generic_structured_section(
             kind: chunk_kind,
             ast_symbols: Vec::new(),
             metadata,
+            citation,
+            cross_references: Vec::new(),
+            prev_chunk_id: None,
+            next_chunk_id: None,
+            parent_chunk_id: None,
         };
 
         report.ast_chunks_count += 1;
@@ -367,6 +410,15 @@ fn chunk_generic_structured_section(
             let mut metadata = BTreeMap::new();
             metadata.insert("part".to_string(), part_idx.to_string());
 
+            let line_range = LineRange::new(start_line as u32, end_line as u32);
+            let citation = Some(generate_chunk_citation(
+                None,
+                section,
+                &chunk_id,
+                &line_range,
+                None,
+            ));
+
             chunks.push(Chunk {
                 chunk_id,
                 document_id: *document_id,
@@ -376,7 +428,7 @@ fn chunk_generic_structured_section(
                 title: Some(format!("{file_path} (Part {part_idx})")),
                 original_path: section.original_path.clone(),
                 source_url: section.source_url.clone(),
-                line_range: LineRange::new(start_line as u32, end_line as u32),
+                line_range,
                 byte_range: ByteRange::new(0, 0),
                 content,
                 raw_content,
@@ -388,6 +440,11 @@ fn chunk_generic_structured_section(
                 kind: chunk_kind,
                 ast_symbols: Vec::new(),
                 metadata,
+                citation,
+                cross_references: Vec::new(),
+                prev_chunk_id: None,
+                next_chunk_id: None,
+                parent_chunk_id: None,
             });
 
             current_lines.clear();
@@ -424,6 +481,15 @@ fn chunk_generic_structured_section(
         let mut metadata = BTreeMap::new();
         metadata.insert("part".to_string(), part_idx.to_string());
 
+        let line_range = LineRange::new(start_line as u32, end_line as u32);
+        let citation = Some(generate_chunk_citation(
+            None,
+            section,
+            &chunk_id,
+            &line_range,
+            None,
+        ));
+
         chunks.push(Chunk {
             chunk_id,
             document_id: *document_id,
@@ -433,7 +499,7 @@ fn chunk_generic_structured_section(
             title: Some(format!("{file_path} (Part {part_idx})")),
             original_path: section.original_path.clone(),
             source_url: section.source_url.clone(),
-            line_range: LineRange::new(start_line as u32, end_line as u32),
+            line_range,
             byte_range: ByteRange::new(0, 0),
             content,
             raw_content,
@@ -445,6 +511,11 @@ fn chunk_generic_structured_section(
             kind: chunk_kind,
             ast_symbols: Vec::new(),
             metadata,
+            citation,
+            cross_references: Vec::new(),
+            prev_chunk_id: None,
+            next_chunk_id: None,
+            parent_chunk_id: None,
         });
     }
 

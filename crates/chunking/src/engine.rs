@@ -70,6 +70,29 @@ impl Chunker {
             c.total_chunks = total_chunks;
         }
 
+        // Re-generate citations with full CdmDocument context (repo coords, commit SHA, doc title)
+        for section in &doc.sections {
+            for c in all_chunks.iter_mut() {
+                if c.section_id == section.section_id {
+                    c.citation = Some(crate::citation::generate_chunk_citation(
+                        Some(doc),
+                        section,
+                        &c.chunk_id,
+                        &c.line_range,
+                        c.ast_symbols.first(),
+                    ));
+                }
+            }
+        }
+
+        // Resolve cross-references and inject context headers
+        crate::cross_ref::CrossReferenceResolver::resolve_and_inject(
+            &mut all_chunks,
+            Some(doc),
+            &self.config,
+            &self.token_counter,
+        );
+
         report.recalculate_aggregates(&all_chunks);
         let elapsed_ms = start_time.elapsed().as_millis() as u64;
 
@@ -96,9 +119,18 @@ impl Chunker {
         let mut chunks =
             self.chunk_section_internal(document_id, section, section_index, &mut report)?;
         let total = chunks.len();
-        for c in &mut chunks {
+        for (idx, c) in chunks.iter_mut().enumerate() {
+            c.chunk_index = idx;
             c.total_chunks = total;
         }
+
+        crate::cross_ref::CrossReferenceResolver::resolve_and_inject(
+            &mut chunks,
+            None,
+            &self.config,
+            &self.token_counter,
+        );
+
         Ok(chunks)
     }
 
@@ -138,7 +170,20 @@ impl Chunker {
 
         let start_time = Instant::now();
         let mut report = ChunkingReport::default();
-        let chunks = self.chunk_section_internal(&doc_id, &section, 0, &mut report)?;
+        let mut chunks = self.chunk_section_internal(&doc_id, &section, 0, &mut report)?;
+        let total = chunks.len();
+        for (idx, c) in chunks.iter_mut().enumerate() {
+            c.chunk_index = idx;
+            c.total_chunks = total;
+        }
+
+        crate::cross_ref::CrossReferenceResolver::resolve_and_inject(
+            &mut chunks,
+            None,
+            &self.config,
+            &self.token_counter,
+        );
+
         report.sections_processed = 1;
         report.recalculate_aggregates(&chunks);
         let elapsed_ms = start_time.elapsed().as_millis() as u64;

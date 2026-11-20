@@ -8,6 +8,8 @@ use web_repo_to_ai_cdm::{ByteRange, CdmSection, LineRange};
 use web_repo_to_ai_code_intelligence::{Language, SymbolDeclaration, SymbolExtractor};
 use web_repo_to_ai_core::DocumentId;
 
+use crate::citation::generate_chunk_citation;
+
 use crate::error::ChunkResult;
 use crate::model::{
     Chunk, ChunkContext, ChunkId, ChunkKind, ChunkSymbolMetadata, ChunkingConfig, ChunkingReport,
@@ -402,6 +404,15 @@ fn assemble_ast_chunk(
         metadata.insert("symbols".to_string(), names);
     }
 
+    let line_range = LineRange::new(start_line, end_line);
+    let citation = Some(generate_chunk_citation(
+        None,
+        ctx.section,
+        &chunk_id,
+        &line_range,
+        all_symbols.first(),
+    ));
+
     Chunk {
         chunk_id,
         document_id: ctx.document_id,
@@ -411,7 +422,7 @@ fn assemble_ast_chunk(
         title,
         original_path: ctx.section.original_path.clone(),
         source_url: ctx.section.source_url.clone(),
-        line_range: LineRange::new(start_line, end_line),
+        line_range,
         byte_range: ByteRange::new(start_byte, end_byte),
         content,
         raw_content,
@@ -423,6 +434,11 @@ fn assemble_ast_chunk(
         kind: ChunkKind::CodeAstDeclaration,
         ast_symbols: all_symbols,
         metadata,
+        citation,
+        cross_references: Vec::new(),
+        prev_chunk_id: None,
+        next_chunk_id: None,
+        parent_chunk_id: None,
     }
 }
 
@@ -504,6 +520,15 @@ fn split_oversized_ast_declaration(
             metadata.insert("is_oversized_split".to_string(), "true".to_string());
             metadata.insert("split_part".to_string(), part_idx.to_string());
 
+            let line_range = LineRange::new(current_start_line as u32, chunk_end_line as u32);
+            let citation = Some(generate_chunk_citation(
+                None,
+                ctx.section,
+                &chunk_id,
+                &line_range,
+                ast_symbols.first(),
+            ));
+
             chunks.push(Chunk {
                 chunk_id,
                 document_id: ctx.document_id,
@@ -513,7 +538,7 @@ fn split_oversized_ast_declaration(
                 title: Some(format!("{} > {sym_name} (Part {part_idx})", ctx.file_path)),
                 original_path: ctx.section.original_path.clone(),
                 source_url: ctx.section.source_url.clone(),
-                line_range: LineRange::new(current_start_line as u32, chunk_end_line as u32),
+                line_range,
                 byte_range: ByteRange::new(0, 0),
                 content,
                 raw_content,
@@ -525,6 +550,11 @@ fn split_oversized_ast_declaration(
                 kind: ChunkKind::CodeAstDeclaration,
                 ast_symbols,
                 metadata,
+                citation,
+                cross_references: Vec::new(),
+                prev_chunk_id: None,
+                next_chunk_id: None,
+                parent_chunk_id: None,
             });
 
             current_lines.clear();
@@ -588,6 +618,15 @@ fn chunk_generic_code_blocks(
             let chunk_id =
                 ChunkId::generate(document_id, section_index, chunk_index, &content_hash);
 
+            let line_range = LineRange::new(start_line as u32, end_line as u32);
+            let citation = Some(generate_chunk_citation(
+                None,
+                section,
+                &chunk_id,
+                &line_range,
+                None,
+            ));
+
             chunks.push(Chunk {
                 chunk_id,
                 document_id: *document_id,
@@ -597,7 +636,7 @@ fn chunk_generic_code_blocks(
                 title: Some(format!("{file_path} (Lines {start_line}-{end_line})")),
                 original_path: section.original_path.clone(),
                 source_url: section.source_url.clone(),
-                line_range: LineRange::new(start_line as u32, end_line as u32),
+                line_range,
                 byte_range: ByteRange::new(0, 0),
                 content,
                 raw_content,
@@ -609,6 +648,11 @@ fn chunk_generic_code_blocks(
                 kind: ChunkKind::CodeBlock,
                 ast_symbols: Vec::new(),
                 metadata: BTreeMap::new(),
+                citation,
+                cross_references: Vec::new(),
+                prev_chunk_id: None,
+                next_chunk_id: None,
+                parent_chunk_id: None,
             });
 
             current_lines.clear();

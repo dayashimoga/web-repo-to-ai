@@ -6629,3 +6629,64 @@
 
 
 
+
+
+---
+
+#### Subphase `10.4.2` — Citation & cross-reference metadata injection
+- **Unique ID:** `10.4.2`
+- **Objective:** Implement authoritative source citation anchoring and cross-reference resolution in `crates/chunking` (`web-repo-to-ai-chunking`), providing GitHub commit-pinned permalinks with line spans, web documentation slug anchors, PDF page numbers, and OpenAPI operation path pointers, along with sequential chunk chaining, split-part parent-child hierarchy, intra-document symbol call/import discovery, CDM relationship propagation, and enriched context header injection.
+- **Scope:** `crates/chunking` (`src/citation.rs`, `src/cross_ref.rs`, `src/model.rs`, `src/engine.rs`, `src/ast.rs`, `src/markdown.rs`, `src/structured.rs`, `src/window.rs`, `src/lib.rs`, `README.md`, `tests/citation_test.rs`, `tests/cross_reference_test.rs`).
+- **Prerequisites:** `10.4.1` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/chunking/Cargo.toml`
+  - `crates/chunking/README.md`
+  - `crates/chunking/src/lib.rs`
+  - `crates/chunking/src/model.rs`
+  - `crates/chunking/src/citation.rs`
+  - `crates/chunking/src/cross_ref.rs`
+  - `crates/chunking/src/engine.rs`
+  - `crates/chunking/src/ast.rs`
+  - `crates/chunking/src/markdown.rs`
+  - `crates/chunking/src/structured.rs`
+  - `crates/chunking/src/window.rs`
+  - `crates/chunking/tests/citation_test.rs`
+  - `crates/chunking/tests/cross_reference_test.rs`
+- **Implementation Tasks:**
+  1. Define domain models in `src/model.rs`: `ChunkCitation`, `CrossReferenceKind` (`PreviousChunk`, `NextChunk`, `ParentScope`, `ChildChunk`, `SplitPart`, `Imports`, `Calls`, `DefinesSymbol`, `Extends`, `References`, `LinksTo`), and `ChunkCrossReference`. Extended `Chunk` with `citation`, `cross_references`, `prev_chunk_id`, `next_chunk_id`, and `parent_chunk_id`. Extended `ChunkingConfig` with `include_citations`, `include_cross_references`, and `include_sequence_links` flags and builder methods. Extended `ChunkingReport` with `citations_count` and `cross_references_count`.
+  2. Implement citation engine in `src/citation.rs`: `CitationGenerator` resolving source-specific, permalinked citations for chunks based on their originating `CdmDocument` and `CdmSection`. Implemented exact GitHub commit-pinned permalinks with `#Lstart-Lend` line spans, web documentation slug anchors, PDF page-level citations (`#page=4`, `(p. 4)`), OpenAPI operation pointers (`docs/openapi.yaml > GET /api/v1/jobs` with anchor `#GET--api-v1-jobs`), notebook cell pointers, and local file fallback (`file:///{path}#Lstart-Lend`). Emits both formatted Markdown citation links and compact display citations.
+  3. Implement cross-reference engine in `src/cross_ref.rs`: `CrossReferenceResolver` discovering and linking relationships across chunk collections: sequential chaining (`prev_chunk_id`/`next_chunk_id`), split-part parent-child hierarchy connecting oversized declaration splits to their primary signature chunk, intra-document symbol call and import discovery resolving code references to declaring chunk IDs, CDM document relationship propagation (`SectionRelationship`), and enriched context header injection.
+  4. Integrate citation and cross-reference generation in `src/engine.rs` across `chunk_document`, `chunk_section`, and `chunk_text`, updating `ast.rs`, `markdown.rs`, `structured.rs`, and `window.rs` chunk instantiations.
+  5. Author comprehensive integration tests in `tests/citation_test.rs` (5 tests) and `tests/cross_reference_test.rs` (6 tests) verifying all citation types, sequence chaining, split-part hierarchy, intra-document calls/imports, CDM relationships, context header injection, and JSON serialization.
+- **Acceptance Criteria:**
+  - Full production citation generator producing permalinks with commit hashes and line spans for GitHub, anchors for web docs, page numbers for PDFs, and operation pointers for OpenAPI specs.
+  - CrossReferenceResolver connects chunks sequentially, establishes split-part parent-child links, and discovers intra-document symbol calls and imports.
+  - Zero mock or placeholder implementations across all modules.
+  - 100% test pass rate (32/32 crate tests passing in `web-repo-to-ai-chunking`).
+  - Monorepo quality gates passing (`scripts/check-all.ps1`).
+- **Tests:**
+  - `citation_test::test_github_permalink_citation_with_commit_sha_and_line_span`
+  - `citation_test::test_web_documentation_citation_with_heading_slug_anchor`
+  - `citation_test::test_pdf_page_citation_with_page_number`
+  - `citation_test::test_openapi_spec_citation_with_operation_path`
+  - `citation_test::test_local_file_fallback_citation`
+  - `cross_reference_test::test_sequential_chunk_chaining`
+  - `cross_reference_test::test_split_part_parent_child_hierarchy`
+  - `cross_reference_test::test_intra_document_symbol_call_and_import_cross_references`
+  - `cross_reference_test::test_cdm_relationship_propagation_to_chunks`
+  - `cross_reference_test::test_context_header_injection_into_chunk_content`
+  - `cross_reference_test::test_cross_reference_serde_json_roundtrip`
+- **Security Considerations:**
+  - Strict input sanitization on URL anchors and permalinks to prevent header injection or corrupted URL schemes.
+  - Deterministic Blake3 chunk IDs and local file RFC 8089 URI normalization.
+- **Performance Considerations:**
+  - Graph resolution and context injection execute in linear time O(N) with indexed chunk and symbol lookups using `HashMap`.
+  - Zero heap allocation in symbol resolution passes beyond required relationship records.
+- **Documentation Requirements:**
+  - Updated `crates/chunking/README.md`, `CHANGELOG.md`, `PROJECT_STATUS.md`, `TODO.md`, `ROADMAP.md`, `docs/ROADMAP.md`, and `IMPLEMENTATION_LEDGER.md`.
+- **Validation Evidence:**
+  - 32/32 tests passing in `crates/chunking`.
+  - 844+ tests passing across the workspace.
+  - Monorepo quality gates 100% passing (5/5 gates).
+- **Git Commit Reference:** `6d6a674` (amended)
+- **Status:** `ACCEPTED`

@@ -6,6 +6,35 @@
 
 ## [Unreleased] — Stage 10: Advanced Documents and Content
 
+### 2026-11-20 — Phase 10.4: RAG chunk generation (`10.4.2`)
+
+#### Added
+- **`[10.4.2]` Citation & cross-reference metadata injection in `crates/chunking` (`web-repo-to-ai-chunking`):**
+  - Authoritative Source Citation Anchoring Engine (`crates/chunking/src/citation.rs`):
+    - Implemented `CitationGenerator` generating exact provenance citation records (`ChunkCitation`) with line spans, commit SHAs, section anchors, and RFC 8089 URI formatting.
+    - GitHub Permalinks: Formatted exact commit-pinned permalinks with line spans (`https://github.com/{owner}/{repo}/blob/{commit_sha}/{path}#L{start}-L{end}`).
+    - Web Documentation Anchors: Formatted anchored URLs preserving section slug fragments (`https://docs.rs/...#asynchronous-runtime`).
+    - PDF Page-Level Citations: Formatted page-numbered citations (`https://arxiv.org/...#page=4`, `(p. 4)`).
+    - Structured Spec Operation Pointers: Formatted OpenAPI operation path pointers (`docs/openapi.yaml > GET /api/v1/jobs` with anchor `#GET--api-v1-jobs`) and Jupyter notebook cell pointers.
+    - Local File System Fallback: Formatted RFC 8089 file URLs (`file:///{path}#L{start}-L{end}`).
+    - Emitted both formatted Markdown citation links (`markdown_citation`) and compact human-readable labels (`display_citation`).
+  - Cross-Reference Resolution Engine (`crates/chunking/src/cross_ref.rs`):
+    - Implemented `CrossReferenceResolver` discovering and linking relationships across chunk collections.
+    - Sequential Chaining: Linked predecessor and successor chunks with `prev_chunk_id` and `next_chunk_id` pointers, creating double-linked chunk navigation with `CrossReferenceKind::PreviousChunk` / `NextChunk` edges.
+    - Split-Part Parent-Child Hierarchy: Connected split continuation parts of oversized declarations to their Part 1 primary signature chunk via `parent_chunk_id`, `CrossReferenceKind::SplitPart`, and `CrossReferenceKind::ChildChunk`.
+    - Intra-Document Symbol Call & Import Discovery: Automatically resolved symbol references (`Calls`) and module imports (`Imports`) across code chunks to their declaring chunk IDs within the same document.
+    - CDM Relationship Propagation: Propagated document-level section relationships (`SectionRelationship`) directly into chunk cross-references (`CrossReferenceKind::References`, `Extends`, `LinksTo`).
+    - Enriched Context Header Injection: Injected formatted markdown headers displaying human-readable citations, chunk sequence markers (`Chunk 1 of 5 (Prev: None, Next: chk_...)`), and summarized references directly into chunk text content.
+  - Domain Model & Configuration Updates (`crates/chunking/src/model.rs`):
+    - Added `ChunkCitation`, `CrossReferenceKind` (11 relationship types), and `ChunkCrossReference`.
+    - Extended `Chunk` model with `citation: Option<ChunkCitation>`, `cross_references: Vec<ChunkCrossReference>`, `prev_chunk_id: Option<ChunkId>`, `next_chunk_id: Option<ChunkId>`, and `parent_chunk_id: Option<ChunkId>`.
+    - Extended `ChunkingConfig` with `include_citations`, `include_cross_references`, and `include_sequence_links` configuration toggles (all defaulting to `true`), along with fluent builder methods.
+    - Extended `ChunkingReport` with aggregate `citations_count` and `cross_references_count`.
+  - Integration & Verification Test Suites:
+    - Authored 11 integration tests across `tests/citation_test.rs` (5 tests) and `tests/cross_reference_test.rs` (6 tests).
+    - 32 crate tests passing in `web-repo-to-ai-chunking` (1 unit, 31 integration across 7 test suites).
+    - 844+ workspace tests passing across the monorepo with 0 warnings, 0 clippy diffs, clean `cargo deny check`, and 100% check-all passing.
+
 ### 2026-11-20 — Phase 10.4: RAG chunk generation (`10.4.1`)
 
 #### Added

@@ -7,6 +7,7 @@ use std::collections::BTreeMap;
 use web_repo_to_ai_cdm::{ByteRange, CdmSection, LineRange};
 use web_repo_to_ai_core::DocumentId;
 
+use crate::citation::generate_chunk_citation;
 use crate::error::ChunkResult;
 use crate::model::{Chunk, ChunkId, ChunkKind, ChunkingConfig, ChunkingReport};
 use crate::token::TokenCounter;
@@ -272,6 +273,15 @@ fn assemble_markdown_chunk(
     metadata.insert("heading_level".to_string(), first.level.to_string());
     metadata.insert("source_file".to_string(), ctx.file_path.to_string());
 
+    let line_range = LineRange::new(start_line, end_line);
+    let citation = Some(generate_chunk_citation(
+        None,
+        ctx.section,
+        &chunk_id,
+        &line_range,
+        None,
+    ));
+
     Chunk {
         chunk_id,
         document_id: ctx.document_id,
@@ -281,7 +291,7 @@ fn assemble_markdown_chunk(
         title,
         original_path: ctx.section.original_path.clone(),
         source_url: ctx.section.source_url.clone(),
-        line_range: LineRange::new(start_line, end_line),
+        line_range,
         byte_range: ByteRange::new(0, 0),
         content,
         raw_content,
@@ -293,6 +303,11 @@ fn assemble_markdown_chunk(
         kind: ChunkKind::MarkdownSection,
         ast_symbols: Vec::new(),
         metadata,
+        citation,
+        cross_references: Vec::new(),
+        prev_chunk_id: None,
+        next_chunk_id: None,
+        parent_chunk_id: None,
     }
 }
 
@@ -358,6 +373,15 @@ fn split_oversized_markdown_section(
             metadata.insert("is_oversized_split".to_string(), "true".to_string());
             metadata.insert("split_part".to_string(), part_idx.to_string());
 
+            let line_range = LineRange::new(current_start_line as u32, chunk_end_line as u32);
+            let citation = Some(generate_chunk_citation(
+                None,
+                ctx.section,
+                &chunk_id,
+                &line_range,
+                None,
+            ));
+
             chunks.push(Chunk {
                 chunk_id,
                 document_id: ctx.document_id,
@@ -367,7 +391,7 @@ fn split_oversized_markdown_section(
                 title: Some(format!("{breadcrumb_str} (Part {part_idx})")),
                 original_path: ctx.section.original_path.clone(),
                 source_url: ctx.section.source_url.clone(),
-                line_range: LineRange::new(current_start_line as u32, chunk_end_line as u32),
+                line_range,
                 byte_range: ByteRange::new(0, 0),
                 content,
                 raw_content,
@@ -379,6 +403,11 @@ fn split_oversized_markdown_section(
                 kind: ChunkKind::MarkdownSection,
                 ast_symbols: Vec::new(),
                 metadata,
+                citation,
+                cross_references: Vec::new(),
+                prev_chunk_id: None,
+                next_chunk_id: None,
+                parent_chunk_id: None,
             });
 
             current_paras.clear();
@@ -424,6 +453,15 @@ fn split_oversized_markdown_section(
         );
         metadata.insert("source_file".to_string(), ctx.file_path.to_string());
 
+        let line_range = LineRange::new(current_start_line as u32, chunk_end_line as u32);
+        let citation = Some(generate_chunk_citation(
+            None,
+            ctx.section,
+            &chunk_id,
+            &line_range,
+            None,
+        ));
+
         chunks.push(Chunk {
             chunk_id,
             document_id: ctx.document_id,
@@ -433,7 +471,7 @@ fn split_oversized_markdown_section(
             title: Some(format!("{breadcrumb_str} (Part {part_idx})")),
             original_path: ctx.section.original_path.clone(),
             source_url: ctx.section.source_url.clone(),
-            line_range: LineRange::new(current_start_line as u32, chunk_end_line as u32),
+            line_range,
             byte_range: ByteRange::new(0, 0),
             content,
             raw_content,
@@ -445,6 +483,11 @@ fn split_oversized_markdown_section(
             kind: ChunkKind::MarkdownSection,
             ast_symbols: Vec::new(),
             metadata,
+            citation,
+            cross_references: Vec::new(),
+            prev_chunk_id: None,
+            next_chunk_id: None,
+            parent_chunk_id: None,
         });
     }
 
@@ -502,6 +545,15 @@ fn chunk_prose_paragraphs(
             let chunk_id =
                 ChunkId::generate(document_id, section_index, chunk_index, &content_hash);
 
+            let line_range = LineRange::new(start_line as u32, end_line as u32);
+            let citation = Some(generate_chunk_citation(
+                None,
+                section,
+                &chunk_id,
+                &line_range,
+                None,
+            ));
+
             chunks.push(Chunk {
                 chunk_id,
                 document_id: *document_id,
@@ -511,7 +563,7 @@ fn chunk_prose_paragraphs(
                 title: Some(format!("{file_path} (Section {chunk_index})")),
                 original_path: section.original_path.clone(),
                 source_url: section.source_url.clone(),
-                line_range: LineRange::new(start_line as u32, end_line as u32),
+                line_range,
                 byte_range: ByteRange::new(0, 0),
                 content,
                 raw_content,
@@ -523,6 +575,11 @@ fn chunk_prose_paragraphs(
                 kind: ChunkKind::Paragraph,
                 ast_symbols: Vec::new(),
                 metadata: BTreeMap::new(),
+                citation,
+                cross_references: Vec::new(),
+                prev_chunk_id: None,
+                next_chunk_id: None,
+                parent_chunk_id: None,
             });
 
             current_paras.clear();
@@ -556,6 +613,15 @@ fn chunk_prose_paragraphs(
         let token_count = token_counter.count(&content);
         let chunk_id = ChunkId::generate(document_id, section_index, chunk_index, &content_hash);
 
+        let line_range = LineRange::new(start_line as u32, end_line as u32);
+        let citation = Some(generate_chunk_citation(
+            None,
+            section,
+            &chunk_id,
+            &line_range,
+            None,
+        ));
+
         chunks.push(Chunk {
             chunk_id,
             document_id: *document_id,
@@ -565,7 +631,7 @@ fn chunk_prose_paragraphs(
             title: Some(format!("{file_path} (Section {chunk_index})")),
             original_path: section.original_path.clone(),
             source_url: section.source_url.clone(),
-            line_range: LineRange::new(start_line as u32, end_line as u32),
+            line_range,
             byte_range: ByteRange::new(0, 0),
             content,
             raw_content,
@@ -577,6 +643,11 @@ fn chunk_prose_paragraphs(
             kind: ChunkKind::Paragraph,
             ast_symbols: Vec::new(),
             metadata: BTreeMap::new(),
+            citation,
+            cross_references: Vec::new(),
+            prev_chunk_id: None,
+            next_chunk_id: None,
+            parent_chunk_id: None,
         });
     }
 

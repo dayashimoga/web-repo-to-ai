@@ -128,6 +128,126 @@ pub struct ChunkSymbolMetadata {
     pub line_number: usize,
 }
 
+/// Authoritative citation anchoring a chunk to its remote or local source.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ChunkCitation {
+    /// Unique citation identifier (e.g. `cit_chk_s0_c1`).
+    pub citation_id: String,
+    /// Canonical source URL (e.g. `https://github.com/owner/repo` or `https://example.com/docs`).
+    pub source_url: String,
+    /// Precise permalink including anchor or line numbers
+    /// (e.g. `https://github.com/owner/repo/blob/abc1234/src/lib.rs#L10-L45` or `https://example.com/docs#installation`).
+    pub permalink: String,
+    /// Compact human-readable citation label (e.g. `src/lib.rs:10-45 (Commit abc1234)` or `User Guide > Installation`).
+    pub display_citation: String,
+    /// Rendered Markdown citation link (e.g. `[src/lib.rs#L10-L45](https://github.com/owner/repo/blob/abc1234/src/lib.rs#L10-L45)`).
+    pub markdown_citation: String,
+    /// Relative repository or document file path if available.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub file_path: Option<String>,
+    /// 1-indexed (start_line, end_line) if available.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub line_span: Option<(usize, usize)>,
+    /// Git commit SHA or revision hash if available.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub commit_sha: Option<String>,
+    /// Document or page title if available.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_title: Option<String>,
+    /// Target anchor fragment without `#` (e.g. `L10-L45` or `installation`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub anchor: Option<String>,
+}
+
+/// Nature of the cross-reference connection between chunks or entities.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CrossReferenceKind {
+    /// Immediate sequential predecessor chunk in reading/file order.
+    PreviousChunk,
+    /// Immediate sequential successor chunk in reading/file order.
+    NextChunk,
+    /// Enclosing structural parent (e.g. class enclosing method, parent heading).
+    ParentScope,
+    /// Contained child member or nested section.
+    ChildChunk,
+    /// Part of the same oversized declaration or section.
+    SplitPart,
+    /// Source chunk imports or depends on target module/symbol.
+    Imports,
+    /// Source chunk invokes a function or method defined in the target.
+    Calls,
+    /// Source chunk defines a symbol that is referenced elsewhere.
+    DefinesSymbol,
+    /// Source type inherits from or implements target type.
+    Extends,
+    /// Semantic reference, citation, or mention.
+    References,
+    /// Hyperlink navigation link.
+    LinksTo,
+}
+
+impl CrossReferenceKind {
+    /// Returns the snake_case label for this cross-reference kind.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::PreviousChunk => "previous_chunk",
+            Self::NextChunk => "next_chunk",
+            Self::ParentScope => "parent_scope",
+            Self::ChildChunk => "child_chunk",
+            Self::SplitPart => "split_part",
+            Self::Imports => "imports",
+            Self::Calls => "calls",
+            Self::DefinesSymbol => "defines_symbol",
+            Self::Extends => "extends",
+            Self::References => "references",
+            Self::LinksTo => "links_to",
+        }
+    }
+}
+
+/// Semantic cross-reference or graph edge connecting a chunk to other chunks or entities.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ChunkCrossReference {
+    /// Target chunk identifier if resolved within the document.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target_chunk_id: Option<ChunkId>,
+    /// Target CDM section identifier if known.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target_section_id: Option<String>,
+    /// Semantic nature of the relationship.
+    pub kind: CrossReferenceKind,
+    /// Target symbol name (e.g. `TokenCounter` or `chunk_document`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target_symbol: Option<String>,
+    /// Target file path or document route.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target_path: Option<String>,
+    /// External destination URL if linking to an external resource.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target_url: Option<String>,
+    /// Human/LLM-readable description of the relationship.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+}
+
+impl ChunkCrossReference {
+    /// Constructs a basic cross-reference to a target chunk.
+    #[must_use]
+    pub fn new(target_chunk_id: ChunkId, kind: CrossReferenceKind) -> Self {
+        Self {
+            target_chunk_id: Some(target_chunk_id),
+            target_section_id: None,
+            kind,
+            target_symbol: None,
+            target_path: None,
+            target_url: None,
+            description: None,
+        }
+    }
+}
+
 /// Self-contained semantic chunk produced by the chunking engine.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Chunk {
@@ -177,6 +297,21 @@ pub struct Chunk {
     /// Additional chunk-level metadata attributes.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub metadata: BTreeMap<String, String>,
+    /// Authoritative source citation with permalink, line numbers, and markdown link.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub citation: Option<ChunkCitation>,
+    /// Outgoing cross-references to sequential chunks, parent scopes, and referenced symbols.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub cross_references: Vec<ChunkCrossReference>,
+    /// Immediate predecessor chunk ID in sequence.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub prev_chunk_id: Option<ChunkId>,
+    /// Immediate successor chunk ID in sequence.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub next_chunk_id: Option<ChunkId>,
+    /// Enclosing structural parent chunk ID (e.g. class or parent heading).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub parent_chunk_id: Option<ChunkId>,
 }
 
 impl Chunk {
@@ -233,6 +368,12 @@ pub struct ChunkingConfig {
     pub preserve_headers: bool,
     /// Whether prepended context headers are counted within `max_chunk_tokens`.
     pub header_in_token_budget: bool,
+    /// Whether to generate and inject authoritative source citations into chunks.
+    pub include_citations: bool,
+    /// Whether to discover and resolve intra-document symbol and section cross-references.
+    pub include_cross_references: bool,
+    /// Whether to chain sequential chunks via prev/next chunk IDs.
+    pub include_sequence_links: bool,
     /// Optional target model architecture or tokenizer name (e.g. `gpt-4o`, `claude-3-5-sonnet`).
     pub tokenizer_name: Option<String>,
 }
@@ -247,6 +388,9 @@ impl Default for ChunkingConfig {
             overlap_tokens: 64,
             preserve_headers: true,
             header_in_token_budget: true,
+            include_citations: true,
+            include_cross_references: true,
+            include_sequence_links: true,
             tokenizer_name: None,
         }
     }
@@ -328,6 +472,27 @@ impl ChunkingConfig {
         self
     }
 
+    /// Builder: sets whether citations are generated and injected.
+    #[must_use]
+    pub fn with_citations(mut self, enabled: bool) -> Self {
+        self.include_citations = enabled;
+        self
+    }
+
+    /// Builder: sets whether cross-references are discovered and resolved.
+    #[must_use]
+    pub fn with_cross_references(mut self, enabled: bool) -> Self {
+        self.include_cross_references = enabled;
+        self
+    }
+
+    /// Builder: sets whether sequential chunks are chained.
+    #[must_use]
+    pub fn with_sequence_links(mut self, enabled: bool) -> Self {
+        self.include_sequence_links = enabled;
+        self
+    }
+
     /// Builder: sets tokenizer name.
     #[must_use]
     pub fn with_tokenizer(mut self, tokenizer: impl Into<String>) -> Self {
@@ -361,6 +526,10 @@ pub struct ChunkingReport {
     pub window_chunks_count: usize,
     /// Number of oversized elements that required sub-splitting.
     pub oversized_splits_count: usize,
+    /// Total number of citations generated.
+    pub citations_count: usize,
+    /// Total number of cross-references resolved.
+    pub cross_references_count: usize,
 }
 
 impl Default for ChunkingReport {
@@ -377,12 +546,14 @@ impl Default for ChunkingReport {
             table_chunks_count: 0,
             window_chunks_count: 0,
             oversized_splits_count: 0,
+            citations_count: 0,
+            cross_references_count: 0,
         }
     }
 }
 
 impl ChunkingReport {
-    /// Recomputes summary aggregates (min, max, avg) from a list of chunks.
+    /// Recomputes summary aggregates (min, max, avg, citations, cross-refs) from a list of chunks.
     pub fn recalculate_aggregates(&mut self, chunks: &[Chunk]) {
         self.chunks_generated = chunks.len();
         self.total_tokens = chunks.iter().map(|c| c.token_count).sum();
@@ -393,6 +564,8 @@ impl ChunkingReport {
         } else {
             0.0
         };
+        self.citations_count = chunks.iter().filter(|c| c.citation.is_some()).count();
+        self.cross_references_count = chunks.iter().map(|c| c.cross_references.len()).sum();
     }
 }
 
