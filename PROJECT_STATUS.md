@@ -6,8 +6,8 @@
 **Last Completed Stage:** `STAGE 9 — DEVELOPER AND AI AGENT INTEGRATIONS` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Last Completed Phase:** `Phase 9.4 — Browser integration` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Active Subphase:** `None`  
-**Last Completed Subphase:** `10.1.1 — PDF parser & layout extraction (crates/pdf-extractor: Pure Rust PDF document structure parsing, spatial layout reconstruction, reading order determination, and CDM mapping)` (`ACCEPTED`)  
-**Next Upcoming Subphase:** `10.1.2 — Multi-column and table extraction`
+**Last Completed Subphase:** `10.1.2 — Multi-column and table extraction (crates/pdf-extractor: Spatial alignment analysis, multi-column table detection, Markdown/HTML/CSV serialization, CDM SectionKind::Table and SectionKind::Prose separation, running header/footer separation, hierarchy outline building, and coordinate-precise provenance attribution)` (`ACCEPTED`)  
+**Next Upcoming Subphase:** `10.1.3 — Scanned/encrypted PDF detection & limits`
 
 ---
 
@@ -99,6 +99,13 @@ In Stage 10 ("Advanced Documents and Content"):
     - Geometry & Layout Models (`crates/pdf-extractor/src/models.rs`): Implemented normalized 2D `BoundingBox` (`width`, `height`, `area`, `intersects`, `contains`, `union`), `PageDimensions`, `PdfMetadata`, `PdfSpan`, `PdfLine`, `TextBlockKind`, `PdfTextBlock`, `PdfPage`, `OutlineItem`, and `PdfDocument`.
     - CDM Mapping (`crates/pdf-extractor/src/extractor.rs`): Implemented `PdfExtractor` mapping parsed PDF pages into `CdmDocument` (`SourceType::DocumentPdf`, `SourceIdentity`, `CdmSection` per page with line numbers, byte ranges, spatial dimension attributes `width`, `height`, `rotation`, and `block_count`), metadata preservation, and complete `CompletenessReport`.
     - Quality & Verification: Authored 10 integration tests in `crates/pdf-extractor/tests/` across bounding box geometry (`geometry_test.rs`), line clustering, semantic classification, multi-column reading order (`layout_test.rs`), header validation, empty document rejection, corrupted structure error, encrypted document error, valid synthetic PDF parsing, and bookmark outlines (`parser_test.rs`), and end-to-end CDM mapping (`extractor_test.rs`). Verified with 10 crate tests, 666+ workspace tests, zero clippy warnings, zero fmt diffs, cargo deny clean, and 100% passing quality gates (5/5).
+  - Subphase `10.1.2` delivered spatial alignment analysis, multi-column table detection, tabular cell/row grid extraction, Markdown GFM/HTML/CSV serialization, coordinate-precise section/table/page provenance attribution, and CDM mapping refinement (emitting `SectionKind::Table` for tabular structures, `SectionKind::Prose` for text, isolating running headers/footers, and building `HierarchyNode` outline trees) in `crates/pdf-extractor` (`web-repo-to-ai-pdf-extractor`):
+    - Table Detection & Extraction (`crates/pdf-extractor/src/table.rs`): Implemented `PdfTableCell`, `PdfTableRow`, `PdfTable`, `TableDetectorOptions`, and `PdfTableDetector`. Performs spatial baseline clustering and column anchor analysis to detect multi-column table alignments with column boundary tracking. Handles sparse tables with missing cells and empty column values. Supports table caption extraction from preceding text blocks. Implemented `to_markdown()` producing clean GitHub Flavored Markdown (GFM) pipe tables with alignment separators, `to_html()` producing semantic HTML5 `<table>`, `<thead>`, `<tbody>`, `<tr>`, `<th>`, and `<td>` markup, and `to_csv()` adhering to RFC 4180 CSV standard.
+    - Page & Section Provenance Attribution (`crates/pdf-extractor/src/provenance.rs`): Implemented `PageProvenance` and `SectionProvenance` tracking bounding box coordinates (`x0`, `y0`, `x1`, `y1`), `page_number`, `reading_order`, `column_index`, `parent_heading`, and `content_type`. Implemented `to_attributes()` and `attach_to_builder()` to inject structured provenance metadata directly into CDM section builder attributes.
+    - Spatial Layout Engine Integration (`crates/pdf-extractor/src/layout.rs`): Updated `PdfLayoutEngine` with `PageLayoutResult` (`content_blocks`, `tables`, `page_headers`, `page_footers`). Integrates `PdfTableDetector` to extract tabular line regions before block clustering, separates page headers and footers using configurable margin thresholds (`header_footer_margin_ratio: 0.06`), and orders non-table content into multi-column reading order.
+    - PDF Models & Parser Extensions (`crates/pdf-extractor/src/models.rs`, `src/parser.rs`): Extended `PdfPage` with `pub tables: Vec<PdfTable>`, `pub headers: Vec<PdfTextBlock>`, and `pub footers: Vec<PdfTextBlock>`. Updated `PdfParser::parse_page` to run layout detection, populate tables/headers/footers, and compute page `raw_text` from content blocks while filtering running headers and footers.
+    - CDM Mapping Refinement (`crates/pdf-extractor/src/extractor.rs`): Updated `PdfExtractor::convert_to_cdm` to emit discrete `SectionKind::Table` sections for detected tables with table-specific provenance attributes (`table_id`, `table_columns`, `table_rows`, `content_type: "table/markdown"`), separate `SectionKind::Prose` sections for page body text, attach running headers/footers to document metadata, and construct hierarchical outline trees (`HierarchyNode`) from PDF bookmark items.
+    - Quality & Verification: Authored 9 new integration tests across `crates/pdf-extractor/tests/table_test.rs` (5 tests: GFM markdown, HTML table, CSV, spatial line table detection with caption, sparse table handling), `crates/pdf-extractor/tests/provenance_test.rs` (3 tests: section provenance, table provenance, page provenance), and `crates/pdf-extractor/tests/table_extractor_test.rs` (1 test: end-to-end multi-page PDF with table and outline bookmarks). Verified with 19 crate tests, 675+ workspace tests, zero clippy warnings, zero fmt diffs, cargo deny clean, and 100% passing quality gates (5/5).
 
 ---
 
@@ -106,12 +113,12 @@ In Stage 10 ("Advanced Documents and Content"):
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 161 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` |
+| `ACCEPTED` | 162 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.2` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 35 | `10.1.2` – `11.4.5` |
+| `NOT_STARTED` | 34 | `10.1.3` – `11.4.5` |
 | **Total** | **196** | `Stage 0` – `Stage 11` |
 
 ---

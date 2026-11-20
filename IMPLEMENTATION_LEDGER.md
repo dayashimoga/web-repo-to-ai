@@ -5833,3 +5833,52 @@
 
 
 
+
+---
+
+#### Subphase `10.1.2` — Multi-column and table extraction
+- **Unique ID:** `10.1.2`
+- **Objective:** Implement spatial alignment analysis, multi-column table detection, tabular cell/row grid extraction, Markdown GFM/HTML/CSV serialization, coordinate-precise section/table/page provenance attribution, and CDM mapping refinement (emitting `SectionKind::Table` for tabular structures, `SectionKind::Prose` for body text, isolating running headers/footers, and building `HierarchyNode` outline trees) in `crates/pdf-extractor` (`web-repo-to-ai-pdf-extractor`).
+- **Scope:** `crates/pdf-extractor/src/table.rs`, `crates/pdf-extractor/src/provenance.rs`, `crates/pdf-extractor/src/layout.rs`, `crates/pdf-extractor/src/models.rs`, `crates/pdf-extractor/src/parser.rs`, `crates/pdf-extractor/src/extractor.rs`, `crates/pdf-extractor/src/lib.rs`, `crates/pdf-extractor/tests/*`, and project tracking ledgers.
+- **Prerequisites:** `10.1.1` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/pdf-extractor/src/table.rs`: Created table extraction module with `PdfTableCell`, `PdfTableRow`, `PdfTable`, `TableDetectorOptions`, and `PdfTableDetector`. Implemented spatial baseline clustering and horizontal column anchor analysis, multi-column table grid reconstruction, sparse table handling with missing cells, table caption extraction, and serialization methods: `to_markdown()` (GFM pipe table), `to_html()` (semantic HTML5 `<table>`), and `to_csv()` (RFC 4180).
+  - `crates/pdf-extractor/src/provenance.rs`: Created provenance module with `PageProvenance` and `SectionProvenance` tracking bounding box coordinates (`x0`, `y0`, `x1`, `y1`), `page_number`, `reading_order`, `column_index`, `parent_heading`, and `content_type`. Implemented `to_attributes()` and `attach_to_builder()`.
+  - `crates/pdf-extractor/src/layout.rs`: Defined `PageLayoutResult` (`content_blocks`, `tables`, `page_headers`, `page_footers`). Updated `PdfLayoutEngine` with `build_page_layout` integrating `PdfTableDetector` to isolate table line regions, separate page headers/footers, and sort remaining content into multi-column reading order.
+  - `crates/pdf-extractor/src/models.rs`: Extended `PdfPage` with `pub tables: Vec<PdfTable>`, `pub headers: Vec<PdfTextBlock>`, and `pub footers: Vec<PdfTextBlock>`.
+  - `crates/pdf-extractor/src/parser.rs`: Updated `PdfParser::parse_page` to call `build_page_layout`, populate detected tables/headers/footers, and compute page `raw_text` from body content blocks while filtering running headers and footers.
+  - `crates/pdf-extractor/src/extractor.rs`: Updated `PdfExtractor::convert_to_cdm` to emit discrete `SectionKind::Table` sections for detected tables with table-specific provenance attributes (`table_id`, `table_columns`, `table_rows`, `content_type: "table/markdown"`), separate `SectionKind::Prose` sections for page body text, attach running headers/footers to document metadata, and construct hierarchical outline trees (`HierarchyNode`) from PDF bookmark items.
+  - `crates/pdf-extractor/src/lib.rs`: Re-exported `table` and `provenance` modules and public types.
+  - `crates/pdf-extractor/tests/table_test.rs`: Authored 5 tests covering GFM markdown serialization, HTML table serialization, CSV serialization, spatial line table detection with caption extraction, and sparse table handling.
+  - `crates/pdf-extractor/tests/provenance_test.rs`: Authored 3 tests covering section provenance attributes, table provenance attributes, and page provenance attributes.
+  - `crates/pdf-extractor/tests/table_extractor_test.rs`: Authored 1 end-to-end integration test validating multi-page PDF with tables, bookmarks, running headers/footers, and CDM section mapping (`SectionKind::Table` and `SectionKind::Prose`).
+- **Implementation Tasks:**
+  1. Implemented table extraction module `crates/pdf-extractor/src/table.rs` with `PdfTableCell`, `PdfTableRow`, `PdfTable`, `TableDetectorOptions`, and `PdfTableDetector`.
+  2. Implemented provenance module `crates/pdf-extractor/src/provenance.rs` with `PageProvenance` and `SectionProvenance`.
+  3. Extended spatial layout engine in `crates/pdf-extractor/src/layout.rs` with `PageLayoutResult` and `build_page_layout`.
+  4. Extended `PdfPage` in `crates/pdf-extractor/src/models.rs` and parser pipeline in `crates/pdf-extractor/src/parser.rs`.
+  5. Refined CDM mapping in `crates/pdf-extractor/src/extractor.rs` to separate `SectionKind::Table` and `SectionKind::Prose`, attach running headers/footers to metadata, and construct `HierarchyNode` trees.
+  6. Authored 9 integration tests across `table_test.rs`, `provenance_test.rs`, and `table_extractor_test.rs` (19 crate tests total).
+  7. Verified clean compilation, zero clippy warnings (`-D warnings`), clean formatting (`cargo fmt --check`), and cargo deny compliance.
+  8. Executed full monorepo quality gate (`scripts/check-all.ps1`) with 100% passing results across all 5 gates.
+  9. Updated project tracking ledgers (`PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `IMPLEMENTATION_LEDGER.md`).
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-pdf-extractor` (19 tests passing)
+  - `cargo clippy -p web-repo-to-ai-pdf-extractor --all-targets -- -D warnings` (Clean, zero warnings)
+  - `cargo fmt --all -- --check` (Clean, zero diffs)
+  - `cargo deny check` (Advisories ok, bans ok, licenses ok, sources ok)
+  - `powershell scripts/check-all.ps1` (All 5 gates passed with 0 failures)
+- **Acceptance Criteria:**
+  - Pure Rust spatial table detection without hardcoded templates or third-party OCR services.
+  - Multi-column table detection clusters cells by baseline Y and horizontal column anchors.
+  - Sparse tables with missing cells are properly handled without panic or corrupt column alignment.
+  - Table serialization produces valid GFM Markdown, HTML5, and RFC 4180 CSV representations.
+  - CDM document mapping generates discrete `SectionKind::Table` sections with table-specific metadata and `SectionKind::Prose` for body text.
+  - Running headers and footers are separated from body text and attached to document metadata.
+  - PDF bookmark outlines are mapped into hierarchical outline trees (`HierarchyNode`).
+  - Coordinate-precise spatial provenance attributes (`bbox_x0`, `bbox_y0`, `bbox_x1`, `bbox_y1`, `page_number`, `reading_order`, `column_index`) are preserved across all CDM sections.
+  - Zero-mock policy adhered to across all PDF extraction and table analysis components.
+  - All 19 crate integration tests and 675+ workspace tests pass cleanly.
+  - Disk space constraint satisfied ($\ge 70$ GB free on `C:`).
+  - All 5 monorepo quality gates pass with 0 failures.
+- **Status:** `ACCEPTED`

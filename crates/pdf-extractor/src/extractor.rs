@@ -5,12 +5,12 @@
 
 use crate::error::Result;
 use crate::layout::{LayoutOptions, PdfLayoutEngine};
-use crate::models::PdfDocument;
+use crate::models::{OutlineItem, PdfDocument, TextBlockKind};
 use crate::parser::PdfParser;
 use std::collections::BTreeMap;
 use web_repo_to_ai_cdm::{
     CdmDocument, CdmDocumentBuilder, CdmSectionBuilder, CompletenessReport, DocumentMetadata,
-    ExtractionStatus, SectionKind, SourceIdentity, SourceType,
+    ExtractionStatus, HierarchyKind, HierarchyNode, SectionKind, SourceIdentity, SourceType,
 };
 
 /// Configuration options for PDF extraction and CDM generation.
@@ -137,36 +137,162 @@ impl PdfExtractor {
                 .content_type("application/pdf")
                 .metadata(metadata);
 
-        // Convert each page to a CdmSection
+        // Convert each page to CdmSection(s)
         for page in &pdf_doc.pages {
-            let section_id = format!("page_{}", page.page_number);
-            let title = if self.options.include_page_numbers {
+            let page_sec_id = format!("page_{}", page.page_number);
+            let page_title = if self.options.include_page_numbers {
                 format!("Page {}", page.page_number)
             } else {
                 String::new()
             };
 
-            let line_count = page.raw_text.lines().count().max(1) as u32;
-            let byte_count = page.raw_text.len() as u64;
+            if page.tables.is_empty() {
+                // Single prose section for the entire page
+                let line_count = page.raw_text.lines().count().max(1) as u32;
+                let byte_count = page.raw_text.len() as u64;
 
-            let sec_builder = CdmSectionBuilder::new(
-                section_id,
-                source_url.clone(),
-                SectionKind::Prose,
-                page.raw_text.clone(),
-            )
-            .title(title)
-            .original_path(format!("page_{}.txt", page.page_number))
-            .line_range(1, line_count)
-            .byte_range(0, byte_count)
-            .attribute("page_number", page.page_number.to_string())
-            .attribute("width", page.dimensions.width.to_string())
-            .attribute("height", page.dimensions.height.to_string())
-            .attribute("rotation", page.dimensions.rotation.to_string())
-            .attribute("block_count", page.blocks.len().to_string());
+                let sec_builder = CdmSectionBuilder::new(
+                    page_sec_id,
+                    source_url.clone(),
+                    SectionKind::Prose,
+                    page.raw_text.clone(),
+                )
+                .title(page_title)
+                .original_path(format!("page_{}.txt", page.page_number))
+                .line_range(1, line_count)
+                .byte_range(0, byte_count)
+                .attribute("page_number", page.page_number.to_string())
+                .attribute("width", page.dimensions.width.to_string())
+                .attribute("height", page.dimensions.height.to_string())
+                .attribute("rotation", page.dimensions.rotation.to_string())
+                .attribute("block_count", page.blocks.len().to_string())
+                .attribute("table_count", "0".to_string())
+                .attribute("content_type", "text/prose".to_string());
 
-            builder = builder.add_section(sec_builder.build());
+                builder = builder.add_section(sec_builder.build());
+            } else {
+                // Page contains tables: emit prose section + table sections
+                // 1. Prose blocks on the page (excluding table markdown)
+                let prose_text: String = page
+                    .blocks
+                    .iter()
+                    .filter(|b| b.kind != TextBlockKind::TableContent)
+                    .map(|b| b.text.as_str())
+                    .collect::<Vec<_>>()
+                    .join("\n\n");
+
+                if !prose_text.trim().is_empty() {
+                    let line_count = prose_text.lines().count().max(1) as u32;
+                    let byte_count = prose_text.len() as u64;
+
+                    let sec_builder = CdmSectionBuilder::new(
+                        page_sec_id.clone(),
+                        source_url.clone(),
+                        SectionKind::Prose,
+                        prose_text,
+                    )
+                    .title(page_title)
+                    .original_path(format!("page_{}.txt", page.page_number))
+                    .line_range(1, line_count)
+                    .byte_range(0, byte_count)
+                    .attribute("page_number", page.page_number.to_string())
+                    .attribute("width", page.dimensions.width.to_string())
+                    .attribute("height", page.dimensions.height.to_string())
+                    .attribute("rotation", page.dimensions.rotation.to_string())
+                    .attribute("block_count", page.blocks.len().to_string())
+                    .attribute("table_count", page.tables.len().to_string())
+                    .attribute("content_type", "text/prose".to_string());
+
+                    builder = builder.add_section(sec_builder.build());
+                }
+
+                // 2. Each extracted table as a distinct SectionKind::Table section
+                for (t_idx, table) in page.tables.iter().enumerate() {
+                    let table_sec_id = format!("page_{}_table_{}", page.page_number, t_idx + 1);
+                    let table_md = table.to_markdown();
+                    let line_count = table_md.lines().count().max(1) as u32;
+                    let byte_count = table_md.len() as u64;
+
+                    let table_title = table.caption.clone().unwrap_or_else(|| {
+                        format!("Page {} Table {}", page.page_number, t_idx + 1)
+                    });
+
+                    let sec_builder = CdmSectionBuilder::new(
+                        table_sec_id.clone(),
+                        source_url.clone(),
+                        SectionKind::Table,
+                        table_md,
+                    )
+                    .title(table_title)
+                    .original_path(format!("page_{}_table_{}.md", page.page_number, t_idx + 1))
+                    .line_range(1, line_count)
+                    .byte_range(0, byte_count)
+                    .attribute("page_number", page.page_number.to_string())
+                    .attribute("table_id", table.table_id.clone())
+                    .attribute("table_columns", table.column_count.to_string())
+                    .attribute("table_rows", table.row_count.to_string())
+                    .attribute("x0", format!("{:.2}", table.bbox.x0))
+                    .attribute("y0", format!("{:.2}", table.bbox.y0))
+                    .attribute("x1", format!("{:.2}", table.bbox.x1))
+                    .attribute("y1", format!("{:.2}", table.bbox.y1))
+                    .attribute("width", format!("{:.2}", table.bbox.width()))
+                    .attribute("height", format!("{:.2}", table.bbox.height()))
+                    .attribute("content_type", "table/markdown".to_string())
+                    .attribute("is_table", "true".to_string());
+
+                    builder = builder.add_section(sec_builder.build());
+                }
+            }
         }
+
+        // Build document hierarchy from outlines or pages
+        let mut root_node =
+            HierarchyNode::root(pdf_doc.metadata.title.as_deref().unwrap_or("PDF Document"));
+
+        if !pdf_doc.outline.is_empty() {
+            for (idx, item) in pdf_doc.outline.iter().enumerate() {
+                root_node.add_child(convert_outline_to_hierarchy(
+                    item,
+                    &format!("outline_{idx}"),
+                ));
+            }
+        } else {
+            for page in &pdf_doc.pages {
+                let page_id = format!("page_{}", page.page_number);
+                let mut page_node = HierarchyNode {
+                    id: page_id.clone(),
+                    name: format!("Page {}", page.page_number),
+                    path: format!("page_{}", page.page_number),
+                    kind: HierarchyKind::Section,
+                    section_id: Some(page_id),
+                    children: Vec::new(),
+                    byte_size: Some(page.raw_text.len() as u64),
+                    line_count: Some(page.raw_text.lines().count().max(1) as u32),
+                };
+
+                for (t_idx, table) in page.tables.iter().enumerate() {
+                    let table_sec_id = format!("page_{}_table_{}", page.page_number, t_idx + 1);
+                    let table_name = table
+                        .caption
+                        .clone()
+                        .unwrap_or_else(|| format!("Table {}", t_idx + 1));
+                    page_node.add_child(HierarchyNode {
+                        id: table_sec_id.clone(),
+                        name: table_name,
+                        path: format!("page_{}/tables/{}", page.page_number, t_idx + 1),
+                        kind: HierarchyKind::Section,
+                        section_id: Some(table_sec_id),
+                        children: Vec::new(),
+                        byte_size: Some(table.to_markdown().len() as u64),
+                        line_count: Some(table.row_count as u32 + 2),
+                    });
+                }
+
+                root_node.add_child(page_node);
+            }
+        }
+
+        builder = builder.hierarchy(root_node);
 
         // Set completeness report: 100% of discovered pages were extracted
         let completeness = CompletenessReport::new(
@@ -184,4 +310,27 @@ impl PdfExtractor {
 
         Ok(builder.build())
     }
+}
+
+/// Recursively converts an outline bookmark item into a CDM hierarchy node.
+fn convert_outline_to_hierarchy(item: &OutlineItem, id_prefix: &str) -> HierarchyNode {
+    let mut node = HierarchyNode {
+        id: id_prefix.to_string(),
+        name: item.title.clone(),
+        path: item.title.clone(),
+        kind: HierarchyKind::Heading,
+        section_id: item.page_number.map(|p| format!("page_{p}")),
+        children: Vec::new(),
+        byte_size: None,
+        line_count: None,
+    };
+
+    for (c_idx, child) in item.children.iter().enumerate() {
+        node.add_child(convert_outline_to_hierarchy(
+            child,
+            &format!("{id_prefix}_{c_idx}"),
+        ));
+    }
+
+    node
 }

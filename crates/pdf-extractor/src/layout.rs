@@ -4,6 +4,20 @@
 //! multi-column detection, and semantic block classification.
 
 use crate::models::{BoundingBox, PageDimensions, PdfLine, PdfSpan, PdfTextBlock, TextBlockKind};
+use crate::table::{PdfTable, PdfTableDetector};
+
+/// Result of layout and table analysis for a page.
+#[derive(Debug, Clone, PartialEq)]
+pub struct PageLayoutResult {
+    /// Content text blocks (headings, paragraphs, list items, and table representations) in reading order.
+    pub content_blocks: Vec<PdfTextBlock>,
+    /// Extracted structured tables.
+    pub tables: Vec<PdfTable>,
+    /// Running page headers detected near top margin.
+    pub page_headers: Vec<PdfTextBlock>,
+    /// Running page footers detected near bottom margin.
+    pub page_footers: Vec<PdfTextBlock>,
+}
 
 /// Configuration parameters for the spatial layout engine.
 #[derive(Debug, Clone)]
@@ -78,6 +92,89 @@ impl PdfLayoutEngine {
 
         // 3. Cluster lines into semantic blocks (paragraphs, headers, lists, footers)
         self.cluster_lines_into_blocks(ordered_lines, dimensions)
+    }
+
+    /// Performs comprehensive layout analysis on page spans:
+    /// clusters lines, extracts structured tables, orders columns, separates running headers/footers,
+    /// and assembles semantic content blocks.
+    #[must_use]
+    pub fn build_page_layout(
+        &self,
+        mut spans: Vec<PdfSpan>,
+        dimensions: &PageDimensions,
+        page_number: u32,
+    ) -> PageLayoutResult {
+        if spans.is_empty() {
+            return PageLayoutResult {
+                content_blocks: Vec::new(),
+                tables: Vec::new(),
+                page_headers: Vec::new(),
+                page_footers: Vec::new(),
+            };
+        }
+
+        // 1. Cluster spans into lines
+        let lines = self.cluster_spans_into_lines(&mut spans);
+
+        // 2. Detect tables from clustered lines
+        let table_detector = PdfTableDetector::new();
+        let (tables, non_table_lines) = table_detector.detect_tables(&lines, page_number);
+
+        // 3. Order remaining lines (multi-column or top-to-bottom)
+        let ordered_lines = if self.options.detect_columns {
+            self.order_lines_by_columns(non_table_lines, dimensions)
+        } else {
+            self.order_lines_top_to_bottom(non_table_lines)
+        };
+
+        // 4. Cluster lines into blocks
+        let all_blocks = self.cluster_lines_into_blocks(ordered_lines, dimensions);
+
+        // 5. Separate page headers, footers, and content
+        let mut content_blocks = Vec::new();
+        let mut page_headers = Vec::new();
+        let mut page_footers = Vec::new();
+
+        for block in all_blocks {
+            match block.kind {
+                TextBlockKind::PageHeader => page_headers.push(block),
+                TextBlockKind::PageFooter => page_footers.push(block),
+                _ => content_blocks.push(block),
+            }
+        }
+
+        // 6. Integrate table blocks into content_blocks for linear plain text representation
+        for table in &tables {
+            let table_block = PdfTextBlock {
+                text: table.to_markdown(),
+                lines: Vec::new(),
+                bbox: table.bbox,
+                font_size: 10.0,
+                kind: TextBlockKind::TableContent,
+                reading_order: content_blocks.len() as u32,
+            };
+            content_blocks.push(table_block);
+        }
+
+        // Re-sort content blocks by vertical sequence (descending y1)
+        content_blocks.sort_by(|a, b| {
+            b.bbox
+                .y1
+                .partial_cmp(&a.bbox.y1)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+
+        // Re-index reading order
+        for (idx, block) in content_blocks.iter_mut().enumerate() {
+            block.reading_order = idx as u32;
+        }
+
+        PageLayoutResult {
+            content_blocks,
+            tables,
+            page_headers,
+            page_footers,
+        }
     }
 
     /// Clusters loose text spans into horizontal lines.

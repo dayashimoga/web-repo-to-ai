@@ -2,6 +2,7 @@
 //!
 //! Spatial geometry, text blocks, page structures, document metadata, and outlines.
 
+use crate::table::PdfTable;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
@@ -200,8 +201,14 @@ pub struct PdfPage {
     pub page_number: u32,
     /// Page dimensions and rotation.
     pub dimensions: PageDimensions,
-    /// Spatially clustered and ordered text blocks.
+    /// Spatially clustered and ordered text blocks (excluding separated headers/footers).
     pub blocks: Vec<PdfTextBlock>,
+    /// Extracted structured tables on this page.
+    pub tables: Vec<PdfTable>,
+    /// Running page headers detected on the page.
+    pub headers: Vec<PdfTextBlock>,
+    /// Running page footers detected on the page.
+    pub footers: Vec<PdfTextBlock>,
     /// Aggregated plain text content of the page in reading order.
     pub raw_text: String,
     /// Total character count on the page.

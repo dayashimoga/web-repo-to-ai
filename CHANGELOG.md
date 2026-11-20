@@ -6,6 +6,48 @@
 
 ## [Unreleased] — Stage 10: Advanced Documents and Content
 
+### 2026-11-20 — Phase 10.1: PDF extraction (`10.1.2`)
+
+#### Added
+- **`[10.1.2]` Multi-column and table extraction in `crates/pdf-extractor`:**
+  - Table Detection & Extraction (`crates/pdf-extractor/src/table.rs`):
+    - `PdfTableCell`: Individual table cell with normalized bounding box, 0-indexed `row` and `col`, span properties (`row_span`, `col_span`), raw text content, and `is_header` flag.
+    - `PdfTableRow`: Table row with row bounding box, cells collection, and `is_header` designation.
+    - `PdfTable`: Complete table entity with table bounding box, rows, column count, optional table caption, and multi-format serialization methods (`to_markdown`, `to_html`, `to_csv`, `get_cell`, `get_headers`).
+    - `TableDetectorOptions`: Configurable heuristics including `min_rows: 2`, `min_cols: 2`, `column_snap_tolerance_pt: 12.0`, `header_row_bold_threshold: true`, and `caption_lookbehind_pt: 30.0`.
+    - `PdfTableDetector`: Spatial alignment algorithm that clusters lines by baseline Y, computes horizontal column anchors from span start positions, clusters lines into candidate table grids, handles sparse tables with missing cells, extracts preceding table captions, and computes table bounding boxes.
+    - Serialization formats:
+      - `to_markdown`: Produces clean GitHub Flavored Markdown (GFM) pipe tables with alignment separators (`|---|---|`).
+      - `to_html`: Produces semantic HTML5 tables with `<table>`, `<thead>`, `<tbody>`, `<tr>`, `<th>`, and `<td>` markup.
+      - `to_csv`: Produces RFC 4180-compliant CSV with proper double-quote escaping.
+  - Page & Section Provenance Attribution (`crates/pdf-extractor/src/provenance.rs`):
+    - `PageProvenance`: Page-level provenance attributes tracking `page_number`, `width`, `height`, `rotation`, and `block_count`.
+    - `SectionProvenance`: Detailed spatial provenance tracking exact bounding box coordinates (`bbox_x0`, `bbox_y0`, `bbox_x1`, `bbox_y1`), `page_number`, `reading_order`, `column_index`, `parent_heading`, and `content_type`.
+    - `attach_to_builder`: Helper method injecting provenance attributes directly into `CdmSectionBuilder`.
+  - Spatial Layout Engine Integration (`crates/pdf-extractor/src/layout.rs`):
+    - `PageLayoutResult`: Holds separated `content_blocks`, `tables`, `page_headers`, and `page_footers`.
+    - Table region isolation: Runs `PdfTableDetector` over all page lines, separates lines belonging to detected tables, and passes only non-table lines to multi-column reading order and text block clustering.
+    - Running header/footer separation: Filters lines located within header/footer margin thresholds (`header_footer_margin_ratio: 0.06`), isolating them from body content.
+  - Model & Parser Extensions (`crates/pdf-extractor/src/models.rs`, `src/parser.rs`):
+    - Extended `PdfPage` with `pub tables: Vec<PdfTable>`, `pub headers: Vec<PdfTextBlock>`, and `pub footers: Vec<PdfTextBlock>`.
+    - Updated `parse_page` to run `build_page_layout`, populate detected tables/headers/footers, and compute page `raw_text` from body content blocks.
+  - CDM Mapping Refinement (`crates/pdf-extractor/src/extractor.rs`):
+    - Emits separate `SectionKind::Table` sections for detected tables, formatting table bodies in GFM Markdown with table provenance attributes (`table_id`, `table_columns`, `table_rows`, `content_type: "table/markdown"`).
+    - Emits `SectionKind::Prose` sections for page prose content.
+    - Attaches running headers and footers to document-level metadata.
+    - Constructs hierarchical outline trees (`HierarchyNode`) from PDF bookmarks.
+  - Comprehensive Integration Test Suite (`crates/pdf-extractor/tests/`):
+    - `table_test.rs`: 5 tests covering GFM markdown serialization, HTML table serialization, CSV serialization, spatial line table detection with caption extraction, and sparse table handling.
+    - `provenance_test.rs`: 3 tests covering section provenance attributes, table provenance attributes, and page provenance attributes.
+    - `table_extractor_test.rs`: 1 end-to-end integration test validating multi-page PDF with tables, bookmarks, running headers/footers, and CDM section mapping (`SectionKind::Table` and `SectionKind::Prose`).
+  - Quality verification:
+    - 19 crate integration tests passing cleanly.
+    - 675+ workspace tests passing across the monorepo.
+    - `cargo clippy -p web-repo-to-ai-pdf-extractor --all-targets -- -D warnings` clean with zero warnings.
+    - `cargo fmt --all -- --check` clean with zero formatting diffs.
+    - `cargo deny check` clean (advisories ok, bans ok, licenses ok, sources ok).
+    - Monorepo quality gate (`scripts/check-all.ps1`) 100% passing (5/5 gates).
+
 ### 2026-11-20 — Phase 10.1: PDF extraction (`10.1.1`)
 
 #### Added

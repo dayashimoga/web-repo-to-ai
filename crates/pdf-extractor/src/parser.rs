@@ -197,12 +197,14 @@ impl PdfParser {
             }
         }
 
-        // Build spatial layout blocks
-        let blocks = self.layout_engine.build_page_blocks(spans, &dimensions);
+        // Build spatial layout blocks and detect tables
+        let layout = self
+            .layout_engine
+            .build_page_layout(spans, &dimensions, page_num);
 
-        // Combine plain text across blocks
+        // Combine plain text across content blocks (including table markdown representations)
         let mut raw_text = String::new();
-        for (i, block) in blocks.iter().enumerate() {
+        for (i, block) in layout.content_blocks.iter().enumerate() {
             if i > 0 {
                 raw_text.push_str("\n\n");
             }
@@ -222,7 +224,10 @@ impl PdfParser {
         Ok(PdfPage {
             page_number: page_num,
             dimensions,
-            blocks,
+            blocks: layout.content_blocks,
+            tables: layout.tables,
+            headers: layout.page_headers,
+            footers: layout.page_footers,
             raw_text,
             char_count,
             estimated_tokens,
