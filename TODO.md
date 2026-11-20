@@ -286,35 +286,35 @@
 
 ## Stage 10: Advanced Documents and Content (`IN_PROGRESS`)
 
-### Phase 10.1 — PDF extraction
+### Phase 10.1 — PDF extraction *(100% COMPLETED / ACCEPTED — PHASE 10.1 CERTIFIED)*
 - [x] **[10.1.1]** PDF parser & layout extraction *(Completed 2026-11-20, Delivered crates/pdf-extractor with pure Rust PDF parser and spatial layout reconstruction: lopdf v0.47.0 integration with clean cargo deny audit and zero vulnerabilities; %PDF- header validation and version extraction; empty/corrupted/encrypted PDF detection; /Info metadata dictionary extraction (title, author, subject, creator, producer, keywords, creation date); page MediaBox/CropBox dimensions and rotation; operator stream decoding (BT, ET, Tf, Td, TD, Tm, T*, Tj, TJ) into positioned PdfSpan tokens with synthetic span fallback; PdfLayoutEngine with baseline clustering into PdfLine, horizontal gap bounding via max_span_horizontal_gap_factor, two-column layout detection and top-to-bottom reading order sorting, semantic block clustering into PdfTextBlock with TextBlockKind classification (Header, Paragraph, ListItem, PageHeader, PageFooter); 2D normalized BoundingBox geometry; outline bookmarks traversal; PdfExtractor mapping into CdmDocument with SourceType::DocumentPdf, line/byte ranges, page dimension attributes, and CompletenessReport; 10 integration tests in geometry_test.rs, layout_test.rs, parser_test.rs, extractor_test.rs; 666+ workspace tests passing, 100% passing quality gates 5/5)*
 - [x] **[10.1.2]** Multi-column and table extraction *(Completed 2026-11-20, Delivered spatial alignment analysis, multi-column table detection, tabular cell/row grid extraction, Markdown GFM/HTML/CSV serialization, coordinate-precise section/table/page provenance attribution, and CDM mapping refinement (emitting SectionKind::Table for tabular structures, SectionKind::Prose for text, isolating running headers/footers, and building HierarchyNode outline trees) in crates/pdf-extractor; 9 new integration tests across table_test.rs, provenance_test.rs, and table_extractor_test.rs; 19 crate tests, 675+ workspace tests, zero clippy warnings, zero fmt diffs, cargo deny clean, and 100% passing quality gates 5/5)*
 - [x] **[10.1.3]** Scanned document handling *(Completed 2026-11-20, Delivered scanned document detection via image analysis and text density heuristics, OCR flagging, encryption dictionary parsing and permission enforcement, and DoS safety limits with graceful truncation; 9 new integration tests across scanned_test.rs, limits_test.rs, and encryption_test.rs; 28 crate tests, 684+ workspace tests, zero clippy warnings, zero fmt diffs, cargo deny clean, and 100% passing quality gates 5/5)*
-- [ ] **[10.1.4]** PDF integration tests
+- [x] **[10.1.4]** PDF golden accuracy validation *(Completed 2026-11-20, Delivered comprehensive golden PDF benchmark engine and fidelity evaluation suite in crates/pdf-extractor/src/golden.rs across 7 real-world archetypes: Academic Multi-Column Paper (two-column layout, abstract, reading order, references), Financial Quarterly Report (multi-column/row table matrix, captions, numerical precision), Technical API Specification (hierarchical outline bookmarks, code blocks, parameter tables), Hybrid Digital/Scanned Document (raster image XObjects, text density heuristics, OCR recommendations), Encrypted Permission-Restricted PDF (ISO 32000-1 bitmask decoding, permission enforcement), Adversarial Resource Limits (DoS protection, graceful page truncation, completeness invariant), and Spatial Noise Sorting (out-of-order operator stream 2D coordinate sorting); delivered multi-format export fidelity benchmarks in tests/fidelity_benchmark_test.rs validating roundtrip Markdown GFM, HTML5, JSON CDM v1.0, and JSONL syntax, bit-for-bit hash determinism, and high-throughput extraction (< 50ms/doc); authored 16 new integration tests across golden_pdf_test.rs and fidelity_benchmark_test.rs; 44 crate tests, 700+ workspace tests, zero clippy warnings, zero fmt diffs, cargo deny clean, and 100% passing quality gates 5/5 — PHASE 10.1 CERTIFIED)*
 
-### Phase 10.2 — Office documents
-- [ ] **[10.2.1]** DOCX parser
-- [ ] **[10.2.2]** Spreadsheet extraction
-- [ ] **[10.2.3]** Presentation extraction
-- [ ] **[10.2.4]** Office integration tests
+### Phase 10.2 — Image OCR
+- [ ] **[10.2.1]** Isolated Tesseract OCR adapter
+- [ ] **[10.2.2]** Image preprocessing & language selection
+- [ ] **[10.2.3]** Confidence scoring & provenance attribution
+- [ ] **[10.2.4]** OCR accuracy & timeout tests
 
-### Phase 10.3 — Media and multimodal
-- [ ] **[10.3.1]** Image text extraction (OCR)
-- [ ] **[10.3.2]** Diagram and chart extraction
-- [ ] **[10.3.3]** Audio transcription
-- [ ] **[10.3.4]** Multimodal integration tests
+### Phase 10.3 — Structured documents
+- [ ] **[10.3.1]** OpenAPI/JSON Schema/YAML extraction
+- [ ] **[10.3.2]** CSV/TSV & tabular data normalization
+- [ ] **[10.3.3]** Jupyter Notebook (`.ipynb`) cell extraction
+- [ ] **[10.3.4]** Structured document validation tests
 
-### Phase 10.4 — Advanced code intelligence
-- [ ] **[10.4.1]** Cross-file symbol resolution
-- [ ] **[10.4.2]** Call-graph and dependency graph extraction
-- [ ] **[10.4.3]** Type hierarchy and interface extraction
-- [ ] **[10.4.4]** Code intelligence integration tests
+### Phase 10.4 — RAG chunk generation
+- [ ] **[10.4.1]** Semantic & AST-boundary chunking
+- [ ] **[10.4.2]** Citation & cross-reference metadata injection
+- [ ] **[10.4.3]** JSONL & vector-ingest schema exports
+- [ ] **[10.4.4]** Chunk determinism & retrieval validation
 
-### Phase 10.5 — Quality validation
-- [ ] **[10.5.1]** Document extraction fidelity benchmarks
-- [ ] **[10.5.2]** Multi-format stress and adversarial testing
-- [ ] **[10.5.3]** Layout reconstruction evaluation
-- [ ] **[10.5.4]** Golden dataset regression tests across document types
+### Phase 10.5 — Optional local and external AI provider adapters
+- [ ] **[10.5.1]** Provider-independent AI adapter trait
+- [ ] **[10.5.2]** Local Ollama / OpenAI-compatible adapter
+- [ ] **[10.5.3]** Strict opt-in guardrails & zero-key fallback
+- [ ] **[10.5.4]** Adapter contract & isolation tests
 
 ---
 

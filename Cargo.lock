@@ -3016,6 +3016,7 @@ dependencies = [
  "url",
  "web-repo-to-ai-cdm",
  "web-repo-to-ai-core",
+ "web-repo-to-ai-exporters",
 ]
 
 [[package]]

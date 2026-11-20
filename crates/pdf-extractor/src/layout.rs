@@ -144,25 +144,27 @@ impl PdfLayoutEngine {
         }
 
         // 6. Integrate table blocks into content_blocks for linear plain text representation
-        for table in &tables {
-            let table_block = PdfTextBlock {
-                text: table.to_markdown(),
-                lines: Vec::new(),
-                bbox: table.bbox,
-                font_size: 10.0,
-                kind: TextBlockKind::TableContent,
-                reading_order: content_blocks.len() as u32,
-            };
-            content_blocks.push(table_block);
-        }
+        if !tables.is_empty() {
+            for table in &tables {
+                let table_block = PdfTextBlock {
+                    text: table.to_markdown(),
+                    lines: Vec::new(),
+                    bbox: table.bbox,
+                    font_size: 10.0,
+                    kind: TextBlockKind::TableContent,
+                    reading_order: content_blocks.len() as u32,
+                };
+                content_blocks.push(table_block);
+            }
 
-        // Re-sort content blocks by vertical sequence (descending y1)
-        content_blocks.sort_by(|a, b| {
-            b.bbox
-                .y1
-                .partial_cmp(&a.bbox.y1)
-                .unwrap_or(std::cmp::Ordering::Equal)
-        });
+            // Re-sort content blocks by vertical sequence (descending y1) when tables are integrated
+            content_blocks.sort_by(|a, b| {
+                b.bbox
+                    .y1
+                    .partial_cmp(&a.bbox.y1)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            });
+        }
 
         // Re-index reading order
         for (idx, block) in content_blocks.iter_mut().enumerate() {

@@ -104,7 +104,7 @@
 - **Phase 9.4 — Browser integration:** `9.4.1` Browser extension foundation (`ACCEPTED`) | `9.4.2` Current-page conversion (`ACCEPTED`) | `9.4.3` Result handoff (`ACCEPTED`) | `9.4.4` Extension security (`ACCEPTED` — **PHASE 9.4 CERTIFIED**)
 
 ### STAGE 10 — ADVANCED DOCUMENTS AND CONTENT
-- **Phase 10.1 — PDF extraction:** `10.1.1` PDF parser & layout extraction | `10.1.2` Page/section provenance & table extraction | `10.1.3` Scanned/encrypted PDF detection & limits | `10.1.4` PDF golden accuracy validation
+- **Phase 10.1 — PDF extraction:** `10.1.1` PDF parser & layout extraction (`ACCEPTED`) | `10.1.2` Page/section provenance & table extraction (`ACCEPTED`) | `10.1.3` Scanned/encrypted PDF detection & limits (`ACCEPTED`) | `10.1.4` PDF golden accuracy validation (`ACCEPTED` — **PHASE 10.1 CERTIFIED**)
 - **Phase 10.2 — Image OCR:** `10.2.1` Isolated Tesseract OCR adapter | `10.2.2` Image preprocessing & language selection | `10.2.3` Confidence scoring & provenance attribution | `10.2.4` OCR accuracy & timeout tests
 - **Phase 10.3 — Structured documents:** `10.3.1` OpenAPI/JSON Schema/YAML extraction | `10.3.2` CSV/TSV & tabular data normalization | `10.3.3` Jupyter Notebook (`.ipynb`) cell extraction | `10.3.4` Structured document validation tests
 - **Phase 10.4 — RAG chunk generation:** `10.4.1` Semantic & AST-boundary chunking | `10.4.2` Citation & cross-reference metadata injection | `10.4.3` JSONL & vector-ingest schema exports | `10.4.4` Chunk determinism & retrieval validation

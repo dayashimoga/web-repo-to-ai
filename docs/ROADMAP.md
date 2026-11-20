@@ -104,7 +104,7 @@
 - **Deliverable:** Extended document extraction capabilities (PDF, OCR, structured specs/notebooks, RAG chunks, optional AI adapters).
 - **Stage Acceptance Gate:** Real document conversion with source attribution, documented format limitations, and validated output.
 - **Phases:**
-  - `10.1` PDF extraction (`10.1.1` – `10.1.4`)
+  - `10.1` PDF extraction (`10.1.1` [ACCEPTED], `10.1.2` [ACCEPTED], `10.1.3` [ACCEPTED], `10.1.4` [ACCEPTED] — **PHASE 10.1 CERTIFIED**)
   - `10.2` Image OCR (`10.2.1` – `10.2.4`)
   - `10.3` Structured documents (`10.3.1` – `10.3.4`)
   - `10.4` RAG chunk generation (`10.4.1` – `10.4.4`)

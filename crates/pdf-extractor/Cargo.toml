@@ -27,3 +27,4 @@ url = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["rt", "macros"] }
+web-repo-to-ai-exporters = { workspace = true }

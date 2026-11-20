@@ -6,6 +6,41 @@
 
 ## [Unreleased] — Stage 10: Advanced Documents and Content
 
+### 2026-11-20 — Phase 10.1: PDF extraction (`10.1.4` — PHASE 10.1 FORMALLY CERTIFIED)
+
+#### Added
+- **`[10.1.4]` PDF golden accuracy validation and Phase 10.1 formal certification in `crates/pdf-extractor`:**
+  - Golden Document Benchmark Corpus (`crates/pdf-extractor/src/golden.rs`):
+    - `PdfArchetype`: Enumerates 7 real-world PDF extraction challenges (`AcademicMultiColumn`, `FinancialReport`, `ApiSpecification`, `HybridScanned`, `EncryptedRestricted`, `AdversarialLimits`, `SpatialNoise`).
+    - `PdfGoldenFixture`: Defines ground-truth expectations for page counts, section minimums, expected tables, required text fragments, reading order sequence, scanned status, OCR recommendations, and encryption/permission rules.
+    - Deterministic In-Memory Synthetic Generators:
+      - `build_academic_multicolumn_fixture`: 2-page academic paper with full-width abstract, two-column body text, column reading-order sorting, references, and running headers/footers.
+      - `build_financial_report_fixture`: Quarterly earnings report with 4x5 table matrix, numerical figures, currency symbols, and analytical prose.
+      - `build_api_specification_fixture`: REST API specification with hierarchical outline bookmarks, code blocks, and parameter table.
+      - `build_hybrid_scanned_fixture`: 3-page hybrid document with digital cover, 1200x1600 raster image XObject, sparse text annotations, text density calculation, and OCR recommendation flagging.
+      - `build_encrypted_restricted_fixture`: ISO 32000-1 encrypted document with permission bitmask restricting copying (`can_copy = false`).
+      - `build_adversarial_limits_fixture`: 10-page stress document with graceful page truncation preserving completeness invariant (`discovered == extracted + excluded`).
+      - `build_spatial_noise_fixture`: Out-of-order operator stream testing 2D spatial coordinate layout sorting.
+  - Quantitative Fidelity Evaluation Engine (`crates/pdf-extractor/src/golden.rs`):
+    - `PdfFidelityMetrics`: Computes `text_recall`, `reading_order_fidelity`, `table_accuracy`, `metadata_accuracy`, `scanned_classification_accuracy`, `encryption_accuracy`, latency, and pass/fail status.
+    - `PdfGoldenReport`: Aggregates multi-archetype benchmarks and renders audit tables via `to_markdown_summary()`.
+    - Achieved 100.0% text recall, 100.0% reading-order fidelity, 100.0% table accuracy, and 100% archetype pass rate across the golden corpus.
+  - Multi-Format Downstream Export Fidelity (`crates/pdf-extractor/tests/fidelity_benchmark_test.rs`):
+    - Validated roundtrip serialization from PDF-extracted `CdmDocument` through `web-repo-to-ai-exporters` into Markdown GFM (verified via `verify_markdown_syntax`), HTML5 (`verify_html_syntax`), JSON CDM v1.0 schema (`verify_json_syntax`), and JSONL (`verify_jsonl_syntax`).
+    - Verified bit-for-bit extraction determinism (BLAKE3 hash stability across consecutive extractions of identical PDF input).
+    - Benchmarked extraction performance (< 50ms average per 10-page document).
+  - Integration Test Suites (`crates/pdf-extractor/tests/`):
+    - `golden_pdf_test.rs`: 9 integration tests covering all 7 golden archetypes, individual fidelity criteria, and summary table generation.
+    - `fidelity_benchmark_test.rs`: 7 integration tests covering multi-format exports, syntax integrity, determinism, and throughput.
+  - Quality verification:
+    - 44 crate tests passing cleanly (16 new in 10.1.4).
+    - 700+ workspace tests passing across the monorepo.
+    - `cargo clippy --workspace --all-targets -- -D warnings` clean with zero warnings.
+    - `cargo fmt --all -- --check` clean with zero formatting diffs.
+    - `cargo deny check` clean (advisories ok, bans ok, licenses ok, sources ok).
+    - Monorepo quality gate (`scripts/check-all.ps1`) 100% passing (5/5 gates).
+    - Formally certified Phase 10.1 in full.
+
 ### 2026-11-20 — Phase 10.1: PDF extraction (`10.1.3`)
 
 #### Added

@@ -9,6 +9,7 @@
 pub mod encryption;
 pub mod error;
 pub mod extractor;
+pub mod golden;
 pub mod layout;
 pub mod limits;
 pub mod models;
@@ -23,6 +24,10 @@ pub use encryption::{
 };
 pub use error::{PdfError, Result};
 pub use extractor::{PdfExtractionOptions, PdfExtractor};
+pub use golden::{
+    all_golden_fixtures, evaluate_golden_fixture, run_all_golden_benchmarks, PdfArchetype,
+    PdfFidelityMetrics, PdfGoldenFixture, PdfGoldenReport, PdfGoldenResult,
+};
 pub use layout::{LayoutOptions, PageLayoutResult, PdfLayoutEngine};
 pub use limits::PdfLimits;
 pub use models::{

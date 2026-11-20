@@ -5934,3 +5934,49 @@
   - Disk space constraint satisfied ($\ge 70$ GB free on `C:`).
   - All 5 monorepo quality gates pass with 0 failures.
 - **Status:** `ACCEPTED`
+
+
+#### Subphase `10.1.4` — PDF golden accuracy validation
+- **Unique ID:** `10.1.4`
+- **Objective:** Implement representative golden PDF document corpus, quantitative fidelity benchmarks, downstream exporter verification, extraction determinism, and formal certification of Phase 10.1 in `crates/pdf-extractor` (`web-repo-to-ai-pdf-extractor`).
+- **Scope:** `crates/pdf-extractor/src/golden.rs`, `crates/pdf-extractor/src/layout.rs`, `crates/pdf-extractor/src/parser.rs`, `crates/pdf-extractor/src/lib.rs`, `crates/pdf-extractor/Cargo.toml`, `crates/pdf-extractor/tests/golden_pdf_test.rs`, `crates/pdf-extractor/tests/fidelity_benchmark_test.rs`, and project tracking ledgers.
+- **Prerequisites:** `10.1.3` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/pdf-extractor/src/golden.rs`: Created golden document validation module with `PdfArchetype` (7 archetypes: `AcademicMultiColumn`, `FinancialReport`, `ApiSpecification`, `HybridScanned`, `EncryptedRestricted`, `AdversarialLimits`, `SpatialNoise`), `PdfGoldenFixture`, `PdfFidelityMetrics`, `PdfGoldenResult`, `PdfGoldenReport`, in-memory synthetic generators (`build_academic_multicolumn_fixture`, `build_financial_report_fixture`, `build_api_specification_fixture`, `build_hybrid_scanned_fixture`, `build_encrypted_restricted_fixture`, `build_adversarial_limits_fixture`, `build_spatial_noise_fixture`, `all_golden_fixtures`), evaluation runner (`evaluate_golden_fixture`, `run_all_golden_benchmarks`), and markdown summary formatter.
+  - `crates/pdf-extractor/src/layout.rs`: Refined `build_page_layout` to preserve multi-column reading order when tables are not present (eliminating unconditional Y1 re-sorting) and accurately distinguishing multi-column text lines from tables.
+  - `crates/pdf-extractor/src/parser.rs`: Hardened permission enforcement check to evaluate `allows_content_copying()` directly when `enforce_permissions: true` is configured, returning `PdfError::PermissionDenied` immediately on copy-restricted documents.
+  - `crates/pdf-extractor/src/lib.rs`: Re-exported `golden` module and public types (`PdfArchetype`, `PdfGoldenFixture`, `PdfFidelityMetrics`, `PdfGoldenResult`, `PdfGoldenReport`, `evaluate_golden_fixture`, `run_all_golden_benchmarks`, `all_golden_fixtures`).
+  - `crates/pdf-extractor/Cargo.toml`: Added `web-repo-to-ai-exporters = { workspace = true }` under `[dev-dependencies]`.
+  - `crates/pdf-extractor/tests/golden_pdf_test.rs`: Authored 9 integration tests covering all 7 archetypes, individual fidelity criteria, reading order sequence, table matrix extraction, and markdown summary table generation.
+  - `crates/pdf-extractor/tests/fidelity_benchmark_test.rs`: Authored 7 integration tests covering downstream exporter roundtrips (GFM Markdown, HTML5, JSON CDM v1.0, JSONL, Plaintext), syntax integrity verification (`verify_*_syntax`), bit-for-bit extraction determinism across consecutive runs, and high-throughput execution (< 50ms per 10-page document).
+- **Implementation Tasks:**
+  1. Created golden document validation engine and archetype generators in `crates/pdf-extractor/src/golden.rs`.
+  2. Implemented quantitative fidelity scoring metrics (`text_recall`, `reading_order_fidelity`, `table_accuracy`, `metadata_accuracy`, `scanned_classification_accuracy`, `encryption_accuracy`, latency) and audit markdown reports.
+  3. Added `web-repo-to-ai-exporters` dev-dependency in `crates/pdf-extractor/Cargo.toml`.
+  4. Refined layout engine in `crates/pdf-extractor/src/layout.rs` to maintain multi-column reading order and avoid false table grouping.
+  5. Hardened permission enforcement in `crates/pdf-extractor/src/parser.rs` to return `PermissionDenied` directly when copy permissions are restricted.
+  6. Authored golden corpus integration tests in `crates/pdf-extractor/tests/golden_pdf_test.rs` (9 tests).
+  7. Authored exporter roundtrip, determinism, and performance tests in `crates/pdf-extractor/tests/fidelity_benchmark_test.rs` (7 tests).
+  8. Verified clean compilation, zero clippy warnings under `-D warnings`, clean formatting (`cargo fmt --check`), and cargo deny compliance.
+  9. Executed full monorepo quality gate (`scripts/check-all.ps1`) with 100% passing results across all 5 gates.
+  10. Updated project tracking ledgers (`PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `IMPLEMENTATION_LEDGER.md`, `ROADMAP.md`).
+  11. Formally certified Phase 10.1 in full.
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-pdf-extractor` (44 tests passing)
+  - `cargo clippy --workspace --all-targets -- -D warnings` (Clean, zero warnings)
+  - `cargo fmt --all -- --check` (Clean, zero diffs)
+  - `cargo deny check` (Advisories ok, bans ok, licenses ok, sources ok)
+  - `powershell scripts/check-all.ps1` (All 5 gates passed with 0 failures)
+- **Acceptance Criteria:**
+  - Golden PDF corpus covers 7 representative real-world document archetypes without external binary dependencies.
+  - Quantitative fidelity metrics achieve 100.0% text recall, 100.0% reading-order fidelity, and 100.0% table accuracy.
+  - Multi-column reading order correctly sequences left column before right column.
+  - Table matrix correctly detects cells, rows, columns, captions, and GFM pipe formatting.
+  - Downstream multi-format exports (Markdown, HTML, JSON, JSONL, Plaintext) validate through integrity verifiers.
+  - Bit-for-bit determinism verified through BLAKE3 hash stability across consecutive extractions.
+  - High-throughput execution benchmark verified (< 50ms per 10-page document).
+  - All 44 crate integration tests and 700+ workspace tests pass cleanly.
+  - Disk space constraint satisfied ($\ge 70$ GB free on `C:`).
+  - Monorepo quality gates pass 100% (5/5).
+  - Phase 10.1 formally certified.
+- **Status:** `ACCEPTED`

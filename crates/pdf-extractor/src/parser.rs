@@ -108,6 +108,13 @@ impl PdfParser {
                         return Err(PdfError::InvalidPassword);
                     }
                     if let Some(info) = extract_raw_encryption_info(bytes) {
+                        if options.enforce_permissions && !info.allows_content_copying() {
+                            return Err(PdfError::PermissionDenied {
+                                permissions: Box::new(
+                                    info.permissions.unwrap_or_else(PdfPermissions::all_allowed),
+                                ),
+                            });
+                        }
                         return Err(PdfError::PasswordRequired {
                             info: Box::new(info),
                         });
@@ -123,10 +130,8 @@ impl PdfParser {
         // Extract encryption metadata
         let encryption_info = extract_encryption_info(&doc);
 
-        // Guard against encrypted PDFs without password or with disallowed permissions
-        if doc.is_encrypted() && options.password.is_none() {
-            return Err(PdfError::EncryptedDocument);
-        } else if let Some(ref info) = encryption_info {
+        // Guard against encrypted PDFs with disallowed permissions or without password
+        if let Some(ref info) = encryption_info {
             if options.enforce_permissions && !info.allows_content_copying() {
                 return Err(PdfError::PermissionDenied {
                     permissions: Box::new(
@@ -134,6 +139,10 @@ impl PdfParser {
                     ),
                 });
             }
+        }
+
+        if doc.is_encrypted() && options.password.is_none() {
+            return Err(PdfError::EncryptedDocument);
         }
 
         // Extract metadata dictionary
