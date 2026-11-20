@@ -71,7 +71,8 @@ In strict compliance with **Section 3.4 of the `GLOBAL_ENGINEERING_CONTRACT.md`*
 
 ## Verification & Quality
 
-- **100% Passing Test Suite:** 66 tests across 7 test suites:
+- **100% Passing Test Suite:** 75 tests across 8 test suites:
+  - `tests/adapter_contract_and_isolation_test.rs` (9 tests): Polymorphic trait contract verification across all 5 adapter types (`Disabled`, `Mock`, `Ollama`, `OpenAiCompatible`, `Resilient`), timeout isolation, connection refused immediate failure, simulated network blackout with resilient recovery, categorized error taxonomy mapping (401, 404, 503), 25-task multithreaded concurrency stress, dynamic registry hot-swapping under load, wire header injection and sanitization, and Blake3 vector mathematical invariants.
   - `tests/guardrails_and_fallback_test.rs` (13 tests): Opt-in policy defaults, `LocalOnly` loopback/container validation, remote blocking, cloud metadata defense, environment variable discovery, secret redaction in debug formatting and error strings, extractive summarization fidelity, Blake3 $L_2$ unit-norm embeddings repeatability, section enrichment, resilient fallback on provider failure, and registry integration.
   - `tests/ollama_adapter_test.rs` (8 tests): Local Ollama wire protocol, `/api/tags` model catalog, `/api/chat` completions with JSON format, modern `/api/embed` batch embeddings with legacy `/api/embeddings` fallback, 500 error mapping, and disabled state.
   - `tests/openai_adapter_test.rs` (8 tests): OpenAI-compatible wire protocol, Bearer auth header injection, `/models` listing, `/chat/completions` token accounting, `/embeddings` vector sorting, 401 unauthorized mapping, 429 rate limit with `retry-after`, 400 context length exceeded mapping, and local servers without authentication.
@@ -80,3 +81,4 @@ In strict compliance with **Section 3.4 of the `GLOBAL_ENGINEERING_CONTRACT.md`*
   - `tests/mock_adapter_test.rs` (11 tests): Automated mock heuristics, scripted chat, default overrides, document summarization with topic extraction, section enrichment, deterministic Blake3 pseudo-embeddings ($L_2$ unit norm), error injection, call tracking, and 10-task concurrent execution.
   - `tests/registry_test.rs` (3 tests): Registry default fallback, dynamic runtime switching, and thread-safety under concurrent mutation.
 - **Strict Compliance:** Zero mocks in production paths, zero placeholders, Clippy `-D warnings` clean, `cargo deny check` clean.
+- **Phase 10.5 & Stage 10 Certified:** All 4 subphases (`10.5.1`, `10.5.2`, `10.5.3`, `10.5.4`) complete, verified, and certified under Section 3.4 of the GLOBAL_ENGINEERING_CONTRACT.

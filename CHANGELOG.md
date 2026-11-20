@@ -6,6 +6,30 @@
 
 ## [Unreleased] — Stage 10: Advanced Documents and Content
 
+### 2026-11-20 — Phase 10.5: Optional local and external AI provider adapters (`10.5.4`) — PHASE 10.5 CERTIFIED & STAGE 10 COMPLETED
+
+#### Added
+- **`[10.5.4]` Adapter contract & isolation tests in `crates/ai-adapter` (`web-repo-to-ai-ai-adapter`):**
+  - Polymorphic Trait Contract Verification (`crates/ai-adapter/tests/adapter_contract_and_isolation_test.rs`):
+    - Validated that all 5 adapter types (`DisabledAiAdapter`, `MockAiAdapter`, `OllamaAiAdapter`, `OpenAiAiAdapter`, and `ResilientAiAdapter`) satisfy identical `AiAdapter` trait invariants (`provider_type`, `is_enabled`, `health_check`, `list_models`).
+  - Network Isolation & Timeout Bounds:
+    - Demonstrated that slow or hanging upstream endpoints trigger clean `AiAdapterError::Timeout` within configured timeout bounds without socket leakage.
+    - Verified that connection-refused endpoints (closed loopback ports) trigger immediate `AiAdapterError::NetworkError` without thread blocking or latency spikes.
+  - Simulated Network Blackout & Resilient Recovery:
+    - Demonstrated that abrupt connection drops and offline endpoints trigger seamless zero-key degradation via `ResilientAiAdapter`, returning deterministic CPU responses (`complete_chat`, `generate_embeddings`, `summarize_document`, `enrich_section`) without caller interruption.
+  - Categorized Error Taxonomy Mapping:
+    - Verified consistent error mapping and HTTP status codes: 401 (`AuthenticationRequired`), 404 (`ModelNotFound`), 503 (`ServerUnavailable`), and timeouts (504 `Timeout`), along with accurate retryability classification.
+  - High-Concurrency Stress & Dynamic Hot-Swapping:
+    - Executed 25 concurrent multi-threaded async tasks across all operations and 10 dynamic adapter registry swaps under load with 100% success rate, zero data races, and zero deadlocks.
+  - Wire Header Sanitization:
+    - Verified that sensitive authorization headers (`Authorization: Bearer ...`) are passed on the wire but strictly scrubbed from logs and debug representations.
+  - Zero-Key Fallback Mathematical Invariants:
+    - Enforced $L_2$ unit-length normalization ($|v|_2 = 1.0 \pm 10^{-5}$) and bit-for-bit repeatability across requested dimensions (64 to 1536).
+  - Formal Certification:
+    - Authored 9 new integration tests in `tests/adapter_contract_and_isolation_test.rs`.
+    - Total crate tests expanded to 75 across 8 test suites; workspace tests reached 930+ passing tests with 0 warnings, 0 clippy diffs, clean `cargo deny check`, and 100% passing quality gates (5/5).
+    - Formally certified Phase 10.5 and formally completed Stage 10 in full.
+
 ### 2026-11-20 — Phase 10.5: Optional local and external AI provider adapters (`10.5.3`)
 
 #### Added

@@ -7046,3 +7046,63 @@
   - 921+ tests passing across the workspace.
   - Monorepo quality gates 100% passing (5/5 gates).
 - **Status:** `ACCEPTED`
+
+---
+
+#### Subphase `10.5.4` — Adapter contract & isolation tests in crates/ai-adapter
+- **Unique ID:** `10.5.4`
+- **Phase:** `Phase 10.5 — Optional local and external AI provider adapters`
+- **Prerequisites:** `10.5.3` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/ai-adapter/tests/adapter_contract_and_isolation_test.rs`
+  - `crates/ai-adapter/README.md`
+  - `PROJECT_STATUS.md`
+  - `TODO.md`
+  - `CHANGELOG.md`
+  - `ROADMAP.md`
+  - `docs/ROADMAP.md`
+  - `IMPLEMENTATION_LEDGER.md`
+- **Implementation Tasks:**
+  1. Author comprehensive contract and isolation integration tests in `crates/ai-adapter/tests/adapter_contract_and_isolation_test.rs`:
+     - Polymorphic contract verification across all 5 adapter implementations (`DisabledAiAdapter`, `MockAiAdapter`, `OllamaAiAdapter`, `OpenAiAiAdapter`, and `ResilientAiAdapter`), testing `provider_type`, `is_enabled`, `health_check`, and `list_models`.
+     - Timeout isolation test with `DelayServer` (1.5s delay against 1s client timeout) verifying clean `AiAdapterError::Timeout` without socket leaks.
+     - Connection refused immediate failure test against closed loopback socket verifying immediate `AiAdapterError::NetworkError` without thread hanging.
+     - Simulated network blackout and resilient recovery test against offline/unreachable servers, verifying `ResilientAiAdapter` seamlessly degrades to `ZeroKeyFallbackEngine` (`complete_chat`, `generate_embeddings`, `summarize_document`) without error propagation.
+     - Categorized error taxonomy mapping test with `ErrorServer` verifying HTTP 401, 404, 503 translations into typed `AiAdapterError` and retryability flags.
+     - 25-task multithreaded concurrency stress test executing chat completions, embeddings, summarization, and section enrichment under barrier synchronization.
+     - Dynamic hot-swapping test rapidly switching registry adapters between `Disabled`, `Mock`, and `Resilient` while concurrent worker tasks query the registry.
+     - Wire header injection and sanitization test verifying `Authorization: Bearer ...` presence on wire and masking in debug representations.
+     - Zero-key fallback mathematical invariants test verifying $L_2$ unit-length normalization ($|v|_2 = 1.0 \pm 1e-5$) and bit-for-bit repeatability across dimensions 64..1536.
+  2. Update `crates/ai-adapter/README.md` documenting all 8 test suites, 75 tests, and formal Phase 10.5 certification.
+  3. Formally certify Phase 10.5 and Stage 10 across all tracking ledgers.
+- **Acceptance Criteria:**
+  - All 5 adapter types satisfy polymorphic `AiAdapter` trait contract invariants.
+  - Network timeouts and connection drops handled cleanly without hangs or resource leaks.
+  - Resilient adapter guarantees seamless zero-key fallback under network blackouts.
+  - 100% test pass rate (75/75 crate tests passing).
+  - Monorepo quality gates passing (`scripts/check-all.ps1`).
+  - Phase 10.5 and Stage 10 formally certified.
+- **Tests:**
+  - `adapter_contract_and_isolation_test::test_polymorphic_contract_all_adapters`
+  - `adapter_contract_and_isolation_test::test_isolation_network_timeout_enforcement`
+  - `adapter_contract_and_isolation_test::test_isolation_connection_refused_immediate_failure`
+  - `adapter_contract_and_isolation_test::test_isolation_simulated_network_blackout_and_resilient_recovery`
+  - `adapter_contract_and_isolation_test::test_polymorphic_error_taxonomy_mapping`
+  - `adapter_contract_and_isolation_test::test_concurrent_multithreaded_stress`
+  - `adapter_contract_and_isolation_test::test_hot_swapping_registry_under_concurrent_load`
+  - `adapter_contract_and_isolation_test::test_isolation_header_injection_and_sanitization`
+  - `adapter_contract_and_isolation_test::test_zero_key_fallback_contract_invariants`
+- **Security Considerations:**
+  - Strict enforcement of Section 3.4 of the GLOBAL_ENGINEERING_CONTRACT: zero external AI requirement.
+  - Zero credential leakage across error payloads, log traces, and debug formatters.
+  - Host isolation and loopback confinement under simulated test servers.
+- **Performance Considerations:**
+  - Async non-blocking network I/O with Tokio and Reqwest connection pooling.
+  - Bounded memory usage under concurrent task load.
+- **Documentation Requirements:**
+  - `crates/ai-adapter/README.md`, `CHANGELOG.md`, `PROJECT_STATUS.md`, `TODO.md`, `ROADMAP.md`, `docs/ROADMAP.md`, `IMPLEMENTATION_LEDGER.md`.
+- **Validation Evidence:**
+  - 75/75 tests passing in `crates/ai-adapter`.
+  - 930+ tests passing across the workspace.
+  - Monorepo quality gates 100% passing (5/5 gates).
+- **Status:** `ACCEPTED` — **PHASE 10.5 CERTIFIED & STAGE 10 COMPLETED**
