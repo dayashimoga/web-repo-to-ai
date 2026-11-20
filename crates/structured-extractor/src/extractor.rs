@@ -9,9 +9,11 @@ use crate::detector::detect_format;
 use crate::error::{Result, StructuredError};
 use crate::jsonschema::parse_json_schema;
 use crate::models::{
-    JsonSchemaDoc, OpenApiOperation, OpenApiPath, OpenApiSpec, StructuredDocumentKind,
-    StructuredInput, StructuredOptions, TabularTable, YamlDocument,
+    JsonSchemaDoc, JupyterNotebook, NotebookCellKind, NotebookOutputType, OpenApiOperation,
+    OpenApiPath, OpenApiSpec, StructuredDocumentKind, StructuredInput, StructuredOptions,
+    TabularTable, YamlDocument,
 };
+use crate::notebook::parse_notebook;
 use crate::openapi::parse_openapi;
 use crate::tabular::parse_tabular;
 use crate::yaml::parse_yaml_stream;
@@ -62,9 +64,8 @@ impl StructuredExtractor {
                 self.convert_tabular_to_cdm(&table, input, options)?
             }
             StructuredDocumentKind::JupyterNotebook => {
-                return Err(StructuredError::UnrecognizedFormat(
-                    "Jupyter Notebook extraction is handled in Subphase 10.3.3".to_string(),
-                ))
+                let notebook = parse_notebook(text, options, &options.limits)?;
+                self.convert_notebook_to_cdm(&notebook, input, options)?
             }
         };
 
@@ -905,6 +906,435 @@ impl StructuredExtractor {
 
         Ok(builder.build())
     }
+
+    // ========================================================================
+    // JUPYTER NOTEBOOK TO CDM CONVERSION
+    // ========================================================================
+
+    fn convert_notebook_to_cdm(
+        &self,
+        notebook: &JupyterNotebook,
+        input: &StructuredInput,
+        options: &StructuredOptions,
+    ) -> Result<CdmDocument> {
+        let (source_identity, source_url) = build_source_identity(input, "notebook.ipynb");
+
+        // Infer title: filename hint, or first heading in notebook, or fallback
+        let first_heading = notebook.cells.iter().find_map(|c| {
+            if c.cell_type == NotebookCellKind::Markdown {
+                extract_heading(&c.source).map(|(_, h)| h)
+            } else {
+                None
+            }
+        });
+
+        let title = input
+            .filename
+            .as_ref()
+            .map(|f| f.trim_end_matches(".ipynb").to_string())
+            .or(first_heading)
+            .unwrap_or_else(|| "Jupyter Notebook".to_string());
+
+        let mut custom_meta = BTreeMap::new();
+        custom_meta.insert(
+            "structured_format".to_string(),
+            "jupyter_notebook".to_string(),
+        );
+        custom_meta.insert(
+            "nbformat".to_string(),
+            format!(
+                "{}.{}",
+                notebook.metadata.nbformat, notebook.metadata.nbformat_minor
+            ),
+        );
+        if let Some(ref kernel) = notebook.metadata.kernel_name {
+            custom_meta.insert("kernel_name".to_string(), kernel.clone());
+        }
+        if let Some(ref kernel_disp) = notebook.metadata.kernel_display_name {
+            custom_meta.insert("kernel_display_name".to_string(), kernel_disp.clone());
+        }
+        custom_meta.insert(
+            "language".to_string(),
+            notebook.primary_language().to_string(),
+        );
+        if let Some(ref ver) = notebook.metadata.language_version {
+            custom_meta.insert("language_version".to_string(), ver.clone());
+        }
+        custom_meta.insert(
+            "total_cells".to_string(),
+            notebook.total_cells_discovered.to_string(),
+        );
+        custom_meta.insert(
+            "code_cells".to_string(),
+            notebook.code_cells_count().to_string(),
+        );
+        custom_meta.insert(
+            "markdown_cells".to_string(),
+            notebook.markdown_cells_count().to_string(),
+        );
+        custom_meta.insert(
+            "raw_cells".to_string(),
+            notebook.raw_cells_count().to_string(),
+        );
+
+        let metadata = DocumentMetadata {
+            title: Some(title.clone()),
+            description: Some(format!(
+                "Jupyter Notebook with {} cells ({} code, {} markdown)",
+                notebook.cells.len(),
+                notebook.code_cells_count(),
+                notebook.markdown_cells_count(),
+            )),
+            authors: Vec::new(),
+            license: None,
+            primary_language: Some(notebook.primary_language().to_string()),
+            language_breakdown: BTreeMap::new(),
+            published_at: None,
+            modified_at: None,
+            tags: vec![
+                "jupyter".to_string(),
+                "notebook".to_string(),
+                notebook.primary_language().to_string(),
+            ],
+            extra: custom_meta,
+        };
+
+        let mut builder = CdmDocumentBuilder::new(
+            source_identity,
+            SourceType::StructuredDocument,
+            source_url.clone(),
+        )
+        .content_type("application/x-ipynb+json")
+        .metadata(metadata);
+
+        let mut sec_counter = 0;
+        let mut stack: Vec<(usize, HierarchyNode)> = vec![(0, HierarchyNode::root(&title))];
+
+        // 1. Overview & Summary Section
+        sec_counter += 1;
+        let summary_id = format!("sec_{:03}_summary", sec_counter);
+        let summary_md = notebook.to_summary_markdown();
+        let summary_lines = summary_md.lines().count().max(1) as u32;
+        let summary_bytes = summary_md.len() as u64;
+
+        let summary_sec = CdmSectionBuilder::new(
+            summary_id.clone(),
+            source_url.clone(),
+            SectionKind::Prose,
+            summary_md,
+        )
+        .title(format!("{title} - Summary & Overview"))
+        .original_path("summary.md")
+        .line_range(1, summary_lines)
+        .byte_range(0, summary_bytes)
+        .attribute("content_type", "summary")
+        .attribute(
+            "notebook_total_cells",
+            notebook.total_cells_discovered.to_string(),
+        )
+        .attribute(
+            "notebook_code_cells",
+            notebook.code_cells_count().to_string(),
+        )
+        .attribute(
+            "notebook_markdown_cells",
+            notebook.markdown_cells_count().to_string(),
+        );
+
+        builder = builder.add_section(summary_sec.build());
+
+        stack[0].1.add_child(HierarchyNode {
+            id: summary_id.clone(),
+            name: "Notebook Summary & Overview".to_string(),
+            path: "summary.md".to_string(),
+            kind: HierarchyKind::Section,
+            section_id: Some(summary_id),
+            children: Vec::new(),
+            byte_size: Some(summary_bytes),
+            line_count: Some(summary_lines),
+        });
+
+        // 2. Cell Sections
+        for cell in &notebook.cells {
+            sec_counter += 1;
+            let cell_num = cell.index + 1;
+            let cell_sec_id = format!("sec_{:03}_cell_{}", sec_counter, cell.index);
+            let cell_path = format!(
+                "cell_{cell_num}.{}",
+                match cell.cell_type {
+                    NotebookCellKind::Markdown => "md",
+                    NotebookCellKind::Code => match notebook.primary_language() {
+                        "python" => "py",
+                        "r" => "r",
+                        "julia" => "jl",
+                        _ => "txt",
+                    },
+                    NotebookCellKind::Raw => "raw",
+                }
+            );
+
+            match cell.cell_type {
+                NotebookCellKind::Markdown => {
+                    let heading_opt = extract_heading(&cell.source);
+                    let cell_title = heading_opt
+                        .as_ref()
+                        .map(|(_, h)| h.clone())
+                        .unwrap_or_else(|| format!("{title} - Cell {cell_num} [Markdown]"));
+                    let body = if cell.source.is_empty() {
+                        "*(Empty Markdown Cell)*".to_string()
+                    } else {
+                        cell.source.clone()
+                    };
+                    let lines = body.lines().count().max(1) as u32;
+                    let bytes = body.len() as u64;
+
+                    let sec = CdmSectionBuilder::new(
+                        cell_sec_id.clone(),
+                        source_url.clone(),
+                        SectionKind::Prose,
+                        body,
+                    )
+                    .title(cell_title.clone())
+                    .original_path(cell_path.clone())
+                    .line_range(1, lines)
+                    .byte_range(0, bytes)
+                    .attribute("cell_type", "markdown")
+                    .attribute("cell_index", cell.index.to_string());
+
+                    builder = builder.add_section(sec.build());
+
+                    let node = HierarchyNode {
+                        id: cell_sec_id.clone(),
+                        name: cell_title,
+                        path: cell_path,
+                        kind: if heading_opt.is_some() {
+                            HierarchyKind::Heading
+                        } else {
+                            HierarchyKind::Section
+                        },
+                        section_id: Some(cell_sec_id),
+                        children: Vec::new(),
+                        byte_size: Some(bytes),
+                        line_count: Some(lines),
+                    };
+
+                    if let Some((level, _)) = heading_opt {
+                        while stack.len() > 1 && stack.last().unwrap().0 >= level {
+                            let (_, child) = stack.pop().unwrap();
+                            stack.last_mut().unwrap().1.add_child(child);
+                        }
+                        stack.push((level, node));
+                    } else {
+                        stack.last_mut().unwrap().1.add_child(node);
+                    }
+                }
+                NotebookCellKind::Code => {
+                    let exec_tag = cell
+                        .execution_count
+                        .map(|c| format!(" [{c}]"))
+                        .unwrap_or_default();
+                    let cell_title = format!("{title} - Cell {cell_num} [Code{exec_tag}]");
+                    let body = if cell.source.is_empty() {
+                        "# (Empty Code Cell)\n".to_string()
+                    } else {
+                        cell.source.clone()
+                    };
+                    let lines = body.lines().count().max(1) as u32;
+                    let bytes = body.len() as u64;
+
+                    let mut sec_builder = CdmSectionBuilder::new(
+                        cell_sec_id.clone(),
+                        source_url.clone(),
+                        SectionKind::CodeSnippet,
+                        body,
+                    )
+                    .title(cell_title.clone())
+                    .original_path(cell_path.clone())
+                    .language(notebook.primary_language())
+                    .line_range(1, lines)
+                    .byte_range(0, bytes)
+                    .attribute("cell_type", "code")
+                    .attribute("cell_index", cell.index.to_string());
+
+                    if let Some(exec) = cell.execution_count {
+                        sec_builder = sec_builder.attribute("execution_count", exec.to_string());
+                    }
+
+                    builder = builder.add_section(sec_builder.build());
+
+                    let mut code_node = HierarchyNode {
+                        id: cell_sec_id.clone(),
+                        name: cell_title,
+                        path: cell_path,
+                        kind: HierarchyKind::Section,
+                        section_id: Some(cell_sec_id),
+                        children: Vec::new(),
+                        byte_size: Some(bytes),
+                        line_count: Some(lines),
+                    };
+
+                    // Output section if outputs present and enabled
+                    if options.notebook_include_outputs && !cell.outputs.is_empty() {
+                        let mut out_md = String::new();
+                        for output in &cell.outputs {
+                            let text = output.to_plaintext();
+                            let trimmed = text.trim();
+                            if !trimmed.is_empty() {
+                                let lines: Vec<&str> = trimmed.lines().collect();
+                                let max_lines = options.notebook_max_output_lines;
+                                let displayed = if lines.len() > max_lines {
+                                    let mut subset = lines[..max_lines].join("\n");
+                                    subset.push_str(&format!(
+                                        "\n... ({} lines truncated)",
+                                        lines.len() - max_lines
+                                    ));
+                                    subset
+                                } else {
+                                    trimmed.to_string()
+                                };
+
+                                let prefix = match output.output_type {
+                                    NotebookOutputType::Stream => {
+                                        let name =
+                                            output.stream_name.as_deref().unwrap_or("output");
+                                        format!("**Output ({name}):**\n")
+                                    }
+                                    NotebookOutputType::ExecuteResult => {
+                                        let count = output
+                                            .execution_count
+                                            .map(|c| format!(" [{c}]"))
+                                            .unwrap_or_default();
+                                        format!("**Result{count}:**\n")
+                                    }
+                                    NotebookOutputType::DisplayData => "**Display:**\n".to_string(),
+                                    NotebookOutputType::Error => {
+                                        "**Error Traceback:**\n".to_string()
+                                    }
+                                };
+                                out_md.push_str(&prefix);
+                                out_md.push_str("```text\n");
+                                out_md.push_str(&displayed);
+                                out_md.push_str("\n```\n\n");
+                            }
+                        }
+
+                        if !out_md.trim().is_empty() {
+                            sec_counter += 1;
+                            let out_sec_id =
+                                format!("sec_{:03}_cell_{}_out", sec_counter, cell.index);
+                            let out_path = format!("cell_{cell_num}_output.txt");
+                            let out_title = format!("{title} - Cell {cell_num} Output");
+                            let out_lines = out_md.lines().count().max(1) as u32;
+                            let out_bytes = out_md.len() as u64;
+
+                            let out_sec = CdmSectionBuilder::new(
+                                out_sec_id.clone(),
+                                source_url.clone(),
+                                SectionKind::Prose,
+                                out_md,
+                            )
+                            .title(out_title.clone())
+                            .original_path(out_path.clone())
+                            .line_range(1, out_lines)
+                            .byte_range(0, out_bytes)
+                            .attribute("cell_type", "output")
+                            .attribute("cell_index", cell.index.to_string());
+
+                            builder = builder.add_section(out_sec.build());
+
+                            let out_node = HierarchyNode {
+                                id: out_sec_id.clone(),
+                                name: out_title,
+                                path: out_path,
+                                kind: HierarchyKind::Section,
+                                section_id: Some(out_sec_id),
+                                children: Vec::new(),
+                                byte_size: Some(out_bytes),
+                                line_count: Some(out_lines),
+                            };
+
+                            code_node.add_child(out_node);
+                        }
+                    }
+
+                    stack.last_mut().unwrap().1.add_child(code_node);
+                }
+                NotebookCellKind::Raw => {
+                    if options.notebook_include_raw_cells {
+                        let cell_title = format!("{title} - Cell {cell_num} [Raw]");
+                        let body = if cell.source.is_empty() {
+                            "*(Empty Raw Cell)*".to_string()
+                        } else {
+                            cell.source.clone()
+                        };
+                        let lines = body.lines().count().max(1) as u32;
+                        let bytes = body.len() as u64;
+
+                        let sec = CdmSectionBuilder::new(
+                            cell_sec_id.clone(),
+                            source_url.clone(),
+                            SectionKind::Prose,
+                            body,
+                        )
+                        .title(cell_title.clone())
+                        .original_path(cell_path.clone())
+                        .line_range(1, lines)
+                        .byte_range(0, bytes)
+                        .attribute("cell_type", "raw")
+                        .attribute("cell_index", cell.index.to_string());
+
+                        builder = builder.add_section(sec.build());
+
+                        let raw_node = HierarchyNode {
+                            id: cell_sec_id.clone(),
+                            name: cell_title,
+                            path: cell_path,
+                            kind: HierarchyKind::Section,
+                            section_id: Some(cell_sec_id),
+                            children: Vec::new(),
+                            byte_size: Some(bytes),
+                            line_count: Some(lines),
+                        };
+
+                        stack.last_mut().unwrap().1.add_child(raw_node);
+                    }
+                }
+            }
+        }
+
+        // Unwind any remaining headings on the stack
+        while stack.len() > 1 {
+            let (_, child) = stack.pop().unwrap();
+            stack.last_mut().unwrap().1.add_child(child);
+        }
+        let root_node = stack.pop().unwrap().1;
+
+        let total_items = notebook.total_cells_discovered as u64;
+        let extracted_items = notebook.cells.len() as u64;
+        let excluded_items = total_items.saturating_sub(extracted_items);
+
+        let completeness = CompletenessReport::new(
+            total_items,
+            extracted_items,
+            extracted_items,
+            excluded_items,
+            0,
+            0,
+        );
+
+        let status = if notebook.was_truncated {
+            ExtractionStatus::Partial
+        } else {
+            ExtractionStatus::Completed
+        };
+
+        builder = builder
+            .hierarchy(root_node)
+            .completeness(completeness)
+            .extraction_status(status);
+
+        Ok(builder.build())
+    }
 }
 
 /// Helper building `SourceIdentity` and canonical URL from `StructuredInput`.
@@ -924,6 +1354,23 @@ fn build_source_identity(
     }
 
     (source_identity, source_url)
+}
+
+/// Extracts heading level (1..=6) and title from Markdown content if present.
+fn extract_heading(source: &str) -> Option<(usize, String)> {
+    for line in source.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with('#') {
+            let hashes = trimmed.chars().take_while(|&c| c == '#').count();
+            if (1..=6).contains(&hashes) {
+                let rest = trimmed[hashes..].trim();
+                if !rest.is_empty() {
+                    return Some((hashes, rest.to_string()));
+                }
+            }
+        }
+    }
+    None
 }
 
 /// Sanitizes a URL path for using as a relative filename.

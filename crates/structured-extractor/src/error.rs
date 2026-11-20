@@ -38,6 +38,10 @@ pub enum StructuredError {
     #[error("Tabular parse error: {0}")]
     InvalidTabular(String),
 
+    /// Malformed or invalid Jupyter Notebook (.ipynb) data structure.
+    #[error("Notebook parse error: {0}")]
+    InvalidNotebook(String),
+
     /// Canonical Context Document Model (CDM) validation or builder error.
     #[error("CDM construction error: {0}")]
     CdmError(#[from] web_repo_to_ai_cdm::error::CdmError),

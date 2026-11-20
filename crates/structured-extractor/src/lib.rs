@@ -13,6 +13,7 @@ pub mod error;
 pub mod extractor;
 pub mod jsonschema;
 pub mod models;
+pub mod notebook;
 pub mod openapi;
 pub mod tabular;
 pub mod yaml;
@@ -22,11 +23,13 @@ pub use error::{Result, StructuredError};
 pub use extractor::StructuredExtractor;
 pub use jsonschema::parse_json_schema;
 pub use models::{
-    ColumnDataType, ColumnStats, JsonSchemaDoc, JsonSchemaProperty, OpenApiOperation,
+    ColumnDataType, ColumnStats, JsonSchemaDoc, JsonSchemaProperty, JupyterNotebook, NotebookCell,
+    NotebookCellKind, NotebookMetadata, NotebookOutput, NotebookOutputType, OpenApiOperation,
     OpenApiParameter, OpenApiPath, OpenApiProperty, OpenApiRequestBody, OpenApiResponse,
     OpenApiSchema, OpenApiSpec, OpenApiTag, StructuredDocumentKind, StructuredInput,
     StructuredLimits, StructuredOptions, TabularDelimiter, TabularTable, YamlDocument,
 };
+pub use notebook::{parse_notebook, strip_ansi_escapes};
 pub use openapi::parse_openapi;
 pub use tabular::{infer_column_type, parse_tabular, sniff_delimiter, sniff_has_headers};
 pub use yaml::parse_yaml_stream;

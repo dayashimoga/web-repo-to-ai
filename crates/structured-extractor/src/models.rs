@@ -5,6 +5,7 @@
 
 use crate::error::{Result, StructuredError};
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
 /// Classification of supported structured document formats.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -119,6 +120,12 @@ pub struct StructuredLimits {
     pub max_cell_bytes: usize,
     /// Whether to truncate gracefully when max_tabular_rows is reached (default: true).
     pub truncate_on_row_limit: bool,
+    /// Maximum allowed Jupyter Notebook cells to process (default: 1,000).
+    pub max_notebook_cells: usize,
+    /// Maximum allowed bytes per individual cell output payload (default: 512 KiB).
+    pub max_output_bytes: usize,
+    /// Whether to truncate gracefully when max_notebook_cells is reached (default: true).
+    pub truncate_on_cell_limit: bool,
 }
 
 impl Default for StructuredLimits {
@@ -133,6 +140,9 @@ impl Default for StructuredLimits {
             max_tabular_columns: 500,
             max_cell_bytes: 64 * 1024, // 64 KiB
             truncate_on_row_limit: true,
+            max_notebook_cells: 1_000,
+            max_output_bytes: 512 * 1024, // 512 KiB
+            truncate_on_cell_limit: true,
         }
     }
 }
@@ -201,6 +211,27 @@ impl StructuredLimits {
         self.truncate_on_row_limit = truncate;
         self
     }
+
+    /// Sets maximum allowed Jupyter Notebook cells.
+    #[must_use]
+    pub const fn with_max_notebook_cells(mut self, cells: usize) -> Self {
+        self.max_notebook_cells = cells;
+        self
+    }
+
+    /// Sets maximum allowed bytes per cell output.
+    #[must_use]
+    pub const fn with_max_output_bytes(mut self, bytes: usize) -> Self {
+        self.max_output_bytes = bytes;
+        self
+    }
+
+    /// Sets whether to truncate gracefully when notebook cell limit is reached.
+    #[must_use]
+    pub const fn with_truncate_on_cell_limit(mut self, truncate: bool) -> Self {
+        self.truncate_on_cell_limit = truncate;
+        self
+    }
 }
 
 /// Configuration options controlling structured document transformation.
@@ -230,6 +261,14 @@ pub struct StructuredOptions {
     pub tabular_include_data_section: bool,
     /// Maximum number of preview rows to format in Markdown table (default: 2,000).
     pub tabular_max_preview_rows: usize,
+    /// Whether to extract and include execution outputs from code cells (default: true).
+    pub notebook_include_outputs: bool,
+    /// Whether to include raw cells in notebook export (default: true).
+    pub notebook_include_raw_cells: bool,
+    /// Whether to strip ANSI terminal escape sequences from text and tracebacks (default: true).
+    pub notebook_strip_ansi_escapes: bool,
+    /// Maximum number of output lines to include per cell output (default: 100).
+    pub notebook_max_output_lines: usize,
     /// Safety and resource bounds.
     pub limits: StructuredLimits,
 }
@@ -249,6 +288,10 @@ impl Default for StructuredOptions {
             tabular_include_summary_section: true,
             tabular_include_data_section: true,
             tabular_max_preview_rows: 2_000,
+            notebook_include_outputs: true,
+            notebook_include_raw_cells: true,
+            notebook_strip_ansi_escapes: true,
+            notebook_max_output_lines: 100,
             limits: StructuredLimits::default(),
         }
     }
@@ -287,6 +330,34 @@ impl StructuredOptions {
     #[must_use]
     pub const fn with_tabular_max_preview_rows(mut self, max: usize) -> Self {
         self.tabular_max_preview_rows = max;
+        self
+    }
+
+    /// Sets whether to include cell execution outputs.
+    #[must_use]
+    pub const fn with_notebook_include_outputs(mut self, include: bool) -> Self {
+        self.notebook_include_outputs = include;
+        self
+    }
+
+    /// Sets whether to include raw cells.
+    #[must_use]
+    pub const fn with_notebook_include_raw_cells(mut self, include: bool) -> Self {
+        self.notebook_include_raw_cells = include;
+        self
+    }
+
+    /// Sets whether to strip ANSI terminal escape sequences.
+    #[must_use]
+    pub const fn with_notebook_strip_ansi_escapes(mut self, strip: bool) -> Self {
+        self.notebook_strip_ansi_escapes = strip;
+        self
+    }
+
+    /// Sets maximum number of output lines per output.
+    #[must_use]
+    pub const fn with_notebook_max_output_lines(mut self, max: usize) -> Self {
+        self.notebook_max_output_lines = max;
         self
     }
 
@@ -864,5 +935,338 @@ fn escape_delimited(val: &str, delimiter: char) -> String {
         format!("\"{escaped}\"")
     } else {
         val.to_string()
+    }
+}
+
+// ============================================================================
+// JUPYTER NOTEBOOK MODELS
+// ============================================================================
+
+/// Cell archetype in a Jupyter Notebook.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum NotebookCellKind {
+    /// Markdown documentation cell.
+    Markdown,
+    /// Executable code cell.
+    Code,
+    /// Unformatted raw cell.
+    Raw,
+}
+
+impl NotebookCellKind {
+    /// Returns the lowercase string identifier.
+    #[must_use]
+    pub const fn as_str(&self) -> &'static str {
+        match self {
+            Self::Markdown => "markdown",
+            Self::Code => "code",
+            Self::Raw => "raw",
+        }
+    }
+}
+
+/// Output category for a code cell execution.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NotebookOutputType {
+    /// Standard stream output (stdout or stderr).
+    Stream,
+    /// Result of code execution expression.
+    ExecuteResult,
+    /// Rich display data produced by display() or IPython rich display.
+    DisplayData,
+    /// Error traceback produced by unhandled exception.
+    Error,
+}
+
+impl NotebookOutputType {
+    /// Returns the snake_case string identifier.
+    #[must_use]
+    pub const fn as_str(&self) -> &'static str {
+        match self {
+            Self::Stream => "stream",
+            Self::ExecuteResult => "execute_result",
+            Self::DisplayData => "display_data",
+            Self::Error => "error",
+        }
+    }
+}
+
+/// Individual output record produced by a code cell execution.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct NotebookOutput {
+    /// Type of output.
+    pub output_type: NotebookOutputType,
+    /// Stream name ("stdout" or "stderr") for stream outputs.
+    pub stream_name: Option<String>,
+    /// Execution count for execute_result outputs.
+    pub execution_count: Option<u32>,
+    /// Plaintext representation of output.
+    pub text: Option<String>,
+    /// HTML representation if available.
+    pub html: Option<String>,
+    /// Base64 encoded PNG or image data if available.
+    pub image: Option<String>,
+    /// Exception name for error outputs (e.g. "ValueError").
+    pub ename: Option<String>,
+    /// Exception value/message for error outputs.
+    pub evalue: Option<String>,
+    /// Cleaned traceback lines for error outputs.
+    pub traceback: Vec<String>,
+    /// Complete MIME data dictionary if present.
+    pub data: BTreeMap<String, serde_json::Value>,
+}
+
+impl NotebookOutput {
+    /// Returns a consolidated plaintext representation of the output.
+    #[must_use]
+    pub fn to_plaintext(&self) -> String {
+        match self.output_type {
+            NotebookOutputType::Stream
+            | NotebookOutputType::ExecuteResult
+            | NotebookOutputType::DisplayData => {
+                if let Some(ref text) = self.text {
+                    text.clone()
+                } else if let Some(ref html) = self.html {
+                    html.clone()
+                } else if self.image.is_some() {
+                    "[Image / Plot Output]".to_string()
+                } else {
+                    String::new()
+                }
+            }
+            NotebookOutputType::Error => {
+                let mut buf = String::new();
+                if let Some(ref ename) = self.ename {
+                    buf.push_str(ename);
+                    if let Some(ref evalue) = self.evalue {
+                        buf.push_str(": ");
+                        buf.push_str(evalue);
+                    }
+                    buf.push('\n');
+                }
+                if !self.traceback.is_empty() {
+                    for line in &self.traceback {
+                        buf.push_str(line);
+                        buf.push('\n');
+                    }
+                }
+                buf.trim_end().to_string()
+            }
+        }
+    }
+}
+
+/// A parsed Jupyter Notebook cell.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct NotebookCell {
+    /// Zero-based cell index in notebook sequence.
+    pub index: usize,
+    /// Cell kind (Markdown, Code, Raw).
+    pub cell_type: NotebookCellKind,
+    /// Optional cell ID string (introduced in nbformat 4.5).
+    pub id: Option<String>,
+    /// Execution counter for code cells (e.g. `[1]`, None if unexecuted).
+    pub execution_count: Option<u32>,
+    /// Source code or markdown text.
+    pub source: String,
+    /// Execution outputs for code cells.
+    pub outputs: Vec<NotebookOutput>,
+    /// Raw metadata map for the cell.
+    pub metadata: BTreeMap<String, serde_json::Value>,
+}
+
+/// Metadata extracted from a Jupyter Notebook.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct NotebookMetadata {
+    /// Kernel specification name.
+    pub kernel_name: Option<String>,
+    /// Kernel human-readable display name.
+    pub kernel_display_name: Option<String>,
+    /// Programming language name (e.g. "python", "julia", "r").
+    pub language_name: Option<String>,
+    /// Programming language version.
+    pub language_version: Option<String>,
+    /// Notebook format major version (e.g. 4).
+    pub nbformat: u32,
+    /// Notebook format minor version (e.g. 5).
+    pub nbformat_minor: u32,
+    /// Raw metadata dictionary from notebook root.
+    pub raw_metadata: BTreeMap<String, serde_json::Value>,
+}
+
+/// Parsed representation of a complete Jupyter Notebook.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct JupyterNotebook {
+    /// Notebook level metadata.
+    pub metadata: NotebookMetadata,
+    /// Extracted cells.
+    pub cells: Vec<NotebookCell>,
+    /// Total number of cells discovered in source before limits.
+    pub total_cells_discovered: usize,
+    /// Whether cell collection was truncated by resource limit.
+    pub was_truncated: bool,
+}
+
+impl JupyterNotebook {
+    /// Returns the count of code cells.
+    #[must_use]
+    pub fn code_cells_count(&self) -> usize {
+        self.cells
+            .iter()
+            .filter(|c| c.cell_type == NotebookCellKind::Code)
+            .count()
+    }
+
+    /// Returns the count of markdown cells.
+    #[must_use]
+    pub fn markdown_cells_count(&self) -> usize {
+        self.cells
+            .iter()
+            .filter(|c| c.cell_type == NotebookCellKind::Markdown)
+            .count()
+    }
+
+    /// Returns the count of raw cells.
+    #[must_use]
+    pub fn raw_cells_count(&self) -> usize {
+        self.cells
+            .iter()
+            .filter(|c| c.cell_type == NotebookCellKind::Raw)
+            .count()
+    }
+
+    /// Inferred primary programming language.
+    #[must_use]
+    pub fn primary_language(&self) -> &str {
+        self.metadata.language_name.as_deref().unwrap_or("python")
+    }
+
+    /// Formats a comprehensive Markdown summary of the notebook.
+    #[must_use]
+    pub fn to_summary_markdown(&self) -> String {
+        let mut md = String::new();
+        md.push_str("# Jupyter Notebook Summary\n\n");
+        let kernel_disp = self
+            .metadata
+            .kernel_display_name
+            .as_deref()
+            .or(self.metadata.kernel_name.as_deref())
+            .unwrap_or("Unknown");
+        let lang = self.primary_language();
+        let lang_ver = self
+            .metadata
+            .language_version
+            .as_deref()
+            .unwrap_or("unspecified");
+        md.push_str(&format!("- **Kernel**: {kernel_disp}\n"));
+        md.push_str(&format!("- **Language**: {lang} (version: {lang_ver})\n"));
+        md.push_str(&format!(
+            "- **Format**: nbformat v{}.{}\n",
+            self.metadata.nbformat, self.metadata.nbformat_minor
+        ));
+        md.push_str(&format!(
+            "- **Total Cells Discovered**: {}\n",
+            self.total_cells_discovered
+        ));
+        md.push_str(&format!("- **Cells Extracted**: {}\n", self.cells.len()));
+        md.push_str(&format!("- **Code Cells**: {}\n", self.code_cells_count()));
+        md.push_str(&format!(
+            "- **Markdown Cells**: {}\n",
+            self.markdown_cells_count()
+        ));
+        md.push_str(&format!("- **Raw Cells**: {}\n", self.raw_cells_count()));
+        if self.was_truncated {
+            md.push_str("- **Truncation**: Cell limit reached; subsequent cells omitted.\n");
+        }
+        md.push('\n');
+        md
+    }
+
+    /// Formats the notebook as clean GitHub Flavored Markdown.
+    #[must_use]
+    pub fn to_markdown(&self, options: &StructuredOptions) -> String {
+        let mut md = String::new();
+        let lang = self.primary_language();
+
+        for cell in &self.cells {
+            match cell.cell_type {
+                NotebookCellKind::Markdown => {
+                    let trimmed = cell.source.trim();
+                    if !trimmed.is_empty() {
+                        md.push_str(trimmed);
+                        md.push_str("\n\n");
+                    }
+                }
+                NotebookCellKind::Code => {
+                    let exec_tag = cell
+                        .execution_count
+                        .map(|c| format!(" [{c}]"))
+                        .unwrap_or_default();
+                    md.push_str(&format!("```{lang}{exec_tag}\n"));
+                    md.push_str(&cell.source);
+                    if !cell.source.ends_with('\n') {
+                        md.push('\n');
+                    }
+                    md.push_str("```\n\n");
+
+                    if options.notebook_include_outputs && !cell.outputs.is_empty() {
+                        for output in &cell.outputs {
+                            let text = output.to_plaintext();
+                            let trimmed = text.trim();
+                            if !trimmed.is_empty() {
+                                let lines: Vec<&str> = trimmed.lines().collect();
+                                let max_lines = options.notebook_max_output_lines;
+                                let displayed = if lines.len() > max_lines {
+                                    let mut subset = lines[..max_lines].join("\n");
+                                    subset.push_str(&format!(
+                                        "\n... ({} lines truncated)",
+                                        lines.len() - max_lines
+                                    ));
+                                    subset
+                                } else {
+                                    trimmed.to_string()
+                                };
+
+                                let prefix = match output.output_type {
+                                    NotebookOutputType::Stream => {
+                                        let name =
+                                            output.stream_name.as_deref().unwrap_or("output");
+                                        format!("**Output ({name}):**\n")
+                                    }
+                                    NotebookOutputType::ExecuteResult => {
+                                        let count = output
+                                            .execution_count
+                                            .map(|c| format!(" [{c}]"))
+                                            .unwrap_or_default();
+                                        format!("**Result{count}:**\n")
+                                    }
+                                    NotebookOutputType::DisplayData => "**Display:**\n".to_string(),
+                                    NotebookOutputType::Error => {
+                                        "**Error Traceback:**\n".to_string()
+                                    }
+                                };
+                                md.push_str(&prefix);
+                                md.push_str("```text\n");
+                                md.push_str(&displayed);
+                                md.push_str("\n```\n\n");
+                            }
+                        }
+                    }
+                }
+                NotebookCellKind::Raw => {
+                    if options.notebook_include_raw_cells {
+                        let trimmed = cell.source.trim();
+                        if !trimmed.is_empty() {
+                            md.push_str("```raw\n");
+                            md.push_str(trimmed);
+                            md.push_str("\n```\n\n");
+                        }
+                    }
+                }
+            }
+        }
+        md
     }
 }

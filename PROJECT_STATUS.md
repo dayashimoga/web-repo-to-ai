@@ -6,9 +6,9 @@
 **Last Completed Stage:** `STAGE 9 — DEVELOPER AND AI AGENT INTEGRATIONS` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Last Completed Phase:** `Phase 10.2 — Image OCR` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Active Subphase:** `None`  
-**Last Completed Subphase:** `10.3.2 — CSV/TSV & tabular data normalization (crates/structured-extractor: RFC 4180 parsing, automated delimiter sniffing, header detection, column profiling/type inference, ragged row alignment, null normalization, tabular CDM synthesis, DoS bounds, multi-format export fidelity, bit-for-bit hash determinism, <50ms throughput)` (`ACCEPTED`)  
+**Last Completed Subphase:** `10.3.3 — Jupyter Notebook (.ipynb) cell extraction (crates/structured-extractor: nbformat v4 parsing, cell classification for markdown/code/raw, execution outputs stream/result/display/error, regex-free ANSI terminal escape sequence stripping, language tag inference, heading-based outline hierarchy trees, CDM synthesis, DoS bounds, multi-format export fidelity, bit-for-bit hash determinism, <50ms throughput)` (`ACCEPTED`)  
 **Next Upcoming Phase:** `Phase 10.3 — Structured documents` (`IN_PROGRESS`)  
-**Next Upcoming Subphase:** `10.3.3 — Jupyter Notebook (.ipynb) cell extraction`
+**Next Upcoming Subphase:** `10.3.4 — Multi-format structured document integration & CLI/MCP exposure`
 
 ---
 
@@ -172,6 +172,17 @@ In Stage 10 ("Advanced Documents and Content"):
     - Resource & DoS Bounds: Enforced `max_tabular_rows` (10,000 default), `max_tabular_columns` (500 default), `max_cell_bytes` (64 KiB default), and `truncate_on_row_limit` with mathematical `CompletenessReport` accounting (`discovered == extracted + excluded`).
     - Downstream Multi-Format Export Fidelity: Validated roundtrip serialization through `web-repo-to-ai-exporters` into Markdown GFM (`verify_markdown_syntax`), HTML5 (`verify_html_syntax`), JSON CDM v1.0 (`verify_json_syntax`), JSONL (`verify_jsonl_syntax`), and Plaintext. Proved bit-for-bit extraction determinism and high throughput (< 50ms for 5,000 rows).
     - Quality & Verification: Authored 20 new integration tests across `tabular_extraction_test.rs` (7 tests), `tabular_normalization_test.rs` (4 tests), `tabular_limits_test.rs` (4 tests), and `tabular_export_fidelity_test.rs` (5 tests). Total crate tests reached 37; workspace tests reached 775+ passing tests. Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean, and 100% passing quality gates (5/5).
+  - Subphase `10.3.3` delivered Jupyter Notebook (`.ipynb`) cell extraction, execution output parsing, ANSI escape stripping, heading-based hierarchy trees, and Canonical Context Document Model (`CdmDocument`) synthesis in `crates/structured-extractor` (`web-repo-to-ai-structured-extractor`):
+    - Jupyter Notebook nbformat v4 Engine (`crates/structured-extractor/src/notebook.rs`): Supported interactive notebooks in nbformat v4.x, parsing cell archetypes (`Markdown`, `Code`, `Raw`), `execution_count` tracking (`Option<u32>`), and cell metadata dictionaries.
+    - Multiline String Consolidation: Supported both single string and array of strings (`Vec<String>`) across cell sources and output streams.
+    - Execution Outputs Extraction: Extracted `Stream` (`stdout`, `stderr`), `ExecuteResult` (execution counter, plaintext, rich HTML, and base64 PNG/JPEG MIME dictionaries), `DisplayData` (visualizations and figures), and `Error` tracebacks.
+    - Fast Regex-Free ANSI Escape Stripping (`strip_ansi_escapes`): Zero-allocation/fast character state scanner stripping SGR color codes, 256/24-bit truecolor sequences, and cursor commands from traceback strings and stream outputs.
+    - Language Tag & Metadata Inference: Inferred language tag from notebook `kernelspec.language` and `language_info.name` (defaulting to `python`), kernel display names, and nbformat versions.
+    - Heading-Based Outline Hierarchy Tree (`HierarchyNode`): Modeled notebook heading structure (`#`, `##`, `###`) via stack-based hierarchical tree builder, nesting code cells and output nodes cleanly under parent headings.
+    - Tabular & Cell Section Synthesis (`crates/structured-extractor/src/extractor.rs`): Emitted Summary & Overview section (`SectionKind::Prose`), cell sections (`SectionKind::Prose` for markdown/raw, `SectionKind::CodeSnippet` for code), and child output sections (`SectionKind::Prose`), with line/byte ranges, metadata attributes, and mathematical `CompletenessReport` (`discovered == extracted + excluded`).
+    - Resource & DoS Bounds (`crates/structured-extractor/src/models.rs`): Enforced `max_notebook_cells` (1,000 default), `max_output_bytes` (512 KiB default), `truncate_on_cell_limit` graceful truncation, and output line capping (`notebook_max_output_lines`).
+    - Downstream Multi-Format Export Fidelity: Validated roundtrip serialization through `web-repo-to-ai-exporters` into Markdown GFM (`verify_markdown_syntax`), HTML5 (`verify_html_syntax`), JSON CDM v1.0 (`verify_json_syntax`), JSONL (`verify_jsonl_syntax`), and Plaintext. Proved bit-for-bit extraction determinism and high throughput (< 50ms for 100 iterations).
+    - Quality & Verification: Authored 20 new integration tests across `notebook_extraction_test.rs` (4 tests), `notebook_ansi_outputs_test.rs` (6 tests), `notebook_limits_test.rs` (5 tests), and `notebook_export_fidelity_test.rs` (5 tests). Total crate tests reached 57; workspace tests reached 795+ passing tests. Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean, and 100% passing quality gates (5/5).
 
 ---
 
@@ -179,12 +190,12 @@ In Stage 10 ("Advanced Documents and Content"):
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 170 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4`, `10.3.1`, `10.3.2` |
+| `ACCEPTED` | 171 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4`, `10.3.1` – `10.3.3` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 26 | `10.3.3` – `11.4.5` |
+| `NOT_STARTED` | 25 | `10.3.4` – `11.4.5` |
 | **Total** | **196** | `Stage 0` – `Stage 11` |
 
 ---

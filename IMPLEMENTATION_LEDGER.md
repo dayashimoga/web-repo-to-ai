@@ -6383,7 +6383,79 @@
   - 37/37 tests passing in `crates/structured-extractor`.
   - 775+ tests passing across the workspace.
   - All 5 gates passed in `scripts/check-all.ps1`.
-- **Git Commit Reference:** Pending working directory commit.
+- **Git Commit Reference:** `81c1c85`
 - **Status:** `ACCEPTED`
+
+---
+
+#### Subphase `10.3.3` — Jupyter Notebook (`.ipynb`) cell extraction
+- **Unique ID:** `10.3.3`
+- **Objective:** Implement and verify Jupyter Notebook (`.ipynb` nbformat v4) interactive document parsing, cell archetype classification (`Markdown`, `Code`, `Raw`), multiline string consolidation, execution output extraction (`Stream`, `ExecuteResult`, `DisplayData`, `Error`), fast regex-free ANSI terminal escape sequence stripping, language tag and metadata inference, heading-based outline hierarchy trees, Canonical Context Document Model (`CdmDocument`) synthesis, DoS bounds, and downstream multi-format export fidelity benchmarks in `crates/structured-extractor` (`web-repo-to-ai-structured-extractor`).
+- **Scope:** `crates/structured-extractor/src/notebook.rs`, `src/models.rs`, `src/detector.rs`, `src/error.rs`, `src/extractor.rs`, `src/lib.rs`, `README.md`, and integration test suites.
+- **Prerequisites:** `10.3.2` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/structured-extractor/src/error.rs`
+  - `crates/structured-extractor/src/models.rs`
+  - `crates/structured-extractor/src/notebook.rs`
+  - `crates/structured-extractor/src/extractor.rs`
+  - `crates/structured-extractor/src/lib.rs`
+  - `crates/structured-extractor/README.md`
+  - `crates/structured-extractor/tests/notebook_extraction_test.rs`
+  - `crates/structured-extractor/tests/notebook_ansi_outputs_test.rs`
+  - `crates/structured-extractor/tests/notebook_limits_test.rs`
+  - `crates/structured-extractor/tests/notebook_export_fidelity_test.rs`
+- **Implementation Tasks:**
+  1. Add `InvalidNotebook` variant to `StructuredError`.
+  2. Implement notebook models: `NotebookCellKind` (`Markdown`, `Code`, `Raw`), `NotebookOutputType` (`Stream`, `ExecuteResult`, `DisplayData`, `Error`), `NotebookOutput`, `NotebookCell`, `NotebookMetadata`, `JupyterNotebook` with serializers (`to_markdown`, `to_summary_markdown`, cell counts).
+  3. Extend `StructuredLimits` with `max_notebook_cells`, `max_output_bytes`, `truncate_on_cell_limit`.
+  4. Extend `StructuredOptions` with `notebook_include_outputs`, `notebook_include_raw_cells`, `notebook_strip_ansi_escapes`, `notebook_max_output_lines`.
+  5. Implement `strip_ansi_escapes` character state scanner stripping ANSI SGR color sequences, truecolor (24-bit/256-color) escapes, and cursor positioning commands from tracebacks and stream text.
+  6. Implement multiline string consolidation handling both single string and array of strings representations.
+  7. Implement execution outputs parser extracting stream name, execution count, plain/HTML/image MIME data, and error tracebacks.
+  8. Implement stack-based heading outline hierarchy builder (`HierarchyNode`) mirroring Markdown heading levels (`#`, `##`, `###`) with nested code and output sections.
+  9. Integrate `convert_notebook_to_cdm` into `StructuredExtractor` generating Summary & Overview (`SectionKind::Prose`), cell sections (`SectionKind::Prose` and `SectionKind::CodeSnippet`), and child output sections, with line/byte ranges and mathematical `CompletenessReport` (`discovered == extracted + excluded`).
+  10. Author 20 integration tests verifying extraction, ANSI stripping, limits, downstream multi-format export fidelity, bit-for-bit hash determinism, and high throughput (< 50ms for 100 notebook iterations).
+- **Acceptance Criteria:**
+  - Full nbformat v4 parsing, cell classification, execution outputs extraction, and ANSI escape stripping with zero mocks or placeholders.
+  - Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean.
+  - All 57 crate tests passing; all 5 monorepo quality gates passing (`scripts/check-all.ps1`).
+- **Tests:**
+  - `notebook_extraction_test::test_notebook_format_detection`
+  - `notebook_extraction_test::test_notebook_parsing_domain_model`
+  - `notebook_extraction_test::test_notebook_to_markdown_formatting`
+  - `notebook_extraction_test::test_notebook_cdm_synthesis_and_validation`
+  - `notebook_ansi_outputs_test::test_strip_ansi_escapes_edge_cases`
+  - `notebook_ansi_outputs_test::test_error_traceback_ansi_stripping_enabled`
+  - `notebook_ansi_outputs_test::test_error_traceback_ansi_stripping_disabled`
+  - `notebook_ansi_outputs_test::test_stream_and_display_data_outputs`
+  - `notebook_ansi_outputs_test::test_notebook_exclude_outputs_toggle`
+  - `notebook_ansi_outputs_test::test_notebook_max_output_lines_capping`
+  - `notebook_limits_test::test_notebook_graceful_cell_truncation`
+  - `notebook_limits_test::test_notebook_strict_cell_limit_rejection`
+  - `notebook_limits_test::test_notebook_output_byte_limit`
+  - `notebook_limits_test::test_empty_cells_resilience`
+  - `notebook_limits_test::test_malformed_notebook_rejections`
+  - `notebook_export_fidelity_test::test_notebook_markdown_export_fidelity`
+  - `notebook_export_fidelity_test::test_notebook_html_export_fidelity`
+  - `notebook_export_fidelity_test::test_notebook_json_and_jsonl_export_fidelity`
+  - `notebook_export_fidelity_test::test_notebook_extraction_bit_for_bit_determinism`
+  - `notebook_export_fidelity_test::test_notebook_high_throughput_benchmark`
+- **Security Considerations:**
+  - Input byte bounds, notebook cell ceilings, and per-output byte caps (512 KiB) prevent memory exhaustion from giant outputs or recursive notebook bombs.
+  - ANSI escape code stripping prevents terminal manipulation, escape sequence injection, and garbled output in downstream consumption.
+  - Mathematical completeness accounting prevents silent omission or drop of notebook cells.
+- **Performance Considerations:**
+  - Single-pass JSON stream traversal and regex-free character scanner.
+  - 100 notebook extraction iterations completed in < 20ms (well under the 50ms requirement).
+  - Bit-for-bit extraction determinism proven across consecutive executions.
+- **Documentation Requirements:**
+  - Updated crate `README.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `IMPLEMENTATION_LEDGER.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Validation Evidence:**
+  - 57/57 tests passing in `crates/structured-extractor`.
+  - 795+ tests passing across the workspace.
+  - All 5 gates passed in `scripts/check-all.ps1`.
+- **Git Commit Reference:** `9f494e9`
+- **Status:** `ACCEPTED`
+
 
 

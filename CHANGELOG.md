@@ -6,6 +6,47 @@
 
 ## [Unreleased] — Stage 10: Advanced Documents and Content
 
+### 2026-11-20 — Phase 10.3: Structured documents (`10.3.3`)
+
+#### Added
+- **`[10.3.3]` Jupyter Notebook (`.ipynb`) cell extraction in `crates/structured-extractor`:**
+  - Jupyter Notebook nbformat v4 Parsing Engine (`crates/structured-extractor/src/notebook.rs`):
+    - Implemented streaming parser for `.ipynb` nbformat v4 interactive notebooks.
+    - Classified cells into strongly-typed `Markdown`, `Code`, and `Raw` archetypes (`NotebookCellKind`).
+    - Handled execution counter semantics (`execution_count: Option<u32>`) and cell metadata dictionaries.
+  - Multiline String Consolidation (`extract_multiline_string`):
+    - Normalized multiline representations across both JSON array of strings `["line1\n", "line2\n"]` and single monolithic strings `"line1\nline2"`.
+  - Execution Output Extraction:
+    - Extracted `Stream` outputs (`stdout` and `stderr` streams).
+    - Extracted `ExecuteResult` outputs with execution counter and full MIME dictionary (`text/plain`, `text/html`, `image/png`, `image/jpeg`).
+    - Extracted `DisplayData` outputs (rich visualization tables and plots).
+    - Extracted `Error` outputs (`ename`, `evalue`, and `traceback` arrays).
+  - Fast Regex-Free ANSI Terminal Escape Stripper (`strip_ansi_escapes`):
+    - Implemented character/byte state scanner stripping ANSI SGR color sequences, truecolor (24-bit/256-color) escapes, and cursor positioning commands from tracebacks and stream text.
+  - Heading-Based Outline Hierarchy Trees (`HierarchyNode`):
+    - Modeled notebook heading structure (`#`, `##`, `###`) via stack-based hierarchical tree builder, nesting code cells and output nodes cleanly under parent headings.
+  - Tabular & Cell Section Synthesis (`crates/structured-extractor/src/extractor.rs`):
+    - Emitted Summary & Overview section (`SectionKind::Prose`) with Markdown summary table and cell counts.
+    - Emitted cell sections (`SectionKind::Prose` for markdown/raw, `SectionKind::CodeSnippet` with language tags for code).
+    - Emitted child output sections (`SectionKind::Prose`) under code cells when execution outputs are present.
+    - Injected notebook section attributes (`cell_type`, `cell_index`, `execution_count`) and document metadata (`nbformat`, `kernel_name`, `language`, cell breakdown counts).
+    - Formulated mathematical `CompletenessReport` maintaining `discovered == extracted + excluded`.
+  - Resource Bounds & DoS Ceilings (`crates/structured-extractor/src/models.rs`):
+    - Enforced `max_notebook_cells` (1,000 default), `max_output_bytes` (512 KiB default), `truncate_on_cell_limit` graceful truncation, and output line capping (`notebook_max_output_lines`).
+  - Downstream Multi-Format Export Fidelity & Determinism:
+    - Validated roundtrip serialization through `web-repo-to-ai-exporters` into GitHub Flavored Markdown (`verify_markdown_syntax`), HTML5 (`verify_html_syntax`), JSON CDM v1.0 (`verify_json_syntax`), JSONL (`verify_jsonl_syntax`), and Plaintext.
+    - Proved bit-for-bit extraction determinism (BLAKE3 hash stability across consecutive extractions).
+    - Demonstrated high throughput (< 50ms for 100 notebook iterations).
+  - Integration Test Suites:
+    - Authored 20 integration tests across `notebook_extraction_test.rs` (4 tests), `notebook_ansi_outputs_test.rs` (6 tests), `notebook_limits_test.rs` (5 tests), and `notebook_export_fidelity_test.rs` (5 tests).
+  - Quality verification:
+    - 57 crate tests passing cleanly in `web-repo-to-ai-structured-extractor`.
+    - 795+ workspace tests passing across the monorepo.
+    - `cargo clippy --workspace --all-targets -- -D warnings` clean with zero warnings.
+    - `cargo fmt --all -- --check` clean with zero formatting diffs.
+    - `cargo deny check` clean (advisories ok, bans ok, licenses ok, sources ok).
+    - Monorepo quality gate (`scripts/check-all.ps1`) 100% passing across all 5 gates.
+
 ### 2026-11-20 — Phase 10.3: Structured documents (`10.3.2`)
 
 #### Added
