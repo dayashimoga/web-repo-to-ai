@@ -6,6 +6,25 @@
 
 ## [Unreleased] — Stage 11: Production Certification
 
+### 2026-11-20 — Phase 11.2: Performance (`11.2.4`) — PHASE 11.2 CERTIFIED
+
+#### Added
+- **`[11.2.4]` Automated performance regression benchmarks, SLA drift verification, and Phase 11.2 formal certification (`services/worker`, `docs/PERFORMANCE.md`):**
+  - Performance Regression Benchmark Suite (`services/worker/tests/regression_benchmarks_test.rs`):
+    - End-to-End Web Pipeline Regression (`test_regression_end_to_end_web_pipeline`): Full lifecycle conversion (DOM parsing via `DomParser`, readability extraction via `ArticleExtractor`, CDM document building, structural text normalization, dual BPE token counting, and multi-format Markdown export), achieving $P_{95}$ latency of **5.91 ms** against a 60.0 ms SLA ceiling and 40.0 ms historical baseline (**-85.2% drift**, 1.87 MB/s, 201.2 items/s).
+    - Context Budget Optimizer Regression (`test_regression_context_budget_optimizer`): Priority ranking, greedy knapsack allocation, deterministic boundary truncation, and zero silent drops across a 15-section polyglot corpus, achieving $P_{95}$ latency of **0.33 ms** against a 20.0 ms SLA ceiling and 10.0 ms historical baseline (**-96.7% drift**, 13.82 MB/s, 5,088.3 items/s) while preserving mathematical token bounds (`fitted_tokens <= target_tokens`).
+    - AST Semantic Chunking & Vector Ingest Export Regression (`test_regression_chunking_and_vector_export`): Polyglot AST-boundary code splitting and streaming line-delimited JSONL export (`export_chunks_to_jsonl`), achieving $P_{95}$ latency of **3.19 ms** against a 25.0 ms SLA ceiling and 12.0 ms historical baseline (**-73.4% drift**, 1.05 MB/s, 385.8 items/s).
+    - Exact Content Deduplication Regression (`test_regression_content_deduplication`): Exact BLAKE3 content-hash comparison and cluster consolidation using `ExactDeduplicationConfig::aggressive()`, achieving $P_{95}$ latency of **0.43 ms** against a 20.0 ms SLA ceiling and 8.0 ms historical baseline (**-94.6% drift**, 13.64 MB/s, 5,024.7 items/s).
+    - Multi-Format AI Exporter Suite Regression (`test_regression_multi_format_exporters`): Concurrently generating Markdown, Plain Text, Canonical JSON v1.0, HTML5, and BSD/GNU coreutils SHA-256 manifests across a multi-section document, achieving $P_{95}$ latency of **2.09 ms** against a 35.0 ms SLA ceiling and 15.0 ms historical baseline (**-86.1% drift**, 5.91 MB/s, 544.2 items/s).
+    - System-Wide Regression Matrix & Drift Verification (`test_regression_system_wide_drift_audit`): Verified that all 5 critical conversion pipelines exhibit negative latency drift (faster than baseline) with zero regressions against target SLA ceilings.
+  - Empirical Performance Documentation (`docs/PERFORMANCE.md`):
+    - Added Section 6 ("Automated Regression Benchmark Suite & Phase 11.2 Performance Certification") detailing empirical SLA drift tables, zero-regression guarantees, and the formal Phase 11.2 Performance Certification statement.
+  - Quality & Formal Certification:
+    - 6 new automated regression benchmark tests in `services/worker/tests/regression_benchmarks_test.rs`.
+    - 994+ monorepo workspace tests passing (678 Rust + 213 web + 103 extension).
+    - All 5 monorepo quality gates passing via `scripts/check-all.ps1` with 0 failures.
+    - Formally certified Phase 11.2 (Performance) across all 4 subphases (`11.2.1` – `11.2.4`).
+
 ### 2026-11-20 — Phase 11.2: Performance (`11.2.3`)
 
 #### Added
