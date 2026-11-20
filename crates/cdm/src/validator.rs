@@ -479,11 +479,17 @@ impl CdmValidator {
             );
         }
 
-        // Canonical URL must be valid HTTP/HTTPS
+        // Canonical URL must be valid HTTP/HTTPS (or file for document sources)
         match Url::parse(&doc.canonical_url) {
             Ok(parsed) => {
                 let scheme = parsed.scheme();
-                if scheme != "http" && scheme != "https" {
+                let is_file_allowed = matches!(
+                    doc.source_type,
+                    SourceType::DocumentPdf
+                        | SourceType::DocumentOcr
+                        | SourceType::StructuredDocument
+                );
+                if scheme != "http" && scheme != "https" && (!is_file_allowed || scheme != "file") {
                     report.add_error(
                         "CANONICAL_URL_SCHEME_INVALID",
                         format!("canonical_url scheme must be 'http' or 'https', found '{scheme}'"),
@@ -558,7 +564,7 @@ impl CdmValidator {
                     );
                 }
             }
-            SourceType::DocumentPdf | SourceType::DocumentOcr => {}
+            SourceType::DocumentPdf | SourceType::DocumentOcr | SourceType::StructuredDocument => {}
         }
 
         // Revision hash formats if present

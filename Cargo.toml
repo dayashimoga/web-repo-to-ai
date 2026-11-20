@@ -21,6 +21,7 @@ members = [
     "crates/mcp",
     "crates/pdf-extractor",
     "crates/ocr-extractor",
+    "crates/structured-extractor",
 ]
 resolver = "2"
 
@@ -67,6 +68,7 @@ web-repo-to-ai-cli = { path = "crates/cli", version = "0.1.0" }
 web-repo-to-ai-mcp = { path = "crates/mcp", version = "0.1.0" }
 web-repo-to-ai-pdf-extractor = { path = "crates/pdf-extractor", version = "0.1.0" }
 web-repo-to-ai-ocr-extractor = { path = "crates/ocr-extractor", version = "0.1.0" }
+web-repo-to-ai-structured-extractor = { path = "crates/structured-extractor", version = "0.1.0" }
 lopdf = { version = "0.47", default-features = false }
 
 # Async runtime & networking
@@ -86,6 +88,7 @@ reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"
 # Serialization & encoding
 serde = { version = "1.0", default-features = false }
 serde_json = "1.0"
+serde_yaml_ng = "0.10.0"
 regex = "1.10"
 flate2 = { version = "1.0", default-features = false, features = ["rust_backend"] }
 brotli = { version = "7.0", default-features = false, features = ["std"] }

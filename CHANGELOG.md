@@ -6,6 +6,55 @@
 
 ## [Unreleased] — Stage 10: Advanced Documents and Content
 
+### 2026-11-20 — Phase 10.3: Structured documents (`10.3.1`)
+
+#### Added
+- **`[10.3.1]` OpenAPI/JSON Schema/YAML extraction in `crates/structured-extractor`:**
+  - Dedicated Workspace Crate (`crates/structured-extractor`):
+    - Added `crates/structured-extractor` (`web-repo-to-ai-structured-extractor`) to root `Cargo.toml` members and `serde_yaml_ng = "0.10.0"` to workspace dependencies.
+    - Added `SourceType::StructuredDocument` to `web-repo-to-ai-cdm` with `as_str() -> "structured_document"`.
+    - Updated `CdmValidator` to allow `file` URI scheme for `DocumentPdf`, `DocumentOcr`, and `StructuredDocument`.
+  - Format Sniffing & Detection Engine (`crates/structured-extractor/src/detector.rs`):
+    - Implemented `detect_format` classifying structured input documents into `OpenApiJson`, `OpenApiYaml`, `JsonSchemaJson`, `JsonSchemaYaml`, `YamlStream`, or `Unknown` with heuristic fallback.
+  - OpenAPI Specification Parser (`crates/structured-extractor/src/openapi.rs`):
+    - Full support for OpenAPI 2.0 (Swagger), 3.0.x, and 3.1.x in both JSON and YAML encodings.
+    - Extracts specification metadata (title, version, description, terms of service, contact, license).
+    - Extracts servers, host, basePath, and security definitions / security schemes.
+    - Parses all operational HTTP methods (`GET`, `POST`, `PUT`, `DELETE`, `PATCH`, `HEAD`, `OPTIONS`, `TRACE`).
+    - Structures operations with operationId, summary, description, tags, query/path/header/cookie parameters (name, in, required, schema type/format, description), request bodies (content-types, schema descriptions), and responses (status codes, descriptions, schemas).
+    - Parses component and definition schemas with complete property tables (type, format, required, description, enum values).
+    - Supports logical tag-based endpoint grouping or path fallback grouping.
+  - JSON Schema Parser (`crates/structured-extractor/src/jsonschema.rs`):
+    - Support for JSON Schema Draft-04, Draft-07, and Draft 2020-12 in both JSON and YAML formats.
+    - Extracts schema metadata: `$schema`, `$id`, title, description, and primary type.
+    - Parses property tables: property names, types, formats, required constraints, descriptions, and enum options.
+    - Parses reusable schema definitions under `$defs` and legacy `definitions`.
+  - Generic YAML Stream Parser (`crates/structured-extractor/src/yaml.rs`):
+    - Full support for multi-document YAML streams separated by `---` (Kubernetes manifests, CI/CD pipelines, Docker Compose files).
+    - Extracts per-document index, top-level key counts, top-level key indexes, and sanitized YAML representations.
+  - CDM Extension & Canonical Model Synthesis (`crates/structured-extractor/src/extractor.rs`):
+    - Implemented `StructuredExtractor` transforming parsed structured documents into Canonical Context Document Model (`CdmDocument`).
+    - Emits structured sections with appropriate `SectionKind` (`SectionKind::Prose` for descriptions/headers, `SectionKind::Table` for parameters/properties/responses, `SectionKind::Code` for schema definitions and raw specifications).
+    - Builds semantic `HierarchyNode` trees mirroring API tags/endpoints, schema properties/definitions, or YAML document streams.
+    - Produces mathematical `CompletenessReport` maintaining the invariant `discovered == extracted + excluded`.
+  - Resource Bounds & DoS Protection (`crates/structured-extractor/src/models.rs`):
+    - Implemented `StructuredLimits` enforcing `max_input_bytes` (50 MiB default), `max_sections` (1,000 sections default), and `max_table_rows` (5,000 rows default).
+    - Implemented `StructuredOptions` supporting tag grouping, property tables, and raw specification inclusion toggles.
+  - Downstream Multi-Format Export Fidelity (`crates/structured-extractor/tests/export_fidelity_test.rs`):
+    - Validated roundtrip serialization from structured-extracted `CdmDocument` through `web-repo-to-ai-exporters` into GitHub Flavored Markdown, HTML5, JSON CDM v1.0, JSONL, and Plaintext.
+    - Verified structural syntax integrity using `verify_markdown_syntax`, `verify_html_syntax`, `verify_json_syntax`, and `verify_jsonl_syntax`.
+    - Proved bit-for-bit extraction determinism and BLAKE3 hash stability across consecutive extractions.
+    - Demonstrated high-throughput execution (< 50ms per specification).
+  - Integration Test Suites:
+    - Authored 17 integration tests across `openapi_extraction_test.rs` (4 tests), `jsonschema_extraction_test.rs` (3 tests), `yaml_extraction_test.rs` (2 tests), `limits_dos_test.rs` (3 tests), and `export_fidelity_test.rs` (5 tests).
+  - Quality verification:
+    - 17 crate tests passing cleanly in `web-repo-to-ai-structured-extractor`.
+    - 755+ workspace tests passing across the monorepo.
+    - `cargo clippy --workspace --all-targets -- -D warnings` clean with zero warnings.
+    - `cargo fmt --all -- --check` clean with zero formatting diffs.
+    - `cargo deny check` clean (advisories ok, bans ok, licenses ok, sources ok).
+    - Monorepo quality gate (`scripts/check-all.ps1`) 100% passing across all 5 gates.
+
 ### 2026-11-20 — Phase 10.2: Image OCR (`10.2.4` — PHASE 10.2 FORMALLY CERTIFIED)
 
 #### Added

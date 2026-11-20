@@ -16,6 +16,7 @@ unsound = "all"
 yanked = "warn"
 ignore = [
     "RUSTSEC-2026-0543", # chrono unmaintained advisory (transitive dependency of sqlx)
+    "RUSTSEC-2024-0449", # unsafe-libyaml unmaintained advisory (transitive dependency of serde_yaml_ng)
 ]
 
 [licenses]

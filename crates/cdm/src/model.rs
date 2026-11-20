@@ -30,6 +30,8 @@ pub enum SourceType {
     DocumentPdf,
     /// Optical Character Recognition (OCR) extracted image/document.
     DocumentOcr,
+    /// Structured document (OpenAPI, JSON Schema, YAML, CSV/TSV, Jupyter Notebooks).
+    StructuredDocument,
 }
 
 impl SourceType {
@@ -43,6 +45,7 @@ impl SourceType {
             Self::GitHubPrivate => "github_private",
             Self::DocumentPdf => "document_pdf",
             Self::DocumentOcr => "document_ocr",
+            Self::StructuredDocument => "structured_document",
         }
     }
 }

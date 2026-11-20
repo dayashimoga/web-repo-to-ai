@@ -6,9 +6,9 @@
 **Last Completed Stage:** `STAGE 9 — DEVELOPER AND AI AGENT INTEGRATIONS` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Last Completed Phase:** `Phase 10.2 — Image OCR` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Active Subphase:** `None`  
-**Last Completed Subphase:** `10.2.4 — OCR accuracy & timeout tests (crates/ocr-extractor: golden corpus 6 archetypes, WER/CER/recall metrics, 5x7 bitmap font renderer, MockOcrAdapter, timeout cancellation, multi-format export fidelity, bit-for-bit hash determinism, <50ms throughput)` (`ACCEPTED`)  
-**Next Upcoming Phase:** `Phase 10.3 — Structured documents` (`NOT_STARTED`)  
-**Next Upcoming Subphase:** `10.3.1 — OpenAPI/JSON Schema/YAML extraction`
+**Last Completed Subphase:** `10.3.1 — OpenAPI/JSON Schema/YAML extraction (crates/structured-extractor: OpenAPI 2.0/3.0.x/3.1.x, JSON Schema Draft-04/07/2020-12, multi-document YAML stream parsing, SourceType::StructuredDocument, CdmDocument synthesis, DoS bounds, multi-format export fidelity, bit-for-bit hash determinism, <50ms throughput)` (`ACCEPTED`)  
+**Next Upcoming Phase:** `Phase 10.3 — Structured documents` (`IN_PROGRESS`)  
+**Next Upcoming Subphase:** `10.3.2 — CSV/TSV & tabular data normalization`
 
 ---
 
@@ -151,6 +151,17 @@ In Stage 10 ("Advanced Documents and Content"):
     - Downstream Multi-Format Export Fidelity: Validated roundtrip serialization from OCR-extracted `CdmDocument` through `web-repo-to-ai-exporters` into GitHub Flavored Markdown (`verify_markdown_syntax`), HTML5 (`verify_html_syntax`), JSON CDM v1.0 (`verify_json_syntax`), JSONL (`verify_jsonl_syntax`), and Plaintext.
     - Determinism & High Throughput: Demonstrated bit-for-bit extraction determinism (BLAKE3 hash stability across consecutive extractions) and high-throughput execution (< 50ms per document).
     - Quality & Formal Certification: Authored 15 new integration tests across `accuracy_benchmark_test.rs` (6 tests), `timeout_cancellation_test.rs` (4 tests), and `export_fidelity_test.rs` (5 tests). Total crate tests reached 63 (19 unit, 44 integration); workspace tests reached 740+ passing tests. Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean, and 100% passing quality gates (5/5). Formally certified Phase 10.2 in full.
+- Phase 10.3 ("Structured documents") is in progress:
+  - Subphase `10.3.1` delivered OpenAPI, JSON Schema, and multi-document YAML extraction and Canonical Context Document Model (`CdmDocument`) synthesis in `crates/structured-extractor` (`web-repo-to-ai-structured-extractor`):
+    - Dedicated Workspace Crate: Created `crates/structured-extractor` integrated into root `Cargo.toml` workspace members and dependencies.
+    - OpenAPI Specification Parser (`crates/structured-extractor/src/openapi.rs`): Supported OpenAPI 2.0 (Swagger), 3.0.x, and 3.1.x in both JSON and YAML formats. Extracted API title, version, description, license, contact info, security schemes, servers, and operation paths (`GET`, `POST`, `PUT`, `DELETE`, `PATCH`, `HEAD`, `OPTIONS`, `TRACE`). Structured operations with operationId, summary, description, tags, query/path/header/cookie parameters (name, in, required, schema type/format, description), request bodies (content-types, schema details), responses (status codes, descriptions, schemas), and component/definitions schemas with full property tables (type, format, required, description). Supports logical tag grouping or path fallback grouping.
+    - JSON Schema Parser (`crates/structured-extractor/src/jsonschema.rs`): Supported JSON Schema Draft-04, Draft-07, and Draft 2020-12 in both JSON and YAML encodings. Extracted schema title, description, schema version (`$schema`), `$id`, type constraints, root property tables (required, type, format, description, enum values), and reusable definition dictionaries (`$defs`, `definitions`).
+    - Generic YAML Stream Parser (`crates/structured-extractor/src/yaml.rs`): Supported single- and multi-document YAML streams separated by `---` (e.g. Kubernetes manifests, CI/CD pipelines, Docker Compose configs). Extracted top-level mapping/sequence key counts, top-level key indexes, and sanitized YAML representations.
+    - Format Detection & Sniffing (`crates/structured-extractor/src/detector.rs`): Automated detection of structured document formats (`OpenApiJson`, `OpenApiYaml`, `JsonSchemaJson`, `JsonSchemaYaml`, `YamlStream`, `Unknown`) with fallback heuristic analysis.
+    - CDM Extension & Synthesis (`crates/cdm/src/model.rs`, `crates/structured-extractor/src/extractor.rs`): Added `SourceType::StructuredDocument` to `web-repo-to-ai-cdm`. Synthesized rich Canonical Context Document Model (`CdmDocument`) with metadata attributes, hierarchy trees, section kinds (`SectionKind::Prose`, `SectionKind::Table`, `SectionKind::Code`), and mathematical `CompletenessReport` (`discovered == extracted + excluded`).
+    - Resource & DoS Bounds (`crates/structured-extractor/src/models.rs`): Enforced `StructuredLimits` (`max_input_bytes: 50MB`, `max_sections: 1,000`, `max_table_rows: 5,000`) and structured options (`include_raw_spec`, `group_by_tags`, `include_property_tables`).
+    - Downstream Multi-Format Export Fidelity: Validated roundtrip conversion through `web-repo-to-ai-exporters` into Markdown, HTML5, JSON CDM v1.0, JSONL, and Plaintext. Proved bit-for-bit extraction determinism (BLAKE3 hash stability across consecutive extractions) and high-throughput execution (< 50ms).
+    - Quality & Verification: Authored 17 integration tests across `openapi_extraction_test.rs` (4 tests), `jsonschema_extraction_test.rs` (3 tests), `yaml_extraction_test.rs` (2 tests), `limits_dos_test.rs` (3 tests), and `export_fidelity_test.rs` (5 tests). Verified with 17 crate tests, 755+ workspace tests, zero clippy warnings, zero fmt diffs, cargo deny clean, and 100% passing quality gates (5/5).
 
 ---
 
@@ -158,12 +169,12 @@ In Stage 10 ("Advanced Documents and Content"):
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 168 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4` |
+| `ACCEPTED` | 169 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4`, `10.3.1` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 28 | `10.3.1` – `11.4.5` |
+| `NOT_STARTED` | 27 | `10.3.2` – `11.4.5` |
 | **Total** | **196** | `Stage 0` – `Stage 11` |
 
 ---

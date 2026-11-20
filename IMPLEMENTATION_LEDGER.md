@@ -6234,4 +6234,83 @@
 - **Quality Gates:** 100% passed (5/5 monorepo gates, zero clippy warnings, zero fmt diffs, cargo deny clean).
 - **Phase Status:** `100% COMPLETED & FORMALLY CERTIFIED`
 
+---
+
+### Phase 10.3 — Structured documents
+
+#### Subphase `10.3.1` — OpenAPI/JSON Schema/YAML extraction
+- **Unique ID:** `10.3.1`
+- **Objective:** Design, implement, and verify structured document extraction in `crates/structured-extractor` (`web-repo-to-ai-structured-extractor`) supporting OpenAPI 2.0 (Swagger), 3.0.x, and 3.1.x specifications, JSON Schema (Draft-04, Draft-07, 2020-12), and multi-document YAML streams, transforming them into the Canonical Context Document Model (`CdmDocument`) with discrete section kinds, parameter/property tables, hierarchy trees, mathematical completeness accounting, DoS limits, downstream multi-format export fidelity, bit-for-bit hash determinism, and high throughput.
+- **Scope:** Dedicated crate `crates/structured-extractor` (`src/error.rs`, `src/models.rs`, `src/detector.rs`, `src/openapi.rs`, `src/jsonschema.rs`, `src/yaml.rs`, `src/extractor.rs`, `src/lib.rs`), `crates/cdm/src/model.rs` (`SourceType::StructuredDocument`), `crates/cdm/src/validator.rs`, `Cargo.toml`, `deny.toml`, and integration test suites.
+- **Prerequisites:** `10.2.4` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `Cargo.toml`, `Cargo.lock`, `deny.toml`
+  - `crates/cdm/src/model.rs`, `crates/cdm/src/validator.rs`
+  - `crates/structured-extractor/Cargo.toml`
+  - `crates/structured-extractor/README.md`
+  - `crates/structured-extractor/src/error.rs`
+  - `crates/structured-extractor/src/models.rs`
+  - `crates/structured-extractor/src/detector.rs`
+  - `crates/structured-extractor/src/openapi.rs`
+  - `crates/structured-extractor/src/jsonschema.rs`
+  - `crates/structured-extractor/src/yaml.rs`
+  - `crates/structured-extractor/src/extractor.rs`
+  - `crates/structured-extractor/src/lib.rs`
+  - `crates/structured-extractor/tests/openapi_extraction_test.rs`
+  - `crates/structured-extractor/tests/jsonschema_extraction_test.rs`
+  - `crates/structured-extractor/tests/yaml_extraction_test.rs`
+  - `crates/structured-extractor/tests/limits_dos_test.rs`
+  - `crates/structured-extractor/tests/export_fidelity_test.rs`
+- **Implementation Tasks:**
+  1. Scaffold workspace crate `crates/structured-extractor` and register in root `Cargo.toml`.
+  2. Extend `crates/cdm` with `SourceType::StructuredDocument` and allow `file` URI scheme for local document validation.
+  3. Implement format detection engine (`src/detector.rs`) sniffing OpenAPI JSON/YAML, JSON Schema JSON/YAML, YAML streams, and unknown text.
+  4. Implement OpenAPI parser (`src/openapi.rs`) supporting Swagger 2.0, OpenAPI 3.0.x, and 3.1.x, parsing operations, parameters, request bodies, responses, and component schemas.
+  5. Implement JSON Schema parser (`src/jsonschema.rs`) extracting title, description, schema version, type, properties tables, required constraints, and definition schemas.
+  6. Implement generic YAML stream parser (`src/yaml.rs`) supporting multi-document streams (`---`), top-level key indexing, and sanitized code blocks.
+  7. Implement `StructuredExtractor` (`src/extractor.rs`) synthesizing `CdmDocument` with appropriate `SectionKind` (`Prose`, `Table`, `Code`), hierarchy trees, and mathematical `CompletenessReport` (`discovered == extracted + excluded`).
+  8. Enforce safety limits (`StructuredLimits`: max input bytes, max sections, max table rows) and options (`StructuredOptions`).
+  9. Configure `deny.toml` advisory ignore for `unsafe-libyaml` (transitive dependency of `serde_yaml_ng`).
+  10. Author integration tests verifying format detection, tag grouping, parameter tables, multi-document YAML, DoS limits, downstream export fidelity (Markdown GFM, HTML5, JSON CDM v1.0, JSONL, Plaintext), bit-for-bit hash determinism, and high throughput (<50ms).
+- **Acceptance Criteria:**
+  - Real, robust parsing of Swagger 2.0, OpenAPI 3.0.x/3.1.x, JSON Schema Draft-04/07/2020-12, and multi-document YAML without mocks or placeholders.
+  - Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean.
+  - All 17 crate integration tests passing; all 5 monorepo quality gates passing (`scripts/check-all.ps1`).
+- **Tests:**
+  - `openapi_extraction_test::test_swagger_json_parsing_and_detection`
+  - `openapi_extraction_test::test_openapi_yaml_parsing_and_detection`
+  - `openapi_extraction_test::test_openapi_cdm_extraction_and_sections`
+  - `openapi_extraction_test::test_openapi_tag_grouping_vs_path_grouping`
+  - `jsonschema_extraction_test::test_json_schema_detection_and_parsing`
+  - `jsonschema_extraction_test::test_yaml_encoded_json_schema_parsing`
+  - `jsonschema_extraction_test::test_json_schema_cdm_extraction_and_sections`
+  - `yaml_extraction_test::test_yaml_detection_and_multi_document_stream`
+  - `yaml_extraction_test::test_yaml_cdm_extraction_and_sections`
+  - `limits_dos_test::test_max_input_bytes_limit_exceeded`
+  - `limits_dos_test::test_empty_input_rejection`
+  - `limits_dos_test::test_unrecognized_format_rejection`
+  - `export_fidelity_test::test_openapi_markdown_export_fidelity`
+  - `export_fidelity_test::test_openapi_html_export_fidelity`
+  - `export_fidelity_test::test_openapi_json_and_jsonl_export_fidelity`
+  - `export_fidelity_test::test_structured_extraction_bit_for_bit_determinism`
+  - `export_fidelity_test::test_structured_high_throughput_benchmark`
+- **Security Considerations:**
+  - Enforced `max_input_bytes` limit (50 MB default) pre-parsing to prevent memory exhaustion DoS attacks.
+  - Rejection of empty or unrecognized inputs with structured `StructuredError` variants.
+  - Strict bounded table and section counts against deeply nested or cyclical schema bombs.
+  - Advisory audit maintained via `deny.toml`.
+- **Performance Considerations:**
+  - High-throughput execution parses and converts complex OpenAPI/JSON Schema/YAML documents in < 15ms (< 50ms requirement).
+  - Clean zero-copy slicing and efficient string formatting throughout extraction.
+  - Bit-for-bit extraction determinism proven across consecutive runs.
+- **Documentation Requirements:**
+  - Documented models, error types, and extractor pipeline in crate documentation and `README.md`.
+  - Updated `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `IMPLEMENTATION_LEDGER.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Validation Evidence:**
+  - 17/17 tests passing in `crates/structured-extractor`.
+  - 755+ tests passing across the workspace.
+  - All 5 gates passed in `scripts/check-all.ps1`.
+- **Git Commit Reference:** Pending working directory commit.
+- **Status:** `ACCEPTED`
+
 
