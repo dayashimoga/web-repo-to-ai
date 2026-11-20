@@ -91,14 +91,14 @@
   - `8.3` Incremental processing (`8.3.1`–`8.3.4` [ACCEPTED — PHASE 8.3 CERTIFIED])
   - `8.4` Scalability (`8.4.1` [ACCEPTED], `8.4.2` [ACCEPTED], `8.4.3` [ACCEPTED], `8.4.4` [ACCEPTED — PHASE 8.4 & STAGE 8 CERTIFIED])
 
-### STAGE 9 — DEVELOPER AND AI AGENT INTEGRATIONS (`IN_PROGRESS`)
+### STAGE 9 — DEVELOPER AND AI AGENT INTEGRATIONS (`COMPLETED` / `ACCEPTED`)
 - **Deliverable:** Reusable developer-facing conversion platform (REST API, CLI, MCP server, browser extension foundation).
 - **Stage Acceptance Gate:** Functioning integrations powered by the same production Rust extraction engine.
 - **Phases:**
   - `9.1` REST API (`9.1.1` [ACCEPTED], `9.1.2` [ACCEPTED], `9.1.3` [ACCEPTED], `9.1.4` [ACCEPTED] — **PHASE 9.1 CERTIFIED**)
   - `9.2` CLI (`9.2.1` [ACCEPTED], `9.2.2` [ACCEPTED], `9.2.3` [ACCEPTED], `9.2.4` [ACCEPTED] — **PHASE 9.2 CERTIFIED**)
   - `9.3` MCP (`9.3.1` [ACCEPTED], `9.3.2` [ACCEPTED], `9.3.3` [ACCEPTED], `9.3.4` [ACCEPTED — PHASE 9.3 CERTIFIED])
-  - `9.4` Browser integration (`9.4.1` – `9.4.4`)
+  - `9.4` Browser integration (`9.4.1` [ACCEPTED], `9.4.2` [ACCEPTED], `9.4.3` [ACCEPTED], `9.4.4` [ACCEPTED] — **PHASE 9.4 & STAGE 9 CERTIFIED**)
 
 ### STAGE 10 — ADVANCED DOCUMENTS AND CONTENT
 - **Deliverable:** Extended document extraction capabilities (PDF, OCR, structured specs/notebooks, RAG chunks, optional AI adapters).

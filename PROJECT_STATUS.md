@@ -2,12 +2,12 @@
 
 **Project:** `web-repo-to-ai` (Universal URL & GitHub Repository → AI-Ready Content Converter)  
 **Last Updated:** 2026-11-19  
-**Current Stage:** `STAGE 9 — DEVELOPER AND AI AGENT INTEGRATIONS` (`IN_PROGRESS`)  
-**Last Completed Stage:** `STAGE 8 — LARGE REPOSITORIES, BATCH AND CRAWLING` (`100% COMPLETED & FORMALLY CERTIFIED`)  
-**Last Completed Phase:** `Phase 9.3 — MCP` (`100% COMPLETED & FORMALLY CERTIFIED`)  
+**Current Stage:** `STAGE 10 — ADVANCED DOCUMENTS AND CONTENT` (`NOT_STARTED`)  
+**Last Completed Stage:** `STAGE 9 — DEVELOPER AND AI AGENT INTEGRATIONS` (`100% COMPLETED & FORMALLY CERTIFIED`)  
+**Last Completed Phase:** `Phase 9.4 — Browser integration` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Active Subphase:** `None`  
-**Last Completed Subphase:** `9.4.3 — Result handoff (apps/extension: One-click clipboard copy, multi-format file download, and Web UI workspace deep-link navigation)` (`ACCEPTED`)  
-**Next Upcoming Subphase:** `9.4.4 — Extension security (apps/extension: Strict CSP enforcement, host permission boundaries, secret redaction, and Phase 9.4 formal certification)`
+**Last Completed Subphase:** `9.4.4 — Extension security (apps/extension: Strict CSP enforcement, host permission boundaries, secret redaction, and Phase 9.4 formal certification)` (`ACCEPTED`)  
+**Next Upcoming Subphase:** `10.1.1 — PDF parser & layout extraction (crates/pdf-extractor: Scaffolding, PDF document structure parsing, text flow and page bounding)`
 
 ---
 
@@ -62,7 +62,7 @@ In Stage 9 ("Developer and AI Agent Integrations"):
       6. Multi-client concurrent execution & thread safety (20 concurrent tasks executing simultaneous `ping`, `tools/list`, `resources/list`, and `tools/call` over shared client handle without race conditions or error).
     - Verified all 39 MCP tests passing (1 unit, 38 integration), all 656 workspace tests passing, zero clippy warnings, zero fmt diffs, cargo deny clean, and 100% passing quality gates (5/5). Formally certified Phase 9.3.
 
-- Phase 9.4 ("Browser integration") is in progress:
+- Phase 9.4 ("Browser integration") is 100% complete across all 4 subphases and formally certified:
   - Subphase `9.4.1` delivered `apps/extension` establishing the WebExtensions Manifest V3 architecture:
     - Scaffolding & Manifest: Defined Manifest V3 specification (`apps/extension/manifest.json`) targeting modern Chrome, Edge, and Firefox, configuring background service worker, options UI, action popup, permissions (`storage`, `activeTab`, `scripting`), host permissions (`http://localhost:*/*`, `http://127.0.0.1:*/*`), and generated pixel-accurate 16x16, 48x48, and 128x128 brand PNG icons.
     - Configuration & Storage: Implemented `src/storage/config.ts` providing typed schema (`ExtensionConfig`, `DEFAULT_CONFIG`), validation rules (`validateConfig`), and dual-layer persistence using `chrome.storage.sync` with automatic fallback to `chrome.storage.local` and in-memory test fallback. Supports configurable API URL, optional API key, default export format (`markdown`, `txt`, `json`, `html`, `jsonl`, `zip`), token budget presets, model targets (`gpt-4o`, `claude-3-5-sonnet`, `gemini-1-5-pro`, `generic`), source auto-detection, YAML frontmatter, and DOM fallback toggles.
@@ -84,6 +84,12 @@ In Stage 9 ("Developer and AI Agent Integrations"):
     - Conversion History Persistence: Implemented `src/storage/history.ts` storing conversion records (`HistoryItem`) with deduplication, ceiling limit (20 items), newest-first sorting, item removal, and full history clearing using `chrome.storage.local`.
     - Background Service Worker & Popup Integration: Enhanced `src/background/index.ts` with automatic history recording upon conversion completion and message routing for `GET_HISTORY`, `SAVE_HISTORY_ITEM`, `CLEAR_HISTORY`, `COPY_TO_CLIPBOARD`, `DOWNLOAD_ARTIFACT`, and `NAVIGATE_WORKSPACE`. Transformed `src/popup/` adding "✨ Copy as AI Prompt" alongside "📋 Copy Raw Content", and a collapsible "Recent Conversions" section with one-click deep-link and copy actions.
     - Quality & Verification: Authored 2 new test suites (`tests/handoff.test.ts`, `tests/history.test.ts`) and updated `tests/popup.test.ts`. Verified with 86 extension tests, 213 web tests, 656 Rust tests, Vite build (199ms), TypeScript typecheck clean, Prettier clean, zero cargo deny violations, and 100% passing quality gates (5/5).
+  - Subphase `9.4.4` delivered strict Manifest V3 Content Security Policy (CSP) enforcement, host permission boundaries, secret redaction, and Phase 9.4 formal certification:
+    - Manifest V3 Content Security Policy: Configured explicit `content_security_policy` in `apps/extension/manifest.json` (`"extension_pages": "script-src 'self'; object-src 'self'; worker-src 'self'"`), barring `unsafe-inline` and `unsafe-eval`. Verified zero inline `<script>` tags across all extension HTML pages.
+    - Host Permission Boundaries & URL Validation: Implemented `src/security/policy.ts` defining `isPrivilegedUrl` blocking internal/privileged browser URLs (`chrome://`, `chrome-extension://`, `edge://`, `about:`, `devtools://`, `view-source:`, `javascript:`, `data:`, `file:`), `isSafeHttpUrl` rejecting control characters, CRLF injection, and null bytes, `validateApiBaseUrl` preventing user credentials and fragment injections, and `validateTargetUrl`. Integrated into `captureActiveTabDOM` to safely abort execution on internal tabs without unhandled exceptions.
+    - Secret Redaction & Protection: Implemented `src/security/redaction.ts` providing `maskApiKey` (masking `wr_live_` keys and generic tokens), `sanitizeError` (redacting API keys, Bearer tokens, HTTP basic auth user:pass credentials, and token query parameters from error objects/strings), `sanitizeLog`, and `isSensitiveHeader`. Integrated into background message routers, options connection probes, and popup error displays.
+    - DOM & HTML Sanitization against XSS: Implemented `src/security/sanitizer.ts` (`escapeHtml`, `stripDangerousAttributes`, `sanitizeHtmlContent`) stripping dangerous tags (`<script>`, `<style>`, `<iframe>`, `<object>`, `<embed>`, `<svg>`, `<audio>`, `<video>`, `<form>`, `<input>`), inline `on*` event handlers, and `javascript:`/`vbscript:`/`data:text/html`/`srcdoc` attributes.
+    - Quality & Formal Certification: Authored comprehensive test suite `tests/security.test.ts` with 17 unit tests across CSP verification, privileged URL boundaries, secret redaction, and DOM sanitization. Verified with 103 extension tests, 213 web tests, 656 Rust tests, Vite build (226ms), TypeScript clean, Prettier clean, zero cargo deny violations, and 100% passing quality gates (5/5). Formally certified Phase 9.4 and completed Stage 9 in full.
 
 ---
 
@@ -91,12 +97,12 @@ In Stage 9 ("Developer and AI Agent Integrations"):
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 159 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.3` |
+| `ACCEPTED` | 160 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 37 | `9.4.4` – `11.4.5` |
+| `NOT_STARTED` | 36 | `10.1.1` – `11.4.5` |
 | **Total** | **196** | `Stage 0` – `Stage 11` |
 
 ---

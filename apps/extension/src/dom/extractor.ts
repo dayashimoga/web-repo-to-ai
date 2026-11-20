@@ -1,5 +1,7 @@
 // DOM and Metadata Extraction Engine for web-repo-to-ai Browser Extension
 
+import { isPrivilegedUrl } from "../security/policy";
+import { stripDangerousAttributes } from "../security/sanitizer";
 import { PageHeading, PageSnapshot } from "../types/index";
 
 /**
@@ -36,15 +38,10 @@ export function sanitizeDocumentContent(doc: Document): {
     elements.forEach((el) => el.parentNode?.removeChild(el));
   }
 
-  // Remove inline event handlers
+  // Remove inline event handlers and dangerous attributes (javascript:, on*, srcdoc)
   const allElements = root.querySelectorAll("*");
   allElements.forEach((el) => {
-    const attrs = Array.from(el.attributes || []);
-    for (const attr of attrs) {
-      if (attr.name.toLowerCase().startsWith("on")) {
-        el.removeAttribute(attr.name);
-      }
-    }
+    stripDangerousAttributes(el);
   });
 
   const html = root.innerHTML.trim();
@@ -110,7 +107,19 @@ export function extractDOMFromDocument(doc: Document, fallbackUrl?: string): Pag
  * Captures the sanitized DOM snapshot and metadata from the given tab ID
  * using chrome.scripting.executeScript.
  */
-export async function captureActiveTabDOM(tabId?: number): Promise<PageSnapshot> {
+export async function captureActiveTabDOM(tabId?: number, tabUrl?: string): Promise<PageSnapshot> {
+  if (tabUrl && isPrivilegedUrl(tabUrl)) {
+    return {
+      url: tabUrl,
+      title: "Internal Browser Page",
+      html: "",
+      textContent: "",
+      charCount: 0,
+      estimatedTokens: 0,
+      headings: [],
+      capturedAt: new Date().toISOString(),
+    };
+  }
   if (
     typeof chrome !== "undefined" &&
     chrome.scripting &&

@@ -5729,6 +5729,53 @@
   - All 5 monorepo quality gates pass with 0 failures.
 - **Status:** `ACCEPTED`
 
+#### Subphase `9.4.4` — Extension security
+- **Unique ID:** `9.4.4`
+- **Objective:** Implement strict Manifest V3 Content Security Policy (CSP) enforcement, host permission boundaries, secret redaction, and complete Phase 9.4 formal certification in `apps/extension`.
+- **Scope:** `apps/extension/manifest.json`, `apps/extension/src/security/*`, `apps/extension/src/dom/*`, `apps/extension/src/background/*`, `apps/extension/src/storage/*`, `apps/extension/src/popup/*`, `apps/extension/src/options/*`, `apps/extension/tests/*`, and project tracking ledgers.
+- **Prerequisites:** Subphase `9.4.3` (Result handoff) ACCEPTED.
+- **Files/Components Affected:**
+  - `apps/extension/manifest.json`: Added `content_security_policy` with `"extension_pages": "script-src 'self'; object-src 'self'; worker-src 'self'"`, barring `unsafe-inline` and `unsafe-eval`. Verified minimized permissions (`storage`, `activeTab`, `scripting`, `downloads`).
+  - `apps/extension/src/security/policy.ts`: Implemented `isPrivilegedUrl` (detecting `chrome:`, `chrome-extension:`, `edge:`, `about:`, `devtools:`, `view-source:`, `javascript:`, `data:`, `file:`), `isSafeHttpUrl` (rejecting control chars, CRLF, and null bytes), `validateApiBaseUrl` (blocking user credentials, fragments, and traversal), and `validateTargetUrl`.
+  - `apps/extension/src/security/redaction.ts`: Implemented `maskApiKey` (masking `wr_live_` keys and generic tokens), `sanitizeError` (redacting API keys, Bearer tokens, HTTP basic auth user:pass, and URL query tokens from errors), `sanitizeLog`, and `isSensitiveHeader`.
+  - `apps/extension/src/security/sanitizer.ts`: Implemented `escapeHtml`, `stripDangerousAttributes` (stripping inline event handlers `on*`, `javascript:`/`vbscript:`/`data:text/html` URLs, and `srcdoc`), and `sanitizeHtmlContent` (stripping dangerous tags `<script>`, `<style>`, `<iframe>`, `<object>`, `<embed>`, `<svg>`, `<audio>`, `<video>`, `<form>`, `<input>`).
+  - `apps/extension/src/security/index.ts`: Barrel export module for extension security.
+  - `apps/extension/src/dom/extractor.ts`: Enhanced `sanitizeDocumentContent` with `stripDangerousAttributes`; updated `captureActiveTabDOM` to abort on privileged URLs without attempting script injection.
+  - `apps/extension/src/background/index.ts`: Integrated `isPrivilegedUrl`, `validateTargetUrl`, and `sanitizeError` across `classifyUrl`, `checkBackendStatus`, `START_CONVERSION`, and top-level message handlers.
+  - `apps/extension/src/storage/config.ts`: Integrated `validateApiBaseUrl` into `validateConfig`.
+  - `apps/extension/src/popup/popup.ts`: Integrated `sanitizeError` for backend offline status and conversion failures.
+  - `apps/extension/src/options/options.ts`: Integrated `sanitizeError` for connection test errors.
+  - `apps/extension/tests/security.test.ts`: 17 comprehensive unit tests across CSP policy, permission boundaries, secret redaction, XSS sanitization, and integration defenses.
+- **Implementation Tasks:**
+  1. Configured Manifest V3 CSP in `manifest.json`.
+  2. Implemented security policy utilities in `src/security/policy.ts`.
+  3. Implemented secret redaction and masking in `src/security/redaction.ts`.
+  4. Implemented DOM and HTML XSS sanitizers in `src/security/sanitizer.ts`.
+  5. Created barrel exports in `src/security/index.ts`.
+  6. Integrated security utilities into extractor, background service worker, config storage, popup, and options.
+  7. Authored comprehensive security test suite in `tests/security.test.ts` (17 tests, 103 total in extension).
+  8. Verified full test pipeline, Vite build, TypeScript typecheck, and Prettier formatting.
+  9. Executed monorepo quality gate (`scripts/check-all.ps1`) with 100% passing results.
+  10. Formally certified Phase 9.4 and completed Stage 9 in full.
+- **Verification Commands:**
+  - `npm test` in `apps/extension` (103 unit tests passing)
+  - `npm run build` in `apps/extension` (Vite build successful in 226ms)
+  - `npm run typecheck` in `apps/extension` (tsc --noEmit clean)
+  - `npm run lint` in `apps/extension` (Prettier clean)
+  - `powershell scripts/check-all.ps1` (All 5 gates passed with 0 failures)
+- **Acceptance Criteria:**
+  - Manifest V3 CSP strictly enforces script-src 'self' and object-src 'self' with zero inline scripts.
+  - Privileged and internal browser URLs are completely blocked from script injection and conversion.
+  - API Base URLs reject embedded user credentials, URL fragments, and non-HTTP protocols.
+  - API keys, Bearer tokens, and auth credentials are masked in logs and redacted from errors.
+  - DOM sanitization neutralizes XSS vectors, event handlers, and active script elements.
+  - Zero-mock policy enforced across all extension components.
+  - All 103 extension tests, 213 web tests, and 656 workspace tests pass cleanly.
+  - Disk space constraint satisfied ($\ge 70$ GB free on `C:`).
+  - All 5 monorepo quality gates pass with 0 failures.
+- **Status:** `ACCEPTED`
+
+
 
 
 

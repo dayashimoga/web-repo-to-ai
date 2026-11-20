@@ -1,5 +1,6 @@
 // Options page controller for web-repo-to-ai browser extension
 
+import { sanitizeError } from "../security/redaction";
 import {
   BackendStatus,
   DEFAULT_CONFIG,
@@ -150,7 +151,9 @@ export async function testConnection(elements: OptionsFormElements): Promise<Bac
       return res.data;
     } else {
       elements.connectionStatus.className = "status-badge offline";
-      const errMsg = (res.success && res.data.error) || (!res.success && res.error) || "Offline";
+      const errMsg = sanitizeError(
+        (res.success && res.data.error) || (!res.success && res.error) || "Offline"
+      );
       elements.connectionStatus.textContent = `Offline: ${errMsg}`;
       return res.success ? res.data : { connected: false, error: res.error };
     }

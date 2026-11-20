@@ -6,6 +6,42 @@
 
 ## [Unreleased] — Stage 9: Developer and AI Agent Integrations
 
+### 2026-11-19 — Phase 9.4: Browser integration (`9.4.4`)
+
+#### Added
+- **`[9.4.4]` Extension security in `apps/extension` — Phase 9.4 & Stage 9 Certified:**
+  - Manifest V3 Content Security Policy (CSP):
+    - Configured explicit MV3 `content_security_policy` in `apps/extension/manifest.json` (`"extension_pages": "script-src 'self'; object-src 'self'; worker-src 'self'"`).
+    - Barred `unsafe-inline` and `unsafe-eval` across all extension contexts.
+    - Verified 0 inline scripts in popup (`src/popup/index.html`) and options (`src/options/index.html`).
+    - Verified permission minimization to least privilege (`storage`, `activeTab`, `scripting`, `downloads`).
+  - Host permission boundaries & URL validation (`apps/extension/src/security/policy.ts`):
+    - `isPrivilegedUrl`: Detects and flags privileged browser schemes (`chrome:`, `chrome-extension:`, `edge:`, `about:`, `devtools:`, `view-source:`, `javascript:`, `data:`, `file:`).
+    - `isSafeHttpUrl`: Restricts target protocols to `http:` and `https:`, rejecting null bytes, control characters, and CRLF injections.
+    - `validateApiBaseUrl`: Validates user-configured backend endpoints, blocking user credentials (`user:pass@`), URL fragments (`#`), non-HTTP schemes, and directory traversal.
+    - `validateTargetUrl`: Prevents script injection or conversion dispatch against privileged or internal tabs.
+    - Integrated into `captureActiveTabDOM` to safely abort execution on internal browser tabs without unhandled exceptions.
+  - Secret redaction & credential protection (`apps/extension/src/security/redaction.ts`):
+    - `maskApiKey`: Masks API keys (`wr_live_••••<last4>`) and generic bearer tokens for safe presentation.
+    - `sanitizeError`: Strips `wr_live_` keys, `Bearer` tokens, HTTP basic auth user:pass credentials, and URL query tokens from errors and exception messages.
+    - `sanitizeLog`: Removes secrets from console logs and runtime diagnostic output.
+    - `isSensitiveHeader`: Identifies credential headers (`Authorization`, `X-API-Key`, `Cookie`, `Proxy-Authorization`).
+    - Integrated into `checkBackendStatus`, `START_CONVERSION`, and popup error displays.
+  - DOM & HTML sanitization against XSS vectors (`apps/extension/src/security/sanitizer.ts`):
+    - `escapeHtml`: Safely escapes HTML control characters (`&`, `<`, `>`, `"`, `'`).
+    - `stripDangerousAttributes`: Removes inline `on*` event handlers, `javascript:`/`vbscript:`/`data:text/html` protocols, and `srcdoc` attributes.
+    - `sanitizeHtmlContent`: Robustly removes executable script tags (`<script>`, `<style>`, `<iframe>`, `<object>`, `<embed>`, `<svg>`, `<audio>`, `<video>`, `<form>`, `<input>`) in detached DOM or regex fallback.
+  - Comprehensive security test suite (`apps/extension/tests/security.test.ts`):
+    - Authored 17 comprehensive unit tests across CSP verification, privileged URL boundaries, secret redaction, and DOM sanitization.
+    - Total extension test suite expanded to 103 tests passing in 749ms.
+  - Quality verification:
+    - 103 extension tests passing, 213 web tests passing, 656 Rust tests passing.
+    - Vite multi-page extension build passing in 226ms.
+    - TypeScript strict typecheck (`tsc --noEmit`) clean with zero errors.
+    - Prettier code style check clean across all files.
+    - Monorepo quality gate (`scripts/check-all.ps1`) 100% passing across all 5 gates.
+    - Formally Certified Phase 9.4 and completed Stage 9 in full.
+
 ### 2026-11-19 — Phase 9.4: Browser integration (`9.4.3`)
 
 #### Added

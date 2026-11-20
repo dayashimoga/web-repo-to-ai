@@ -5,6 +5,8 @@ import { ConversionStateMachine } from "../conversion/state";
 import { captureActiveTabDOM } from "../dom/extractor";
 import { copyToClipboard } from "../handoff/clipboard";
 import { navigateToUrl } from "../handoff/deeplink";
+import { isPrivilegedUrl, validateTargetUrl } from "../security/policy";
+import { sanitizeError, sanitizeLog } from "../security/redaction";
 import { loadConfig, resetConfig, saveConfig } from "../storage/config";
 import { addHistoryItem, clearHistory, loadHistory } from "../storage/history";
 import {
@@ -45,14 +47,8 @@ export function classifyUrl(urlString: string): SourceClassification {
     };
   }
 
-  // Unsupported browser internal schemes
-  if (
-    parsed.protocol === "chrome:" ||
-    parsed.protocol === "chrome-extension:" ||
-    parsed.protocol === "about:" ||
-    parsed.protocol === "edge:" ||
-    parsed.protocol === "file:"
-  ) {
+  // Unsupported or privileged browser internal schemes
+  if (isPrivilegedUrl(urlString)) {
     return {
       archetype: "unknown",
       displayName: "Internal Browser Page",
@@ -231,7 +227,7 @@ export async function checkBackendStatus(apiUrl?: string, apiKey?: string): Prom
     return {
       connected: false,
       latencyMs,
-      error: err.message || "Failed to reach web-repo-to-ai backend",
+      error: sanitizeError(err.message || "Failed to reach web-repo-to-ai backend"),
     };
   }
 }
@@ -332,16 +328,16 @@ export async function handleMessage(message: ExtensionMessage): Promise<Extensio
       case "CAPTURE_DOM": {
         const tab = await getActiveTab();
         const tabId = message.tabId !== undefined ? message.tabId : tab?.id;
-        const snapshot = await captureActiveTabDOM(tabId);
+        const snapshot = await captureActiveTabDOM(tabId, tab?.url);
         return { success: true, data: snapshot };
       }
 
       case "START_CONVERSION": {
         const classification = classifyUrl(message.url);
-        if (!classification.isSupported) {
+        if (!classification.isSupported || isPrivilegedUrl(message.url)) {
           return {
             success: false,
-            error: `URL is not supported for conversion: ${message.url}`,
+            error: `URL is not supported for conversion: ${sanitizeError(message.url)}`,
           };
         }
         const config = await loadConfig();
@@ -441,7 +437,7 @@ export async function handleMessage(message: ExtensionMessage): Promise<Extensio
   } catch (err: any) {
     return {
       success: false,
-      error: err.message || "An unexpected error occurred in background service worker",
+      error: sanitizeError(err.message || "An unexpected error occurred in background service worker"),
     };
   }
 }
@@ -455,7 +451,7 @@ if (typeof chrome !== "undefined" && chrome.runtime) {
         await loadConfig();
         await checkBackendStatus();
       } catch (err) {
-        console.warn("[web-repo-to-ai] Initial background setup warning:", err);
+        console.warn("[web-repo-to-ai] Initial background setup warning:", sanitizeError(err));
       }
     });
   }
@@ -467,7 +463,7 @@ if (typeof chrome !== "undefined" && chrome.runtime) {
         .catch((err) =>
           sendResponse({
             success: false,
-            error: err.message || "Internal service worker failure",
+            error: sanitizeError(err.message || "Internal service worker failure"),
           })
         );
       return true; // Keep message channel open for async response

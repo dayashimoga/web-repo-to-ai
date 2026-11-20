@@ -1,5 +1,6 @@
 // Configuration storage helper for web-repo-to-ai browser extension
 
+import { validateApiBaseUrl } from "../security/policy";
 import { DEFAULT_CONFIG, ExtensionConfig, OutputFormat, TargetModel } from "../types/index";
 
 export const CONFIG_STORAGE_KEY = "web_repo_to_ai_config";
@@ -30,18 +31,9 @@ export function validateConfig(config: Partial<ExtensionConfig>): {
   const errors: string[] = [];
 
   if (config.apiUrl !== undefined) {
-    const trimmed = config.apiUrl.trim();
-    if (!trimmed) {
-      errors.push("API URL cannot be empty.");
-    } else {
-      try {
-        const parsed = new URL(trimmed);
-        if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-          errors.push("API URL must use http or https protocol.");
-        }
-      } catch {
-        errors.push("API URL must be a valid, well-formed URL.");
-      }
+    const valResult = validateApiBaseUrl(config.apiUrl);
+    if (!valResult.valid && valResult.reason) {
+      errors.push(valResult.reason);
     }
   }
 

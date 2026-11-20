@@ -20,7 +20,7 @@
 | **STAGE 6** | Private GitHub Repositories | Secure read-only GitHub App integration, encrypted tokens, and tenant isolation | `6.1` – `6.4` | 16 (`6.1.1` – `6.4.4`) | `COMPLETED` / `ACCEPTED` |
 | **STAGE 7** | AI Context & Token Optimization | Structural normalization, deduplication, exact/estimated tokenizers, and context profiles | `7.1` – `7.4` | 16 (`7.1.1` – `7.4.4`) | `COMPLETED` / `ACCEPTED` |
 | **STAGE 8** | Large Repositories, Batch & Crawling | Multi-URL batching, bounded crawling, content-addressed caching, and streaming scale | `8.1` – `8.4` | 16 (`8.1.1` – `8.4.4`) | `COMPLETED` / `ACCEPTED` |
-| **STAGE 9** | Developer & AI Agent Integrations | Authenticated REST API, Rust CLI, MCP server, and browser extension foundation | `9.1` – `9.4` | 16 (`9.1.1` – `9.4.4`) | `IN_PROGRESS` |
+| **STAGE 9** | Developer & AI Agent Integrations | Authenticated REST API, Rust CLI, MCP server, and browser extension foundation | `9.1` – `9.4` | 16 (`9.1.1` – `9.4.4`) | `COMPLETED` / `ACCEPTED` |
 | **STAGE 10** | Advanced Documents & Content | Modular PDF extraction, Tesseract OCR, structured docs, RAG chunks, and optional AI adapters | `10.1` – `10.5` | 20 (`10.1.1` – `10.5.4`) | `NOT_STARTED` |
 | **STAGE 11** | Production Certification | Comprehensive security, performance, reliability, SBOM, and production release certification | `11.1` – `11.4` | 17 (`11.1.1` – `11.4.5`) | `NOT_STARTED` |
 
@@ -97,11 +97,11 @@
 - **Phase 8.3 — Incremental processing:** `8.3.1` HTTP validators (`ACCEPTED`) | `8.3.2` Git commit/blob caching (`ACCEPTED`) | `8.3.3` Content-addressed storage (`ACCEPTED`) | `8.3.4` Changed-file processing (`ACCEPTED` — **PHASE 8.3 CERTIFIED**)
 - **Phase 8.4 — Scalability:** `8.4.1` Adaptive concurrency (`ACCEPTED`) | `8.4.2` Backpressure (`ACCEPTED`) | `8.4.3` Streaming large exports (`ACCEPTED`) | `8.4.4` Resumable processing (`ACCEPTED` — **PHASE 8.4 & STAGE 8 CERTIFIED**)
 
-### STAGE 9 — DEVELOPER AND AI AGENT INTEGRATIONS (`IN_PROGRESS`)
+### STAGE 9 — DEVELOPER AND AI AGENT INTEGRATIONS (`COMPLETED` / `ACCEPTED`)
 - **Phase 9.1 — REST API:** `9.1.1` API documentation (`ACCEPTED`) | `9.1.2` Authentication & authorization (`ACCEPTED`) | `9.1.3` Rate limits (`ACCEPTED`) | `9.1.4` API integration tests (`ACCEPTED` — **PHASE 9.1 CERTIFIED**)
 - **Phase 9.2 — CLI:** `9.2.1` URL conversion commands (`ACCEPTED`) | `9.2.2` Repository conversion commands (`ACCEPTED`) | `9.2.3` Configuration (`ACCEPTED`) | `9.2.4` Download & verification (`ACCEPTED` — **PHASE 9.2 CERTIFIED**)
 - **Phase 9.3 — MCP:** `9.3.1` MCP server (`ACCEPTED`) | `9.3.2` Conversion tools (`ACCEPTED`) | `9.3.3` Resource retrieval (`ACCEPTED`) | `9.3.4` Security & protocol testing (`ACCEPTED` — **PHASE 9.3 CERTIFIED**)
-- **Phase 9.4 — Browser integration:** `9.4.1` Browser extension foundation | `9.4.2` Current-page conversion | `9.4.3` Result handoff | `9.4.4` Extension security
+- **Phase 9.4 — Browser integration:** `9.4.1` Browser extension foundation (`ACCEPTED`) | `9.4.2` Current-page conversion (`ACCEPTED`) | `9.4.3` Result handoff (`ACCEPTED`) | `9.4.4` Extension security (`ACCEPTED` — **PHASE 9.4 CERTIFIED**)
 
 ### STAGE 10 — ADVANCED DOCUMENTS AND CONTENT
 - **Phase 10.1 — PDF extraction:** `10.1.1` PDF parser & layout extraction | `10.1.2` Page/section provenance & table extraction | `10.1.3` Scanned/encrypted PDF detection & limits | `10.1.4` PDF golden accuracy validation
