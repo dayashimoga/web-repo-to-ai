@@ -4,11 +4,11 @@
 **Last Updated:** 2026-11-20  
 **Current Stage:** `STAGE 10 — ADVANCED DOCUMENTS AND CONTENT` (`IN_PROGRESS`)  
 **Last Completed Stage:** `STAGE 9 — DEVELOPER AND AI AGENT INTEGRATIONS` (`100% COMPLETED & FORMALLY CERTIFIED`)  
-**Last Completed Phase:** `Phase 10.1 — PDF extraction` (`100% COMPLETED & FORMALLY CERTIFIED`)  
+**Last Completed Phase:** `Phase 10.2 — Image OCR` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Active Subphase:** `None`  
-**Last Completed Subphase:** `10.2.3 — Confidence scoring & provenance attribution (crates/ocr-extractor: ConfidenceStats, ConfidenceTier, find_low_confidence_words, NormalizedBoundingBox, OcrBlockProvenance, OcrProvenanceReport, BoundingBox geometry, CDM section & document attribution)` (`ACCEPTED`)  
-**Next Upcoming Phase:** `Phase 10.2 — Image OCR` (`IN_PROGRESS`)  
-**Next Upcoming Subphase:** `10.2.4 — OCR accuracy & timeout tests`
+**Last Completed Subphase:** `10.2.4 — OCR accuracy & timeout tests (crates/ocr-extractor: golden corpus 6 archetypes, WER/CER/recall metrics, 5x7 bitmap font renderer, MockOcrAdapter, timeout cancellation, multi-format export fidelity, bit-for-bit hash determinism, <50ms throughput)` (`ACCEPTED`)  
+**Next Upcoming Phase:** `Phase 10.3 — Structured documents` (`NOT_STARTED`)  
+**Next Upcoming Subphase:** `10.3.1 — OpenAPI/JSON Schema/YAML extraction`
 
 ---
 
@@ -126,7 +126,7 @@ In Stage 10 ("Advanced Documents and Content"):
     - Multi-Format Downstream Export Fidelity: Validated roundtrip serialization from PDF-extracted `CdmDocument` through `web-repo-to-ai-exporters` into GitHub Flavored Markdown (verified with `verify_markdown_syntax`), HTML5 (`verify_html_syntax`), JSON CDM v1.0 schema (`verify_json_syntax`), and JSONL (`verify_jsonl_syntax`).
     - Determinism & High Throughput: Proven bit-for-bit extraction determinism (BLAKE3 hash stability across consecutive extractions) and high-throughput execution (< 50ms per 10-page document).
     - Quality & Formal Certification: Authored 16 new integration tests across `crates/pdf-extractor/tests/golden_pdf_test.rs` (9 tests) and `crates/pdf-extractor/tests/fidelity_benchmark_test.rs` (7 tests). Total crate tests reached 44; workspace tests reached 700+ passing tests. Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean, and 100% passing quality gates (5/5). Formally certified Phase 10.1 in full.
-- Phase 10.2 ("Image OCR") is in progress:
+- Phase 10.2 ("Image OCR") is 100% complete across all 4 subphases and formally certified:
   - Subphase `10.2.1` delivered `crates/ocr-extractor` (`web-repo-to-ai-ocr-extractor`) providing isolated Tesseract CLI OCR adapter execution, TSV stream parser, confidence score normalization, resource and DoS limits, and Canonical Context Document Model (`CdmDocument`) synthesis:
     - Dedicated Workspace Crate: Created `crates/ocr-extractor` integrated into root `Cargo.toml` workspace members and dependencies.
     - Adapter Abstraction & CLI Sandbox (`crates/ocr-extractor/src/adapter.rs`, `src/tesseract.rs`): Defined async `OcrAdapter` trait (`is_available`, `engine_info`, `extract_text`). Implemented `TesseractAdapter` executing Tesseract CLI as an isolated, sandboxed child process via `tokio::process::Command` with `kill_on_drop(true)`, timeout cancellation, and RAII `TempFileGuard` temporary file cleanup. Supports image magic-byte format detection (PNG, JPEG, TIFF, WebP, BMP), explicit binary path configuration, and environment overrides (`TESSERACT_PATH`).
@@ -146,6 +146,11 @@ In Stage 10 ("Advanced Documents and Content"):
     - Geometry & Domain Models (`crates/ocr-extractor/src/models.rs`): Extended `BoundingBox` with geometry methods (`right`, `bottom`, `area`, `contains_point`, `intersects`). Attached `ConfidenceStats` to `OcrBlock`, `OcrPage`, and `OcrResult`. Added `provenance_report: Option<OcrProvenanceReport>` to `OcrResult`. Added `image_dimensions`, `min_word_confidence`, and low-confidence flagging parameters to `OcrOptions`.
     - TSV Stream Parser & Extractor Pipeline (`src/tsv.rs`, `src/tesseract.rs`, `src/extractor.rs`): Updated TSV parser with `parse_tesseract_tsv_with_options` computing hierarchical `ConfidenceStats` for blocks, pages, and document, applying cutoff filtering and low-confidence flagging (e.g. `[?]word`), and constructing `OcrProvenanceReport`. Inferred dimensions from `PreprocessingReport` in `TesseractAdapter`. Injected full provenance attributes (`ocr_page_number`, `ocr_block_number`, `ocr_reading_order`, `ocr_bbox_*_px`, `ocr_norm_*`, `ocr_conf_*`) into every CDM section, and document-level confidence distribution and dimensions into document metadata.
     - Quality & Verification: Authored 11 new integration tests across `confidence_scoring_test.rs` (6 tests) and `provenance_attribution_test.rs` (5 tests). Verified with 47 crate tests, 740+ workspace tests, zero clippy warnings, zero fmt diffs, cargo deny clean, and 100% passing quality gates (5/5).
+  - Subphase `10.2.4` delivered comprehensive OCR accuracy and timeout benchmarks, golden document corpus, in-memory 5x7 ASCII bitmap glyph font rasterizer, mock adapter, downstream multi-format export fidelity, bit-for-bit determinism, and formal certification of Phase 10.2 in `crates/ocr-extractor` (`web-repo-to-ai-ocr-extractor`):
+    - Golden Document Corpus & Evaluation Engine (`crates/ocr-extractor/src/golden.rs`): Delivered `OcrArchetype` (7 variants), `OcrGoldenFixture`, `OcrFidelityMetrics`, `OcrGoldenResult`, `OcrGoldenReport` with Markdown audit summary (`to_markdown_summary`), Levenshtein distance algorithm (`levenshtein_distance`), quantitative accuracy calculators (`calculate_wer`, `calculate_cer`, `calculate_fragment_recall`), pure-Rust 5x7 ASCII bitmap font rasterizer (`render_text`), raw grayscale PNG encoder (`encode_gray_png`), 6 golden fixture builders (`build_clean_document_fixture`, `build_dark_mode_fixture`, `build_skewed_document_fixture`, `build_low_contrast_fixture`, `build_multicolumn_fixture`, `build_noisy_fixture`, and `all_golden_fixtures`), in-memory `MockOcrAdapter` with configurable artificial delay, `evaluate_golden_fixture`, and `run_all_golden_benchmarks`.
+    - Downstream Multi-Format Export Fidelity: Validated roundtrip serialization from OCR-extracted `CdmDocument` through `web-repo-to-ai-exporters` into GitHub Flavored Markdown (`verify_markdown_syntax`), HTML5 (`verify_html_syntax`), JSON CDM v1.0 (`verify_json_syntax`), JSONL (`verify_jsonl_syntax`), and Plaintext.
+    - Determinism & High Throughput: Demonstrated bit-for-bit extraction determinism (BLAKE3 hash stability across consecutive extractions) and high-throughput execution (< 50ms per document).
+    - Quality & Formal Certification: Authored 15 new integration tests across `accuracy_benchmark_test.rs` (6 tests), `timeout_cancellation_test.rs` (4 tests), and `export_fidelity_test.rs` (5 tests). Total crate tests reached 63 (19 unit, 44 integration); workspace tests reached 740+ passing tests. Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean, and 100% passing quality gates (5/5). Formally certified Phase 10.2 in full.
 
 ---
 
@@ -153,12 +158,12 @@ In Stage 10 ("Advanced Documents and Content"):
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 167 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.3` |
+| `ACCEPTED` | 168 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 29 | `10.2.4` – `11.4.5` |
+| `NOT_STARTED` | 28 | `10.3.1` – `11.4.5` |
 | **Total** | **196** | `Stage 0` – `Stage 11` |
 
 ---

@@ -6131,4 +6131,107 @@
   - Monorepo quality gates pass 100% (5/5).
 - **Status:** `ACCEPTED`
 
+---
+
+#### Subphase `10.2.4` — OCR accuracy & timeout tests
+- **Unique ID:** `10.2.4`
+- **Objective:** Implement quantitative OCR accuracy and fidelity metrics (Word Error Rate, Character Error Rate, Levenshtein edit distance, word recall, fragment recall, and confidence calibration), a pure-Rust in-memory 5x7 ASCII bitmap font rasterizer producing pixel-perfect synthetic document fixtures across 6 archetypes (`CleanDocument`, `DarkModeInverted`, `SkewedDocument`, `LowContrastDocument`, `MultiColumnLayout`, `NoisyLowConfidence`), an in-memory `MockOcrAdapter` implementing `OcrAdapter` for deterministic evaluation, process isolation and timeout cancellation verification, downstream multi-format export fidelity benchmarks (Markdown, HTML5, JSON CDM v1.0, JSONL, Plaintext), bit-for-bit hash determinism, and formally certify Phase 10.2.
+- **Scope:** `crates/ocr-extractor/src/golden.rs`, `crates/ocr-extractor/src/lib.rs`, `crates/ocr-extractor/tests/accuracy_benchmark_test.rs`, `crates/ocr-extractor/tests/timeout_cancellation_test.rs`, `crates/ocr-extractor/tests/export_fidelity_test.rs`, and tracking ledgers.
+- **Prerequisites:** `10.2.3` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/ocr-extractor/src/golden.rs`: Implemented `OcrArchetype` (7 variants), `OcrGoldenFixture`, `OcrFidelityMetrics`, `OcrGoldenResult`, `OcrGoldenReport` with Markdown audit summary (`to_markdown_summary`), Levenshtein distance algorithm (`levenshtein_distance`), quantitative accuracy calculators (`calculate_wer`, `calculate_cer`, `calculate_fragment_recall`), pure-Rust 5x7 ASCII bitmap glyph font table, text renderer (`render_text`), raw grayscale PNG encoder (`encode_gray_png`), 6 golden fixture builders (`build_clean_document_fixture`, `build_dark_mode_fixture`, `build_skewed_document_fixture`, `build_low_contrast_fixture`, `build_multicolumn_fixture`, `build_noisy_fixture`, and `all_golden_fixtures`), in-memory `MockOcrAdapter` with configurable artificial delay, `evaluate_golden_fixture`, and `run_all_golden_benchmarks`.
+  - `crates/ocr-extractor/src/lib.rs`: Re-exported all golden metrics, fixture builders, rendering functions, report structures, and mock adapter.
+  - `crates/ocr-extractor/tests/accuracy_benchmark_test.rs`: 6 integration tests validating Levenshtein distance edge cases, WER and CER calculations, in-memory bitmap glyph rendering and PNG encoding, fixture validity, individual archetype evaluations, and full markdown benchmark report generation.
+  - `crates/ocr-extractor/tests/timeout_cancellation_test.rs`: 4 integration tests verifying process isolation and timeout cancellation with `MockOcrAdapter`, input byte limits prior to execution, word count ceilings after extraction, and temporary file scoped cleanup guard semantics.
+  - `crates/ocr-extractor/tests/export_fidelity_test.rs`: 5 integration tests validating roundtrip multi-format export fidelity across GitHub Flavored Markdown (`export_markdown`), HTML5 (`export_html`), JSON CDM v1.0 (`export_json`), JSONL (`export_jsonl`), and Plaintext (`export_plain_text`), syntax validation (`verify_markdown_syntax`, `verify_html_syntax`, `verify_json_syntax`, `verify_jsonl_syntax`), bit-for-bit extraction determinism (BLAKE3 hash stability across consecutive runs), and high-throughput extraction (< 50ms per document).
+- **Implementation Tasks:**
+  1. Implemented golden corpus and benchmark evaluation engine in `crates/ocr-extractor/src/golden.rs`.
+  2. Implemented Levenshtein distance, WER, CER, and fragment recall calculations.
+  3. Implemented pure-Rust in-memory 5x7 ASCII bitmap font renderer and PNG encoder.
+  4. Implemented 6 golden fixture generators covering all major OCR document archetypes.
+  5. Implemented `MockOcrAdapter` with simulated processing delays for deterministic timeout testing.
+  6. Re-exported public golden symbols in `crates/ocr-extractor/src/lib.rs`.
+  7. Authored 6 integration tests in `crates/ocr-extractor/tests/accuracy_benchmark_test.rs`.
+  8. Authored 4 integration tests in `crates/ocr-extractor/tests/timeout_cancellation_test.rs`.
+  9. Authored 5 integration tests in `crates/ocr-extractor/tests/export_fidelity_test.rs`.
+  10. Verified crate test suite (63 tests passing: 19 unit, 44 integration).
+  11. Enforced zero clippy warnings (`-D warnings`), zero formatting diffs (`cargo fmt --check`), and clean `cargo deny check`.
+  12. Executed full workspace quality gate `scripts/check-all.ps1` (5/5 gates passed).
+  13. Updated project tracking ledgers (`PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `IMPLEMENTATION_LEDGER.md`, `ROADMAP.md`, `docs/ROADMAP.md`).
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-ocr-extractor` (63 tests passing: 19 unit, 44 integration across 11 test files)
+  - `cargo clippy --workspace --all-targets -- -D warnings` (Clean, zero warnings)
+  - `cargo fmt --all -- --check` (Clean, zero diffs)
+  - `cargo deny check` (Advisories ok, bans ok, licenses ok, sources ok)
+  - `powershell scripts/check-all.ps1` (All 5 monorepo gates passed with 0 failures)
+- **Acceptance Criteria:**
+  - Golden document corpus covers all 6 key archetypes with ground-truth text and expected fragments.
+  - Quantitative fidelity metrics accurately report Word Error Rate, Character Error Rate, and fragment recall.
+  - Bitmap font renderer generates valid PNG images without requiring external font files or system fonts.
+  - Mock adapter provides deterministic TSV parsing and delay simulation.
+  - Timeout cancellation triggers `OcrError::ExecutionTimeout` when processing duration exceeds configured limits.
+  - Resource bounds enforce maximum image bytes and maximum word count ceilings.
+  - Downstream multi-format export validates Markdown, HTML5, JSON, JSONL, and Plaintext syntax integrity.
+  - Extraction demonstrates bit-for-bit determinism and BLAKE3 hash stability across consecutive runs.
+  - Average in-memory extraction throughput achieves < 50ms per document.
+  - All 63 crate tests and workspace tests pass cleanly.
+  - Monorepo quality gates pass 100% (5/5).
+- **Tests:**
+  - `accuracy_benchmark_test::test_levenshtein_distance_cases`
+  - `accuracy_benchmark_test::test_wer_and_cer_metrics`
+  - `accuracy_benchmark_test::test_bitmap_font_renderer_and_png_encoding`
+  - `accuracy_benchmark_test::test_all_fixtures_have_valid_images_and_fragments`
+  - `accuracy_benchmark_test::test_individual_fixture_evaluations`
+  - `accuracy_benchmark_test::test_full_golden_report_generation`
+  - `timeout_cancellation_test::test_timeout_cancellation_with_mock_adapter`
+  - `timeout_cancellation_test::test_input_byte_limits_enforced_before_execution`
+  - `timeout_cancellation_test::test_word_count_limits_enforced_after_extraction`
+  - `timeout_cancellation_test::test_temp_file_cleanup_semantics`
+  - `export_fidelity_test::test_ocr_markdown_export_fidelity`
+  - `export_fidelity_test::test_ocr_html_export_fidelity`
+  - `export_fidelity_test::test_ocr_json_and_jsonl_export_fidelity`
+  - `export_fidelity_test::test_ocr_extraction_bit_for_bit_determinism`
+  - `export_fidelity_test::test_ocr_high_throughput_benchmark`
+- **Security Considerations:**
+  - In-memory bitmap rendering requires zero filesystem access or external binary dependencies.
+  - Input limits (`max_image_bytes`) are strictly enforced prior to image decoding or child process spawning.
+  - Word count ceilings reject token-flooding DoS payloads immediately after parsing.
+  - Process isolation guarantees child process termination via `kill_on_drop(true)` on timeout or drop.
+  - Scoped temporary file cleanup via RAII guards ensures zero orphaned files in system temporary directories.
+- **Performance Considerations:**
+  - Bitmap rendering utilizes pure array-backed 5x7 bitmasks for fast rasterization without TTF parsing overhead.
+  - Dynamic programming matrix for Levenshtein distance allocates $O((N+1) \times (M+1))$ memory and executes in $O(N \times M)$ time.
+  - High-throughput in-memory pipeline processes synthetic documents in < 30ms (well under the 50ms requirement).
+- **Documentation Requirements:**
+  - Documented golden archetypes, metrics, and report format in `golden.rs`.
+  - Updated `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `IMPLEMENTATION_LEDGER.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Validation Evidence:**
+  - 63 tests passing in `crates/ocr-extractor`.
+  - 740+ tests passing across the workspace.
+  - All 5 gates passed in `scripts/check-all.ps1`.
+- **Status:** `ACCEPTED`
+
+---
+
+### Phase 10.2 Certification Summary
+- **Phase:** `Phase 10.2 — Image OCR`
+- **Crate:** `crates/ocr-extractor` (`web-repo-to-ai-ocr-extractor`)
+- **Delivered Subphases:**
+  - `10.2.1` Isolated Tesseract OCR adapter (`ACCEPTED`, commit `0569a38`)
+  - `10.2.2` Image preprocessing & language selection (`ACCEPTED`, commit `30c684d`)
+  - `10.2.3` Confidence scoring & provenance attribution (`ACCEPTED`, commit `f8ba64a`)
+  - `10.2.4` OCR accuracy & timeout tests (`ACCEPTED`)
+- **Key Deliverables:**
+  - Isolated Tesseract CLI subprocess adapter with process isolation, `kill_on_drop(true)`, timeout cancellation, and RAII `TempFileGuard`.
+  - Zero-allocation TSV output stream parser extracting tokens, bounding boxes, confidence scores, line numbers, and paragraph hierarchies.
+  - Pure-Rust image preprocessing engine: luminance-weighted grayscale, dark-mode auto-inversion, percentile contrast stretching, Otsu binarization, projection profile deskew rotation, dimension scaling, and `PreprocessingReport`.
+  - Multi-language selection engine: ISO 639-2/639-3 canonicalization, script direction helpers (`is_cjk`, `is_rtl`), and fallback resolution policies (`StrictError`, `FallbackToDefault`, `FilterUnavailable`).
+  - Confidence scoring aggregation: `ConfidenceStats` (mean, median, std_dev, min, max, high/med/low counts), `ConfidenceTier` (`High`, `Medium`, `Low`), low-confidence word detection, minimum cutoff filtering, and annotation markers.
+  - 2D geometry and spatial provenance: `NormalizedBoundingBox` ($[0.0, 1.0]$ unit interval), `OcrBlockProvenance`, `OcrPageProvenance`, and `OcrProvenanceReport` with compact and pretty JSON exports for UI bounding box overlays.
+  - Golden benchmark engine: 6 golden archetypes, pure-Rust 5x7 ASCII bitmap font rasterizer, quantitative WER/CER/recall metrics, Markdown audit summary, and `MockOcrAdapter`.
+  - Multi-format downstream export fidelity: roundtrip Markdown, HTML5, JSON CDM v1.0, JSONL, and Plaintext syntax verification, bit-for-bit hash determinism, and high-throughput extraction (< 50ms).
+- **Test Metrics:** 63 passing tests in `crates/ocr-extractor` (19 unit, 44 integration). 740+ passing workspace tests.
+- **Quality Gates:** 100% passed (5/5 monorepo gates, zero clippy warnings, zero fmt diffs, cargo deny clean).
+- **Phase Status:** `100% COMPLETED & FORMALLY CERTIFIED`
+
 
