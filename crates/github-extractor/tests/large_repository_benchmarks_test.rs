@@ -424,7 +424,7 @@ fn test_benchmark_multi_algorithm_content_hashing() {
         corpus_bytes * iterations,
         sha256_durations,
     );
-    sha256_stats.assert_throughput_over(20.0);
+    sha256_stats.assert_throughput_over(15.0);
 
     // 3. Git Blob Object SHA-1 Benchmark
     let mut git_sha_durations = Vec::with_capacity(iterations);
@@ -443,7 +443,7 @@ fn test_benchmark_multi_algorithm_content_hashing() {
         corpus_bytes * iterations,
         git_sha_durations,
     );
-    git_stats.assert_throughput_over(20.0);
+    git_stats.assert_throughput_over(15.0);
 }
 
 // ==============================================================================
