@@ -100,7 +100,7 @@
   - `9.3` MCP (`9.3.1` [ACCEPTED], `9.3.2` [ACCEPTED], `9.3.3` [ACCEPTED], `9.3.4` [ACCEPTED — PHASE 9.3 CERTIFIED])
   - `9.4` Browser integration (`9.4.1` [ACCEPTED], `9.4.2` [ACCEPTED], `9.4.3` [ACCEPTED], `9.4.4` [ACCEPTED] — **PHASE 9.4 & STAGE 9 CERTIFIED**)
 
-### STAGE 10 — ADVANCED DOCUMENTS AND CONTENT
+### STAGE 10 — ADVANCED DOCUMENTS AND CONTENT (`COMPLETED` / `ACCEPTED` — **STAGE 10 CERTIFIED**)
 - **Deliverable:** Extended document extraction capabilities (PDF, OCR, structured specs/notebooks, RAG chunks, optional AI adapters).
 - **Stage Acceptance Gate:** Real document conversion with source attribution, documented format limitations, and validated output.
 - **Phases:**
@@ -110,11 +110,11 @@
   - `10.4` RAG chunk generation (`10.4.1` [ACCEPTED], `10.4.2` [ACCEPTED], `10.4.3` [ACCEPTED], `10.4.4` [ACCEPTED] — **PHASE 10.4 CERTIFIED**)
   - `10.5` Optional local and external AI provider adapters (`10.5.1` [ACCEPTED], `10.5.2` [ACCEPTED], `10.5.3` [ACCEPTED], `10.5.4` [ACCEPTED] — **PHASE 10.5 CERTIFIED & STAGE 10 COMPLETED**)
 
-### STAGE 11 — PRODUCTION CERTIFICATION
+### STAGE 11 — PRODUCTION CERTIFICATION (`IN_PROGRESS`)
 - **Deliverable:** Verified, deployable production release with SBOMs, checksums, and certification report.
 - **Stage Acceptance Gate:** All critical security, performance, reliability, and release gates proven with repeatable objective evidence.
 - **Phases:**
-  - `11.1` Security (`11.1.1` – `11.1.4`)
+  - `11.1` Security (`11.1.1` [ACCEPTED], `11.1.2` – `11.1.4`)
   - `11.2` Performance (`11.2.1` – `11.2.4`)
   - `11.3` Reliability (`11.3.1` – `11.3.4`)
   - `11.4` Release (`11.4.1` – `11.4.5`)

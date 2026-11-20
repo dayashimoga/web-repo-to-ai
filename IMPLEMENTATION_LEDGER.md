@@ -7106,3 +7106,75 @@
   - 930+ tests passing across the workspace.
   - Monorepo quality gates 100% passing (5/5 gates).
 - **Status:** `ACCEPTED` — **PHASE 10.5 CERTIFIED & STAGE 10 COMPLETED**
+
+
+---
+
+## STAGE 11 — PRODUCTION CERTIFICATION
+
+### Phase 11.1 — Security
+
+#### Subphase `11.1.1` — Threat model review
+- **Unique ID:** `11.1.1`
+- **Phase:** `Phase 11.1 — Security`
+- **Prerequisites:** `10.5.4` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `docs/SECURITY.md`
+  - `services/api/tests/threat_model_verification_test.rs`
+  - `PROJECT_STATUS.md`
+  - `TODO.md`
+  - `CHANGELOG.md`
+  - `ROADMAP.md`
+  - `docs/ROADMAP.md`
+  - `IMPLEMENTATION_LEDGER.md`
+- **Implementation Tasks:**
+  1. Expand `docs/SECURITY.md` into the authoritative, production-grade Threat Model and Security Architecture specification:
+     - Document system topology and 8 distinct architectural trust boundaries (Untrusted Public Network & Egress, Browser Sandbox Isolation, Ingestion & Untrusted Content, Client Ingress & Authentication, GitHub OAuth & Credential Authority, Persistence & Multi-Tenant Storage, AI Provider Egress, and Host & Container OS Isolation) with a Mermaid architecture flowchart.
+     - Classify sensitive assets into 6 distinct tiers (Master Keys, Ephemeral Tokens, User Proprietary Code, Converted Context, Operational Data, Compute Resources) with confidentiality, integrity, and availability objectives.
+     - Profile 5 threat actor archetypes (External Anonymous Attacker, Malicious Authenticated Tenant, Malicious Content Author, Adversarial Upstream Host/DNS, and Supply Chain Adversary).
+     - Formulate an exhaustive STRIDE threat matrix analyzing 26 explicit threat scenarios (THR-S-01..05, THR-T-01..05, THR-R-01..03, THR-I-01..06, THR-D-01..06, THR-E-01..04) with concrete mitigations.
+     - Detail technical control architectures across 9 domains: SSRF & pre-connect DNS pinning (`crates/url-security`), browser worker sandboxing (`services/browser-worker`), GitHub App read-only OAuth and AES-256-GCM encryption (`crates/github-extractor`, `crates/storage`), zero code execution with structural CDM delimiters (`crates/cdm`, `crates/exporters`), prompt-injection warning telemetry, input validation & memory bounds (`crates/pdf-extractor`, `crates/ocr-extractor`, `crates/structured-extractor`, `crates/chunking`), dual-tier rate limiting with anti-enumeration (`services/api`, `crates/core`), AI provider opt-in guardrails and zero-key CPU fallback (`crates/ai-adapter`), and rootless container isolation (`deploy/`, Podman).
+     - Author a complete Security Control Traceability Matrix mapping every threat ID to implementing crates, modules, and automated test suites.
+     - Document explicit residual risk acceptance justifications (downstream LLM prompt injection, GitHub rate limits, parser zero-days) with compensating controls.
+     - Publish an Operational Security Runbook with key rotation procedures, 4-phase incident response, and vulnerability disclosure SLAs.
+  2. Implement automated threat model verification test suite in `services/api/tests/threat_model_verification_test.rs`:
+     - `test_threat_model_ssrf_and_scheme_rejections`: Verifies API rejection of forbidden schemes (`file://`, `ftp://`, `gopher://`, `javascript:`, `data:`, `ws://`) and `UrlSecurityPolicy` rejection of loopback, cloud metadata (`169.254.169.254`, `metadata.google.internal`), and RFC 1918 subnets.
+     - `test_threat_model_secret_redaction_and_information_disclosure`: Verifies API key generation (`wr_live_*`), prefix masking (`wr_live_...`), and credential scrubbing in error envelopes and debug formatters.
+     - `test_threat_model_tenant_boundary_and_anti_enumeration`: Validates uniform RFC 7807 404 Not Found responses with `RESOURCE_NOT_FOUND` error codes when querying non-existent or foreign job IDs and artifacts without leaking existence.
+     - `test_threat_model_rbac_scope_privilege_escalation_prevention`: Verifies that `read`-scoped API keys cannot invoke key creation or revocation endpoints (403 Forbidden).
+     - `test_threat_model_untrusted_content_structural_framing`: Verifies that untrusted code containing adversarial prompt injection payloads is safely framed inside CDM code fences and provenance boundaries without code execution.
+     - `test_threat_model_rate_limiting_and_dos_protection`: Validated that bursts exceeding rate limits trigger RFC 7807 429 Too Many Requests with mandatory `Retry-After` and `X-RateLimit-*` headers.
+     - `test_threat_model_zero_key_fallback_offline_invariant`: Verifies that the core service operates 100% offline without external AI keys, serving health and OpenAPI documentation.
+  3. Verify all 5 quality gates via `scripts/check-all.ps1`.
+  4. Update tracking ledgers: `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`, `IMPLEMENTATION_LEDGER.md`.
+- **Acceptance Criteria:**
+  - `docs/SECURITY.md` expanded into a production-grade Threat Model covering all 8 trust boundaries, 6 asset tiers, 5 threat actors, STRIDE matrix (26 scenarios), 9 control architectures, traceability matrix, residual risk acceptance, and operational security runbook.
+  - Dedicated automated threat model verification test suite implemented and passing in `services/api/tests/threat_model_verification_test.rs`.
+  - Zero mock or placeholder implementations in production code paths.
+  - All 5 monorepo quality gates passing with 0 failures (`scripts/check-all.ps1`).
+  - All ledgers synchronized.
+- **Tests:**
+  - `services/api/tests/threat_model_verification_test.rs::test_threat_model_ssrf_and_scheme_rejections`
+  - `services/api/tests/threat_model_verification_test.rs::test_threat_model_secret_redaction_and_information_disclosure`
+  - `services/api/tests/threat_model_verification_test.rs::test_threat_model_tenant_boundary_and_anti_enumeration`
+  - `services/api/tests/threat_model_verification_test.rs::test_threat_model_rbac_scope_privilege_escalation_prevention`
+  - `services/api/tests/threat_model_verification_test.rs::test_threat_model_untrusted_content_structural_framing`
+  - `services/api/tests/threat_model_verification_test.rs::test_threat_model_rate_limiting_and_dos_protection`
+  - `services/api/tests/threat_model_verification_test.rs::test_threat_model_zero_key_fallback_offline_invariant`
+- **Security Considerations:**
+  - Complete STRIDE threat modeling covering all monorepo trust boundaries.
+  - Pre-connect DNS pinning and all-record validation preventing TOCTOU rebinding.
+  - Strict secret redaction across structured logs, error payloads, and debug formatters.
+  - Anti-enumeration defense returning uniform RFC 7807 404 responses for cross-tenant probes.
+  - Zero execution invariant for untrusted extracted repository code.
+- **Performance Considerations:**
+  - Constant-time BLAKE3 hash checks for API key authentication.
+  - Sub-millisecond URL validation and in-memory rate limiter bucket evaluations.
+  - High-throughput non-blocking integration tests executing in 0.01s.
+- **Documentation Requirements:**
+  - `docs/SECURITY.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`, `IMPLEMENTATION_LEDGER.md`.
+- **Validation Evidence:**
+  - 114 tests passing in `services/api` (83 unit, 31 integration across 5 suites).
+  - 937+ tests passing across the workspace (621 Rust + 213 web + 103 extension).
+  - `scripts/check-all.ps1` 100% passing across all 5 quality gates with 0 failures.
+- **Status:** `ACCEPTED`

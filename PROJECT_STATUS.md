@@ -2,13 +2,13 @@
 
 **Project:** `web-repo-to-ai` (Universal URL & GitHub Repository → AI-Ready Content Converter)  
 **Last Updated:** 2026-11-20  
-**Current Stage:** `STAGE 11 — PRODUCTION CERTIFICATION` (`NOT_STARTED`)  
+**Current Stage:** `STAGE 11 — PRODUCTION CERTIFICATION` (`IN_PROGRESS`)  
 **Last Completed Stage:** `STAGE 10 — ADVANCED DOCUMENTS AND CONTENT` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Last Completed Phase:** `Phase 10.5 — Optional local and external AI provider adapters` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Active Subphase:** `None`  
-**Last Completed Subphase:** `10.5.4 — Adapter contract & isolation tests (crates/ai-adapter: polymorphic trait contract verification across all 5 adapter types, timeout isolation, connection refused immediate failure, simulated network blackout with resilient zero-key recovery, categorized error taxonomy mapping 401/404/503, 25-task multithreaded concurrency stress, registry dynamic hot-swapping under load, wire header injection and sanitization, and Blake3 vector mathematical invariants; verified with 75 crate tests across 8 test suites; Phase 10.5 & Stage 10 Formally Certified)` (`ACCEPTED`)  
+**Last Completed Subphase:** `11.1.1 — Threat model review (comprehensive expansion of docs/SECURITY.md covering 8 trust boundaries, 6 asset tiers, 5 threat actors, exhaustive STRIDE matrix, 9 technical control architectures, traceability matrix, residual risk acceptance, key rotation runbook, and 7 automated security verification tests in services/api/tests/threat_model_verification_test.rs; verified with 114 API tests, 937+ workspace tests, and all 5 quality gates passing)` (`ACCEPTED`)  
 **Next Upcoming Phase:** `Phase 11.1 — Security`  
-**Next Upcoming Subphase:** `11.1.1 — Threat model review`
+**Next Upcoming Subphase:** `11.1.2 — SSRF & network security`
 
 ---
 
@@ -279,18 +279,32 @@ In Stage 10 ("Advanced Documents and Content"):
     - Wire Header Sanitization: Verified sensitive headers (`Authorization`, `openai-organization`, `openai-project`) are transmitted on the wire while remaining fully scrubbed from logs and debug representations.
     - Quality & Formal Certification: Authored 9 new integration tests in `tests/adapter_contract_and_isolation_test.rs`. Total crate tests reached 75 (12 unit, 63 integration across 8 test suites); workspace tests reached 930+ passing tests. Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean, and 100% passing quality gates (5/5). Formally certified Phase 10.5 and Stage 10 in full.
 
+In Stage 11 ("Production Certification"):
+- Phase 11.1 ("Security") is in progress:
+  - Subphase `11.1.1` delivered the complete, production-grade Threat Model Review and Cross-Boundary Security Architecture:
+    - Comprehensive Threat Model & Security Architecture (`docs/SECURITY.md`): Expanded baseline specification into an authoritative, production-grade Threat Model covering all 8 system trust boundaries (Untrusted Public Network & Egress, Browser Sandbox Isolation, Ingestion & Untrusted Content, Client Ingress & Authentication, GitHub OAuth & Credential Authority, Persistence & Multi-Tenant Storage, AI Provider Egress, Host & Container OS Boundary) with a Mermaid architecture flowchart; defined 6 sensitive asset classification tiers (Master Keys, Ephemeral Tokens, User Proprietary Code, Converted Context, Operational Data, Compute Resources) with security objectives; documented 5 distinct threat actor profiles (Anonymous Remote Attacker, Malicious Authenticated Tenant, Malicious Content Author, Adversarial Upstream Host/DNS, Supply Chain Adversary); authored an exhaustive STRIDE threat matrix covering 26 explicit threat scenarios (THR-S-01..05, THR-T-01..05, THR-R-01..03, THR-I-01..06, THR-D-01..06, THR-E-01..04); detailed technical control architectures across 9 domains; established a full Security Control Traceability Matrix linking threats directly to monorepo crates, modules, and test suites; formulated residual risk acceptance justifications (downstream LLM prompt injection, GitHub rate limits, parser zero-days); and published an Operational Security Runbook (key rotation protocols, 4-phase incident response, responsible vulnerability disclosure SLAs).
+    - Executable Threat Model Verification Test Suite (`services/api/tests/threat_model_verification_test.rs`): Authored 7 comprehensive automated integration tests directly validating threat model boundary invariants:
+      1. `test_threat_model_ssrf_and_scheme_rejections`: Verified immediate 400 Bad Request rejection of forbidden schemes (`file://`, `ftp://`, `gopher://`, `javascript:`, `data:`, `ws://`) and strict `UrlSecurityPolicy` rejection of loopback (`127.0.0.1`, `localhost`, `[::1]`), cloud metadata (`169.254.169.254`, `metadata.google.internal`), RFC 1918 private subnets (`10.0.0.1`, `172.16.0.1`, `192.168.1.1`), and link-local addresses.
+      2. `test_threat_model_secret_redaction_and_information_disclosure`: Verified high-entropy API key generation (`wr_live_*`), display prefix masking (`wr_live_...`), and zero credential leakage in error envelopes or debug formatters.
+      3. `test_threat_model_tenant_boundary_and_anti_enumeration`: Validated uniform RFC 7807 `404 Not Found` responses with `RESOURCE_NOT_FOUND` error codes when querying non-existent or foreign job IDs and artifacts without leaking internal existence.
+      4. `test_threat_model_rbac_scope_privilege_escalation_prevention`: Verified that `read`-scoped API keys are strictly forbidden (403 Forbidden with `INSUFFICIENT_PERMISSIONS`) from invoking key creation or revocation endpoints.
+      5. `test_threat_model_untrusted_content_structural_framing`: Verified that untrusted source code containing adversarial prompt-injection payloads is safely framed inside CDM code fences and provenance boundaries without code execution.
+      6. `test_threat_model_rate_limiting_and_dos_protection`: Validated that rapid bursts exceeding rate limit quotas trigger RFC 7807 `429 Too Many Requests` with mandatory `Retry-After` and `X-RateLimit-*` headers.
+      7. `test_threat_model_zero_key_fallback_offline_invariant`: Verified that the core service operates 100% offline without external AI keys, serving health and OpenAPI documentation.
+    - Quality & Verification: Total API tests expanded to 114 (83 unit, 31 integration across 5 suites); total monorepo tests expanded to 937+ passing tests (621 Rust tests + 213 web tests + 103 extension tests). Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean, and 100% passing quality gates (5/5).
+
 ---
 
 ## 2. Subphase Status Counter
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 180 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4`, `10.3.1` – `10.3.4`, `10.4.1` – `10.4.4`, `10.5.1`, `10.5.2`, `10.5.3`, `10.5.4` |
+| `ACCEPTED` | 181 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4`, `10.3.1` – `10.3.4`, `10.4.1` – `10.4.4`, `10.5.1`, `10.5.2`, `10.5.3`, `10.5.4`, `11.1.1` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 16 | `11.1.1` – `11.4.5` |
+| `NOT_STARTED` | 15 | `11.1.2` – `11.4.5` |
 | `Total` | **196** | `Stage 0` – `Stage 11` |
 
 ---

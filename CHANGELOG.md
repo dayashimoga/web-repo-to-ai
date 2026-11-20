@@ -4,6 +4,38 @@
 
 ---
 
+## [Unreleased] — Stage 11: Production Certification
+
+### 2026-11-20 — Phase 11.1: Security (`11.1.1`)
+
+#### Added
+- **`[11.1.1]` Threat model review and cross-boundary security architecture (`docs/SECURITY.md`, `services/api`):**
+  - Comprehensive Production Threat Model (`docs/SECURITY.md`):
+    - Expanded baseline specification into an authoritative, production-grade Threat Model and Security Architecture document.
+    - System Topology & 8 Trust Boundaries: Documented Untrusted Public Network & Egress (TB-1), Browser Sandbox Isolation (TB-2), Ingestion & Untrusted Content (TB-3), Client Ingress & Authentication (TB-4), GitHub OAuth & Credential Authority (TB-5), Persistence & Multi-Tenant Storage (TB-6), AI Provider Egress (TB-7), and Host & Container OS Isolation (TB-8) with a comprehensive Mermaid architecture diagram.
+    - 6-Tier Sensitive Asset Inventory: Classified Master Keys (Tier 1), Ephemeral Tokens (Tier 2), User Source Code (Tier 3), Converted Context (Tier 4), Operational Data (Tier 5), and Compute Resources (Tier 6) with security objectives and protective controls.
+    - 5 Threat Actor Profiles: Analyzed External Anonymous Attacker, Malicious Authenticated Tenant, Malicious Content Author, Adversarial Upstream Host/DNS, and Supply Chain Adversary.
+    - Exhaustive STRIDE Threat Matrix: Analyzed 26 explicit threat scenarios spanning Spoofing (THR-S-01..05), Tampering (THR-T-01..05), Repudiation (THR-R-01..03), Information Disclosure (THR-I-01..06), Denial of Service (THR-D-01..06), and Elevation of Privilege (THR-E-01..04).
+    - 9 Technical Defense Architectures: Documented SSRF/DNS pinning, browser container sandboxing, GitHub App OAuth and AES-256-GCM encryption, zero code execution with structural CDM delimiters, prompt injection warning telemetry, memory bounds/decompression bomb limits, dual-tier rate limiting with anti-enumeration, AI opt-in guardrails with zero-key fallback, and rootless container isolation.
+    - Security Control Traceability Matrix: Established end-to-end traceability mapping every threat ID to implementing monorepo crates, modules, and automated test suites.
+    - Residual Risk Acceptance: Explicitly analyzed and justified accepted risks (downstream LLM semantic prompt injection, GitHub API limits, parser zero-days) with compensating controls.
+    - Operational Security Runbook: Formalized key rotation procedures for AES-256-GCM master keys, GitHub App private keys, and API keys; 4-phase incident response protocol; and 24h triage / 72h patch SLA vulnerability disclosure policy.
+  - Executable Threat Model Verification Test Suite (`services/api/tests/threat_model_verification_test.rs`):
+    - Authored 7 automated integration tests validating core threat model boundary invariants:
+      1. `test_threat_model_ssrf_and_scheme_rejections`: Verified immediate 400 Bad Request rejection of dangerous schemes (`file://`, `ftp://`, `gopher://`, `javascript:`, `data:`, `ws://`) and strict `UrlSecurityPolicy` rejection of loopback, cloud metadata (`169.254.169.254`, `metadata.google.internal`), and RFC 1918 subnets.
+      2. `test_threat_model_secret_redaction_and_information_disclosure`: Verified high-entropy API key generation (`wr_live_*`), display prefix masking (`wr_live_...`), and zero credential leakage in error envelopes or debug formatters.
+      3. `test_threat_model_tenant_boundary_and_anti_enumeration`: Validated uniform RFC 7807 `404 Not Found` responses with `RESOURCE_NOT_FOUND` error codes when querying non-existent or foreign job IDs and artifacts without leaking internal existence.
+      4. `test_threat_model_rbac_scope_privilege_escalation_prevention`: Verified that `read`-scoped API keys are strictly forbidden (403 Forbidden with `INSUFFICIENT_PERMISSIONS`) from invoking key creation or revocation endpoints.
+      5. `test_threat_model_untrusted_content_structural_framing`: Verified that untrusted source code containing adversarial prompt-injection payloads is safely framed inside CDM code fences and provenance boundaries without code execution.
+      6. `test_threat_model_rate_limiting_and_dos_protection`: Validated that rapid bursts exceeding rate limit quotas trigger RFC 7807 `429 Too Many Requests` with mandatory `Retry-After` and `X-RateLimit-*` headers.
+      7. `test_threat_model_zero_key_fallback_offline_invariant`: Verified that the core service operates 100% offline without external AI keys, serving health and OpenAPI documentation.
+  - Quality & Verification:
+    - Expanded API test suite to 114 tests (83 unit, 31 integration across 5 suites).
+    - Monorepo workspace tests expanded to 937+ passing tests (621 Rust + 213 web + 103 extension).
+    - Passed all 5 monorepo quality gates via `scripts/check-all.ps1` with 0 failures, 0 clippy warnings, clean `cargo deny check`, and 0 formatting diffs.
+
+---
+
 ## [Unreleased] — Stage 10: Advanced Documents and Content
 
 ### 2026-11-20 — Phase 10.5: Optional local and external AI provider adapters (`10.5.4`) — PHASE 10.5 CERTIFIED & STAGE 10 COMPLETED

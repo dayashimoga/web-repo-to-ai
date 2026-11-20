@@ -318,5 +318,29 @@
 
 ---
 
-## Subsequent Stages (Queued)
-- [ ] **[Stage 11]** Production Certification (`11.1.1` – `11.4.5`)
+## Stage 11 — Production Certification (`IN_PROGRESS`)
+
+### Phase 11.1 — Security (`IN_PROGRESS`)
+- [x] **[11.1.1]** Threat model review *(Completed 2026-11-20, Delivered production-grade Threat Model and Security Architecture in docs/SECURITY.md covering 8 system trust boundaries, 6 asset tiers, 5 threat actor profiles, 26 STRIDE threat scenarios, 9 defense-in-depth architectural domains, comprehensive Security Control Traceability Matrix, residual risk acceptance, key rotation runbook, 4-phase incident response, and vulnerability disclosure policy; authored 7 automated integration tests in services/api/tests/threat_model_verification_test.rs validating SSRF scheme/IP rejections, secret masking, anti-enumeration 404s, RBAC scope enforcement, prompt-injection structural framing, rate-limit 429 Retry-After headers, and zero-key offline guarantees; verified with 114 API tests, 937+ workspace tests, zero clippy warnings, zero fmt diffs, cargo deny clean, and 100% passing quality gates 5/5)*
+- [ ] **[11.1.2]** SSRF & network security
+- [ ] **[11.1.3]** OAuth & access-control audit
+- [ ] **[11.1.4]** Dependency & secrets audit
+
+### Phase 11.2 — Performance
+- [ ] **[11.2.1]** Extraction benchmarks
+- [ ] **[11.2.2]** Large repository benchmarks
+- [ ] **[11.2.3]** Memory & concurrency testing
+- [ ] **[11.2.4]** Regression benchmarks
+
+### Phase 11.3 — Reliability
+- [ ] **[11.3.1]** Interrupted-job recovery
+- [ ] **[11.3.2]** Retry & idempotency tests
+- [ ] **[11.3.3]** Storage cleanup verification
+- [ ] **[11.3.4]** Load & failure testing
+
+### Phase 11.4 — Release
+- [ ] **[11.4.1]** Complete documentation
+- [ ] **[11.4.2]** Production build
+- [ ] **[11.4.3]** Release artifacts & SBOM
+- [ ] **[11.4.4]** Deployment verification
+- [ ] **[11.4.5]** Final certification report
