@@ -284,6 +284,39 @@
 
 ---
 
+## Stage 10: Advanced Documents and Content (`IN_PROGRESS`)
+
+### Phase 10.1 — PDF extraction
+- [x] **[10.1.1]** PDF parser & layout extraction *(Completed 2026-11-20, Delivered crates/pdf-extractor with pure Rust PDF parser and spatial layout reconstruction: lopdf v0.47.0 integration with clean cargo deny audit and zero vulnerabilities; %PDF- header validation and version extraction; empty/corrupted/encrypted PDF detection; /Info metadata dictionary extraction (title, author, subject, creator, producer, keywords, creation date); page MediaBox/CropBox dimensions and rotation; operator stream decoding (BT, ET, Tf, Td, TD, Tm, T*, Tj, TJ) into positioned PdfSpan tokens with synthetic span fallback; PdfLayoutEngine with baseline clustering into PdfLine, horizontal gap bounding via max_span_horizontal_gap_factor, two-column layout detection and top-to-bottom reading order sorting, semantic block clustering into PdfTextBlock with TextBlockKind classification (Header, Paragraph, ListItem, PageHeader, PageFooter); 2D normalized BoundingBox geometry; outline bookmarks traversal; PdfExtractor mapping into CdmDocument with SourceType::DocumentPdf, line/byte ranges, page dimension attributes, and CompletenessReport; 10 integration tests in geometry_test.rs, layout_test.rs, parser_test.rs, extractor_test.rs; 666+ workspace tests passing, 100% passing quality gates 5/5)*
+- [ ] **[10.1.2]** Multi-column and table extraction
+- [ ] **[10.1.3]** Scanned document handling
+- [ ] **[10.1.4]** PDF integration tests
+
+### Phase 10.2 — Office documents
+- [ ] **[10.2.1]** DOCX parser
+- [ ] **[10.2.2]** Spreadsheet extraction
+- [ ] **[10.2.3]** Presentation extraction
+- [ ] **[10.2.4]** Office integration tests
+
+### Phase 10.3 — Media and multimodal
+- [ ] **[10.3.1]** Image text extraction (OCR)
+- [ ] **[10.3.2]** Diagram and chart extraction
+- [ ] **[10.3.3]** Audio transcription
+- [ ] **[10.3.4]** Multimodal integration tests
+
+### Phase 10.4 — Advanced code intelligence
+- [ ] **[10.4.1]** Cross-file symbol resolution
+- [ ] **[10.4.2]** Call-graph and dependency graph extraction
+- [ ] **[10.4.3]** Type hierarchy and interface extraction
+- [ ] **[10.4.4]** Code intelligence integration tests
+
+### Phase 10.5 — Quality validation
+- [ ] **[10.5.1]** Document extraction fidelity benchmarks
+- [ ] **[10.5.2]** Multi-format stress and adversarial testing
+- [ ] **[10.5.3]** Layout reconstruction evaluation
+- [ ] **[10.5.4]** Golden dataset regression tests across document types
+
+---
+
 ## Subsequent Stages (Queued)
-- [ ] **[Stage 10]** Advanced Documents and Content (`10.1.1` – `10.5.4`)
 - [ ] **[Stage 11]** Production Certification (`11.1.1` – `11.4.5`)

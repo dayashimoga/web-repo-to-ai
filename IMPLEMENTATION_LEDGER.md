@@ -5775,6 +5775,60 @@
   - All 5 monorepo quality gates pass with 0 failures.
 - **Status:** `ACCEPTED`
 
+---
+
+## STAGE 10 — ADVANCED DOCUMENTS AND CONTENT
+
+### Phase 10.1 — PDF extraction
+
+#### Subphase `10.1.1` — PDF parser & layout extraction
+- **Unique ID:** `10.1.1`
+- **Objective:** Implement `crates/pdf-extractor` (`web-repo-to-ai-pdf-extractor`) providing pure Rust PDF document structure parsing, text flow extraction, 2D spatial layout reconstruction, bounding box geometry, reading order determination, and Canonical Context Document Model (`CdmDocument`) mapping.
+- **Scope:** `Cargo.toml`, `crates/pdf-extractor/Cargo.toml`, `crates/pdf-extractor/src/*`, `crates/pdf-extractor/tests/*`, and project tracking ledgers.
+- **Prerequisites:** Stage 9 (100% Completed & Formally Certified).
+- **Files/Components Affected:**
+  - `Cargo.toml`: Added `crates/pdf-extractor` to `workspace.members`; added `web-repo-to-ai-pdf-extractor` and `lopdf = { version = "0.47", default-features = false }` to `workspace.dependencies`.
+  - `crates/pdf-extractor/Cargo.toml`: Package configuration with `web-repo-to-ai-core`, `web-repo-to-ai-cdm`, `lopdf`, `thiserror`, `serde`, `serde_json`, `tracing`, `blake3`, `chrono`, and `url`.
+  - `crates/pdf-extractor/src/error.rs`: Defined `PdfError` and `Result<T>` covering `InvalidHeader`, `EmptyDocument`, `MalformedStructure`, `EncryptedDocument`, `PageOutOfRange`, `StreamDecompression`, `FontDecoding`, `Io`, `CdmMapping`, and `Other`.
+  - `crates/pdf-extractor/src/models.rs`: Defined `BoundingBox` (with `width`, `height`, `area`, `intersects`, `contains`, `union`), `PageDimensions`, `PdfMetadata`, `PdfSpan`, `PdfLine`, `TextBlockKind`, `PdfTextBlock`, `PdfPage`, `OutlineItem`, and `PdfDocument`.
+  - `crates/pdf-extractor/src/layout.rs`: Implemented `PdfLayoutEngine` with baseline tolerance clustering, horizontal gap bounding (`max_span_horizontal_gap_factor`), multi-column layout detection and top-to-bottom reading order sorting, line and paragraph clustering, and semantic classification into `Header`, `Paragraph`, `ListItem`, `PageHeader`, and `PageFooter`.
+  - `crates/pdf-extractor/src/parser.rs`: Implemented `PdfParser` with `%PDF-` header validation, version resolution, empty/corrupted/encrypted PDF detection, `/Info` dictionary parsing, page tree traversal, dimension resolution, content stream decoding (`BT`, `ET`, `Tf`, `Td`, `TD`, `Tm`, `T*`, `Tj`, `TJ`), synthetic span fallback, and outline bookmark traversal.
+  - `crates/pdf-extractor/src/extractor.rs`: Implemented high-level `PdfExtractor` mapping into `CdmDocument` (`SourceType::DocumentPdf`, `SourceIdentity`, `CdmSection` per page with dimensions and line/byte ranges, and `CompletenessReport`).
+  - `crates/pdf-extractor/src/lib.rs`: Exposed modules and public re-exports.
+  - `crates/pdf-extractor/tests/geometry_test.rs`: 2D bounding box operations test.
+  - `crates/pdf-extractor/tests/layout_test.rs`: Line clustering, block classification, and multi-column ordering tests.
+  - `crates/pdf-extractor/tests/parser_test.rs`: Error cases and synthetic in-memory PDF parsing end-to-end tests.
+  - `crates/pdf-extractor/tests/extractor_test.rs`: Multi-page PDF extraction and CDM conversion integration tests.
+- **Implementation Tasks:**
+  1. Updated root workspace `Cargo.toml` and verified `cargo deny check` clean with `lopdf v0.47.0` (resolving RUSTSEC-2026-0187).
+  2. Implemented crate error domain in `crates/pdf-extractor/src/error.rs`.
+  3. Implemented spatial geometry and layout models in `crates/pdf-extractor/src/models.rs`.
+  4. Implemented spatial layout analysis engine in `crates/pdf-extractor/src/layout.rs`.
+  5. Implemented low-level PDF structure parser in `crates/pdf-extractor/src/parser.rs`.
+  6. Implemented high-level CDM document extractor in `crates/pdf-extractor/src/extractor.rs`.
+  7. Authored 4 comprehensive integration test suites across geometry, layout, parser, and CDM extractor.
+  8. Verified clean compilation, zero clippy warnings, clean formatting, and cargo deny compliance.
+  9. Executed full monorepo quality gate (`scripts/check-all.ps1`) with 100% passing results across all 5 gates.
+  10. Updated project tracking ledgers (`PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `IMPLEMENTATION_LEDGER.md`).
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-pdf-extractor` (10 tests passing)
+  - `cargo clippy -p web-repo-to-ai-pdf-extractor --all-targets -- -D warnings` (Clean, zero warnings)
+  - `cargo fmt --all -- --check` (Clean, zero diffs)
+  - `cargo deny check` (Advisories ok, bans ok, licenses ok, sources ok)
+  - `powershell scripts/check-all.ps1` (All 5 gates passed with 0 failures)
+- **Acceptance Criteria:**
+  - Pure Rust PDF parsing without external C/C++ dynamic library dependencies.
+  - Valid `%PDF-` header verified; empty/malformed/encrypted PDFs gracefully rejected with descriptive errors.
+  - Spatial 2D layout engine clusters lines and blocks using real coordinate geometry.
+  - Multi-column reading order correctly orders left column before right column.
+  - Extracted PDF content accurately maps into `CdmDocument` with `SourceType::DocumentPdf`.
+  - Zero-mock policy adhered to across all PDF extraction components.
+  - All 10 crate integration tests and 666+ workspace tests pass cleanly.
+  - Disk space constraint satisfied ($\ge 70$ GB free on `C:`).
+  - All 5 monorepo quality gates pass with 0 failures.
+- **Status:** `ACCEPTED`
+
+
 
 
 

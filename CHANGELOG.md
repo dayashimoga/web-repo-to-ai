@@ -4,7 +4,47 @@
 
 ---
 
-## [Unreleased] — Stage 9: Developer and AI Agent Integrations
+## [Unreleased] — Stage 10: Advanced Documents and Content
+
+### 2026-11-20 — Phase 10.1: PDF extraction (`10.1.1`)
+
+#### Added
+- **`[10.1.1]` PDF parser & layout extraction in `crates/pdf-extractor`:**
+  - PDF Document Structure Parser (`crates/pdf-extractor/src/parser.rs`):
+    - `PdfParser`: Pure Rust PDF parser built on `lopdf v0.47.0` (zero security advisories, fully compliant with `cargo deny`).
+    - Header validation: Validates `%PDF-` magic prefix, handling up to 1024 bytes of leading junk per specification; extracts version string.
+    - Error guards: Rejects empty byte slices (`PdfError::EmptyDocument`), non-PDF headers (`PdfError::InvalidHeader`), malformed structures/cross-reference tables (`PdfError::MalformedStructure`), and encrypted documents (`PdfError::EncryptedDocument` for `/Encrypt` dictionaries).
+    - Metadata extraction: Decodes `/Info` dictionary into structured `PdfMetadata` (`title`, `author`, `subject`, `creator`, `producer`, `keywords`, `creation_date`, `mod_date`).
+    - Page hierarchy & dimensions: Traverses page tree, resolving `MediaBox` and `CropBox` coordinates and `/Rotate` display orientation into normalized `PageDimensions`.
+    - Operator stream decoding: Parses content streams across `BT`/`ET` text objects, `Tf` font selection, `Td`/`TD` offsets, `Tm` text matrices, `T*` line breaks, and `Tj`/`TJ` text output into positioned `PdfSpan` tokens.
+    - Fallback text synthesis: Synthesizes spatial spans when operator streams are absent or unreadable.
+    - Document outlines: Traverses bookmark hierarchy (`/Outlines`, `/First`, `/Next`) into structured `OutlineItem` tree.
+  - Spatial 2D Layout Reconstruction (`crates/pdf-extractor/src/layout.rs`):
+    - `PdfLayoutEngine`: Clusters loose text spans into horizontal lines (`PdfLine`) using baseline vertical tolerance.
+    - Column separation: Introduces `max_span_horizontal_gap_factor` to prevent spans across column gutters from mistakenly merging into single lines.
+    - Multi-column reading order: Detects two-column layouts and orders text down the left column first, followed by the right column, while maintaining top and bottom full-width banners.
+    - Line & paragraph clustering: Groups lines into coherent semantic text blocks (`PdfTextBlock`) based on line spacing thresholds, upward jumps, font size variations, and list markers.
+    - Block classification: Classifies blocks into `TextBlockKind::Header`, `Paragraph`, `ListItem`, `PageHeader`, and `PageFooter`.
+  - Geometric Models (`crates/pdf-extractor/src/models.rs`):
+    - `BoundingBox`: Normalized rectangular bounding box in 72-dpi point user coordinates (`x0`, `y0`, `x1`, `y1`) with `width`, `height`, `area`, `intersects`, `contains`, and `union` operations.
+    - Data models: `PageDimensions`, `PdfMetadata`, `PdfSpan`, `PdfLine`, `TextBlockKind`, `PdfTextBlock`, `PdfPage`, `OutlineItem`, and `PdfDocument`.
+  - Canonical Context Document Model (CDM) Integration (`crates/pdf-extractor/src/extractor.rs`):
+    - `PdfExtractor`: High-level extraction interface providing `extract`, `extract_to_cdm`, and `extract_to_cdm_with_url`.
+    - Maps extracted pages into `CdmDocument` with `SourceType::DocumentPdf`, `SourceIdentity`, `CdmSection` per page (with `title`, `body`, 1-indexed line numbers, byte ranges, and spatial attributes `page_number`, `width`, `height`, `rotation`, `block_count`), metadata attributes, and complete `CompletenessReport`.
+  - Comprehensive Integration Test Suite (`crates/pdf-extractor/tests/`):
+    - `geometry_test.rs`: 2D bounding box creation, normalization, containment, intersection, and union.
+    - `layout_test.rs`: Line clustering, word spacing, semantic block classification, and multi-column reading order.
+    - `parser_test.rs`: Empty document error, invalid header rejection, malformed structure error, synthetic in-memory PDF parsing, metadata, dimensions, text extraction, and bookmark outlines.
+    - `extractor_test.rs`: Multi-page PDF extraction into `CdmDocument`, CDM metadata, completeness report, sections, and invalid input rejection.
+  - Quality verification:
+    - 10 crate integration tests passing cleanly.
+    - 666+ workspace tests passing across the monorepo.
+    - `cargo clippy --workspace --all-targets -- -D warnings` clean with zero warnings.
+    - `cargo fmt --all -- --check` clean with zero formatting diffs.
+    - `cargo deny check` clean (advisories ok, bans ok, licenses ok, sources ok).
+    - Monorepo quality gate (`scripts/check-all.ps1`) 100% passing (5/5 gates).
+
+## [Stage 9] — Developer and AI Agent Integrations (100% COMPLETED & CERTIFIED)
 
 ### 2026-11-19 — Phase 9.4: Browser integration (`9.4.4`)
 

@@ -1,13 +1,13 @@
 # PROJECT STATUS (`PROJECT_STATUS.md`)
 
 **Project:** `web-repo-to-ai` (Universal URL & GitHub Repository → AI-Ready Content Converter)  
-**Last Updated:** 2026-11-19  
-**Current Stage:** `STAGE 10 — ADVANCED DOCUMENTS AND CONTENT` (`NOT_STARTED`)  
+**Last Updated:** 2026-11-20  
+**Current Stage:** `STAGE 10 — ADVANCED DOCUMENTS AND CONTENT` (`IN_PROGRESS`)  
 **Last Completed Stage:** `STAGE 9 — DEVELOPER AND AI AGENT INTEGRATIONS` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Last Completed Phase:** `Phase 9.4 — Browser integration` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Active Subphase:** `None`  
-**Last Completed Subphase:** `9.4.4 — Extension security (apps/extension: Strict CSP enforcement, host permission boundaries, secret redaction, and Phase 9.4 formal certification)` (`ACCEPTED`)  
-**Next Upcoming Subphase:** `10.1.1 — PDF parser & layout extraction (crates/pdf-extractor: Scaffolding, PDF document structure parsing, text flow and page bounding)`
+**Last Completed Subphase:** `10.1.1 — PDF parser & layout extraction (crates/pdf-extractor: Pure Rust PDF document structure parsing, spatial layout reconstruction, reading order determination, and CDM mapping)` (`ACCEPTED`)  
+**Next Upcoming Subphase:** `10.1.2 — Multi-column and table extraction`
 
 ---
 
@@ -91,18 +91,27 @@ In Stage 9 ("Developer and AI Agent Integrations"):
     - DOM & HTML Sanitization against XSS: Implemented `src/security/sanitizer.ts` (`escapeHtml`, `stripDangerousAttributes`, `sanitizeHtmlContent`) stripping dangerous tags (`<script>`, `<style>`, `<iframe>`, `<object>`, `<embed>`, `<svg>`, `<audio>`, `<video>`, `<form>`, `<input>`), inline `on*` event handlers, and `javascript:`/`vbscript:`/`data:text/html`/`srcdoc` attributes.
     - Quality & Formal Certification: Authored comprehensive test suite `tests/security.test.ts` with 17 unit tests across CSP verification, privileged URL boundaries, secret redaction, and DOM sanitization. Verified with 103 extension tests, 213 web tests, 656 Rust tests, Vite build (226ms), TypeScript clean, Prettier clean, zero cargo deny violations, and 100% passing quality gates (5/5). Formally certified Phase 9.4 and completed Stage 9 in full.
 
+In Stage 10 ("Advanced Documents and Content"):
+- Phase 10.1 ("PDF extraction") is in progress:
+  - Subphase `10.1.1` delivered pure Rust PDF document structure parsing, text flow extraction, 2D spatial layout reconstruction, bounding box geometry, reading order determination, and Canonical Context Document Model (`CdmDocument`) mapping in `crates/pdf-extractor` (`web-repo-to-ai-pdf-extractor`):
+    - PDF Structure & Parser (`crates/pdf-extractor/src/parser.rs`): Implemented `PdfParser` using `lopdf v0.47.0` (clean cargo deny audit, zero advisories). Validates `%PDF-` header (allowing up to 1024 bytes prefix), extracts PDF specification version, rejects empty/corrupted documents, detects encrypted documents (`/Encrypt`), parses `/Info` metadata dictionary (Title, Author, Subject, Creator, Producer, Keywords, CreationDate, ModDate), discovers pages, resolves MediaBox/CropBox dimensions and rotation, decodes content stream operations (`BT`, `ET`, `Tf`, `Td`, `TD`, `Tm`, `T*`, `Tj`, `TJ`) into positioned `PdfSpan` tokens, falls back to text synthesis when operator streams are absent, and traverses outline bookmark hierarchies (`/Outlines`, `/First`, `/Next`).
+    - Spatial Layout Engine (`crates/pdf-extractor/src/layout.rs`): Implemented `PdfLayoutEngine` with baseline tolerance clustering into horizontal lines (`PdfLine`), horizontal gap analysis (`max_span_horizontal_gap_factor`) preventing premature column merging, two-column layout detection and top-to-bottom reading order sorting (left column followed by right column), vertical and font-size line clustering into semantic text blocks (`PdfTextBlock`), and semantic classification into `TextBlockKind::Header`, `Paragraph`, `ListItem`, `PageHeader`, and `PageFooter`.
+    - Geometry & Layout Models (`crates/pdf-extractor/src/models.rs`): Implemented normalized 2D `BoundingBox` (`width`, `height`, `area`, `intersects`, `contains`, `union`), `PageDimensions`, `PdfMetadata`, `PdfSpan`, `PdfLine`, `TextBlockKind`, `PdfTextBlock`, `PdfPage`, `OutlineItem`, and `PdfDocument`.
+    - CDM Mapping (`crates/pdf-extractor/src/extractor.rs`): Implemented `PdfExtractor` mapping parsed PDF pages into `CdmDocument` (`SourceType::DocumentPdf`, `SourceIdentity`, `CdmSection` per page with line numbers, byte ranges, spatial dimension attributes `width`, `height`, `rotation`, and `block_count`), metadata preservation, and complete `CompletenessReport`.
+    - Quality & Verification: Authored 10 integration tests in `crates/pdf-extractor/tests/` across bounding box geometry (`geometry_test.rs`), line clustering, semantic classification, multi-column reading order (`layout_test.rs`), header validation, empty document rejection, corrupted structure error, encrypted document error, valid synthetic PDF parsing, and bookmark outlines (`parser_test.rs`), and end-to-end CDM mapping (`extractor_test.rs`). Verified with 10 crate tests, 666+ workspace tests, zero clippy warnings, zero fmt diffs, cargo deny clean, and 100% passing quality gates (5/5).
+
 ---
 
 ## 2. Subphase Status Counter
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 160 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4` |
+| `ACCEPTED` | 161 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 36 | `10.1.1` – `11.4.5` |
+| `NOT_STARTED` | 35 | `10.1.2` – `11.4.5` |
 | **Total** | **196** | `Stage 0` – `Stage 11` |
 
 ---

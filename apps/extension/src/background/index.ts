@@ -437,7 +437,9 @@ export async function handleMessage(message: ExtensionMessage): Promise<Extensio
   } catch (err: any) {
     return {
       success: false,
-      error: sanitizeError(err.message || "An unexpected error occurred in background service worker"),
+      error: sanitizeError(
+        err.message || "An unexpected error occurred in background service worker"
+      ),
     };
   }
 }

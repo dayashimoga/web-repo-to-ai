@@ -19,6 +19,7 @@ members = [
     "crates/observability",
     "crates/cli",
     "crates/mcp",
+    "crates/pdf-extractor",
 ]
 resolver = "2"
 
@@ -63,6 +64,8 @@ web-repo-to-ai-job-engine = { path = "crates/job-engine", version = "0.1.0" }
 web-repo-to-ai-observability = { path = "crates/observability", version = "0.1.0" }
 web-repo-to-ai-cli = { path = "crates/cli", version = "0.1.0" }
 web-repo-to-ai-mcp = { path = "crates/mcp", version = "0.1.0" }
+web-repo-to-ai-pdf-extractor = { path = "crates/pdf-extractor", version = "0.1.0" }
+lopdf = { version = "0.47", default-features = false }
 
 # Async runtime & networking
 clap = { version = "4.5", default-features = false, features = ["std", "derive", "env", "help", "usage", "error-context"] }

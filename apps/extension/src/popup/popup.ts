@@ -259,7 +259,9 @@ export class PopupController {
         }
       } else {
         this.elements.statusDot.className = "status-dot offline";
-        const err = sanitizeError((res.success && res.data.error) || (!res.success && res.error) || "Offline");
+        const err = sanitizeError(
+          (res.success && res.data.error) || (!res.success && res.error) || "Offline"
+        );
         this.elements.statusDot.title = `API Offline: ${err}`;
       }
     });
@@ -461,7 +463,9 @@ export class PopupController {
         this.updateProgress({ pct: 100, phaseText: "Conversion complete!" });
         this.showResult(res.data);
       } else {
-        const errorMsg = sanitizeError(!res.success ? res.error : "Conversion failed without error output");
+        const errorMsg = sanitizeError(
+          !res.success ? res.error : "Conversion failed without error output"
+        );
         this.elements.progressContainer.style.display = "none";
         this.elements.statusMessage.className = "status-message error";
         this.elements.statusMessage.textContent = `Conversion failed: ${errorMsg}`;
@@ -471,7 +475,9 @@ export class PopupController {
     } catch (err: any) {
       this.elements.progressContainer.style.display = "none";
       this.elements.statusMessage.className = "status-message error";
-      this.elements.statusMessage.textContent = sanitizeError(err.message || "Failed to initiate conversion");
+      this.elements.statusMessage.textContent = sanitizeError(
+        err.message || "Failed to initiate conversion"
+      );
       this.elements.btnConvertText.textContent = "Retry Conversion";
       this.elements.btnConvert.disabled = false;
     } finally {
