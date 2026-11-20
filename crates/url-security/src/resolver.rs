@@ -124,9 +124,14 @@ impl SecureDnsResolver {
         // 3. Host validation
         is_blocked_host(host, &self.policy)?;
 
-        // 4. IP literal bypass check
+        // 4. IP literal bypass check (stripping optional IPv6 zone index)
         let unbracketed = host.trim_start_matches('[').trim_end_matches(']');
-        if let Ok(ip) = unbracketed.parse::<IpAddr>() {
+        let ip_str = if let Some((base, _)) = unbracketed.split_once('%') {
+            base
+        } else {
+            unbracketed
+        };
+        if let Ok(ip) = ip_str.parse::<IpAddr>() {
             is_blocked_ip(ip, &self.policy)?;
             let pinned = PinnedTarget::new(url.clone(), ip, vec![ip], self.ttl_secs);
             let mut map = self.cache.write().await;

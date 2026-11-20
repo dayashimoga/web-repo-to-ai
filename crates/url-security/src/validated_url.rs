@@ -47,7 +47,7 @@ impl ValidatedUrl {
         let trimmed = link.trim();
         // Check for null bytes or forbidden control characters in link
         for (idx, ch) in trimmed.chars().enumerate() {
-            if ch == '\0' || (ch.is_control() && ch != '\t' && ch != '\r' && ch != '\n') {
+            if ch == '\0' || ch.is_control() {
                 return Err(UrlSecurityError::InvalidCharacters {
                     details: format!("Prohibited character at position {idx} in relative link"),
                 });

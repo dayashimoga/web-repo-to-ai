@@ -36,7 +36,7 @@ impl UrlNormalizer {
                     details: format!("Null byte detected at character position {idx}"),
                 });
             }
-            if ch.is_control() && ch != '\t' && ch != '\r' && ch != '\n' {
+            if ch.is_control() {
                 return Err(UrlSecurityError::InvalidCharacters {
                     details: format!(
                         "Prohibited control character U+{:04X} at position {idx}",

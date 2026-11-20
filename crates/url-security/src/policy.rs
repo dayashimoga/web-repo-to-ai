@@ -104,10 +104,7 @@ impl Default for UrlSecurityPolicy {
             block_cloud_metadata: true,
             // By default, common internal service ports are blocked to prevent SSRF pivots.
             // Notice: 80 and 443 are NOT blocked. 8080 and 8443 are allowed for web.
-            blocked_ports: vec![
-                21, 22, 23, 25, 53, 69, 110, 119, 123, 143, 161, 389, 445, 636, 1433, 1521, 2375,
-                2376, 3306, 3389, 5432, 5900, 6379, 9200, 11211, 27017,
-            ],
+            blocked_ports: DEFAULT_BLOCKED_PORTS.to_vec(),
             blocked_hosts: vec![
                 "localhost".to_string(),
                 "127.0.0.1".to_string(),

@@ -343,8 +343,14 @@ pub fn is_blocked_host(host_str: &str, policy: &UrlSecurityPolicy) -> Result<(),
     }
 
     // 4. Check if host parses directly as a standard IP address
+    // (stripping optional IPv6 RFC 6874 zone index e.g. %eth0 or %25eth0)
     let unbracketed = lower.trim_start_matches('[').trim_end_matches(']');
-    if let Ok(ip) = unbracketed.parse::<IpAddr>() {
+    let ip_str = if let Some((base, _)) = unbracketed.split_once('%') {
+        base
+    } else {
+        unbracketed
+    };
+    if let Ok(ip) = ip_str.parse::<IpAddr>() {
         return is_blocked_ip(ip, policy);
     }
 
@@ -353,7 +359,40 @@ pub fn is_blocked_host(host_str: &str, policy: &UrlSecurityPolicy) -> Result<(),
         return is_blocked_ip(IpAddr::V4(parsed_v4), policy);
     }
 
+    // 6. Check percent-encoded hostname obfuscation (e.g. %31%32%37%2E%30%2E%30%2E%31)
+    if lower.contains('%') {
+        if let Some(decoded) = decode_percent_host(&lower) {
+            let dec_clean = decoded.trim().trim_end_matches('.');
+            if let Ok(ip) = dec_clean.parse::<IpAddr>() {
+                return is_blocked_ip(ip, policy);
+            }
+            if let Some(parsed_v4) = parse_alternative_ipv4(dec_clean) {
+                return is_blocked_ip(IpAddr::V4(parsed_v4), policy);
+            }
+        }
+    }
+
     Ok(())
+}
+
+/// Decodes percent-encoded character sequences (%XX) in hostname strings.
+fn decode_percent_host(s: &str) -> Option<String> {
+    let mut decoded = Vec::with_capacity(s.len());
+    let bytes = s.as_bytes();
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'%' && i + 2 < bytes.len() {
+            let hex_str = std::str::from_utf8(&bytes[i + 1..i + 3]).ok()?;
+            if let Ok(byte) = u8::from_str_radix(hex_str, 16) {
+                decoded.push(byte);
+                i += 3;
+                continue;
+            }
+        }
+        decoded.push(bytes[i]);
+        i += 1;
+    }
+    String::from_utf8(decoded).ok()
 }
 
 /// Parses non-standard IPv4 notations (POSIX `inet_aton` syntax) used in SSRF bypass attempts.

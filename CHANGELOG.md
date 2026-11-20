@@ -6,6 +6,44 @@
 
 ## [Unreleased] — Stage 11: Production Certification
 
+### 2026-11-20 — Phase 11.1: Security (`11.1.2`)
+
+#### Added
+- **`[11.1.2]` SSRF & network security hardening and adversarial validation (`crates/url-security`, `crates/web-extractor`):**
+  - Advanced SSRF Evasion Hardening (`crates/url-security`):
+    - RFC 6874 IPv6 Zone Identifier Defense: Stripped zone indices (`%eth0`, `%lo`, `%1`) before IP literal parsing in `ip_filter.rs` and `resolver.rs`, preventing zone notation bypass of link-local (`fe80::/10`) and loopback (`::1`) restrictions.
+    - Percent-Encoded Hostname Obfuscation: Implemented `decode_percent_host` in `ip_filter.rs` decoding obfuscated percent-encoded hostnames (e.g. `%31%32%37%2E%30%2E%30%2E%31`) before evaluating alternative IPv4 encodings.
+    - ASCII Control Character & CRLF Injection Defense: Enforced strict rejection of all ASCII control characters (`ch.is_control()`) in `normalizer.rs` and `validated_url.rs`, eliminating HTTP Request Smuggling and header injection in URL joins and redirect destinations.
+    - Unified Blocked Ports Matrix: Aligned `UrlSecurityPolicy::default()` with `DEFAULT_BLOCKED_PORTS`, ensuring ports 5000 and 8000 are blocked by default alongside all 28 dangerous administrative and control ports.
+  - Comprehensive Adversarial SSRF Test Suite (`crates/url-security/tests/ssrf_adversarial_test.rs`):
+    - Authored 7 integration tests:
+      1. `test_adversarial_ipv4_alternative_encodings`: Evaluates 35 alternative IPv4 representations (decimal dwords, hex dwords, octal, dotted octal, POSIX inet_aton, trailing dots, single zero integers, broadcast addresses).
+      2. `test_adversarial_ipv6_scopes_and_tunneling_evasions`: Evaluates 18 IPv6 evasion vectors (loopback, link-local, site-local, unique-local, IPv4-mapped, IPv4-compatible, discard prefix, 6to4 prefix, Teredo prefix, documentation subnets, RFC 6874 zone indices).
+      3. `test_adversarial_dns_split_horizon_and_all_record_rejection`: Proves zero-trust DNS evaluation; any single internal IP in candidate responses triggers complete hostname rejection.
+      4. `test_adversarial_dns_rebinding_pinning_cache_defense`: Proves TOCTOU DNS rebinding immunity using immutable cached `PinnedTarget` socket addresses against flapping mock DNS resolvers.
+      5. `test_adversarial_blocked_ports_matrix`: Tests all 28 default blocked ports and verifies allowed standard ports (80, 443, 8080, 8443).
+      6. `test_adversarial_redirect_hop_join_revalidation`: Tests malicious relative link joining against path traversal, CRLF injection, scheme changes, and domain boundary hops.
+      7. `test_adversarial_userinfo_and_query_sanitization`: Verifies userinfo (`admin:password@`) rejection and tracking query parameter stripping.
+  - Hop-by-Hop Redirect Security Test Suite (`crates/web-extractor/tests/redirect_ssrf_test.rs`):
+    - Authored 10 integration tests:
+      1. `test_redirect_tracker_blocks_loopback_destinations`: Rejection of redirects to loopback addresses.
+      2. `test_redirect_tracker_blocks_cloud_metadata_services`: Rejection of redirects to cloud metadata endpoints (`169.254.169.254`, `metadata.google.internal`).
+      3. `test_redirect_tracker_blocks_private_rfc1918_networks`: Rejection of redirects to RFC 1918 subnets (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`).
+      4. `test_redirect_tracker_blocks_protocol_confusion_schemes`: Rejection of redirects to dangerous schemes (`file://`, `ftp://`, `gopher://`, `javascript:`, `data:`).
+      5. `test_redirect_tracker_blocks_dangerous_administrative_ports`: Rejection of redirects to dangerous administrative ports (22, 2375, 6379, 5432, 27017).
+      6. `test_redirect_tracker_detects_and_aborts_cyclic_loops`: Immediate detection and abort of cyclic redirect loops (`A -> B -> C -> A`).
+      7. `test_redirect_tracker_enforces_maximum_hop_ceiling`: Strict abort when redirect count exceeds ceiling.
+      8. `test_web_fetcher_e2e_blocks_redirect_to_cloud_metadata`: End-to-end `WebFetcher` rejection of cloud metadata redirects before issuance.
+      9. `test_web_fetcher_e2e_blocks_redirect_to_loopback`: End-to-end `WebFetcher` rejection of loopback redirects before issuance.
+      10. `test_web_fetcher_e2e_records_clean_multi_hop_provenance`: Full provenance and redirect history capture on legitimate multi-hop redirections.
+  - Monorepo Verification Script Concurrency Bounds (`scripts/check-all.ps1`):
+    - Configured `--jobs 4` for `cargo clippy`, preventing memory/paging file exhaustion on Windows during audit execution.
+  - Quality & Verification:
+    - 28 passing tests in `crates/url-security` (21 unit, 7 integration).
+    - 202 passing tests in `crates/web-extractor` (135 unit, 67 integration).
+    - 954+ monorepo workspace tests passing.
+    - All 5 monorepo quality gates passing via `scripts/check-all.ps1` with 0 failures.
+
 ### 2026-11-20 — Phase 11.1: Security (`11.1.1`)
 
 #### Added

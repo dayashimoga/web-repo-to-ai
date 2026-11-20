@@ -7178,3 +7178,91 @@
   - 937+ tests passing across the workspace (621 Rust + 213 web + 103 extension).
   - `scripts/check-all.ps1` 100% passing across all 5 quality gates with 0 failures.
 - **Status:** `ACCEPTED`
+
+
+---
+
+#### Subphase `11.1.2` — SSRF & network security in crates/url-security and crates/web-extractor
+- **Unique ID:** `11.1.2`
+- **Objective:** Harden monorepo zero-trust SSRF defenses and network security controls against advanced evasion techniques (RFC 6874 IPv6 zone identifiers, percent-encoded hostname obfuscation, ASCII control character and CRLF injection, unified blocked ports matrix) and validate hop-by-hop redirect security, loop detection, DNS rebinding pinning protection, and all-record DNS split-horizon evaluation through dedicated adversarial integration test suites.
+- **Scope:** `crates/url-security`, `crates/web-extractor`, `scripts/check-all.ps1`.
+- **Prerequisites:** Subphase `11.1.1` Accepted.
+- **Files/Components Affected:**
+  - `crates/url-security/src/ip_filter.rs`
+  - `crates/url-security/src/resolver.rs`
+  - `crates/url-security/src/policy.rs`
+  - `crates/url-security/src/normalizer.rs`
+  - `crates/url-security/src/validated_url.rs`
+  - `crates/url-security/tests/ssrf_adversarial_test.rs`
+  - `crates/web-extractor/tests/redirect_ssrf_test.rs`
+  - `scripts/check-all.ps1`
+- **Implementation Tasks:**
+  1. RFC 6874 IPv6 Zone Identifier Stripping & Parsing Defense:
+     - Hardened `crates/url-security/src/ip_filter.rs` and `crates/url-security/src/resolver.rs` to detect and strip RFC 6874 zone index identifiers (`%eth0`, `%lo`, `%1`) prior to parsing IPv6 address literals.
+     - Guarantees immediate classification and blocking of link-local (`fe80::/10`) and loopback addresses that attackers attempt to bypass using scoped zone notations.
+  2. Percent-Encoded Hostname Obfuscation Defense:
+     - Added `decode_percent_host` in `crates/url-security/src/ip_filter.rs` ensuring obfuscated percent-encoded host strings (e.g. `%31%32%37%2E%30%2E%30%2E%31` -> `127.0.0.1`) are fully decoded and evaluated by alternative IP parsing routines before DNS lookup.
+  3. Strict ASCII Control Character & CRLF Injection Elimination:
+     - Hardened `crates/url-security/src/normalizer.rs` and `crates/url-security/src/validated_url.rs` to reject any ASCII control characters (`ch.is_control()`) in link normalization and URL parsing.
+     - Stripped historical whitespace/CRLF exemptions, completely preventing HTTP Request Smuggling and header injection in relative link joins and redirect targets.
+  4. Unified Blocked Ports Matrix:
+     - Unified `UrlSecurityPolicy::default()` with `DEFAULT_BLOCKED_PORTS`, ensuring ports 5000 (Docker registry / local Flask) and 8000 (internal web services) are blocked by default alongside standard administrative, control, and protocol ports (21, 22, 23, 25, 53, 69, 110, 111, 123, 135, 137, 138, 139, 143, 161, 389, 445, 636, 1433, 1521, 2049, 2375, 2376, 3306, 3389, 5432, 6379, 9200, 11211, 27017).
+  5. Adversarial SSRF Test Suite (`crates/url-security/tests/ssrf_adversarial_test.rs`):
+     - Authored 7 comprehensive integration tests validating zero-trust defenses:
+       - `test_adversarial_ipv4_alternative_encodings`: 35 adversarial variants (decimal dwords, hex dwords, mixed hex/decimal, octal dwords, mixed octal, dotted octal, POSIX inet_aton shorthand, trailing dots, 0.0.0.0 bypasses, broadcast addresses).
+       - `test_adversarial_ipv6_scopes_and_tunneling_evasions`: 18 IPv6 evasion vectors (loopback, link-local, site-local, unique-local, IPv4-mapped, IPv4-compatible, discard-only, 6to4 prefix, Teredo prefix, documentation subnets, RFC 6874 zone indices).
+       - `test_adversarial_dns_split_horizon_and_all_record_rejection`: Validates all-record DNS evaluation; any single blocked IP in candidate responses triggers immediate resolution rejection.
+       - `test_adversarial_dns_rebinding_pinning_cache_defense`: Validates `PinnedTarget` caching and anti-rebinding guarantees against simulated flapping DNS resolvers.
+       - `test_adversarial_blocked_ports_matrix`: Tests 28 blocked ports and validates allowed standard ports (80, 443, 8080, 8443).
+       - `test_adversarial_redirect_hop_join_revalidation`: Tests malicious relative link joining against path traversal, control character injection, scheme changes, and domain boundary hops.
+       - `test_adversarial_userinfo_and_query_sanitization`: Verifies userinfo (`admin:password@`) rejection and tracking query parameter stripping.
+  6. Hop-by-Hop Redirect Security Test Suite (`crates/web-extractor/tests/redirect_ssrf_test.rs`):
+     - Authored 10 integration tests validating `RedirectTracker` and `WebFetcher`:
+       - Loopback redirect blocking (`127.0.0.1`, `localhost`, `[::1]`).
+       - Cloud metadata redirect blocking (`169.254.169.254`, `metadata.google.internal`, IPv4-mapped, integer notations).
+       - RFC 1918 private network redirect blocking (`10.0.0.1`, `172.16.0.1`, `192.168.1.1`).
+       - Scheme confusion redirect blocking (`file://`, `ftp://`, `gopher://`, `javascript:`, `data:`).
+       - Blocked administrative port redirect blocking (22, 2375, 6379, 5432, 27017).
+       - Cyclic redirect loop detection and immediate abort (`WebExtractorError::RedirectLoop`).
+       - Maximum redirect hop ceiling enforcement (`WebExtractorError::TooManyRedirects`).
+       - End-to-end `WebFetcher` metadata redirect blocking with mock transport.
+       - End-to-end `WebFetcher` loopback redirect blocking with mock transport.
+       - End-to-end `WebFetcher` multi-hop redirect provenance and redirect history tracking.
+  7. Concurrency Bound Hardening in Monorepo Check Script:
+     - Updated `scripts/check-all.ps1` to bound `cargo clippy` to `--jobs 4`, preventing Windows paging file exhaustion (`os error 1455`) during monorepo quality audits.
+  8. Full Workspace Verification:
+     - Verified all 28 tests in `crates/url-security` pass.
+     - Verified all 202 tests in `crates/web-extractor` pass.
+     - Verified all 954+ tests across the monorepo pass.
+     - Verified zero clippy warnings under `-D warnings`, zero formatting diffs, clean `cargo deny check`, and 100% passing quality gates (5/5).
+- **Acceptance Criteria:**
+  - RFC 6874 IPv6 zone identifiers stripped and correctly rejected when pointing to link-local/loopback addresses.
+  - Percent-encoded hostnames intercepted and rejected when pointing to blocked IPs.
+  - ASCII control characters and CRLF characters strictly rejected in URL parsing and relative link joins.
+  - Ports 5000 and 8000 included in default blocked ports matrix.
+  - Comprehensive adversarial test suite passing in `crates/url-security/tests/ssrf_adversarial_test.rs`.
+  - Comprehensive redirect SSRF test suite passing in `crates/web-extractor/tests/redirect_ssrf_test.rs`.
+  - Zero mock or placeholder code in production paths.
+  - All 5 monorepo quality gates passing via `scripts/check-all.ps1`.
+- **Tests:**
+  - `crates/url-security/tests/ssrf_adversarial_test.rs` (7 tests)
+  - `crates/web-extractor/tests/redirect_ssrf_test.rs` (10 tests)
+  - `crates/url-security/src/lib.rs` (21 unit tests)
+  - `crates/web-extractor/src/lib.rs` (135 unit tests + 67 integration tests)
+- **Security Considerations:**
+  - Eliminates TOCTOU DNS rebinding by pinning validated socket addresses.
+  - Revalidates destination URL and re-resolves/pins socket address at every redirect hop before issuing HTTP requests.
+  - Rejects every candidate IP if any single record in dual-stack / multi-record DNS resolution is internal.
+  - Intercepts all alternative IP encoding notations (hex, octal, decimal, shorthand, zone index).
+- **Performance Considerations:**
+  - High-throughput DNS cache (`PinnedTarget`) avoids redundant DNS queries during multi-step extractions.
+  - Zero heap allocation in common-case character validation.
+  - Non-blocking async DNS resolution with bounded execution timeouts.
+- **Documentation Requirements:**
+  - `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`, `IMPLEMENTATION_LEDGER.md`.
+- **Validation Evidence:**
+  - 28 tests passing in `crates/url-security` (21 unit, 7 integration).
+  - 202 tests passing in `crates/web-extractor` (135 unit, 67 integration).
+  - 954+ tests passing across the workspace (638 Rust + 213 web + 103 extension).
+  - `scripts/check-all.ps1` 100% passing across all 5 quality gates with 0 failures.
+- **Status:** `ACCEPTED`

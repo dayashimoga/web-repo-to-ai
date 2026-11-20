@@ -111,7 +111,7 @@
 - **Phase 10.5 — Optional local and external AI provider adapters:** `10.5.1` Provider-independent AI adapter trait (`ACCEPTED`) | `10.5.2` Local Ollama / OpenAI-compatible adapter (`ACCEPTED`) | `10.5.3` Strict opt-in guardrails & zero-key fallback (`ACCEPTED`) | `10.5.4` Adapter contract & isolation tests (`ACCEPTED` — **PHASE 10.5 CERTIFIED & STAGE 10 COMPLETED**)
 
 ### STAGE 11 — PRODUCTION CERTIFICATION
-- **Phase 11.1 — Security:** `11.1.1` Threat model review (`ACCEPTED`) | `11.1.2` SSRF & network security | `11.1.3` OAuth & access-control audit | `11.1.4` Dependency & secrets audit
+- **Phase 11.1 — Security:** `11.1.1` Threat model review (`ACCEPTED`) | `11.1.2` SSRF & network security (`ACCEPTED`) | `11.1.3` OAuth & access-control audit | `11.1.4` Dependency & secrets audit
 - **Phase 11.2 — Performance:** `11.2.1` Extraction benchmarks | `11.2.2` Large repository benchmarks | `11.2.3` Memory & concurrency testing | `11.2.4` Regression benchmarks
 - **Phase 11.3 — Reliability:** `11.3.1` Interrupted-job recovery | `11.3.2` Retry & idempotency tests | `11.3.3` Storage cleanup verification | `11.3.4` Load & failure testing
 - **Phase 11.4 — Release:** `11.4.1` Complete documentation | `11.4.2` Production build | `11.4.3` Release artifacts & SBOM | `11.4.4` Deployment verification | `11.4.5` Final certification report

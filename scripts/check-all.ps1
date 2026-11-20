@@ -41,7 +41,7 @@ Run-Gate "Rust Workspace Checks" {
         if ($LASTEXITCODE -ne 0) { throw "cargo fmt check failed" }
 
         Write-Output "Checking cargo clippy..."
-        cargo clippy --workspace --all-targets -- -D warnings
+        cargo clippy --workspace --all-targets --jobs 4 -- -D warnings
         if ($LASTEXITCODE -ne 0) { throw "cargo clippy check failed" }
 
         Write-Output "Checking cargo test..."

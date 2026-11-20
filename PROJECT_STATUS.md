@@ -6,9 +6,9 @@
 **Last Completed Stage:** `STAGE 10 — ADVANCED DOCUMENTS AND CONTENT` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Last Completed Phase:** `Phase 10.5 — Optional local and external AI provider adapters` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Active Subphase:** `None`  
-**Last Completed Subphase:** `11.1.1 — Threat model review (comprehensive expansion of docs/SECURITY.md covering 8 trust boundaries, 6 asset tiers, 5 threat actors, exhaustive STRIDE matrix, 9 technical control architectures, traceability matrix, residual risk acceptance, key rotation runbook, and 7 automated security verification tests in services/api/tests/threat_model_verification_test.rs; verified with 114 API tests, 937+ workspace tests, and all 5 quality gates passing)` (`ACCEPTED`)  
+**Last Completed Subphase:** `11.1.2 — SSRF & network security (hardened zero-trust SSRF defenses in crates/url-security with RFC 6874 IPv6 zone identifier stripping, percent-encoded host decoding, ASCII control character & CRLF injection elimination, and unified blocked ports matrix; authored 7 adversarial SSRF tests in crates/url-security/tests/ssrf_adversarial_test.rs; authored 10 hop-by-hop redirect security tests in crates/web-extractor/tests/redirect_ssrf_test.rs; updated scripts/check-all.ps1 clippy jobs bound; verified with 28 url-security tests, 202 web-extractor tests, 954+ total workspace tests, and all 5 quality gates passing)` (`ACCEPTED`)  
 **Next Upcoming Phase:** `Phase 11.1 — Security`  
-**Next Upcoming Subphase:** `11.1.2 — SSRF & network security`
+**Next Upcoming Subphase:** `11.1.3 — OAuth & access-control audit`
 
 ---
 
@@ -292,6 +292,12 @@ In Stage 11 ("Production Certification"):
       6. `test_threat_model_rate_limiting_and_dos_protection`: Validated that rapid bursts exceeding rate limit quotas trigger RFC 7807 `429 Too Many Requests` with mandatory `Retry-After` and `X-RateLimit-*` headers.
       7. `test_threat_model_zero_key_fallback_offline_invariant`: Verified that the core service operates 100% offline without external AI keys, serving health and OpenAPI documentation.
     - Quality & Verification: Total API tests expanded to 114 (83 unit, 31 integration across 5 suites); total monorepo tests expanded to 937+ passing tests (621 Rust tests + 213 web tests + 103 extension tests). Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean, and 100% passing quality gates (5/5).
+  - Subphase `11.1.2` delivered comprehensive SSRF & network security defense hardening and adversarial validation:
+    - Advanced SSRF Evasion Hardening (`crates/url-security`): Hardened RFC 6874 IPv6 zone identifier stripping in `ip_filter.rs` and `resolver.rs`; implemented `decode_percent_host` in `ip_filter.rs` intercepting percent-encoded hostname obfuscations; enforced strict rejection of ASCII control characters and CRLF sequences (`ch.is_control()`) in `normalizer.rs` and `validated_url.rs`; unified `UrlSecurityPolicy::default()` with `DEFAULT_BLOCKED_PORTS` (including ports 5000 and 8000).
+    - Adversarial SSRF Test Suite (`crates/url-security/tests/ssrf_adversarial_test.rs`): Implemented 7 adversarial tests validating zero-trust defenses against 35 alternative IPv4 representations (hex, octal, dwords, mixed, POSIX shorthand), 18 IPv6 evasion vectors (loopback, link-local, site-local, unique-local, IPv4-mapped, 6to4, Teredo, RFC 6874 zone indices), all-record DNS split-horizon evaluation, DNS rebinding pinning cache protection, 28 blocked ports matrix, redirect hop join revalidation, and userinfo/tracking parameter sanitization.
+    - Hop-by-Hop Redirect Security Test Suite (`crates/web-extractor/tests/redirect_ssrf_test.rs`): Implemented 10 tests validating `RedirectTracker` and `WebFetcher` rejection of redirects to loopback addresses, cloud metadata (`169.254.169.254`, `metadata.google.internal`), RFC 1918 subnets, dangerous schemes, and administrative ports; immediate cyclic redirect loop aborts; maximum redirect hop ceilings; and end-to-end multi-hop provenance tracking.
+    - Monorepo Verification Concurrency Bounds (`scripts/check-all.ps1`): Added `--jobs 4` to `cargo clippy`, eliminating Windows paging file exhaustion (`os error 1455`) during monorepo quality audits.
+    - Quality & Verification: 28 url-security tests passing; 202 web-extractor tests passing; 954+ total workspace tests passing (638 Rust + 213 web + 103 extension). Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean, and 100% passing quality gates (5/5).
 
 ---
 
@@ -299,12 +305,12 @@ In Stage 11 ("Production Certification"):
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 181 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4`, `10.3.1` – `10.3.4`, `10.4.1` – `10.4.4`, `10.5.1`, `10.5.2`, `10.5.3`, `10.5.4`, `11.1.1` |
+| `ACCEPTED` | 182 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4`, `10.3.1` – `10.3.4`, `10.4.1` – `10.4.4`, `10.5.1`, `10.5.2`, `10.5.3`, `10.5.4`, `11.1.1`, `11.1.2` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 15 | `11.1.2` – `11.4.5` |
+| `NOT_STARTED` | 14 | `11.1.3` – `11.4.5` |
 | `Total` | **196** | `Stage 0` – `Stage 11` |
 
 ---
