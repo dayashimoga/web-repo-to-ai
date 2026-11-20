@@ -6,6 +6,26 @@
 
 ## [Unreleased] — Stage 10: Advanced Documents and Content
 
+### 2026-11-20 — Phase 10.5: Optional local and external AI provider adapters (`10.5.2`)
+
+#### Added
+- **`[10.5.2]` Local Ollama / OpenAI-compatible adapter in `crates/ai-adapter` (`web-repo-to-ai-ai-adapter`):**
+  - Shared HTTP Client & Connection Configuration (`crates/ai-adapter/src/client.rs`):
+    - Implemented `AiClientConfig` managing base URLs, Bearer authentication tokens, timeouts (default 60s), organization and project headers, and custom request headers.
+    - Implemented robust error translation mapping `reqwest::Error` timeouts and network disconnects into `AiAdapterError::Timeout` and `AiAdapterError::NetworkError`.
+    - Implemented HTTP status code mapping (401/403 -> `AuthenticationRequired`, 404 -> `ModelNotFound`, 413 -> `ContextLengthExceeded`, 429 -> `RateLimitExceeded` with `retry-after` extraction, 5xx -> `ServerUnavailable`).
+  - Local Ollama Daemon Adapter (`crates/ai-adapter/src/ollama.rs`):
+    - Implemented `OllamaAiAdapter` connecting to local Ollama endpoints (default `http://localhost:11434`), ensuring zero cloud egress and local CPU/GPU execution.
+    - Supported `GET /api/tags` model catalog discovery and latency health check probing.
+    - Supported `POST /api/chat` chat completions with JSON mode formatting, temperature, top_p, num_predict token limits, stop sequences, and seed.
+    - Supported `POST /api/embed` batch embeddings with automatic fallback to legacy `POST /api/embeddings`.
+  - OpenAI-Compatible REST Adapter (`crates/ai-adapter/src/openai.rs`):
+    - Implemented `OpenAiAiAdapter` supporting standard OpenAI endpoints or local inference servers (vLLM, LM Studio, LocalAI, Ollama `/v1`).
+    - Supported Bearer token authorization, `GET /models` catalog discovery, `POST /chat/completions` with JSON object formatting, and `POST /embeddings` with dimension specification.
+  - Integration & Verification Test Suites:
+    - Authored 16 new integration tests across `tests/ollama_adapter_test.rs` (8 tests) and `tests/openai_adapter_test.rs` (8 tests) backed by local loopback HTTP servers.
+    - Total crate tests expanded to 41 across 6 test suites; workspace tests expanded to 908+ passing tests with 0 warnings, 0 clippy diffs, clean `cargo deny check`, and 100% passing quality gates (5/5).
+
 ### 2026-11-20 — Phase 10.5: Optional local and external AI provider adapters (`10.5.1`)
 
 #### Added

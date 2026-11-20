@@ -9,14 +9,18 @@
 //! on CPU without AI assistance. AI provider adapters serve solely as optional,
 //! opt-in post-processing extensions.
 
+pub mod client;
 pub mod disabled;
 pub mod error;
 pub mod mock;
 pub mod models;
+pub mod ollama;
+pub mod openai;
 pub mod registry;
 pub mod traits;
 
 // Re-exports
+pub use client::AiClientConfig;
 pub use disabled::DisabledAiAdapter;
 pub use error::AiAdapterError;
 pub use mock::{MockAiAdapter, MockCallTracker};
@@ -27,5 +31,7 @@ pub use models::{
     EmbeddingRequest, EmbeddingResponse, SectionEnrichmentRequest, SectionEnrichmentResponse,
     SummaryFocus, TokenUsage,
 };
+pub use ollama::OllamaAiAdapter;
+pub use openai::OpenAiAiAdapter;
 pub use registry::AiAdapterRegistry;
 pub use traits::AiAdapter;

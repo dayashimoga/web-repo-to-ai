@@ -2840,8 +2840,10 @@ name = "web-repo-to-ai-ai-adapter"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "axum",
  "blake3",
  "chrono",
+ "reqwest",
  "serde",
  "serde_json",
  "thiserror 1.0.69",

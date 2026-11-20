@@ -43,9 +43,21 @@ In strict compliance with **Section 3.4 of the `GLOBAL_ENGINEERING_CONTRACT.md`*
   - Safely defaults to `DisabledAiAdapter` on construction.
   - Allows dynamic runtime adapter replacement (`set_adapter`), instant disabling (`disable`), and transparent method delegation.
 
+- **Local Ollama Daemon Adapter (`ollama.rs`):**
+  - `OllamaAiAdapter`: Production HTTP adapter connecting to local Ollama daemons (`http://localhost:11434`).
+  - Supports `POST /api/chat` for chat completions, `POST /api/embed` batch embeddings with fallback to legacy `POST /api/embeddings`, and model catalog discovery via `GET /api/tags`.
+  - Configurable timeouts, custom chat/embedding models, and zero cloud egress.
+
+- **OpenAI-Compatible REST Adapter (`openai.rs`):**
+  - `OpenAiAiAdapter`: Production HTTP adapter targeting standard OpenAI endpoints or OpenAI-compatible local runtimes (vLLM, LM Studio, LocalAI, Ollama `/v1`, Azure OpenAI).
+  - Supports `POST /chat/completions` with JSON mode and stop sequences, `POST /embeddings` with dimension specification, and `GET /models`.
+  - Configurable Bearer authentication, organization headers, and project scopes.
+
 ## Verification & Quality
 
-- **100% Passing Test Suite:** 23 tests across 4 test suites:
+- **100% Passing Test Suite:** 41 tests across 6 test suites:
+  - `tests/ollama_adapter_test.rs`: Local Ollama wire protocol, `/api/tags` model catalog, `/api/chat` completions with JSON format, modern `/api/embed` batch embeddings with legacy `/api/embeddings` fallback, 500 error mapping, and disabled state.
+  - `tests/openai_adapter_test.rs`: OpenAI-compatible wire protocol, Bearer auth header injection, `/models` listing, `/chat/completions` token accounting, `/embeddings` vector sorting, 401 unauthorized mapping, 429 rate limit with `retry-after`, 400 context length exceeded mapping, and local servers without authentication.
   - `tests/trait_contract_test.rs`: Domain model constructors, request builders, token arithmetic, error classifications, and full Serde JSON roundtrip.
   - `tests/disabled_adapter_test.rs`: Zero-key fallback guarantees, graceful rejection of chat, embeddings, summarization, and enrichment.
   - `tests/mock_adapter_test.rs`: Automated mock heuristics, scripted chat, default overrides, document summarization with topic extraction, section enrichment, deterministic Blake3 pseudo-embeddings ($L_2$ unit norm), error injection, call tracking, and 10-task concurrent execution.

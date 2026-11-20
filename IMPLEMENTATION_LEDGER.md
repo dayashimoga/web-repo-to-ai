@@ -6901,3 +6901,69 @@
 - **Status:** `ACCEPTED`
 
 
+---
+
+#### Subphase `10.5.2` — Local Ollama / OpenAI-compatible adapter
+- **Unique ID:** `10.5.2`
+- **Objective:** Implement production-ready local Ollama and OpenAI-compatible HTTP adapters in `crates/ai-adapter` (`web-repo-to-ai-ai-adapter`), supporting chat completions, embeddings, model discovery, robust error translation, and custom connection configuration.
+- **Scope:** `crates/ai-adapter` (`Cargo.toml`, `src/client.rs`, `src/ollama.rs`, `src/openai.rs`, `src/lib.rs`, `README.md`, `tests/ollama_adapter_test.rs`, `tests/openai_adapter_test.rs`).
+- **Prerequisites:** `10.5.1` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/ai-adapter/Cargo.toml`
+  - `crates/ai-adapter/src/client.rs`
+  - `crates/ai-adapter/src/ollama.rs`
+  - `crates/ai-adapter/src/openai.rs`
+  - `crates/ai-adapter/src/lib.rs`
+  - `crates/ai-adapter/README.md`
+  - `crates/ai-adapter/tests/ollama_adapter_test.rs`
+  - `crates/ai-adapter/tests/openai_adapter_test.rs`
+- **Implementation Tasks:**
+  1. Add `reqwest` dependency with `json` feature to `crates/ai-adapter/Cargo.toml` and `axum` dev-dependency.
+  2. Implement shared HTTP client configuration and error translation in `src/client.rs`: `AiClientConfig`, `map_reqwest_error`, and `map_http_response_error` translating status codes and `Retry-After` headers into `AiAdapterError`.
+  3. Implement local Ollama adapter in `src/ollama.rs`: `OllamaAiAdapter` connecting to `http://localhost:11434`, supporting `GET /api/tags`, `POST /api/chat`, `POST /api/embed` batch embeddings with fallback to legacy `POST /api/embeddings`, and health check.
+  4. Implement OpenAI-compatible adapter in `src/openai.rs`: `OpenAiAiAdapter` supporting standard OpenAI endpoints, local vLLM, LM Studio, and LocalAI, with Bearer authorization, `GET /models`, `POST /chat/completions`, `POST /embeddings`, and rate limit handling.
+  5. Re-export `AiClientConfig`, `OllamaAiAdapter`, and `OpenAiAiAdapter` in `src/lib.rs`.
+  6. Author integration tests in `tests/ollama_adapter_test.rs` (8 tests) and `tests/openai_adapter_test.rs` (8 tests) using local loopback HTTP servers.
+  7. Update `crates/ai-adapter/README.md` and verification test counts.
+- **Acceptance Criteria:**
+  - `OllamaAiAdapter` connecting cleanly to Ollama endpoints with zero cloud egress.
+  - `OpenAiAiAdapter` connecting cleanly to OpenAI or local compatible runtimes with Bearer auth.
+  - Accurate error translation from HTTP status codes and timeouts into `AiAdapterError`.
+  - Zero mocks and zero placeholders in production paths.
+  - 100% test pass rate (41/41 crate tests passing).
+  - Monorepo quality gates passing (`scripts/check-all.ps1`).
+- **Tests:**
+  - `ollama_adapter_test::test_ollama_health_check_success`
+  - `ollama_adapter_test::test_ollama_list_models`
+  - `ollama_adapter_test::test_ollama_complete_chat`
+  - `ollama_adapter_test::test_ollama_complete_chat_json_format`
+  - `ollama_adapter_test::test_ollama_batch_embeddings`
+  - `ollama_adapter_test::test_ollama_legacy_embeddings_fallback`
+  - `ollama_adapter_test::test_ollama_server_error_mapping`
+  - `ollama_adapter_test::test_ollama_disabled_state`
+  - `openai_adapter_test::test_openai_health_check_success`
+  - `openai_adapter_test::test_openai_auth_failure_401`
+  - `openai_adapter_test::test_openai_list_models`
+  - `openai_adapter_test::test_openai_complete_chat_and_token_usage`
+  - `openai_adapter_test::test_openai_generate_embeddings`
+  - `openai_adapter_test::test_openai_rate_limit_429_with_retry_after`
+  - `openai_adapter_test::test_openai_context_length_exceeded_error`
+  - `openai_adapter_test::test_openai_local_endpoint_without_key`
+- **Security Considerations:**
+  - Bearer tokens are injected strictly via HTTP Authorization headers and never logged in error messages or URIs.
+  - Base URLs are sanitized to prevent trailing slash double-slashing or malformed path injections.
+  - Local endpoints (Ollama, local vLLM) ensure zero cloud egress and keep proprietary documents on-premises.
+- **Performance Considerations:**
+  - Reusable `reqwest::Client` connection pool prevents socket exhaustion under high concurrency.
+  - Batch embedding requests minimize roundtrip network overhead.
+- **Documentation Requirements:**
+  - `crates/ai-adapter/README.md`, `CHANGELOG.md`, `PROJECT_STATUS.md`, `TODO.md`, `ROADMAP.md`, `docs/ROADMAP.md`, `IMPLEMENTATION_LEDGER.md`.
+- **Validation Evidence:**
+  - 41/41 tests passing in `crates/ai-adapter`.
+  - 908+ tests passing across the workspace.
+  - Monorepo quality gates 100% passing (5/5 gates).
+- **Git Commit Reference:** `d5341dc` (amended)
+- **Status:** `ACCEPTED`
+
+
+

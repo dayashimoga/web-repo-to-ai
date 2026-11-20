@@ -312,7 +312,7 @@
 
 ### Phase 10.5 — Optional local and external AI provider adapters
 - [x] **[10.5.1]** Provider-independent AI adapter trait *(Completed 2026-11-20, Delivered crates/ai-adapter with async AiAdapter trait, domain models for chat/embeddings/summarization/enrichment, categorized error taxonomy AiAdapterError, zero-key fallback DisabledAiAdapter satisfying Section 3.4 of the GLOBAL_ENGINEERING_CONTRACT, in-memory MockAiAdapter with deterministic Blake3-derived L2 unit-normalized pseudo-embeddings and call tracking, thread-safe AiAdapterRegistry; authored 25 integration tests across trait_contract_test.rs, disabled_adapter_test.rs, mock_adapter_test.rs, and registry_test.rs; verified with 25 crate tests, 892+ workspace tests, zero clippy warnings, zero fmt diffs, cargo deny clean, and 100% passing quality gates 5/5)*
-- [ ] **[10.5.2]** Local Ollama / OpenAI-compatible adapter
+- [x] **[10.5.2]** Local Ollama / OpenAI-compatible adapter *(Completed 2026-11-20, Delivered crates/ai-adapter with OllamaAiAdapter supporting local Ollama daemons with /api/chat, /api/embed batch embeddings, legacy fallback, and /api/tags model catalog discovery, OpenAiAiAdapter supporting standard OpenAI endpoints, vLLM, LM Studio, and LocalAI with Bearer token authentication, /chat/completions, /embeddings, /models, and rate limit retry-after header parsing, and shared AiClientConfig with robust HTTP error mapping; authored 16 new integration tests across ollama_adapter_test.rs and openai_adapter_test.rs; verified with 41 crate tests, 908+ workspace tests, zero clippy warnings, zero fmt diffs, cargo deny clean, and 100% passing quality gates 5/5)*
 - [ ] **[10.5.3]** Strict opt-in guardrails & zero-key fallback
 - [ ] **[10.5.4]** Adapter contract & isolation tests
 

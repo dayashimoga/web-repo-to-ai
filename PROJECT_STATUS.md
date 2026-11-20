@@ -6,9 +6,9 @@
 **Last Completed Stage:** `STAGE 9 — DEVELOPER AND AI AGENT INTEGRATIONS` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Last Completed Phase:** `Phase 10.4 — RAG chunk generation` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Active Subphase:** `None`  
-**Last Completed Subphase:** `10.5.1 — Provider-independent AI adapter trait (crates/ai-adapter: abstract async trait AiAdapter, domain schemas for chat/embeddings/summarization/enrichment, categorized error taxonomy AiAdapterError, zero-key fallback DisabledAiAdapter, in-memory MockAiAdapter with deterministic Blake3 pseudo-embeddings and call tracking, thread-safe AiAdapterRegistry; verified with 25 unit/integration tests across 4 test suites)` (`ACCEPTED`)  
+**Last Completed Subphase:** `10.5.2 — Local Ollama / OpenAI-compatible adapter (crates/ai-adapter: OllamaAiAdapter supporting local Ollama daemon /api/chat, /api/embed, /api/tags; OpenAiAiAdapter supporting OpenAI endpoints, vLLM, LM Studio /chat/completions, /embeddings, /models; robust error mapping and Bearer authentication; verified with 41 unit/integration tests across 6 test suites)` (`ACCEPTED`)  
 **Next Upcoming Phase:** `Phase 10.5 — Optional local and external AI provider adapters`  
-**Next Upcoming Subphase:** `10.5.2 — Local Ollama / OpenAI-compatible adapter`
+**Next Upcoming Subphase:** `10.5.3 — Strict opt-in guardrails & zero-key fallback`
 
 ---
 
@@ -258,6 +258,11 @@ In Stage 10 ("Advanced Documents and Content"):
     - High-Fidelity Test Mock (`crates/ai-adapter/src/mock.rs`): Implemented `MockAiAdapter` supporting scripted responses, automated heuristic responses, default canned fallbacks, deterministic Blake3-derived $L_2$ unit-normalized pseudo-embeddings, simulated latency, error injection/recovery, and thread-safe call recording via `MockCallTracker`.
     - Dynamic Runtime Registry (`crates/ai-adapter/src/registry.rs`): Implemented `AiAdapterRegistry` defaulting to `DisabledAiAdapter`, with dynamic thread-safe adapter switching (`set_adapter`) and instant disabling (`disable`).
     - Quality & Verification: Authored 25 integration tests across `tests/trait_contract_test.rs` (7 tests), `tests/disabled_adapter_test.rs` (4 tests), `tests/mock_adapter_test.rs` (11 tests), and `tests/registry_test.rs` (3 tests). Total workspace tests reached 892+ passing tests. Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean, and 100% passing quality gates (5/5).
+  - Subphase `10.5.2` delivered the local Ollama and OpenAI-compatible HTTP adapters in `crates/ai-adapter` (`web-repo-to-ai-ai-adapter`):
+    - Shared HTTP Client & Error Translation (`crates/ai-adapter/src/client.rs`): Implemented `AiClientConfig` (base URL, API key, timeouts, organization, project, custom headers), `reqwest::Client` assembly with rustls-tls, and structured mapping of network timeouts, connection failures, and HTTP status codes (401 auth required, 404 model not found, 413 context length exceeded, 429 rate limit with `Retry-After` parsing, 5xx server errors) into `AiAdapterError`.
+    - Local Ollama Daemon Adapter (`crates/ai-adapter/src/ollama.rs`): Implemented `OllamaAiAdapter` connecting to local Ollama endpoints (default `http://localhost:11434`), supporting `GET /api/tags` model catalog discovery, `POST /api/chat` chat completions with JSON format mode and options mapping (temperature, top_p, num_predict, stop, seed), `POST /api/embed` batch embeddings with fallback to legacy `POST /api/embeddings`, and health check probing.
+    - OpenAI-Compatible REST Adapter (`crates/ai-adapter/src/openai.rs`): Implemented `OpenAiAiAdapter` supporting standard OpenAI endpoints or OpenAI-compatible local inference servers (vLLM, LM Studio, LocalAI, Ollama `/v1`), supporting Bearer token authorization, `GET /models` enumeration, `POST /chat/completions` with JSON object formatting, `POST /embeddings` with dimension specification, and rate limit retry-after header parsing.
+    - Quality & Verification: Authored 16 new integration tests across `tests/ollama_adapter_test.rs` (8 tests) and `tests/openai_adapter_test.rs` (8 tests) backed by local loopback HTTP servers. Total crate tests expanded to 41 across 6 test suites; workspace tests expanded to 908+ passing tests. Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean, and 100% passing quality gates (5/5).
 
 ---
 
@@ -265,12 +270,12 @@ In Stage 10 ("Advanced Documents and Content"):
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 177 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4`, `10.3.1` – `10.3.4`, `10.4.1` – `10.4.4`, `10.5.1` |
+| `ACCEPTED` | 178 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4`, `10.3.1` – `10.3.4`, `10.4.1` – `10.4.4`, `10.5.1`, `10.5.2` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 19 | `10.5.2` – `11.4.5` |
+| `NOT_STARTED` | 18 | `10.5.3` – `11.4.5` |
 | `Total` | **196** | `Stage 0` – `Stage 11` |
 
 ---
