@@ -6086,3 +6086,49 @@
   - Monorepo quality gates pass 100% (5/5).
 - **Status:** `ACCEPTED`
 
+---
+
+#### Subphase `10.2.3` — Confidence scoring & provenance attribution
+- **Unique ID:** `10.2.3`
+- **Objective:** Implement granular word/line/block/document-level confidence scoring aggregation, distribution statistics (mean, median, standard deviation, min/max), quality tier classification (`High`, `Medium`, `Low`), low-confidence token detection and warning annotation, 2D bounding box geometry (`right`, `bottom`, `area`, `contains_point`, `intersects`), coordinate normalization ($[0.0, 1.0]$ unit interval), block and page spatial provenance attribution, and structured JSON provenance exports in `crates/ocr-extractor` (`web-repo-to-ai-ocr-extractor`).
+- **Scope:** `crates/ocr-extractor/src/confidence.rs`, `crates/ocr-extractor/src/provenance.rs`, `crates/ocr-extractor/src/models.rs`, `crates/ocr-extractor/src/tsv.rs`, `crates/ocr-extractor/src/tesseract.rs`, `crates/ocr-extractor/src/extractor.rs`, `crates/ocr-extractor/src/lib.rs`, `crates/ocr-extractor/tests/confidence_scoring_test.rs`, `crates/ocr-extractor/tests/provenance_attribution_test.rs`, and tracking ledgers.
+- **Prerequisites:** `10.2.2` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/ocr-extractor/src/confidence.rs`: Implemented `ConfidenceTier` (`High`, `Medium`, `Low`), `ConfidenceStats` (mean, median, std_dev, min, max, high/med/low counts, percentages, CDM attribute serialization `to_attributes`), `LowConfidenceWord`, `find_low_confidence_words`, and `ConfidenceFilterOptions`.
+  - `crates/ocr-extractor/src/provenance.rs`: Implemented `NormalizedBoundingBox` (unit interval $[0.0, 1.0]$ coordinates with bounds clamping and pixel conversion), `OcrBlockProvenance` (pixel coordinates, normalized coordinates, reading order sequence, confidence distribution, CDM section builder integration `attach_to_builder`), `OcrPageProvenance`, and `OcrProvenanceReport` with compact/pretty JSON serialization for UI overlays.
+  - `crates/ocr-extractor/src/models.rs`: Extended `BoundingBox` with geometry methods (`right`, `bottom`, `area`, `contains_point`, `intersects`). Added `confidence_stats` to `OcrBlock`, `OcrPage`, and `OcrResult`. Added `provenance_report: Option<OcrProvenanceReport>` to `OcrResult`. Extended `OcrOptions` with `image_dimensions`, `min_word_confidence`, `flag_low_confidence`, `low_confidence_threshold`, and `low_confidence_marker`.
+  - `crates/ocr-extractor/src/tsv.rs`: Updated TSV parsing with `parse_tesseract_tsv_with_options` computing hierarchical `ConfidenceStats` for blocks, pages, and document, applying minimum word confidence cutoff filtering, low-confidence token flagging (e.g. `[?]word`), and constructing `OcrProvenanceReport`.
+  - `crates/ocr-extractor/src/tesseract.rs`: Automatically inferred image dimensions from `PreprocessingReport` when not explicitly supplied in options, passing effective options to TSV parser.
+  - `crates/ocr-extractor/src/extractor.rs`: Populated section-level provenance attributes (`ocr_page_number`, `ocr_block_number`, `ocr_reading_order`, `ocr_bbox_*_px`, `ocr_norm_*`, `ocr_conf_*`) via `attach_to_builder`, and attached document-level confidence metrics and image dimensions to CDM document metadata.
+  - `crates/ocr-extractor/src/lib.rs`: Re-exported all new types and functions.
+  - `crates/ocr-extractor/tests/confidence_scoring_test.rs`: 6 integration tests covering distribution statistics, median calculation, low-confidence word detection, minimum confidence cutoff filtering, low-confidence flagging, and attribute serialization.
+  - `crates/ocr-extractor/tests/provenance_attribution_test.rs`: 5 integration tests covering bounding box geometry, coordinate normalization and clamping, block provenance builder integration, provenance JSON export roundtrip, and end-to-end CDM document attribute mapping.
+- **Implementation Tasks:**
+  1. Implemented confidence scoring engine in `crates/ocr-extractor/src/confidence.rs`.
+  2. Implemented spatial coordinate normalization and provenance attribution in `crates/ocr-extractor/src/provenance.rs`.
+  3. Extended domain models with geometry methods, confidence stats, provenance reports, and configuration options in `crates/ocr-extractor/src/models.rs`.
+  4. Updated TSV stream parser in `crates/ocr-extractor/src/tsv.rs` to compute block/page/document statistics, support cutoff filtering and low-confidence annotation markers, and assemble provenance reports.
+  5. Integrated dimension inference in `crates/ocr-extractor/src/tesseract.rs`.
+  6. Updated CDM converter in `crates/ocr-extractor/src/extractor.rs` to inject section provenance attributes and document metadata.
+  7. Authored 11 new integration tests across `confidence_scoring_test.rs` and `provenance_attribution_test.rs` (reaching 47 crate tests, 15 unit and 32 integration).
+  8. Verified clean code formatting (`cargo fmt --check`), zero clippy warnings (`-D warnings`), clean `cargo deny check`, and 100% passing monorepo quality gates (`scripts/check-all.ps1`).
+  9. Updated project tracking ledgers (`PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `IMPLEMENTATION_LEDGER.md`, `ROADMAP.md`, `docs/ROADMAP.md`).
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-ocr-extractor` (47 tests passing: 15 unit, 32 integration)
+  - `cargo clippy --workspace --all-targets -- -D warnings` (Clean, zero warnings)
+  - `cargo fmt --all -- --check` (Clean, zero diffs)
+  - `cargo deny check` (Advisories ok, bans ok, licenses ok, sources ok)
+  - `powershell scripts/check-all.ps1` (All 5 monorepo gates passed with 0 failures)
+- **Acceptance Criteria:**
+  - Confidence scoring accurately calculates mean, median, standard deviation, min, max, high/medium/low counts, and quality tiers.
+  - Low-confidence words can be detected, filtered via cutoff, or annotated with configurable markers.
+  - 2D BoundingBox geometry supports contains_point, intersects, area, and union operations.
+  - Normalized coordinates strictly clamp to $[0.0, 1.0]$ and correctly roundtrip to pixel dimensions.
+  - Every extracted CDM section receives coordinate-precise pixel and normalized bounding box attributes, reading order, and confidence metrics.
+  - Document metadata records overall confidence distribution and image dimensions.
+  - Provenance reports serialize cleanly to compact and pretty JSON for visual overlays.
+  - All 47 crate tests and 740+ workspace tests pass cleanly.
+  - Monorepo quality gates pass 100% (5/5).
+- **Status:** `ACCEPTED`
+
+

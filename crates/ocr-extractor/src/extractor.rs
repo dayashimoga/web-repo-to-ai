@@ -6,6 +6,7 @@
 use crate::adapter::OcrAdapter;
 use crate::error::Result;
 use crate::models::{OcrInput, OcrOptions, OcrResult};
+use crate::provenance::{NormalizedBoundingBox, OcrBlockProvenance};
 use crate::tesseract::TesseractAdapter;
 use std::collections::BTreeMap;
 use std::sync::Arc;
@@ -129,6 +130,27 @@ impl OcrExtractor {
             );
         }
 
+        // Attach statistical confidence breakdown to document metadata
+        for (k, v) in ocr_result.confidence_stats.to_attributes("ocr_conf") {
+            custom_meta.insert(k, v);
+        }
+
+        let image_dimensions = ocr_result
+            .provenance_report
+            .as_ref()
+            .and_then(|r| r.image_dimensions)
+            .or_else(|| {
+                ocr_result
+                    .preprocessing_report
+                    .as_ref()
+                    .map(|p| p.processed_dimensions)
+            });
+
+        if let Some((w, h)) = image_dimensions {
+            custom_meta.insert("ocr_image_width".to_string(), w.to_string());
+            custom_meta.insert("ocr_image_height".to_string(), h.to_string());
+        }
+
         let title = input.filename.clone().or_else(|| {
             std::path::Path::new(&source_url)
                 .file_name()
@@ -184,12 +206,33 @@ impl OcrExtractor {
                 line_count: Some(page.text.lines().count().max(1) as u32),
             };
 
-            for block in &page.blocks {
+            for (block_idx, block) in page.blocks.iter().enumerate() {
                 let sec_id = format!("page_{}_block_{}", page.page_num, block.block_num);
                 let block_line_count = block.text.lines().count().max(1) as u32;
                 let block_byte_size = block.text.len() as u64;
+                let block_word_count: usize = block
+                    .paragraphs
+                    .iter()
+                    .flat_map(|p| p.lines.iter())
+                    .map(|l| l.words.len())
+                    .sum();
 
-                let sec_builder = CdmSectionBuilder::new(
+                let norm_bbox = image_dimensions
+                    .map(|(w, h)| NormalizedBoundingBox::from_pixels(&block.bbox, w, h));
+
+                let prov = OcrBlockProvenance {
+                    page_num: page.page_num,
+                    block_num: block.block_num,
+                    reading_order: block_idx,
+                    pixel_bbox: block.bbox,
+                    normalized_bbox: norm_bbox,
+                    confidence_stats: block.confidence_stats.clone(),
+                    word_count: block_word_count,
+                    line_count: block_line_count as usize,
+                    content_type: "ocr/block".to_string(),
+                };
+
+                let mut sec_builder = CdmSectionBuilder::new(
                     sec_id.clone(),
                     source_url.clone(),
                     SectionKind::Prose,
@@ -209,6 +252,8 @@ impl OcrExtractor {
                 .attribute("top", format!("{:.1}", block.bbox.top))
                 .attribute("width", format!("{:.1}", block.bbox.width))
                 .attribute("height", format!("{:.1}", block.bbox.height));
+
+                sec_builder = prov.attach_to_builder(sec_builder);
 
                 builder = builder.add_section(sec_builder.build());
 

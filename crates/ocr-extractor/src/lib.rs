@@ -5,16 +5,22 @@
 //! Document Model (`CdmDocument`) synthesis.
 
 pub mod adapter;
+pub mod confidence;
 pub mod error;
 pub mod extractor;
 pub mod language;
 pub mod limits;
 pub mod models;
 pub mod preprocess;
+pub mod provenance;
 pub mod tesseract;
 pub mod tsv;
 
 pub use adapter::OcrAdapter;
+pub use confidence::{
+    find_low_confidence_words, ConfidenceFilterOptions, ConfidenceStats, ConfidenceTier,
+    LowConfidenceWord,
+};
 pub use error::{OcrError, Result};
 pub use extractor::OcrExtractor;
 pub use language::{
@@ -31,5 +37,8 @@ pub use preprocess::{
     enhance_contrast, preprocess_image, rotate_gray_image, BinarizationMethod,
     PreprocessingOptions, PreprocessingReport,
 };
+pub use provenance::{
+    NormalizedBoundingBox, OcrBlockProvenance, OcrPageProvenance, OcrProvenanceReport,
+};
 pub use tesseract::TesseractAdapter;
-pub use tsv::parse_tesseract_tsv;
+pub use tsv::{parse_tesseract_tsv, parse_tesseract_tsv_with_options};

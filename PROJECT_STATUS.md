@@ -6,9 +6,9 @@
 **Last Completed Stage:** `STAGE 9 — DEVELOPER AND AI AGENT INTEGRATIONS` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Last Completed Phase:** `Phase 10.1 — PDF extraction` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Active Subphase:** `None`  
-**Last Completed Subphase:** `10.2.2 — Image preprocessing & language selection (crates/ocr-extractor: pure grayscale, Otsu/adaptive binarization, deskew detection, contrast stretching, dimension scaling, ISO 639-2/639-3 language normalization & fallback policy, audit telemetry, CDM mapping)` (`ACCEPTED`)  
+**Last Completed Subphase:** `10.2.3 — Confidence scoring & provenance attribution (crates/ocr-extractor: ConfidenceStats, ConfidenceTier, find_low_confidence_words, NormalizedBoundingBox, OcrBlockProvenance, OcrProvenanceReport, BoundingBox geometry, CDM section & document attribution)` (`ACCEPTED`)  
 **Next Upcoming Phase:** `Phase 10.2 — Image OCR` (`IN_PROGRESS`)  
-**Next Upcoming Subphase:** `10.2.3 — Confidence scoring & provenance attribution`
+**Next Upcoming Subphase:** `10.2.4 — OCR accuracy & timeout tests`
 
 ---
 
@@ -140,6 +140,12 @@ In Stage 10 ("Advanced Documents and Content"):
     - Multi-Language Selection & Normalization (`crates/ocr-extractor/src/language.rs`): Implemented ISO 639-2/639-3 mapping (`normalize_language_code`) normalizing 2-letter codes to canonical 3-letter Tesseract identifiers, multi-language combination parser (`parse_language_string`) and canonicalizer (`canonicalize_languages`), fallback policies (`StrictError`, `FallbackToDefault`, `FilterUnavailable`), and script characteristics helpers (`is_cjk`, `is_rtl`).
     - Adapter & Extractor Pipeline Integration (`src/tesseract.rs`, `src/extractor.rs`): Validated languages against engine support prior to execution, applied preprocessing when enabled with PNG temporary bytes passed to Tesseract, attached `PreprocessingReport` to `OcrResult`, and injected preprocessing audit attributes (`ocr_preprocessed`, `ocr_deskew_angle`, `ocr_inverted`, `ocr_binarized`, `ocr_contrast_enhanced`, `ocr_prep_duration_ms`) into CDM document metadata.
     - Quality & Verification: Authored 14 integration tests across `crates/ocr-extractor/tests/preprocessing_test.rs` (9 tests) and `language_selection_test.rs` (5 tests). Verified with 36 crate tests, 730+ workspace tests, zero clippy warnings, zero fmt diffs, cargo deny clean, and 100% passing quality gates (5/5).
+  - Subphase `10.2.3` delivered confidence scoring aggregation, distribution statistics, quality tiers, 2D geometry methods, coordinate normalization, spatial provenance attribution, and JSON report exports in `crates/ocr-extractor` (`web-repo-to-ai-ocr-extractor`):
+    - Confidence Scoring & Quality Classification (`crates/ocr-extractor/src/confidence.rs`): Implemented `ConfidenceTier` (`High`, `Medium`, `Low`), `ConfidenceStats` (mean, median, standard deviation, min, max, high/med/low counts, percentages, CDM attribute serialization `to_attributes`), `LowConfidenceWord`, `find_low_confidence_words`, and `ConfidenceFilterOptions`.
+    - Spatial Provenance & Coordinate Normalization (`crates/ocr-extractor/src/provenance.rs`): Implemented `NormalizedBoundingBox` (unit interval $[0.0, 1.0]$ coordinates with bounds clamping and pixel roundtrip), `OcrBlockProvenance` (pixel coordinates, normalized coordinates, reading order sequence, confidence distribution, CDM section builder integration `attach_to_builder`), `OcrPageProvenance`, and `OcrProvenanceReport` with compact/pretty JSON serialization for UI overlays.
+    - Geometry & Domain Models (`crates/ocr-extractor/src/models.rs`): Extended `BoundingBox` with geometry methods (`right`, `bottom`, `area`, `contains_point`, `intersects`). Attached `ConfidenceStats` to `OcrBlock`, `OcrPage`, and `OcrResult`. Added `provenance_report: Option<OcrProvenanceReport>` to `OcrResult`. Added `image_dimensions`, `min_word_confidence`, and low-confidence flagging parameters to `OcrOptions`.
+    - TSV Stream Parser & Extractor Pipeline (`src/tsv.rs`, `src/tesseract.rs`, `src/extractor.rs`): Updated TSV parser with `parse_tesseract_tsv_with_options` computing hierarchical `ConfidenceStats` for blocks, pages, and document, applying cutoff filtering and low-confidence flagging (e.g. `[?]word`), and constructing `OcrProvenanceReport`. Inferred dimensions from `PreprocessingReport` in `TesseractAdapter`. Injected full provenance attributes (`ocr_page_number`, `ocr_block_number`, `ocr_reading_order`, `ocr_bbox_*_px`, `ocr_norm_*`, `ocr_conf_*`) into every CDM section, and document-level confidence distribution and dimensions into document metadata.
+    - Quality & Verification: Authored 11 new integration tests across `confidence_scoring_test.rs` (6 tests) and `provenance_attribution_test.rs` (5 tests). Verified with 47 crate tests, 740+ workspace tests, zero clippy warnings, zero fmt diffs, cargo deny clean, and 100% passing quality gates (5/5).
 
 ---
 
@@ -147,12 +153,12 @@ In Stage 10 ("Advanced Documents and Content"):
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 166 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1`, `10.2.2` |
+| `ACCEPTED` | 167 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.3` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 30 | `10.2.3` – `11.4.5` |
+| `NOT_STARTED` | 29 | `10.2.4` – `11.4.5` |
 | **Total** | **196** | `Stage 0` – `Stage 11` |
 
 ---

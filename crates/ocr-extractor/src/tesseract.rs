@@ -6,7 +6,7 @@
 use crate::adapter::OcrAdapter;
 use crate::error::{OcrError, Result};
 use crate::models::{OcrEngineInfo, OcrInput, OcrOptions, OcrResult};
-use crate::tsv::parse_tesseract_tsv;
+use crate::tsv::{parse_tesseract_tsv, parse_tesseract_tsv_with_options};
 use async_trait::async_trait;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
@@ -344,7 +344,18 @@ impl OcrAdapter for TesseractAdapter {
         }
 
         let tsv_stdout = String::from_utf8_lossy(&output.stdout);
-        let mut ocr_result = parse_tesseract_tsv(&tsv_stdout, duration_ms, engine_info)?;
+        let mut effective_options = options.clone();
+        if effective_options.image_dimensions.is_none() {
+            if let Some(ref prep) = prep_report {
+                effective_options.image_dimensions = Some(prep.processed_dimensions);
+            }
+        }
+        let mut ocr_result = parse_tesseract_tsv_with_options(
+            &tsv_stdout,
+            duration_ms,
+            engine_info,
+            &effective_options,
+        )?;
         ocr_result.preprocessing_report = prep_report;
 
         // Validate extracted word count against limits

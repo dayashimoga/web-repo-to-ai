@@ -3,9 +3,11 @@
 //! Strongly-typed representations of bounding boxes, extracted words,
 //! lines, paragraphs, blocks, pages, and execution options.
 
+use crate::confidence::ConfidenceStats;
 use crate::language::LanguageFallbackPolicy;
 use crate::limits::OcrLimits;
 use crate::preprocess::{PreprocessingOptions, PreprocessingReport};
+use crate::provenance::OcrProvenanceReport;
 use serde::{Deserialize, Serialize};
 
 /// 2D bounding box representing positional coordinates on an image.
@@ -46,6 +48,39 @@ impl BoundingBox {
             width: (right - left).max(0.0),
             height: (bottom - top).max(0.0),
         }
+    }
+
+    /// Returns the right horizontal coordinate (`left + width`).
+    #[must_use]
+    pub fn right(&self) -> f64 {
+        self.left + self.width
+    }
+
+    /// Returns the bottom vertical coordinate (`top + height`).
+    #[must_use]
+    pub fn bottom(&self) -> f64 {
+        self.top + self.height
+    }
+
+    /// Computes the area of the bounding box in square pixels.
+    #[must_use]
+    pub fn area(&self) -> f64 {
+        self.width * self.height
+    }
+
+    /// Determines if a 2D coordinate point lies within this bounding box.
+    #[must_use]
+    pub fn contains_point(&self, x: f64, y: f64) -> bool {
+        x >= self.left && x <= self.right() && y >= self.top && y <= self.bottom()
+    }
+
+    /// Determines if this bounding box intersects or overlaps another bounding box.
+    #[must_use]
+    pub fn intersects(&self, other: &Self) -> bool {
+        self.left < other.right()
+            && self.right() > other.left
+            && self.top < other.bottom()
+            && self.bottom() > other.top
     }
 }
 
@@ -111,6 +146,8 @@ pub struct OcrBlock {
     pub text: String,
     /// Mean confidence score across all words in this block.
     pub confidence: f64,
+    /// Detailed statistical confidence metrics for this block.
+    pub confidence_stats: ConfidenceStats,
     /// Enclosing bounding box.
     pub bbox: BoundingBox,
 }
@@ -126,6 +163,8 @@ pub struct OcrPage {
     pub text: String,
     /// Mean confidence score across all words on the page.
     pub mean_confidence: f64,
+    /// Detailed statistical confidence metrics across the page.
+    pub confidence_stats: ConfidenceStats,
     /// Total word count recognized on this page.
     pub word_count: usize,
 }
@@ -139,6 +178,8 @@ pub struct OcrResult {
     pub text: String,
     /// Aggregate mean confidence score across all words (0.0 to 1.0).
     pub mean_confidence: f64,
+    /// Aggregate statistical confidence breakdown across all words.
+    pub confidence_stats: ConfidenceStats,
     /// Total number of words recognized.
     pub total_words: usize,
     /// Duration of the OCR process execution in milliseconds.
@@ -147,6 +188,8 @@ pub struct OcrResult {
     pub engine_info: OcrEngineInfo,
     /// Audit report of image preprocessing transformations applied, if any.
     pub preprocessing_report: Option<PreprocessingReport>,
+    /// Complete document-level provenance report with normalized coordinates.
+    pub provenance_report: Option<OcrProvenanceReport>,
 }
 
 /// Information describing the active OCR engine.
@@ -324,6 +367,16 @@ pub struct OcrOptions {
     pub tessdata_dir: Option<String>,
     /// Image preprocessing pipeline options.
     pub preprocessing: PreprocessingOptions,
+    /// Source image dimensions in pixels `(width, height)` for coordinate normalization.
+    pub image_dimensions: Option<(u32, u32)>,
+    /// Optional minimum word confidence cutoff ($0.0 \dots 1.0$) for filtering noise tokens.
+    pub min_word_confidence: Option<f64>,
+    /// Whether to flag low-confidence words with visual warning markers in output text.
+    pub flag_low_confidence: bool,
+    /// Confidence threshold below which words are flagged.
+    pub low_confidence_threshold: f64,
+    /// Marker string used when flagging low-confidence words (e.g. `"[?]"`).
+    pub low_confidence_marker: String,
     /// Resource and safety limits.
     pub limits: OcrLimits,
     /// Additional arguments passed to the underlying engine.
@@ -339,6 +392,11 @@ impl Default for OcrOptions {
             oem: OcrEngineMode::Default,
             tessdata_dir: None,
             preprocessing: PreprocessingOptions::default(),
+            image_dimensions: None,
+            min_word_confidence: None,
+            flag_low_confidence: false,
+            low_confidence_threshold: 0.50,
+            low_confidence_marker: "[?]".to_string(),
             limits: OcrLimits::default(),
             extra_args: Vec::new(),
         }
@@ -392,6 +450,33 @@ impl OcrOptions {
     #[must_use]
     pub const fn with_limits(mut self, limits: OcrLimits) -> Self {
         self.limits = limits;
+        self
+    }
+
+    /// Sets source image dimensions for coordinate normalization.
+    #[must_use]
+    pub const fn with_image_dimensions(mut self, width: u32, height: u32) -> Self {
+        self.image_dimensions = Some((width, height));
+        self
+    }
+
+    /// Sets minimum word confidence cutoff threshold.
+    #[must_use]
+    pub const fn with_min_word_confidence(mut self, cutoff: f64) -> Self {
+        self.min_word_confidence = Some(cutoff);
+        self
+    }
+
+    /// Configures low-confidence token flagging with marker.
+    #[must_use]
+    pub fn with_low_confidence_flagging(
+        mut self,
+        threshold: f64,
+        marker: impl Into<String>,
+    ) -> Self {
+        self.flag_low_confidence = true;
+        self.low_confidence_threshold = threshold;
+        self.low_confidence_marker = marker.into();
         self
     }
 }

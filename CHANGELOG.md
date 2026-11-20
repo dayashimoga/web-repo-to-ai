@@ -6,6 +6,41 @@
 
 ## [Unreleased] — Stage 10: Advanced Documents and Content
 
+### 2026-11-20 — Phase 10.2: Image OCR (`10.2.3`)
+
+#### Added
+- **`[10.2.3]` Confidence scoring & provenance attribution in `crates/ocr-extractor`:**
+  - Confidence Scoring & Statistical Analysis Engine (`crates/ocr-extractor/src/confidence.rs`):
+    - `ConfidenceTier`: Categorizes recognition reliability into `High` ($\ge 0.80$), `Medium` ($0.50 \le c < 0.80$), and `Low` ($< 0.50$).
+    - `ConfidenceStats`: Computes comprehensive distribution metrics across word tokens: mean, median, sample standard deviation, min, max, count/percentage of high-confidence tokens, and count/percentage of low-confidence tokens.
+    - Low-confidence token detection (`find_low_confidence_words`): Isolates tokens falling below confidence cutoffs with exact token text, confidence scores, line numbers, word numbers, and pixel bounding boxes.
+    - `ConfidenceFilterOptions`: Supports minimum confidence cutoff filtering (`with_min_word_confidence`) and inline token warning annotation markers (`with_low_confidence_flagging`, e.g. `[?]word`).
+    - CDM Attribute Serialization: Formats all distribution statistics to string key-value pairs (`to_attributes`).
+  - Spatial Provenance Attribution & Coordinate Normalization (`crates/ocr-extractor/src/provenance.rs`):
+    - `NormalizedBoundingBox`: Normalizes pixel coordinates to the unit interval $[0.0, 1.0]$ ($x_0, y_0, x_1, y_1$, width, height) relative to source image dimensions, with strict boundary clamping and pixel roundtrip methods.
+    - `OcrBlockProvenance`: Captures 1-indexed page number, block number, 0-indexed reading sequence position, raw pixel bounding box, normalized bounding box, confidence statistics, word count, line count, and content type. Implements `attach_to_builder` for direct injection into `CdmSectionBuilder`.
+    - `OcrPageProvenance`: Aggregates page-level image dimensions, block counts, line counts, word counts, and confidence distributions.
+    - `OcrProvenanceReport`: Full document-level provenance tree supporting compact (`to_json`) and pretty-printed (`to_json_pretty`) JSON export for visual bounding box overlays in web and agent UIs.
+  - Bounding Box Geometry Enhancements (`crates/ocr-extractor/src/models.rs`):
+    - Added geometric helper methods to `BoundingBox`: `right()`, `bottom()`, `area()`, `contains_point(x, y)`, and `intersects(&other)`.
+    - Attached `ConfidenceStats` to `OcrBlock`, `OcrPage`, and `OcrResult`.
+    - Added `provenance_report: Option<OcrProvenanceReport>` to `OcrResult`.
+    - Extended `OcrOptions` with `image_dimensions`, `min_word_confidence`, and low-confidence flagging parameters.
+  - Parser & Extractor Pipeline Integration (`src/tsv.rs`, `src/extractor.rs`, `src/tesseract.rs`):
+    - `parse_tesseract_tsv_with_options`: Computes hierarchical confidence distributions, filters noise tokens when cutoff is set, flags low-confidence tokens with warning markers, and constructs document provenance reports when image dimensions are known.
+    - `TesseractAdapter`: Automatically infers image dimensions from preprocessing reports when not explicitly configured.
+    - `OcrExtractor`: Populates section provenance attributes (`ocr_page_number`, `ocr_block_number`, `ocr_reading_order`, `ocr_bbox_*_px`, `ocr_norm_*`, `ocr_conf_*`) on every CDM section and injects overall confidence statistics and dimensions into document metadata.
+  - Integration Test Suites (`crates/ocr-extractor/tests/`):
+    - `confidence_scoring_test.rs`: 6 integration tests covering distribution statistics, median calculation, low-confidence token detection, cutoff filtering, warning markers, and attribute serialization.
+    - `provenance_attribution_test.rs`: 5 integration tests covering 2D geometry methods, coordinate normalization/clamping, section builder attribute attachment, JSON provenance export roundtrip, and end-to-end CDM document attribute mapping.
+  - Quality verification:
+    - 47 crate tests passing cleanly (15 unit, 32 integration).
+    - 740+ workspace tests passing across the monorepo.
+    - `cargo clippy --workspace --all-targets -- -D warnings` clean with zero warnings.
+    - `cargo fmt --all -- --check` clean with zero formatting diffs.
+    - `cargo deny check` clean (advisories ok, bans ok, licenses ok, sources ok).
+    - Monorepo quality gate (`scripts/check-all.ps1`) 100% passing across all 5 gates.
+
 ### 2026-11-20 — Phase 10.2: Image OCR (`10.2.2`)
 
 #### Added

@@ -3,9 +3,14 @@
 //! Parses Tesseract TSV (Tab-Separated Values) output streams into structured
 //! hierarchical models (`OcrResult`, `OcrPage`, `OcrBlock`, `OcrParagraph`, `OcrLine`, `OcrWord`).
 
+use crate::confidence::ConfidenceStats;
 use crate::error::Result;
 use crate::models::{
-    BoundingBox, OcrBlock, OcrEngineInfo, OcrLine, OcrPage, OcrParagraph, OcrResult, OcrWord,
+    BoundingBox, OcrBlock, OcrEngineInfo, OcrLine, OcrOptions, OcrPage, OcrParagraph, OcrResult,
+    OcrWord,
+};
+use crate::provenance::{
+    NormalizedBoundingBox, OcrBlockProvenance, OcrPageProvenance, OcrProvenanceReport,
 };
 use std::collections::BTreeMap;
 
@@ -22,11 +27,27 @@ struct RawTsvRow {
     text: String,
 }
 
-/// Parses raw Tesseract TSV text into an aggregated `OcrResult`.
+/// Parses raw Tesseract TSV text into an aggregated `OcrResult` using default options.
 pub fn parse_tesseract_tsv(
     tsv: &str,
     execution_duration_ms: u64,
     engine_info: OcrEngineInfo,
+) -> Result<OcrResult> {
+    parse_tesseract_tsv_with_options(
+        tsv,
+        execution_duration_ms,
+        engine_info,
+        &OcrOptions::default(),
+    )
+}
+
+/// Parses raw Tesseract TSV text into an aggregated `OcrResult` with configurable
+/// confidence filtering, low-confidence token flagging, and coordinate normalization.
+pub fn parse_tesseract_tsv_with_options(
+    tsv: &str,
+    execution_duration_ms: u64,
+    engine_info: OcrEngineInfo,
+    options: &OcrOptions,
 ) -> Result<OcrResult> {
     let mut words: Vec<RawTsvRow> = Vec::new();
     let mut lines = tsv.lines();
@@ -63,10 +84,12 @@ pub fn parse_tesseract_tsv(
             pages: Vec::new(),
             text: String::new(),
             mean_confidence: 0.0,
+            confidence_stats: ConfidenceStats::empty(),
             total_words: 0,
             execution_duration_ms,
             engine_info,
             preprocessing_report: None,
+            provenance_report: None,
         });
     }
 
@@ -76,11 +99,20 @@ pub fn parse_tesseract_tsv(
     let mut grouped: BTreeMap<GroupKey, Vec<OcrWord>> = BTreeMap::new();
 
     let mut sum_confidence = 0.0;
-    let total_words = words.len();
+    let mut all_scores = Vec::with_capacity(words.len());
 
     for raw in words {
         let norm_conf = (raw.conf.max(0.0) / 100.0).clamp(0.0, 1.0);
+
+        // Apply optional minimum confidence cutoff filter
+        if let Some(cutoff) = options.min_word_confidence {
+            if norm_conf < cutoff {
+                continue;
+            }
+        }
+
         sum_confidence += norm_conf;
+        all_scores.push(norm_conf);
 
         let word = OcrWord {
             text: raw.text,
@@ -94,11 +126,23 @@ pub fn parse_tesseract_tsv(
         grouped.entry(key).or_default().push(word);
     }
 
-    let mean_confidence = if total_words > 0 {
-        sum_confidence / (total_words as f64)
-    } else {
-        0.0
-    };
+    let total_words = all_scores.len();
+    if total_words == 0 {
+        return Ok(OcrResult {
+            pages: Vec::new(),
+            text: String::new(),
+            mean_confidence: 0.0,
+            confidence_stats: ConfidenceStats::empty(),
+            total_words: 0,
+            execution_duration_ms,
+            engine_info,
+            preprocessing_report: None,
+            provenance_report: None,
+        });
+    }
+
+    let mean_confidence = sum_confidence / (total_words as f64);
+    let doc_conf_stats = ConfidenceStats::compute_from_scores(&all_scores);
 
     // Construct Lines
     let mut lines_map: BTreeMap<(usize, usize, usize), Vec<OcrLine>> = BTreeMap::new();
@@ -107,7 +151,13 @@ pub fn parse_tesseract_tsv(
 
         let line_text = line_words
             .iter()
-            .map(|w| w.text.as_str())
+            .map(|w| {
+                if options.flag_low_confidence && w.confidence < options.low_confidence_threshold {
+                    format!("{}{}", options.low_confidence_marker, w.text)
+                } else {
+                    w.text.clone()
+                }
+            })
             .collect::<Vec<_>>()
             .join(" ");
 
@@ -190,22 +240,21 @@ pub fn parse_tesseract_tsv(
             .collect::<Vec<_>>()
             .join("\n\n");
 
-        let total_block_words: usize = block_pars
+        let block_scores: Vec<f64> = block_pars
             .iter()
             .flat_map(|p| p.lines.iter())
-            .map(|l| l.words.len())
-            .sum();
+            .flat_map(|l| l.words.iter())
+            .map(|w| w.confidence)
+            .collect();
 
+        let total_block_words = block_scores.len();
         let block_conf = if total_block_words > 0 {
-            block_pars
-                .iter()
-                .flat_map(|p| p.lines.iter())
-                .map(|l| l.confidence * (l.words.len() as f64))
-                .sum::<f64>()
-                / (total_block_words as f64)
+            block_scores.iter().sum::<f64>() / (total_block_words as f64)
         } else {
             0.0
         };
+
+        let block_conf_stats = ConfidenceStats::compute_from_scores(&block_scores);
 
         let block_bbox = block_pars
             .iter()
@@ -218,6 +267,7 @@ pub fn parse_tesseract_tsv(
             paragraphs: block_pars,
             text: block_text,
             confidence: block_conf,
+            confidence_stats: block_conf_stats,
             bbox: block_bbox,
         };
 
@@ -235,30 +285,29 @@ pub fn parse_tesseract_tsv(
             .collect::<Vec<_>>()
             .join("\n\n");
 
-        let page_words: usize = page_blocks
+        let page_scores: Vec<f64> = page_blocks
             .iter()
             .flat_map(|b| b.paragraphs.iter())
             .flat_map(|p| p.lines.iter())
-            .map(|l| l.words.len())
-            .sum();
+            .flat_map(|l| l.words.iter())
+            .map(|w| w.confidence)
+            .collect();
 
+        let page_words = page_scores.len();
         let page_conf = if page_words > 0 {
-            page_blocks
-                .iter()
-                .flat_map(|b| b.paragraphs.iter())
-                .flat_map(|p| p.lines.iter())
-                .map(|l| l.confidence * (l.words.len() as f64))
-                .sum::<f64>()
-                / (page_words as f64)
+            page_scores.iter().sum::<f64>() / (page_words as f64)
         } else {
             0.0
         };
+
+        let page_conf_stats = ConfidenceStats::compute_from_scores(&page_scores);
 
         pages.push(OcrPage {
             page_num,
             blocks: page_blocks,
             text: page_text,
             mean_confidence: page_conf,
+            confidence_stats: page_conf_stats,
             word_count: page_words,
         });
     }
@@ -271,14 +320,69 @@ pub fn parse_tesseract_tsv(
         .collect::<Vec<_>>()
         .join("\n\n");
 
+    let provenance_report = options.image_dimensions.map(|(img_w, img_h)| {
+        let mut page_provs = Vec::new();
+        let mut block_provs = Vec::new();
+
+        for page in &pages {
+            let page_prov = OcrPageProvenance {
+                page_num: page.page_num,
+                image_width: Some(img_w),
+                image_height: Some(img_h),
+                block_count: page.blocks.len(),
+                line_count: page
+                    .blocks
+                    .iter()
+                    .map(|b| b.paragraphs.iter().map(|p| p.lines.len()).sum::<usize>())
+                    .sum(),
+                word_count: page.word_count,
+                confidence_stats: page.confidence_stats.clone(),
+            };
+            page_provs.push(page_prov);
+
+            for (reading_order, block) in page.blocks.iter().enumerate() {
+                let norm_bbox = NormalizedBoundingBox::from_pixels(&block.bbox, img_w, img_h);
+                let block_line_count: usize = block.paragraphs.iter().map(|p| p.lines.len()).sum();
+                let block_word_count: usize = block
+                    .paragraphs
+                    .iter()
+                    .flat_map(|p| p.lines.iter())
+                    .map(|l| l.words.len())
+                    .sum();
+
+                block_provs.push(OcrBlockProvenance {
+                    page_num: page.page_num,
+                    block_num: block.block_num,
+                    reading_order,
+                    pixel_bbox: block.bbox,
+                    normalized_bbox: Some(norm_bbox),
+                    confidence_stats: block.confidence_stats.clone(),
+                    word_count: block_word_count,
+                    line_count: block_line_count,
+                    content_type: "ocr/block".to_string(),
+                });
+            }
+        }
+
+        OcrProvenanceReport {
+            pages: page_provs,
+            blocks: block_provs,
+            total_words,
+            overall_confidence: doc_conf_stats.clone(),
+            image_dimensions: Some((img_w, img_h)),
+        }
+    });
+
     Ok(OcrResult {
         pages,
         text: doc_text,
         mean_confidence,
+        confidence_stats: doc_conf_stats,
         total_words,
         execution_duration_ms,
         engine_info,
         preprocessing_report: None,
+        provenance_report,
     })
 }
 
