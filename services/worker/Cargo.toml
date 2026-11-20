@@ -39,3 +39,6 @@ thiserror = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["full", "test-util"] }
+web-repo-to-ai-pdf-extractor = { workspace = true }
+web-repo-to-ai-structured-extractor = { workspace = true }
+

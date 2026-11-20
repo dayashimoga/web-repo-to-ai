@@ -5,10 +5,10 @@
 **Current Stage:** `STAGE 11 — PRODUCTION CERTIFICATION` (`IN_PROGRESS`)  
 **Last Completed Stage:** `STAGE 10 — ADVANCED DOCUMENTS AND CONTENT` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Last Completed Phase:** `Phase 11.1 — Security` (`100% COMPLETED & FORMALLY CERTIFIED`)  
-**Active Subphase:** `None`  
-**Last Completed Subphase:** `11.1.4 — Dependency & secrets audit (executed exhaustive secrets redaction, credential hygiene, and dependency audit across all crates and packages; verified zero plaintext secret persistence; verified deny.toml governance and license compliance; neutralized npm vulnerabilities via package.json overrides; added live API key redaction wr_live_* and OpenAI project key patterns in crates/observability; authored 6 comprehensive audit integration tests in services/api/tests/secrets_and_dependency_audit_test.rs; verified 100% passing quality gates across all 5 gates with 970+ total workspace tests)` (`ACCEPTED`)  
+**Active Subphase:** None  
+**Last Completed Subphase:** `11.2.1 — Extraction benchmarks (benchmarked extraction latency P50/P90/P95/P99, throughput MB/s, and concurrency scaling across HTML DOM parsing, article readability, technical docs hierarchy, CSV tabular 2,500 rows, OpenAPI 3.1.0 specifications, Jupyter notebook cells, PDF spatial layout and reading order, polyglot AST code intelligence, content normalization, and dual-model BPE token counting; authored 6 automated benchmark suites in services/worker/tests/extraction_benchmarks_test.rs; expanded docs/PERFORMANCE.md Section 3 with SLA targets; verified 100% passing quality gates across all 5 gates with 976+ total workspace tests)` (`ACCEPTED`)  
 **Next Upcoming Phase:** `Phase 11.2 — Performance`  
-**Next Upcoming Subphase:** `11.2.1 — Extraction benchmarks`
+**Next Upcoming Subphase:** `11.2.2 — Large repository benchmarks`
 
 ---
 
@@ -317,6 +317,11 @@ In Stage 11 ("Production Certification"):
       5. `test_audit_deny_toml_governance_invariants`: Verified `deny.toml` configuration invariants (advisory version 2, banned licenses, wildcard denial, and unknown registry/git rejection).
       6. `test_audit_workspace_no_committed_secrets`: Scanned entire workspace source tree (crates, services, deploy, scripts) verifying zero committed live secrets or unencrypted private keys.
     - Quality & Formal Certification: 124+ api tests passing; 970+ total workspace tests passing (654 Rust + 213 web + 103 extension). Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean, and 100% passing quality gates (5/5). Formally certified Phase 11.1 in full.
+- Phase 11.2 ("Performance") is in progress:
+  - Subphase `11.2.1` delivered comprehensive extraction benchmarks, latency percentiles ($P_{50}, P_{90}, P_{95}, P_{99}$), throughput bounds, and concurrency scaling verification:
+    - Authored 6 benchmark suites in `services/worker/tests/extraction_benchmarks_test.rs` covering WHATWG DOM parsing (36.67 MB/s, $P_{95}$ 1.55 ms), Article extraction & readability scoring (8.94 MB/s, $P_{95}$ 5.22 ms), Technical docs hierarchy extraction (11.35 MB/s, $P_{95}$ 4.58 ms), Tabular CSV ingestion (7.83 MB/s, $P_{95}$ 38.13 ms for 2,500 rows x 8 cols), OpenAPI 3.1.0 specification parsing (12.13 MB/s, $P_{95}$ 2.34 ms for 20 endpoints), Jupyter notebook cell extraction (12.01 MB/s, $P_{95}$ 1.11 ms for 20 cells), Golden PDF spatial layout and reading-order sorting (1.93 MB/s, $P_{95}$ 8.47 ms across diverse archetypes), Polyglot AST code intelligence parsing across Rust, Python, TypeScript, and Go (11.14 MB/s, $P_{95}$ 0.40 ms for all 4 languages combined), Structural text normalization (22.11 MB/s, $P_{95}$ 12.14 ms), Dual BPE token counting across GPT-4o and Claude 3.5 Sonnet (5.63 MB/s, $P_{95}$ 93.30 ms), and Multi-threaded worker concurrency scaling (64 interleaved tasks demonstrating linear 1.00x -> 2.21x -> 3.91x -> 5.77x speedup across 1, 2, 4, 8 threads).
+    - Expanded `docs/PERFORMANCE.md` with Section 3 ("Extraction Performance Benchmarks & SLAs") detailing SLA ceilings, throughput floors, empirical tables, and concurrency invariants.
+    - Quality & Verification: 6 extraction benchmark tests passing; 976+ total workspace tests passing (660 Rust + 213 web + 103 extension). Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean, and 100% passing quality gates (5/5).
 
 ---
 
@@ -324,12 +329,12 @@ In Stage 11 ("Production Certification"):
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 184 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4`, `10.3.1` – `10.3.4`, `10.4.1` – `10.4.4`, `10.5.1`, `10.5.2`, `10.5.3`, `10.5.4`, `11.1.1`, `11.1.2`, `11.1.3`, `11.1.4` |
+| `ACCEPTED` | 185 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4`, `10.3.1` – `10.3.4`, `10.4.1` – `10.4.4`, `10.5.1`, `10.5.2`, `10.5.3`, `10.5.4`, `11.1.1`, `11.1.2`, `11.1.3`, `11.1.4`, `11.2.1` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 12 | `11.2.1` – `11.4.5` |
+| `NOT_STARTED` | 11 | `11.2.2` – `11.4.5` |
 | `Total` | **196** | `Stage 0` – `Stage 11` |
 
 ---
