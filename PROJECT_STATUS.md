@@ -6,9 +6,9 @@
 **Last Completed Stage:** `STAGE 9 — DEVELOPER AND AI AGENT INTEGRATIONS` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Last Completed Phase:** `Phase 10.4 — RAG chunk generation` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Active Subphase:** `None`  
-**Last Completed Subphase:** `10.4.4 — Chunk determinism & retrieval validation (crates/chunking: golden evaluation benchmark corpus across 8 real-world archetypes, simulated Top-1 retrieval recall engine with >= 99% accuracy, bit-for-bit hash repeatability across sequential and multi-threaded runs, bidirectional chaining graph symmetry and coordinate monotonicity invariants; verified with 55 unit/integration tests across 11 test suites; Phase 10.4 formally certified)` (`ACCEPTED`)  
+**Last Completed Subphase:** `10.5.1 — Provider-independent AI adapter trait (crates/ai-adapter: abstract async trait AiAdapter, domain schemas for chat/embeddings/summarization/enrichment, categorized error taxonomy AiAdapterError, zero-key fallback DisabledAiAdapter, in-memory MockAiAdapter with deterministic Blake3 pseudo-embeddings and call tracking, thread-safe AiAdapterRegistry; verified with 25 unit/integration tests across 4 test suites)` (`ACCEPTED`)  
 **Next Upcoming Phase:** `Phase 10.5 — Optional local and external AI provider adapters`  
-**Next Upcoming Subphase:** `10.5.1 — Provider-independent AI adapter trait`
+**Next Upcoming Subphase:** `10.5.2 — Local Ollama / OpenAI-compatible adapter`
 
 ---
 
@@ -249,6 +249,15 @@ In Stage 10 ("Advanced Documents and Content"):
       - Chaining graph symmetry: Enforced bidirectional link symmetry (`chunks[i].next_chunk_id == chunks[i+1].chunk_id` and `chunks[i+1].prev_chunk_id == chunks[i].chunk_id`).
       - Coordinate monotonicity: Enforced non-decreasing line/byte ranges and non-empty content bodies.
     - Quality & Formal Certification: Authored 10 new integration tests across `tests/golden_benchmark_test.rs` (6 tests) and `tests/chunk_determinism_test.rs` (4 tests). Total crate tests reached 55 (1 unit, 54 integration across 11 test suites); workspace tests reached 867+ passing tests. Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean, and 100% passing quality gates (5/5). Formally certified Phase 10.4 in full.
+- Phase 10.5 ("Optional local and external AI provider adapters") is in progress:
+  - Subphase `10.5.1` delivered the provider-independent AI adapter trait and core architecture in `crates/ai-adapter` (`web-repo-to-ai-ai-adapter`):
+    - Provider-Independent Asynchronous Trait (`crates/ai-adapter/src/traits.rs`): Defined `AiAdapter` trait abstracting chat completions (`complete_chat`), dense vector embeddings (`generate_embeddings`), connectivity health checks (`health_check`), model catalog inspection (`list_models`), and structured prompt engineering helpers (`summarize_document`, `enrich_section`). Decouples monorepo from vendor-specific wire protocols.
+    - Domain Models & Schemas (`crates/ai-adapter/src/models.rs`): Implemented `AiProviderType` (`Disabled`, `Mock`, `Ollama`, `OpenAiCompatible`, `AnthropicCompatible`, `CustomLocal`), `AiModelDescriptor`, `AiCapabilities`, `ChatMessage`, `ChatRole`, `ChatCompletionRequest` (builder, temperature, max tokens, stop sequences, JSON format, seed), `ChatCompletionResponse`, `ChatChoice`, `ChatFinishReason`, `TokenUsage`, `EmbeddingRequest`, `EmbeddingResponse`, `AiHealthStatus`, `DocumentSummarizationRequest`/`Response` (with `SummaryFocus`), and `SectionEnrichmentRequest`/`Response`.
+    - Categorized Error Taxonomy (`crates/ai-adapter/src/error.rs`): Implemented `AiAdapterError` with `is_retryable()` for exponential backoff classification and `status_code()` for HTTP problem details mapping.
+    - Zero-Key Fallback Implementation (`crates/ai-adapter/src/disabled.rs`): Implemented `DisabledAiAdapter` active by default, ensuring all extraction pipelines function cleanly in offline zero-key mode without external AI dependencies, satisfying Section 3.4 of the GLOBAL_ENGINEERING_CONTRACT.
+    - High-Fidelity Test Mock (`crates/ai-adapter/src/mock.rs`): Implemented `MockAiAdapter` supporting scripted responses, automated heuristic responses, default canned fallbacks, deterministic Blake3-derived $L_2$ unit-normalized pseudo-embeddings, simulated latency, error injection/recovery, and thread-safe call recording via `MockCallTracker`.
+    - Dynamic Runtime Registry (`crates/ai-adapter/src/registry.rs`): Implemented `AiAdapterRegistry` defaulting to `DisabledAiAdapter`, with dynamic thread-safe adapter switching (`set_adapter`) and instant disabling (`disable`).
+    - Quality & Verification: Authored 25 integration tests across `tests/trait_contract_test.rs` (7 tests), `tests/disabled_adapter_test.rs` (4 tests), `tests/mock_adapter_test.rs` (11 tests), and `tests/registry_test.rs` (3 tests). Total workspace tests reached 892+ passing tests. Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean, and 100% passing quality gates (5/5).
 
 ---
 
@@ -256,12 +265,12 @@ In Stage 10 ("Advanced Documents and Content"):
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 176 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4`, `10.3.1` – `10.3.4`, `10.4.1` – `10.4.4` |
+| `ACCEPTED` | 177 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4`, `10.3.1` – `10.3.4`, `10.4.1` – `10.4.4`, `10.5.1` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 20 | `10.5.1` – `11.4.5` |
+| `NOT_STARTED` | 19 | `10.5.2` – `11.4.5` |
 | `Total` | **196** | `Stage 0` – `Stage 11` |
 
 ---

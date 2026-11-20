@@ -6,6 +6,27 @@
 
 ## [Unreleased] — Stage 10: Advanced Documents and Content
 
+### 2026-11-20 — Phase 10.5: Optional local and external AI provider adapters (`10.5.1`)
+
+#### Added
+- **`[10.5.1]` Provider-independent AI adapter trait in `crates/ai-adapter` (`web-repo-to-ai-ai-adapter`):**
+  - Provider-Independent Asynchronous Trait (`crates/ai-adapter/src/traits.rs`):
+    - Implemented `AiAdapter` trait abstracting chat completions (`complete_chat`), dense vector embeddings (`generate_embeddings`), connectivity health checks (`health_check`), model catalog inspection (`list_models`), and high-level structured analysis helpers (`summarize_document`, `enrich_section`).
+    - Decoupled monorepo from vendor-specific wire protocols, ensuring zero vendor lock-in.
+  - Domain Models & Schemas (`crates/ai-adapter/src/models.rs`):
+    - Implemented `AiProviderType` (`Disabled`, `Mock`, `Ollama`, `OpenAiCompatible`, `AnthropicCompatible`, `CustomLocal`), `AiModelDescriptor`, `AiCapabilities`, `ChatMessage`, `ChatRole`, `ChatCompletionRequest` (builder, temperature, max tokens, stop sequences, JSON format, seed), `ChatCompletionResponse`, `ChatChoice`, `ChatFinishReason`, `TokenUsage`, `EmbeddingRequest`, `EmbeddingResponse`, `AiHealthStatus`, `DocumentSummarizationRequest`/`Response` (with `SummaryFocus`), and `SectionEnrichmentRequest`/`Response`.
+  - Categorized Error Taxonomy (`crates/ai-adapter/src/error.rs`):
+    - Implemented `AiAdapterError` with `is_retryable()` for exponential backoff classification and `status_code()` for HTTP problem details mapping.
+  - Zero-Key Fallback Implementation (`crates/ai-adapter/src/disabled.rs`):
+    - Implemented `DisabledAiAdapter` active by default, ensuring all extraction pipelines function cleanly in offline zero-key mode without external AI dependencies, satisfying Section 3.4 of the GLOBAL_ENGINEERING_CONTRACT.
+  - High-Fidelity Test Mock (`crates/ai-adapter/src/mock.rs`):
+    - Implemented `MockAiAdapter` supporting scripted responses, automated heuristic responses, default canned fallbacks, deterministic Blake3-derived $L_2$ unit-normalized pseudo-embeddings, simulated latency, error injection/recovery, and thread-safe call recording via `MockCallTracker`.
+  - Dynamic Runtime Registry (`crates/ai-adapter/src/registry.rs`):
+    - Implemented `AiAdapterRegistry` defaulting to `DisabledAiAdapter`, with dynamic thread-safe adapter switching (`set_adapter`) and instant disabling (`disable`).
+  - Integration & Verification Test Suites:
+    - Authored 25 integration tests across `tests/trait_contract_test.rs` (7 tests), `tests/disabled_adapter_test.rs` (4 tests), `tests/mock_adapter_test.rs` (11 tests), and `tests/registry_test.rs` (3 tests).
+    - Total crate tests: 25; workspace tests expanded to 892+ passing tests with 0 warnings, 0 clippy diffs, clean `cargo deny check`, and 100% passing quality gates (5/5).
+
 ### 2026-11-20 — Phase 10.4: RAG chunk generation (`10.4.4`) — PHASE 10.4 FORMALLY CERTIFIED
 
 #### Added

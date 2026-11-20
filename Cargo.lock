@@ -2836,6 +2836,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "web-repo-to-ai-ai-adapter"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "blake3",
+ "chrono",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+ "tokio",
+ "tracing",
+ "uuid",
+ "web-repo-to-ai-core",
+]
+
+[[package]]
 name = "web-repo-to-ai-api"
 version = "0.1.0"
 dependencies = [

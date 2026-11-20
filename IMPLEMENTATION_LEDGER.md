@@ -6815,3 +6815,89 @@
 - **Git Commit Reference:** `ccc1c0e` (amended)
 - **Status:** `ACCEPTED`
 
+
+---
+
+### Phase 10.5 — Optional local and external AI provider adapters
+
+#### Subphase `10.5.1` — Provider-independent AI adapter trait
+- **Unique ID:** `10.5.1`
+- **Objective:** Implement the provider-independent AI adapter trait, domain models, error taxonomy, zero-key fallback implementation, in-memory test mock, and dynamic runtime registry in `crates/ai-adapter` (`web-repo-to-ai-ai-adapter`), ensuring strict compliance with Section 3.4 of the GLOBAL_ENGINEERING_CONTRACT ("Zero Mandatory External AI / Paid Dependencies").
+- **Scope:** `crates/ai-adapter` (`Cargo.toml`, `README.md`, `src/lib.rs`, `src/traits.rs`, `src/models.rs`, `src/error.rs`, `src/disabled.rs`, `src/mock.rs`, `src/registry.rs`, `tests/*`).
+- **Prerequisites:** `10.4.4` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `Cargo.toml`
+  - `crates/ai-adapter/Cargo.toml`
+  - `crates/ai-adapter/README.md`
+  - `crates/ai-adapter/src/lib.rs`
+  - `crates/ai-adapter/src/error.rs`
+  - `crates/ai-adapter/src/models.rs`
+  - `crates/ai-adapter/src/traits.rs`
+  - `crates/ai-adapter/src/disabled.rs`
+  - `crates/ai-adapter/src/mock.rs`
+  - `crates/ai-adapter/src/registry.rs`
+  - `crates/ai-adapter/tests/trait_contract_test.rs`
+  - `crates/ai-adapter/tests/disabled_adapter_test.rs`
+  - `crates/ai-adapter/tests/mock_adapter_test.rs`
+  - `crates/ai-adapter/tests/registry_test.rs`
+- **Implementation Tasks:**
+  1. Create `crates/ai-adapter` and register in root `Cargo.toml` workspace members and dependencies.
+  2. Implement unified error taxonomy in `src/error.rs` (`AiAdapterError`) with `is_retryable()` for backoff handling and `status_code()` for HTTP problem details mapping.
+  3. Implement domain models in `src/models.rs`: `AiProviderType` (`Disabled`, `Mock`, `Ollama`, `OpenAiCompatible`, `AnthropicCompatible`, `CustomLocal`), `AiModelDescriptor`, `AiCapabilities`, `ChatMessage`, `ChatRole`, `ChatCompletionRequest` (with builder, temperature, max tokens, stop sequences, JSON format, seed), `ChatCompletionResponse`, `ChatChoice`, `ChatFinishReason`, `TokenUsage`, `EmbeddingRequest`, `EmbeddingResponse`, `AiHealthStatus`, `DocumentSummarizationRequest`/`Response` (with `SummaryFocus`), and `SectionEnrichmentRequest`/`Response`.
+  4. Implement abstract `AiAdapter` trait in `src/traits.rs` with default implementations for high-level operations (`summarize_document`, `enrich_section`).
+  5. Implement `DisabledAiAdapter` in `src/disabled.rs` guaranteeing zero-key fallback without external API dependencies.
+  6. Implement `MockAiAdapter` in `src/mock.rs` supporting scripted responses, heuristic responses, default canned fallbacks, deterministic Blake3-derived $L_2$ unit-normalized pseudo-embeddings, simulated latency, error injection, and call tracking via `MockCallTracker`.
+  7. Implement `AiAdapterRegistry` in `src/registry.rs` managing thread-safe active adapter instances.
+  8. Author integration test suites in `tests/` verifying all components across 25 unit and integration tests.
+- **Acceptance Criteria:**
+  - Provider-independent async trait decoupling monorepo from specific vendor APIs.
+  - Zero-key fallback operational by default, satisfying Section 3.4 of the GLOBAL_ENGINEERING_CONTRACT.
+  - In-memory mock adapter for deterministic testing.
+  - Dynamic runtime registry with thread-safe switching.
+  - Zero mocks and zero placeholders in production paths.
+  - 100% test pass rate (25/25 crate tests passing).
+  - Monorepo quality gates passing (`scripts/check-all.ps1`).
+- **Tests:**
+  - `trait_contract_test::test_chat_message_constructors`
+  - `trait_contract_test::test_chat_completion_request_builder`
+  - `trait_contract_test::test_token_usage_arithmetic`
+  - `trait_contract_test::test_chat_completion_response_helpers`
+  - `trait_contract_test::test_embedding_request_and_response_helpers`
+  - `trait_contract_test::test_ai_adapter_error_classification`
+  - `trait_contract_test::test_serde_json_roundtrip_all_models`
+  - `disabled_adapter_test::test_disabled_adapter_lifecycle_and_flags`
+  - `disabled_adapter_test::test_disabled_adapter_rejects_chat_cleanly`
+  - `disabled_adapter_test::test_disabled_adapter_rejects_embeddings_cleanly`
+  - `disabled_adapter_test::test_disabled_adapter_rejects_summarization_and_enrichment`
+  - `mock_adapter_test::test_mock_chat_completion_default_heuristic`
+  - `mock_adapter_test::test_mock_chat_completion_scripted_response`
+  - `mock_adapter_test::test_mock_chat_completion_default_override`
+  - `mock_adapter_test::test_mock_empty_messages_validation_error`
+  - `mock_adapter_test::test_mock_document_summarization_with_topic_extraction`
+  - `mock_adapter_test::test_mock_section_enrichment_with_metadata_parsing`
+  - `mock_adapter_test::test_mock_deterministic_pseudo_embeddings_repeatability_and_unit_norm`
+  - `mock_adapter_test::test_mock_scripted_embeddings_override`
+  - `mock_adapter_test::test_mock_error_injection_and_recovery`
+  - `mock_adapter_test::test_mock_call_tracker_and_token_accounting`
+  - `mock_adapter_test::test_mock_concurrent_multithreaded_execution`
+  - `registry_test::test_registry_initializes_with_disabled_fallback`
+  - `registry_test::test_registry_dynamic_adapter_switching`
+  - `registry_test::test_registry_concurrent_thread_safety`
+- **Security Considerations:**
+  - Zero-key fallback guarantees that no external network traffic occurs unless explicitly configured.
+  - No secret keys are stored in plaintext; all key extraction uses typed authentication errors.
+  - Input validation prevents empty messages, and token bounds prevent memory exhaustion.
+- **Performance Considerations:**
+  - Zero runtime overhead in the core extraction path when AI is disabled.
+  - In-memory mock executes in sub-millisecond time.
+  - Thread-safe registry uses read-write locks allowing non-blocking concurrent reads.
+- **Documentation Requirements:**
+  - `crates/ai-adapter/README.md`, `CHANGELOG.md`, `PROJECT_STATUS.md`, `TODO.md`, `ROADMAP.md`, `docs/ROADMAP.md`, `IMPLEMENTATION_LEDGER.md`.
+- **Validation Evidence:**
+  - 25/25 tests passing in `crates/ai-adapter`.
+  - 892+ tests passing across the workspace.
+  - Monorepo quality gates 100% passing (5/5 gates).
+- **Git Commit Reference:** `3fedb33` (amended)
+- **Status:** `ACCEPTED`
+
+

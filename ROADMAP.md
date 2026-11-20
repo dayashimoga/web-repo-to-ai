@@ -108,7 +108,7 @@
 - **Phase 10.2 — Image OCR:** `10.2.1` Isolated Tesseract OCR adapter (`ACCEPTED`) | `10.2.2` Image preprocessing & language selection (`ACCEPTED`) | `10.2.3` Confidence scoring & provenance attribution (`ACCEPTED`) | `10.2.4` OCR accuracy & timeout tests (`ACCEPTED` — **PHASE 10.2 CERTIFIED**)
 - **Phase 10.3 — Structured documents:** `10.3.1` OpenAPI/JSON Schema/YAML extraction (`ACCEPTED`) | `10.3.2` CSV/TSV & tabular data normalization (`ACCEPTED`) | `10.3.3` Jupyter Notebook (`.ipynb`) cell extraction (`ACCEPTED`) | `10.3.4` Structured document validation tests (`ACCEPTED` — **PHASE 10.3 CERTIFIED**)
 - **Phase 10.4 — RAG chunk generation:** `10.4.1` Semantic & AST-boundary chunking (`ACCEPTED`) | `10.4.2` Citation & cross-reference metadata injection (`ACCEPTED`) | `10.4.3` JSONL & vector-ingest schema exports (`ACCEPTED`) | `10.4.4` Chunk determinism & retrieval validation (`ACCEPTED` — **PHASE 10.4 CERTIFIED**)
-- **Phase 10.5 — Optional local and external AI provider adapters:** `10.5.1` Provider-independent AI adapter trait | `10.5.2` Local Ollama / OpenAI-compatible adapter | `10.5.3` Strict opt-in guardrails & zero-key fallback | `10.5.4` Adapter contract & isolation tests
+- **Phase 10.5 — Optional local and external AI provider adapters:** `10.5.1` Provider-independent AI adapter trait (`ACCEPTED`) | `10.5.2` Local Ollama / OpenAI-compatible adapter | `10.5.3` Strict opt-in guardrails & zero-key fallback | `10.5.4` Adapter contract & isolation tests
 
 ### STAGE 11 — PRODUCTION CERTIFICATION
 - **Phase 11.1 — Security:** `11.1.1` Threat model review | `11.1.2` SSRF & network security | `11.1.3` OAuth & access-control audit | `11.1.4` Dependency & secrets audit

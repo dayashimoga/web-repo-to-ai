@@ -22,6 +22,7 @@ members = [
     "crates/pdf-extractor",
     "crates/ocr-extractor",
     "crates/structured-extractor",
+    "crates/ai-adapter",
 ]
 resolver = "2"
 
@@ -69,6 +70,7 @@ web-repo-to-ai-mcp = { path = "crates/mcp", version = "0.1.0" }
 web-repo-to-ai-pdf-extractor = { path = "crates/pdf-extractor", version = "0.1.0" }
 web-repo-to-ai-ocr-extractor = { path = "crates/ocr-extractor", version = "0.1.0" }
 web-repo-to-ai-structured-extractor = { path = "crates/structured-extractor", version = "0.1.0" }
+web-repo-to-ai-ai-adapter = { path = "crates/ai-adapter", version = "0.1.0" }
 lopdf = { version = "0.47", default-features = false }
 
 # Async runtime & networking

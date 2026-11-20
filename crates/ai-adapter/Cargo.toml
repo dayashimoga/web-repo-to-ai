@@ -1,0 +1,27 @@
+[package]
+name = "web-repo-to-ai-ai-adapter"
+description = "Provider-independent AI adapter trait and implementations for optional LLM assistance"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+web-repo-to-ai-core = { workspace = true }
+async-trait = { workspace = true }
+blake3 = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+chrono = { workspace = true, features = ["serde", "clock"] }
+tokio = { workspace = true, features = ["sync", "time", "macros", "rt"] }
+uuid = { workspace = true, features = ["v4", "serde"] }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["full"] }
