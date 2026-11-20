@@ -11,6 +11,7 @@
 pub mod detector;
 pub mod error;
 pub mod extractor;
+pub mod golden;
 pub mod jsonschema;
 pub mod models;
 pub mod notebook;
@@ -21,6 +22,11 @@ pub mod yaml;
 pub use detector::detect_format;
 pub use error::{Result, StructuredError};
 pub use extractor::StructuredExtractor;
+pub use golden::{
+    all_golden_fixtures, evaluate_golden_fixture, run_all_golden_benchmarks, StructuredArchetype,
+    StructuredFidelityMetrics, StructuredGoldenFixture, StructuredGoldenReport,
+    StructuredGoldenResult,
+};
 pub use jsonschema::parse_json_schema;
 pub use models::{
     ColumnDataType, ColumnStats, JsonSchemaDoc, JsonSchemaProperty, JupyterNotebook, NotebookCell,

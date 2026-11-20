@@ -4,11 +4,11 @@
 **Last Updated:** 2026-11-20  
 **Current Stage:** `STAGE 10 — ADVANCED DOCUMENTS AND CONTENT` (`IN_PROGRESS`)  
 **Last Completed Stage:** `STAGE 9 — DEVELOPER AND AI AGENT INTEGRATIONS` (`100% COMPLETED & FORMALLY CERTIFIED`)  
-**Last Completed Phase:** `Phase 10.2 — Image OCR` (`100% COMPLETED & FORMALLY CERTIFIED`)  
+**Last Completed Phase:** `Phase 10.3 — Structured documents` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Active Subphase:** `None`  
-**Last Completed Subphase:** `10.3.3 — Jupyter Notebook (.ipynb) cell extraction (crates/structured-extractor: nbformat v4 parsing, cell classification for markdown/code/raw, execution outputs stream/result/display/error, regex-free ANSI terminal escape sequence stripping, language tag inference, heading-based outline hierarchy trees, CDM synthesis, DoS bounds, multi-format export fidelity, bit-for-bit hash determinism, <50ms throughput)` (`ACCEPTED`)  
-**Next Upcoming Phase:** `Phase 10.3 — Structured documents` (`IN_PROGRESS`)  
-**Next Upcoming Subphase:** `10.3.4 — Multi-format structured document integration & CLI/MCP exposure`
+**Last Completed Subphase:** `10.3.4 — Structured document validation tests & Phase 10.3 Certification (crates/structured-extractor: 8 golden archetypes covering OpenAPI JSON/YAML, JSON Schema, YAML stream, CSV/TSV, Jupyter notebook, adversarial limits bomb; quantitative fidelity metrics with fragment recall >=95%, schema validity, <50ms throughput; cross-format validation suite with line/byte monotonicity, acyclic outline hierarchies, input rejection guarantees, and mathematical CompletenessReport invariants across all formats)` (`ACCEPTED`)  
+**Next Upcoming Phase:** `Phase 10.4 — RAG chunk generation`  
+**Next Upcoming Subphase:** `10.4.1 — Semantic & AST-boundary chunking`
 
 ---
 
@@ -151,7 +151,7 @@ In Stage 10 ("Advanced Documents and Content"):
     - Downstream Multi-Format Export Fidelity: Validated roundtrip serialization from OCR-extracted `CdmDocument` through `web-repo-to-ai-exporters` into GitHub Flavored Markdown (`verify_markdown_syntax`), HTML5 (`verify_html_syntax`), JSON CDM v1.0 (`verify_json_syntax`), JSONL (`verify_jsonl_syntax`), and Plaintext.
     - Determinism & High Throughput: Demonstrated bit-for-bit extraction determinism (BLAKE3 hash stability across consecutive extractions) and high-throughput execution (< 50ms per document).
     - Quality & Formal Certification: Authored 15 new integration tests across `accuracy_benchmark_test.rs` (6 tests), `timeout_cancellation_test.rs` (4 tests), and `export_fidelity_test.rs` (5 tests). Total crate tests reached 63 (19 unit, 44 integration); workspace tests reached 740+ passing tests. Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean, and 100% passing quality gates (5/5). Formally certified Phase 10.2 in full.
-- Phase 10.3 ("Structured documents") is in progress:
+- Phase 10.3 ("Structured documents") is 100% complete across all 4 subphases and formally certified:
   - Subphase `10.3.1` delivered OpenAPI, JSON Schema, and multi-document YAML extraction and Canonical Context Document Model (`CdmDocument`) synthesis in `crates/structured-extractor` (`web-repo-to-ai-structured-extractor`):
     - Dedicated Workspace Crate: Created `crates/structured-extractor` integrated into root `Cargo.toml` workspace members and dependencies.
     - OpenAPI Specification Parser (`crates/structured-extractor/src/openapi.rs`): Supported OpenAPI 2.0 (Swagger), 3.0.x, and 3.1.x in both JSON and YAML formats. Extracted API title, version, description, license, contact info, security schemes, servers, and operation paths (`GET`, `POST`, `PUT`, `DELETE`, `PATCH`, `HEAD`, `OPTIONS`, `TRACE`). Structured operations with operationId, summary, description, tags, query/path/header/cookie parameters (name, in, required, schema type/format, description), request bodies (content-types, schema details), responses (status codes, descriptions, schemas), and component/definitions schemas with full property tables (type, format, required, description). Supports logical tag grouping or path fallback grouping.
@@ -183,6 +183,23 @@ In Stage 10 ("Advanced Documents and Content"):
     - Resource & DoS Bounds (`crates/structured-extractor/src/models.rs`): Enforced `max_notebook_cells` (1,000 default), `max_output_bytes` (512 KiB default), `truncate_on_cell_limit` graceful truncation, and output line capping (`notebook_max_output_lines`).
     - Downstream Multi-Format Export Fidelity: Validated roundtrip serialization through `web-repo-to-ai-exporters` into Markdown GFM (`verify_markdown_syntax`), HTML5 (`verify_html_syntax`), JSON CDM v1.0 (`verify_json_syntax`), JSONL (`verify_jsonl_syntax`), and Plaintext. Proved bit-for-bit extraction determinism and high throughput (< 50ms for 100 iterations).
     - Quality & Verification: Authored 20 new integration tests across `notebook_extraction_test.rs` (4 tests), `notebook_ansi_outputs_test.rs` (6 tests), `notebook_limits_test.rs` (5 tests), and `notebook_export_fidelity_test.rs` (5 tests). Total crate tests reached 57; workspace tests reached 795+ passing tests. Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean, and 100% passing quality gates (5/5).
+  - Subphase `10.3.4` delivered comprehensive structured document validation tests, golden evaluation benchmark engine across 8 archetypes, and Phase 10.3 formal certification in `crates/structured-extractor` (`web-repo-to-ai-structured-extractor`):
+    - Golden Evaluation Benchmark Corpus (`crates/structured-extractor/src/golden.rs`): Delivered `StructuredArchetype` (8 variants), `StructuredGoldenFixture`, `StructuredFidelityMetrics`, `StructuredGoldenResult`, and `StructuredGoldenReport` spanning 8 canonical archetypes:
+      1. *OpenAPI 3.0 JSON Specification:* Complete Petstore & Orders REST API with security schemes, tag groupings, operation metadata, query/path parameters, request bodies, and component schema property tables.
+      2. *OpenAPI 3.1 YAML Specification:* Cloud Fleet Infrastructure API with multi-path operations, bearer auth security, and YAML serialization.
+      3. *JSON Schema Draft-07 Data Model:* User Profile & Settings schema with `$defs` nested components, required constraints, and data type annotations.
+      4. *Multi-Document Kubernetes YAML Stream:* Multi-document YAML manifest stream (`---`) with ConfigMap, Deployment, and Service definitions.
+      5. *Delimited Tabular CSV (RFC 4180):* E-Commerce transactions CSV with quoted fields, embedded commas, multiline product descriptions across CRLF/LF, escaped double quotes (`""`), and automatic column type inference.
+      6. *Delimited Tabular TSV:* Server metrics TSV with tab delimiter sniffing, type inference (`DateTime`, `Float`, `Integer`), and null normalization.
+      7. *Jupyter Notebook Python:* Full machine learning workflow notebook in nbformat v4 format with markdown documentation, code cells, stream outputs, rich MIME execute results, and ANSI escape code tracebacks.
+      8. *Adversarial Resource Limits Bomb:* Tabular CSV exceeding row ceilings under `truncate_on_row_limit = true`, verifying graceful truncation and mathematical completeness invariants (`discovered == extracted + excluded`).
+    - Quantitative Fidelity Evaluation Engine: Implemented `evaluate_golden_fixture()` and `run_all_golden_benchmarks()` calculating `StructuredFidelityMetrics` (`section_count`, `section_kinds_matched`, `fragment_recall` $\ge 95\%$, `schema_valid`, elapsed time $< 50\text{ ms}$) and formatted GitHub Flavored Markdown audit reports (`StructuredGoldenReport::to_markdown_summary()`).
+    - Cross-Format Validation Test Suite (`tests/structured_validation_test.rs`):
+      - Validated line and byte range monotonicity and non-overlapping invariants across all extracted formats.
+      - Validated hierarchy tree acyclicity, root reachability, and absence of dangling child pointers.
+      - Validated robust error handling and structured rejection for empty strings, whitespace-only inputs, invalid JSON/YAML syntax, and corrupted payloads.
+      - Validated strict mathematical `CompletenessReport` accounting (`discovered == extracted + excluded`) under adversarial limits across all structured formats.
+    - Quality & Formal Certification: Authored 17 new integration tests across `tests/structured_golden_benchmark_test.rs` (10 tests) and `tests/structured_validation_test.rs` (7 tests). Total crate tests reached 74 (16 test suites); workspace tests reached 812+ passing tests. Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean, and 100% passing quality gates (5/5). Formally certified Phase 10.3 in full.
 
 ---
 
@@ -190,12 +207,12 @@ In Stage 10 ("Advanced Documents and Content"):
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 171 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4`, `10.3.1` – `10.3.3` |
+| `ACCEPTED` | 172 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4`, `10.3.1` – `10.3.4` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 25 | `10.3.4` – `11.4.5` |
+| `NOT_STARTED` | 24 | `10.4.1` – `11.4.5` |
 | **Total** | **196** | `Stage 0` – `Stage 11` |
 
 ---

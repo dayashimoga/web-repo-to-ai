@@ -6,6 +6,36 @@
 
 ## [Unreleased] — Stage 10: Advanced Documents and Content
 
+### 2026-11-20 — Phase 10.3: Structured documents (`10.3.4`) — PHASE 10.3 FORMALLY CERTIFIED
+
+#### Added
+- **`[10.3.4]` Structured document validation tests & Phase 10.3 Certification in `crates/structured-extractor`:**
+  - Golden Evaluation Benchmark Corpus (`crates/structured-extractor/src/golden.rs`):
+    - Implemented `StructuredArchetype` (8 variants), `StructuredGoldenFixture`, `StructuredFidelityMetrics`, `StructuredGoldenResult`, and `StructuredGoldenReport` evaluating 8 canonical real-world archetypes:
+      1. `OpenApiJsonSpec`: OpenAPI 3.0.3 Petstore & Orders REST API (JSON) with security schemes, query/path parameters, request bodies, responses, and schema tables.
+      2. `OpenApiYamlSpec`: OpenAPI 3.1.0 Cloud Fleet Infrastructure API (YAML) with multi-path operations, bearer auth, and YAML syntax.
+      3. `JsonSchemaDraft`: JSON Schema Draft-07 User Profile Data Model with nested `$defs` and property definitions.
+      4. `GenericYamlManifest`: Kubernetes multi-document YAML manifest stream (`---`) with ConfigMap, Deployment, and Service resources.
+      5. `DelimitedTabularCsv`: RFC 4180 E-Commerce transactions CSV with quoted fields, embedded commas, multiline descriptions, and escaped double-quotes (`""`).
+      6. `DelimitedTabularTsv`: Server performance metrics TSV with tab delimiter sniffing, type inference (`DateTime`, `Float`, `Integer`), and null normalization.
+      7. `JupyterNotebookPython`: Nbformat v4 Machine Learning Pipeline with markdown cells, code cells, stream outputs, rich MIME execute results, and ANSI tracebacks.
+      8. `AdversarialLimitsBomb`: Tabular CSV exceeding row limits under `truncate_on_row_limit = true`, validating graceful truncation and completeness invariants (`discovered == extracted + excluded`).
+  - Quantitative Fidelity Evaluation Engine:
+    - Implemented `evaluate_golden_fixture` and `run_all_golden_benchmarks` computing `StructuredFidelityMetrics` (`section_count`, `section_kinds_matched`, `fragment_recall` >= 95%, `schema_valid`, elapsed time < 50ms).
+    - Implemented Markdown executive report generation (`StructuredGoldenReport::to_markdown_summary`).
+  - Cross-Format Structured Document Validation Test Suite (`tests/structured_validation_test.rs`):
+    - Validated line and byte range monotonicity and non-overlapping invariants across all extracted formats.
+    - Validated hierarchy outline tree acyclicity, root reachability, and absence of dangling child pointers.
+    - Validated structured error handling and rejection for empty strings, whitespace-only inputs, invalid JSON/YAML syntax, and corrupted payloads.
+    - Validated strict mathematical `CompletenessReport` accounting (`discovered == extracted + excluded`) under adversarial limits across all structured formats.
+  - Quality Verification & Phase 10.3 Certification:
+    - Authored 17 integration tests across `structured_golden_benchmark_test.rs` (10 tests) and `structured_validation_test.rs` (7 tests).
+    - 74 crate tests passing cleanly in `web-repo-to-ai-structured-extractor` (16 test suites).
+    - 812+ workspace tests passing across the monorepo.
+    - Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean.
+    - Monorepo quality gate (`scripts/check-all.ps1`) 100% passing across all 5 gates.
+    - Formally certified Phase 10.3 ("Structured documents") in full across subphases `10.3.1`, `10.3.2`, `10.3.3`, and `10.3.4`.
+
 ### 2026-11-20 — Phase 10.3: Structured documents (`10.3.3`)
 
 #### Added

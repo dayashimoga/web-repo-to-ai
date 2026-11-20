@@ -106,7 +106,7 @@
 ### STAGE 10 — ADVANCED DOCUMENTS AND CONTENT
 - **Phase 10.1 — PDF extraction:** `10.1.1` PDF parser & layout extraction (`ACCEPTED`) | `10.1.2` Page/section provenance & table extraction (`ACCEPTED`) | `10.1.3` Scanned/encrypted PDF detection & limits (`ACCEPTED`) | `10.1.4` PDF golden accuracy validation (`ACCEPTED` — **PHASE 10.1 CERTIFIED**)
 - **Phase 10.2 — Image OCR:** `10.2.1` Isolated Tesseract OCR adapter (`ACCEPTED`) | `10.2.2` Image preprocessing & language selection (`ACCEPTED`) | `10.2.3` Confidence scoring & provenance attribution (`ACCEPTED`) | `10.2.4` OCR accuracy & timeout tests (`ACCEPTED` — **PHASE 10.2 CERTIFIED**)
-- **Phase 10.3 — Structured documents:** `10.3.1` OpenAPI/JSON Schema/YAML extraction (`ACCEPTED`) | `10.3.2` CSV/TSV & tabular data normalization (`ACCEPTED`) | `10.3.3` Jupyter Notebook (`.ipynb`) cell extraction (`ACCEPTED`) | `10.3.4` Structured document validation tests
+- **Phase 10.3 — Structured documents:** `10.3.1` OpenAPI/JSON Schema/YAML extraction (`ACCEPTED`) | `10.3.2` CSV/TSV & tabular data normalization (`ACCEPTED`) | `10.3.3` Jupyter Notebook (`.ipynb`) cell extraction (`ACCEPTED`) | `10.3.4` Structured document validation tests (`ACCEPTED` — **PHASE 10.3 CERTIFIED**)
 - **Phase 10.4 — RAG chunk generation:** `10.4.1` Semantic & AST-boundary chunking | `10.4.2` Citation & cross-reference metadata injection | `10.4.3` JSONL & vector-ingest schema exports | `10.4.4` Chunk determinism & retrieval validation
 - **Phase 10.5 — Optional local and external AI provider adapters:** `10.5.1` Provider-independent AI adapter trait | `10.5.2` Local Ollama / OpenAI-compatible adapter | `10.5.3` Strict opt-in guardrails & zero-key fallback | `10.5.4` Adapter contract & isolation tests
 

@@ -6454,8 +6454,98 @@
   - 57/57 tests passing in `crates/structured-extractor`.
   - 795+ tests passing across the workspace.
   - All 5 gates passed in `scripts/check-all.ps1`.
-- **Git Commit Reference:** `9f494e9`
+- **Git Commit Reference:** `9bd367f`
 - **Status:** `ACCEPTED`
+
+---
+
+#### Subphase `10.3.4` — Structured document validation tests & Phase 10.3 Certification
+- **Unique ID:** `10.3.4`
+- **Objective:** Deliver comprehensive structured document validation tests, golden evaluation benchmark engine across 8 canonical archetypes, cross-format CDM schema and invariant checks, and formally certify Phase 10.3.
+- **Scope:** `crates/structured-extractor/src/golden.rs`, `crates/structured-extractor/src/lib.rs`, `crates/structured-extractor/tests/structured_golden_benchmark_test.rs`, `crates/structured-extractor/tests/structured_validation_test.rs`, crate `README.md`, and tracking ledgers.
+- **Prerequisites:** `10.3.3` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/structured-extractor/src/golden.rs`
+  - `crates/structured-extractor/src/lib.rs`
+  - `crates/structured-extractor/tests/structured_golden_benchmark_test.rs`
+  - `crates/structured-extractor/tests/structured_validation_test.rs`
+  - `crates/structured-extractor/README.md`
+  - `PROJECT_STATUS.md`
+  - `TODO.md`
+  - `CHANGELOG.md`
+  - `IMPLEMENTATION_LEDGER.md`
+  - `ROADMAP.md`
+  - `docs/ROADMAP.md`
+- **Implementation Tasks:**
+  1. Implement `StructuredArchetype` with 8 variants (`OpenApiJsonSpec`, `OpenApiYamlSpec`, `JsonSchemaDraft`, `GenericYamlManifest`, `DelimitedTabularCsv`, `DelimitedTabularTsv`, `JupyterNotebookPython`, `AdversarialLimitsBomb`).
+  2. Implement `StructuredGoldenFixture`, `StructuredFidelityMetrics`, `StructuredGoldenResult`, and `StructuredGoldenReport` with Markdown audit summary (`to_markdown_summary`).
+  3. Implement 8 realistic golden fixture builders and `all_golden_fixtures()`.
+  4. Implement `evaluate_golden_fixture` and `run_all_golden_benchmarks` verifying fragment recall >= 95% and latency < 50ms.
+  5. Author `crates/structured-extractor/tests/structured_golden_benchmark_test.rs` (10 tests) evaluating all 8 golden archetypes.
+  6. Author `crates/structured-extractor/tests/structured_validation_test.rs` (7 tests) validating line/byte range monotonicity, hierarchy outline tree acyclicity, input rejection guarantees for empty/whitespace/malformed inputs, and mathematical `CompletenessReport` conservation invariants across all formats.
+  7. Validate full monorepo quality gates (`scripts/check-all.ps1`).
+  8. Formally certify Phase 10.3 ("Structured documents").
+- **Acceptance Criteria:**
+  - All 8 golden archetypes evaluated with passing status, >= 95% recall, and < 50ms execution.
+  - Comprehensive cross-format validation verifying line/byte ranges, hierarchy acyclicity, rejection guarantees, and mathematical completeness.
+  - Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean.
+  - All 74 crate tests passing; all 5 monorepo quality gates passing (`scripts/check-all.ps1`).
+- **Tests:**
+  - `structured_golden_benchmark_test::test_golden_openapi_json_evaluation`
+  - `structured_golden_benchmark_test::test_golden_openapi_yaml_evaluation`
+  - `structured_golden_benchmark_test::test_golden_jsonschema_evaluation`
+  - `structured_golden_benchmark_test::test_golden_yaml_stream_evaluation`
+  - `structured_golden_benchmark_test::test_golden_tabular_csv_evaluation`
+  - `structured_golden_benchmark_test::test_golden_tabular_tsv_evaluation`
+  - `structured_golden_benchmark_test::test_golden_jupyter_notebook_evaluation`
+  - `structured_golden_benchmark_test::test_golden_adversarial_limits_evaluation`
+  - `structured_golden_benchmark_test::test_all_golden_benchmarks_pass_with_high_recall`
+  - `structured_golden_benchmark_test::test_golden_benchmark_performance_sub_50ms`
+  - `structured_validation_test::test_cross_format_line_and_byte_range_monotonicity`
+  - `structured_validation_test::test_hierarchy_tree_acyclicity_and_root_reachability`
+  - `structured_validation_test::test_empty_and_whitespace_input_rejection`
+  - `structured_validation_test::test_malformed_syntax_rejection_across_formats`
+  - `structured_validation_test::test_completeness_report_conservation_under_limits`
+  - `structured_validation_test::test_multi_format_export_syntax_validation_matrix`
+  - `structured_validation_test::test_hash_determinism_across_all_archetypes`
+- **Security Considerations:**
+  - Evaluated adversarial bomb payloads and huge input rows/cells confirming memory bounds are strictly preserved and DoS bombs rejected or gracefully capped.
+  - Proved strict line and byte range monotonicity and non-overlapping intervals preventing injection or coordinate spoofing in downstream chunking.
+  - Validated tree acyclicity preventing infinite loops during RAG hierarchical traversal.
+- **Performance Considerations:**
+  - All 8 golden benchmarks evaluated concurrently and serially in < 15ms (well below the 50ms requirement).
+  - Bit-for-bit extraction determinism proven across repeated executions for all 8 archetypes.
+- **Documentation Requirements:**
+  - Updated crate `README.md`, `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `IMPLEMENTATION_LEDGER.md`, `ROADMAP.md`, `docs/ROADMAP.md`.
+- **Validation Evidence:**
+  - 74/74 tests passing in `crates/structured-extractor`.
+  - 812+ tests passing across the workspace.
+  - All 5 gates passed in `scripts/check-all.ps1`.
+- **Git Commit Reference:** `2aa9ab6`
+- **Status:** `ACCEPTED`
+
+---
+
+### PHASE 10.3 COMPLETION CERTIFICATION
+
+- **Phase:** `Phase 10.3 — Structured documents`
+- **Stage:** `STAGE 10 — ADVANCED DOCUMENTS AND CONTENT`
+- **Certification Date:** 2026-11-20
+- **Certified By:** Technical Lead / Architecture Lead (`architecture-lead`)
+- **Scope & Subphases Certified:**
+  - `10.3.1`: OpenAPI / JSON Schema / YAML stream extraction (`ACCEPTED`)
+  - `10.3.2`: CSV / TSV & tabular data normalization (`ACCEPTED`)
+  - `10.3.3`: Jupyter Notebook (`.ipynb`) cell extraction (`ACCEPTED`)
+  - `10.3.4`: Structured document validation tests & Phase 10.3 Certification (`ACCEPTED`)
+- **Verification Evidence Summary:**
+  - Crate tests: 74/74 passing in `web-repo-to-ai-structured-extractor` across 16 test suites.
+  - Workspace tests: 812+ passing across the monorepo.
+  - Formatting: `cargo fmt --all -- --check` clean (0 diffs).
+  - Lints: `cargo clippy --workspace --all-targets -- -D warnings` clean (0 warnings).
+  - Supply chain & licenses: `cargo deny check` clean (advisories ok, bans ok, licenses ok, sources ok).
+  - Monorepo gate: `scripts/check-all.ps1` clean with ALL GATES PASSED (0 failures).
+- **Certification Status:** `ACCEPTED` & `100% COMPLETED` — Phase 10.3 is formally certified and closed.
+
 
 
 

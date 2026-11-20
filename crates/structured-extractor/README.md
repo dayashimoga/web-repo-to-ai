@@ -27,4 +27,10 @@ Provides structured document parsing, schema extraction, and Canonical Context D
   - Hierarchical outline tree construction mirroring Markdown heading levels (`#`, `##`, `###`) with nested code and output cells.
   - Resource limits: `max_notebook_cells`, `max_output_bytes`, `truncate_on_cell_limit`, and output line capping (`notebook_max_output_lines`).
 - **CDM Synthesis (`extractor`):** Synthesizes `CdmDocument` (`SourceType::StructuredDocument`) with summary prose, GFM pipe data tables, code snippets with syntax highlighting tags, hierarchical navigation trees, and mathematical `CompletenessReport` accounting (`discovered == extracted + excluded`).
+- **Golden Evaluation & Benchmark Corpus (`golden`):**
+  - Evaluation suite testing 8 golden archetypes: `OpenApiJsonSpec`, `OpenApiYamlSpec`, `JsonSchemaDraft`, `GenericYamlManifest`, `DelimitedTabularCsv`, `DelimitedTabularTsv`, `JupyterNotebookPython`, and `AdversarialLimitsBomb`.
+  - Quantitative fidelity metrics (`StructuredFidelityMetrics`) validating section counts, section kind conformance, fragment recall ($\ge 95\%$), schema validity, and execution speed ($< 50\text{ ms}$).
+  - Markdown report generation (`StructuredGoldenReport::to_markdown_summary`).
+- **Validation Framework (`tests/structured_validation_test.rs`):**
+  - Strict validation of line/byte monotonicity, hierarchy tree acyclicity, input rejection guarantees for empty/invalid payloads, and `CompletenessReport` conservation invariants across all formats.
 - **High Performance:** Sub-50ms execution on 5,000+ tabular rows and 100+ notebook iterations with bit-for-bit hash determinism.
