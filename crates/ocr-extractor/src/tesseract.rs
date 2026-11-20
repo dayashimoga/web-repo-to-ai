@@ -242,7 +242,29 @@ impl OcrAdapter for TesseractAdapter {
             });
         }
 
-        let extension = Self::infer_extension(input);
+        // Validate and resolve target language model with fallback policy
+        let target_language = crate::language::resolve_languages(
+            &options.language,
+            &engine_info.supported_languages,
+            options.language_fallback,
+            "eng",
+        )?;
+
+        // Preprocess input image if enabled
+        let (bytes_to_write, prep_report) = if options.preprocessing.is_enabled() {
+            let (preprocessed, report) =
+                crate::preprocess::preprocess_image(&input.bytes, &options.preprocessing)?;
+            (preprocessed, Some(report))
+        } else {
+            (input.bytes.clone(), None)
+        };
+
+        let extension = if prep_report.is_some() {
+            "png"
+        } else {
+            Self::infer_extension(input)
+        };
+
         let temp_filename = format!(
             "ocr_{}_{}.{}",
             uuid::Uuid::new_v4(),
@@ -256,7 +278,9 @@ impl OcrAdapter for TesseractAdapter {
             let mut file = tokio::fs::File::create(&temp_path)
                 .await
                 .map_err(OcrError::Io)?;
-            file.write_all(&input.bytes).await.map_err(OcrError::Io)?;
+            file.write_all(&bytes_to_write)
+                .await
+                .map_err(OcrError::Io)?;
             file.flush().await.map_err(OcrError::Io)?;
         }
         let _guard = TempFileGuard::new(temp_path.clone());
@@ -267,7 +291,7 @@ impl OcrAdapter for TesseractAdapter {
         let mut cmd = Command::new(&self.binary_path);
         cmd.arg(&temp_path);
         cmd.arg("stdout"); // Stream output to stdout
-        cmd.arg("-l").arg(&options.language);
+        cmd.arg("-l").arg(&target_language);
         cmd.arg("--psm").arg(options.psm.as_flag());
         cmd.arg("--oem").arg(options.oem.as_flag());
 
@@ -320,7 +344,8 @@ impl OcrAdapter for TesseractAdapter {
         }
 
         let tsv_stdout = String::from_utf8_lossy(&output.stdout);
-        let ocr_result = parse_tesseract_tsv(&tsv_stdout, duration_ms, engine_info)?;
+        let mut ocr_result = parse_tesseract_tsv(&tsv_stdout, duration_ms, engine_info)?;
+        ocr_result.preprocessing_report = prep_report;
 
         // Validate extracted word count against limits
         options.limits.validate_word_count(ocr_result.total_words)?;

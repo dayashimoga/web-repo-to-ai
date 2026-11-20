@@ -105,6 +105,30 @@ impl OcrExtractor {
             ocr_result.execution_duration_ms.to_string(),
         );
 
+        if let Some(ref prep) = ocr_result.preprocessing_report {
+            custom_meta.insert("ocr_preprocessed".to_string(), "true".to_string());
+            custom_meta.insert(
+                "ocr_deskew_angle".to_string(),
+                format!("{:.2}", prep.deskew_angle_degrees),
+            );
+            custom_meta.insert(
+                "ocr_inverted".to_string(),
+                prep.inverted_applied.to_string(),
+            );
+            custom_meta.insert(
+                "ocr_binarized".to_string(),
+                prep.binarization_applied.to_string(),
+            );
+            custom_meta.insert(
+                "ocr_contrast_enhanced".to_string(),
+                prep.contrast_enhanced.to_string(),
+            );
+            custom_meta.insert(
+                "ocr_prep_duration_ms".to_string(),
+                prep.duration_ms.to_string(),
+            );
+        }
+
         let title = input.filename.clone().or_else(|| {
             std::path::Path::new(&source_url)
                 .file_name()

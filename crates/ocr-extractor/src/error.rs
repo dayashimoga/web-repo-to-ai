@@ -48,6 +48,19 @@ pub enum OcrError {
     #[error("Invalid image format or data: {0}")]
     ImageFormat(String),
 
+    /// Image preprocessing failure (e.g. decoding, deskewing, binarization).
+    #[error("Image preprocessing failed: {0}")]
+    PreprocessingError(String),
+
+    /// Requested OCR recognition language is unsupported or not installed.
+    #[error("Unsupported language '{requested}'. Available languages: {available:?}")]
+    UnsupportedLanguage {
+        /// Language requested by caller.
+        requested: String,
+        /// List of languages supported by the active engine.
+        available: Vec<String>,
+    },
+
     /// Failed to parse Tesseract output (e.g. TSV formatting error).
     #[error("Failed to parse OCR TSV output: {0}")]
     OutputParseError(String),

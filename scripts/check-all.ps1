@@ -45,7 +45,7 @@ Run-Gate "Rust Workspace Checks" {
         if ($LASTEXITCODE -ne 0) { throw "cargo clippy check failed" }
 
         Write-Output "Checking cargo test..."
-        cargo test --workspace
+        cargo test --workspace --jobs 4
         if ($LASTEXITCODE -ne 0) { throw "cargo test failed" }
 
         if (Get-Command cargo-deny -ErrorAction SilentlyContinue) {

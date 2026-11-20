@@ -6038,3 +6038,51 @@
   - Storage hygiene preserved ($\ge 69.5$ GB free on `C:`).
   - All monorepo quality gates pass with 0 failures.
 - **Status:** `ACCEPTED`
+
+---
+
+#### Subphase `10.2.2` — Image preprocessing & language selection
+- **Unique ID:** `10.2.2`
+- **Objective:** Implement pure, memory-safe image preprocessing algorithms (grayscale conversion, dark-mode auto-inversion, contrast stretching, Otsu and adaptive mean binarization, projection profile deskew detection and rotation, dimension bounds scaling) and comprehensive ISO 639-2/639-3 multi-language selection, validation, and fallback policy handling in `crates/ocr-extractor` (`web-repo-to-ai-ocr-extractor`).
+- **Scope:** `crates/ocr-extractor/Cargo.toml`, `crates/ocr-extractor/src/lib.rs`, `crates/ocr-extractor/src/error.rs`, `crates/ocr-extractor/src/models.rs`, `crates/ocr-extractor/src/preprocess.rs`, `crates/ocr-extractor/src/language.rs`, `crates/ocr-extractor/src/tesseract.rs`, `crates/ocr-extractor/src/tsv.rs`, `crates/ocr-extractor/src/extractor.rs`, `crates/ocr-extractor/tests/preprocessing_test.rs`, `crates/ocr-extractor/tests/language_selection_test.rs`, and tracking ledgers.
+- **Prerequisites:** `10.2.1` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/ocr-extractor/Cargo.toml`: Added `image = { version = "0.25.6", default-features = false, features = ["png", "jpeg", "bmp"] }`.
+  - `crates/ocr-extractor/src/error.rs`: Added `PreprocessingError(String)` and `UnsupportedLanguage { requested: String, available: Vec<String> }`.
+  - `crates/ocr-extractor/src/language.rs`: Implemented `LanguageFallbackPolicy` (`StrictError`, `FallbackToDefault`, `FilterUnavailable`), `normalize_language_code`, `parse_language_string`, `canonicalize_languages`, `resolve_languages`, `is_cjk`, and `is_rtl`.
+  - `crates/ocr-extractor/src/preprocess.rs`: Implemented `BinarizationMethod` (`None`, `Otsu`, `Fixed(u8)`, `AdaptiveMean { window_size: u32, c: i16 }`), `PreprocessingOptions`, `PreprocessingReport`, `preprocess_image`, `compute_otsu_threshold` with plateau-centering midpoint, `enhance_contrast` (1st to 99th percentile stretching), `apply_adaptive_threshold`, `detect_skew_angle` (projection profile variance testing $[-15.0^\circ, +15.0^\circ]$), and `rotate_gray_image` (nearest-neighbor bounds-preserving rotation).
+  - `crates/ocr-extractor/src/models.rs`: Extended `OcrOptions` with `preprocessing: PreprocessingOptions` and `language_fallback: LanguageFallbackPolicy`. Extended `OcrResult` with `preprocessing_report: Option<PreprocessingReport>`.
+  - `crates/ocr-extractor/src/tsv.rs`: Initialized `preprocessing_report: None`.
+  - `crates/ocr-extractor/src/tesseract.rs`: Integrated language validation via `resolve_languages` and conditional image preprocessing with `preprocess_image`, writing preprocessed PNG bytes to tempfile and attaching the execution report to `OcrResult`.
+  - `crates/ocr-extractor/src/extractor.rs`: Injected preprocessing telemetry (`ocr_preprocessed`, `ocr_deskew_angle`, `ocr_inverted`, `ocr_binarized`, `ocr_contrast_enhanced`, `ocr_prep_duration_ms`) into CDM document metadata.
+  - `crates/ocr-extractor/src/lib.rs`: Re-exported all new types and functions.
+  - `crates/ocr-extractor/tests/preprocessing_test.rs`: 9 integration tests across grayscale conversion, dark mode inversion, Otsu binarization, adaptive thresholding, contrast stretching, deskew detection, dimension scaling, and full pipeline.
+  - `crates/ocr-extractor/tests/language_selection_test.rs`: 5 integration tests across language normalization, multi-language combination canonicalization, language resolution policies, script direction helpers, and OCR extractor integration.
+- **Implementation Tasks:**
+  1. Added `image v0.25.6` (minimal features) to `crates/ocr-extractor/Cargo.toml` and verified clean `cargo deny check`.
+  2. Implemented structured error variants in `crates/ocr-extractor/src/error.rs`.
+  3. Implemented ISO 639-2/639-3 language normalization, combination parser, validation, and fallback policies in `crates/ocr-extractor/src/language.rs`.
+  4. Implemented image preprocessing algorithms in `crates/ocr-extractor/src/preprocess.rs` (grayscale, auto-inversion, contrast stretching, Otsu binarization with plateau midpoint centering, adaptive mean thresholding, projection profile deskew detection, nearest-neighbor rotation, dimension bounds scaling, and audit reporting).
+  5. Updated `OcrOptions`, `OcrResult`, `TesseractAdapter`, and `OcrExtractor` to execute preprocessing and record telemetry in CDM metadata.
+  6. Authored 14 integration tests across `preprocessing_test.rs` and `language_selection_test.rs` (reaching 36 crate tests, 2 unit and 34 integration).
+  7. Formatted all Rust code (`cargo fmt --all`) and ensured zero clippy warnings under `-D warnings`.
+  8. Executed full monorepo quality gate (`scripts/check-all.ps1`) verifying all 5 gates pass (0 failures).
+  9. Updated project tracking ledgers (`PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `IMPLEMENTATION_LEDGER.md`, `ROADMAP.md`, `docs/ROADMAP.md`).
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-ocr-extractor` (36 tests passing: 2 unit, 34 integration)
+  - `cargo clippy --workspace --all-targets -- -D warnings` (Clean, zero warnings)
+  - `cargo fmt --all -- --check` (Clean, zero diffs)
+  - `cargo deny check` (Advisories ok, bans ok, licenses ok, sources ok)
+  - `powershell scripts/check-all.ps1` (All 5 monorepo gates passed with 0 failures)
+- **Acceptance Criteria:**
+  - Pure, memory-safe image preprocessing routines execute without panics or leaks.
+  - Dark mode auto-inversion correctly detects white-on-black text and inverts to dark-on-light.
+  - Otsu thresholding accurately identifies bimodal distributions and centers on wide variance plateaus.
+  - Contrast enhancement stretches dynamic range between 1st and 99th percentiles.
+  - Deskew projection profile detects orientation angles and rotates to horizontal alignment.
+  - Language selection canonicalizes ISO 639 codes and resolves combinations according to fallback policies.
+  - Audit telemetry attaches to `OcrResult` and persists into CDM document metadata.
+  - All 36 crate tests and workspace tests pass cleanly.
+  - Monorepo quality gates pass 100% (5/5).
+- **Status:** `ACCEPTED`
+

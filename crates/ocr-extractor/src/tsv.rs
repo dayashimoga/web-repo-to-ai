@@ -66,6 +66,7 @@ pub fn parse_tesseract_tsv(
             total_words: 0,
             execution_duration_ms,
             engine_info,
+            preprocessing_report: None,
         });
     }
 
@@ -277,6 +278,7 @@ pub fn parse_tesseract_tsv(
         total_words,
         execution_duration_ms,
         engine_info,
+        preprocessing_report: None,
     })
 }
 

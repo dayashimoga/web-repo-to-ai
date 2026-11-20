@@ -3,7 +3,9 @@
 //! Strongly-typed representations of bounding boxes, extracted words,
 //! lines, paragraphs, blocks, pages, and execution options.
 
+use crate::language::LanguageFallbackPolicy;
 use crate::limits::OcrLimits;
+use crate::preprocess::{PreprocessingOptions, PreprocessingReport};
 use serde::{Deserialize, Serialize};
 
 /// 2D bounding box representing positional coordinates on an image.
@@ -143,6 +145,8 @@ pub struct OcrResult {
     pub execution_duration_ms: u64,
     /// Metadata identifying the OCR engine and version used.
     pub engine_info: OcrEngineInfo,
+    /// Audit report of image preprocessing transformations applied, if any.
+    pub preprocessing_report: Option<PreprocessingReport>,
 }
 
 /// Information describing the active OCR engine.
@@ -306,16 +310,20 @@ impl OcrInput {
 }
 
 /// Configuration options passed to OCR engine adapters.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct OcrOptions {
     /// Target language code or combinations (e.g. "eng", "eng+fra").
     pub language: String,
+    /// Language fallback policy if requested language is unavailable.
+    pub language_fallback: LanguageFallbackPolicy,
     /// Page segmentation mode.
     pub psm: PageSegmentationMode,
     /// OCR engine mode.
     pub oem: OcrEngineMode,
     /// Optional path to custom `tessdata` language models directory.
     pub tessdata_dir: Option<String>,
+    /// Image preprocessing pipeline options.
+    pub preprocessing: PreprocessingOptions,
     /// Resource and safety limits.
     pub limits: OcrLimits,
     /// Additional arguments passed to the underlying engine.
@@ -326,9 +334,11 @@ impl Default for OcrOptions {
     fn default() -> Self {
         Self {
             language: "eng".to_string(),
+            language_fallback: LanguageFallbackPolicy::default(),
             psm: PageSegmentationMode::Auto,
             oem: OcrEngineMode::Default,
             tessdata_dir: None,
+            preprocessing: PreprocessingOptions::default(),
             limits: OcrLimits::default(),
             extra_args: Vec::new(),
         }
@@ -340,6 +350,13 @@ impl OcrOptions {
     #[must_use]
     pub fn with_language(mut self, language: impl Into<String>) -> Self {
         self.language = language.into();
+        self
+    }
+
+    /// Sets the language fallback policy.
+    #[must_use]
+    pub const fn with_language_fallback(mut self, policy: LanguageFallbackPolicy) -> Self {
+        self.language_fallback = policy;
         self
     }
 
@@ -361,6 +378,13 @@ impl OcrOptions {
     #[must_use]
     pub fn with_tessdata_dir(mut self, dir: impl Into<String>) -> Self {
         self.tessdata_dir = Some(dir.into());
+        self
+    }
+
+    /// Sets image preprocessing options.
+    #[must_use]
+    pub fn with_preprocessing(mut self, preprocessing: PreprocessingOptions) -> Self {
+        self.preprocessing = preprocessing;
         self
     }
 

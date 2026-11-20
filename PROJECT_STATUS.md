@@ -6,9 +6,9 @@
 **Last Completed Stage:** `STAGE 9 — DEVELOPER AND AI AGENT INTEGRATIONS` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Last Completed Phase:** `Phase 10.1 — PDF extraction` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Active Subphase:** `None`  
-**Last Completed Subphase:** `10.2.1 — Isolated Tesseract OCR adapter (crates/ocr-extractor: sandboxed tokio process adapter, TSV stream parser, confidence score normalization, resource & DoS limits, CDM DocumentOcr mapping)` (`ACCEPTED`)  
+**Last Completed Subphase:** `10.2.2 — Image preprocessing & language selection (crates/ocr-extractor: pure grayscale, Otsu/adaptive binarization, deskew detection, contrast stretching, dimension scaling, ISO 639-2/639-3 language normalization & fallback policy, audit telemetry, CDM mapping)` (`ACCEPTED`)  
 **Next Upcoming Phase:** `Phase 10.2 — Image OCR` (`IN_PROGRESS`)  
-**Next Upcoming Subphase:** `10.2.2 — Image preprocessing & language selection`
+**Next Upcoming Subphase:** `10.2.3 — Confidence scoring & provenance attribution`
 
 ---
 
@@ -135,6 +135,11 @@ In Stage 10 ("Advanced Documents and Content"):
     - Domain Models (`crates/ocr-extractor/src/models.rs`): Implemented `BoundingBox`, `OcrWord`, `OcrLine`, `OcrParagraph`, `OcrBlock`, `OcrPage`, `OcrResult`, `OcrEngineInfo`, `OcrInput`, `OcrOptions`, `PageSegmentationMode` (PSM 0–13), and `OcrEngineMode` (OEM 0–3).
     - CDM Conversion (`crates/ocr-extractor/src/extractor.rs`): Implemented `OcrExtractor` mapping `OcrResult` to `CdmDocument` (`SourceType::DocumentOcr`, `SectionKind::Prose`, line ranges, confidence metadata attributes, hierarchy tree, and `CompletenessReport`).
     - Quality & Verification: Authored 15 tests across unit tests and integration tests in `crates/ocr-extractor/tests/`: TSV parser (`tsv_parser_test.rs`), Tesseract adapter (`tesseract_adapter_test.rs`), CDM converter and exporter roundtrip (`ocr_extractor_test.rs`), and timeout/resource limits (`timeout_limits_test.rs`). Verified with 15 crate tests, 715+ workspace tests, zero clippy warnings, zero fmt diffs, cargo deny clean, and 100% passing quality gates (5/5).
+  - Subphase `10.2.2` delivered pure, memory-safe image preprocessing algorithms and multi-language selection handling in `crates/ocr-extractor` (`web-repo-to-ai-ocr-extractor`):
+    - Image Preprocessing Engine (`crates/ocr-extractor/src/preprocess.rs`): Implemented `preprocess_image` orchestrating pure luminance-weighted grayscale conversion ($Y = 0.299R + 0.587G + 0.114B$), dark-mode auto-inversion (analyzing mean luminance; inverting when $< 115$ so white-on-black becomes black-on-white), percentile contrast stretching (1st to 99th percentiles mapped to $[0, 255]$), binarization (`BinarizationMethod::Otsu` with midpoint plateau centering, `Fixed(u8)`, `AdaptiveMean`), projection profile variance deskew detection (angles in $[-15.0^\circ, +15.0^\circ]$ at $0.5^\circ$ step size), nearest-neighbor bounds-preserving rotation (`rotate_gray_image`), dimension bounds scaling (`min_dimension` / `max_dimension`), and `PreprocessingReport` audit telemetry.
+    - Multi-Language Selection & Normalization (`crates/ocr-extractor/src/language.rs`): Implemented ISO 639-2/639-3 mapping (`normalize_language_code`) normalizing 2-letter codes to canonical 3-letter Tesseract identifiers, multi-language combination parser (`parse_language_string`) and canonicalizer (`canonicalize_languages`), fallback policies (`StrictError`, `FallbackToDefault`, `FilterUnavailable`), and script characteristics helpers (`is_cjk`, `is_rtl`).
+    - Adapter & Extractor Pipeline Integration (`src/tesseract.rs`, `src/extractor.rs`): Validated languages against engine support prior to execution, applied preprocessing when enabled with PNG temporary bytes passed to Tesseract, attached `PreprocessingReport` to `OcrResult`, and injected preprocessing audit attributes (`ocr_preprocessed`, `ocr_deskew_angle`, `ocr_inverted`, `ocr_binarized`, `ocr_contrast_enhanced`, `ocr_prep_duration_ms`) into CDM document metadata.
+    - Quality & Verification: Authored 14 integration tests across `crates/ocr-extractor/tests/preprocessing_test.rs` (9 tests) and `language_selection_test.rs` (5 tests). Verified with 36 crate tests, 730+ workspace tests, zero clippy warnings, zero fmt diffs, cargo deny clean, and 100% passing quality gates (5/5).
 
 ---
 
@@ -142,12 +147,12 @@ In Stage 10 ("Advanced Documents and Content"):
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 165 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` |
+| `ACCEPTED` | 166 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1`, `10.2.2` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 31 | `10.2.2` – `11.4.5` |
+| `NOT_STARTED` | 30 | `10.2.3` – `11.4.5` |
 | **Total** | **196** | `Stage 0` – `Stage 11` |
 
 ---

@@ -6,6 +6,47 @@
 
 ## [Unreleased] — Stage 10: Advanced Documents and Content
 
+### 2026-11-20 — Phase 10.2: Image OCR (`10.2.2`)
+
+#### Added
+- **`[10.2.2]` Image preprocessing & language selection in `crates/ocr-extractor`:**
+  - Pure Image Preprocessing Engine (`crates/ocr-extractor/src/preprocess.rs`):
+    - Added minimal `image = { version = "0.25.6", default-features = false, features = ["png", "jpeg", "bmp"] }` dependency verified clean through `cargo deny check`.
+    - Implemented `preprocess_image` orchestrating grayscale conversion, dark mode auto-inversion, contrast stretching, binarization, deskew rotation, dimension bounds scaling, and audit reporting.
+    - Grayscale conversion: Standard luminance weighting ($Y = 0.299R + 0.587G + 0.114B$).
+    - Dark mode auto-inversion: Analyzes mean image luminance; when mean $< 115$ (white text on dark background), inverts pixels to black text on white background to improve Tesseract recognition accuracy.
+    - Contrast enhancement (`enhance_contrast`): Computes 1st and 99th percentile luminance levels and linearly stretches intensities across the full $[0, 255]$ dynamic range.
+    - Binarization engine (`BinarizationMethod`):
+      - `Otsu`: Optimal variance-maximizing global thresholding. Includes midpoint calculation across variance plateaus to center thresholds on bimodal distributions with wide separations.
+      - `Fixed(u8)`: Deterministic luminance cutoff thresholding.
+      - `AdaptiveMean { window_size, c }`: Local window thresholding for non-uniform lighting conditions.
+    - Projection profile deskew detection (`detect_skew_angle`): Evaluates angles in $[-15.0^\circ, +15.0^\circ]$ at $0.5^\circ$ step size, computing horizontal projection profile variance to detect orientation tilt.
+    - Rotation: Bounds-preserving nearest-neighbor rotation (`rotate_gray_image`) expanding canvas to prevent clipping.
+    - Dimension bounds scaling: Enforces `min_dimension` (preserving aspect ratio) and `max_dimension` guards.
+    - Telemetry & Audit: Generated `PreprocessingReport` detailing operations performed, dimensions before/after, deskew angle, and preprocessing latency.
+  - Multi-Language Selection & Normalization (`crates/ocr-extractor/src/language.rs`):
+    - ISO 639-2/639-3 mapping (`normalize_language_code`) mapping 2-letter codes (`en`, `de`, `fr`, `es`, `zh`, `ja`, `ar`, `ru`, `hi`, etc.) to canonical 3-letter Tesseract identifiers (`eng`, `deu`, `fra`, `spa`, `chi_sim`, `jpn`, `ara`, `rus`, `hin`, etc.).
+    - Multi-language combination parser (`parse_language_string`) and canonicalizer (`canonicalize_languages`) handling `+`, `,`, `;`, and whitespace delimiters.
+    - Fallback and validation engine (`resolve_languages`, `LanguageFallbackPolicy`):
+      - `StrictError`: Rejects requests containing unsupported languages with structured `OcrError::UnsupportedLanguage`.
+      - `FallbackToDefault`: Falls back to default language (`eng`) when any requested language is missing.
+      - `FilterUnavailable`: Retains only available languages, falling back to default if all are missing.
+    - Script characteristics helpers: `is_cjk` and `is_rtl` for downstream tokenization and layout adjustment.
+  - Adapter & Extractor Pipeline Integration (`src/tesseract.rs`, `src/extractor.rs`):
+    - Resolved requested languages against adapter's supported languages before subprocess execution.
+    - Executed memory-safe preprocessing pipeline when enabled, writing preprocessed PNG bytes to tempfile and attaching the execution report to `OcrResult`.
+    - Injected preprocessing audit telemetry (`ocr_preprocessed`, `ocr_deskew_angle`, `ocr_inverted`, `ocr_binarized`, `ocr_contrast_enhanced`, `ocr_prep_duration_ms`) directly into CDM document metadata attributes.
+  - Comprehensive Integration Test Suites (`crates/ocr-extractor/tests/`):
+    - `preprocessing_test.rs`: 9 integration tests covering grayscale conversion, dark mode inversion, Otsu binarization, adaptive thresholding, contrast stretching, deskew detection and rotation, dimension bounds scaling, full pipeline execution, and default pass-through options.
+    - `language_selection_test.rs`: 5 integration tests covering ISO 639 normalization, multi-language combination canonicalization, language resolution policies, script direction helpers, and OCR extractor integration.
+  - Quality verification:
+    - 36 crate tests passing cleanly (2 unit, 34 integration).
+    - 730+ workspace tests passing across all crates and services.
+    - `cargo clippy --workspace --all-targets -- -D warnings` clean with zero warnings.
+    - `cargo fmt --all -- --check` clean with zero formatting diffs.
+    - `cargo deny check` clean (advisories ok, bans ok, licenses ok, sources ok).
+    - Monorepo quality gate (`scripts/check-all.ps1`) 100% passing across all 5 gates.
+
 ### 2026-11-20 — Phase 10.2: Image OCR (`10.2.1`)
 
 #### Added
