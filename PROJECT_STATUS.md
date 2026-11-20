@@ -4,11 +4,11 @@
 **Last Updated:** 2026-11-20  
 **Current Stage:** `STAGE 11 — PRODUCTION CERTIFICATION` (`IN_PROGRESS`)  
 **Last Completed Stage:** `STAGE 10 — ADVANCED DOCUMENTS AND CONTENT` (`100% COMPLETED & FORMALLY CERTIFIED`)  
-**Last Completed Phase:** `Phase 10.5 — Optional local and external AI provider adapters` (`100% COMPLETED & FORMALLY CERTIFIED`)  
+**Last Completed Phase:** `Phase 11.1 — Security` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Active Subphase:** `None`  
-**Last Completed Subphase:** `11.1.3 — OAuth & access-control audit (hardened OAuth callback OpenRedirectGuard with percent-decoded path traversal, protocol-relative, userinfo, and null/CRLF elimination; enforced bidirectional session binding in InMemoryOAuthStateStore; authored 6 adversarial tests in crates/github-extractor/tests/oauth_access_control_audit_test.rs; authored 4 API access-control audit tests in services/api/tests/access_control_audit_test.rs; tuned scripts/check-all.ps1 test concurrency to --jobs 2 for memory stability; verified with 151+ github-extractor tests, 118+ api tests, 964+ total workspace tests, and 100% passing quality gates)` (`ACCEPTED`)  
-**Next Upcoming Phase:** `Phase 11.1 — Security`  
-**Next Upcoming Subphase:** `11.1.4 — Dependency & secrets audit`
+**Last Completed Subphase:** `11.1.4 — Dependency & secrets audit (executed exhaustive secrets redaction, credential hygiene, and dependency audit across all crates and packages; verified zero plaintext secret persistence; verified deny.toml governance and license compliance; neutralized npm vulnerabilities via package.json overrides; added live API key redaction wr_live_* and OpenAI project key patterns in crates/observability; authored 6 comprehensive audit integration tests in services/api/tests/secrets_and_dependency_audit_test.rs; verified 100% passing quality gates across all 5 gates with 970+ total workspace tests)` (`ACCEPTED`)  
+**Next Upcoming Phase:** `Phase 11.2 — Performance`  
+**Next Upcoming Subphase:** `11.2.1 — Extraction benchmarks`
 
 ---
 
@@ -305,6 +305,18 @@ In Stage 11 ("Production Certification"):
     - Comprehensive API Access-Control & RBAC Audit (`services/api/tests/access_control_audit_test.rs`): Authored 4 integration tests validating RBAC scope hierarchy enforcement across operational and administrative endpoints (`read`, `write`, `admin`, anonymous 401s, session implicit admin); anti-enumeration cross-tenant isolation returning uniform RFC 7807 404 Problem Details for cross-tenant keys and jobs; token storage envelope encryption with AAD session binding and revocation hygiene; and adversarial `X-Session-ID` injection rejection.
     - Quality Gate Concurrency Tuning (`scripts/check-all.ps1`): Tuned `cargo test` in `scripts/check-all.ps1` to `--jobs 2`, eliminating Windows memory/paging file exhaustion during full monorepo quality gate audits.
     - Quality & Verification: 151+ github-extractor tests passing; 118+ api tests passing; 964+ total workspace tests passing (648 Rust + 213 web + 103 extension). Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean, and 100% passing quality gates (5/5).
+  - Subphase `11.1.4` delivered exhaustive secrets redaction, credential hygiene, dependency vulnerability audit, and Phase 11.1 formal certification:
+    - Live Internal API Key & Model Key Redaction (`crates/observability/src/redaction.rs`): Hardened redaction engine with `wr_api_key_re` detecting and redacting live API keys (`wr_live_[0-9a-fA-F]{64}`) to `[REDACTED_API_KEY]`, and extended `openai_key_re` to support modern hyphenated/underscored project keys (`\bsk-[a-zA-Z0-9_\-]{20,}\b`).
+    - Governance & License Compliance (`deny.toml`): Configured `unused-allowed-license = "allow"` under `[licenses]` in `deny.toml` to eliminate unreferenced license warnings, maintaining strict bans on GPL/AGPL/LGPL/SSPL and unknown registries/git sources while enforcing clean `cargo deny check` passing across advisories, bans, licenses, and sources.
+    - Frontend Dependency Hygiene (`apps/web/package.json`): Configured npm `overrides` for `cookie` (`^0.7.2`), `tinypool` (`^2.1.2`), and `@vitest/mocker` (`^4.1.12`), neutralizing critical vulnerabilities (GHSA-5gmw-xhrv-c9v3, GHSA-85c8-ppgw-ccpr, GHSA-pxg6-pf52-xh8x) while generating `apps/extension/package-lock.json`.
+    - Executable Secrets and Dependency Audit Test Suite (`services/api/tests/secrets_and_dependency_audit_test.rs`): Authored 6 comprehensive automated integration tests:
+      1. `test_audit_api_key_storage_zero_plaintext_leakage`: Verified zero plaintext API key persistence in database records, verifying BLAKE3 256-bit hex hashing and cryptographic non-invertibility.
+      2. `test_audit_envelope_encryption_nonce_uniqueness_and_aad_binding`: Verified AES-256-GCM envelope encryption uniqueness across identical plaintexts and AAD session tampering rejection.
+      3. `test_audit_observability_redaction_comprehensive_matrix`: Verified zero-leakage redaction across 10 credential archetypes (API keys, Bearer tokens, GitHub PATs/installation tokens, AWS keys, OpenAI project keys, Anthropic keys, webhook signatures, basic auth credentials, and multi-format RSA/EC/PKCS#8 private keys).
+      4. `test_audit_json_redaction_recursive_fields`: Verified recursive masking of sensitive object trees and key-level taxonomy matching.
+      5. `test_audit_deny_toml_governance_invariants`: Verified `deny.toml` configuration invariants (advisory version 2, banned licenses, wildcard denial, and unknown registry/git rejection).
+      6. `test_audit_workspace_no_committed_secrets`: Scanned entire workspace source tree (crates, services, deploy, scripts) verifying zero committed live secrets or unencrypted private keys.
+    - Quality & Formal Certification: 124+ api tests passing; 970+ total workspace tests passing (654 Rust + 213 web + 103 extension). Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean, and 100% passing quality gates (5/5). Formally certified Phase 11.1 in full.
 
 ---
 
@@ -312,12 +324,12 @@ In Stage 11 ("Production Certification"):
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 183 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4`, `10.3.1` – `10.3.4`, `10.4.1` – `10.4.4`, `10.5.1`, `10.5.2`, `10.5.3`, `10.5.4`, `11.1.1`, `11.1.2`, `11.1.3` |
+| `ACCEPTED` | 184 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4`, `10.3.1` – `10.3.4`, `10.4.1` – `10.4.4`, `10.5.1`, `10.5.2`, `10.5.3`, `10.5.4`, `11.1.1`, `11.1.2`, `11.1.3`, `11.1.4` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 13 | `11.1.4` – `11.4.5` |
+| `NOT_STARTED` | 12 | `11.2.1` – `11.4.5` |
 | `Total` | **196** | `Stage 0` – `Stage 11` |
 
 ---

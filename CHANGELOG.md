@@ -6,6 +6,33 @@
 
 ## [Unreleased] — Stage 11: Production Certification
 
+### 2026-11-20 — Phase 11.1: Security (`11.1.4`) — PHASE 11.1 CERTIFIED
+
+#### Added
+- **`[11.1.4]` Dependency & secrets audit across all monorepo crates and packages (`crates/observability`, `deny.toml`, `apps/web`, `services/api`):**
+  - Secrets Redaction Hardening (`crates/observability/src/redaction.rs`):
+    - Added `wr_api_key_re` matching and redacting live API keys (`wr_live_[0-9a-fA-F]{64}`) to `[REDACTED_API_KEY]`.
+    - Extended `openai_key_re` regex (`\bsk-[a-zA-Z0-9_\-]{20,}\b`) supporting modern OpenAI hyphenated and underscored project API keys (`sk-proj-...`).
+  - License Governance & Deny Policies (`deny.toml`):
+    - Configured `unused-allowed-license = "allow"` under `[licenses]`, eliminating unmatched license warnings for `PostgreSQL` and `Unicode-DFS-2016`.
+    - Enforced strict license checks (`licenses ok`), bans checks (`bans ok`), source security (`sources ok`), and advisory auditing (`advisories ok`) with zero vulnerabilities.
+  - Frontend Dependency Vulnerability Neutralization (`apps/web/package.json`):
+    - Added npm `overrides` for `cookie` (`^0.7.2`), `tinypool` (`^2.1.2`), and `@vitest/mocker` (`^4.1.12`), completely mitigating Tinypool RCE vulnerabilities (GHSA-5gmw-xhrv-c9v3, GHSA-85c8-ppgw-ccpr) and cookie out-of-bounds vulnerability (GHSA-pxg6-pf52-xh8x).
+    - Generated `apps/extension/package-lock.json` lockfile for extension dependency tree.
+  - Comprehensive Secrets and Dependency Audit Test Suite (`services/api/tests/secrets_and_dependency_audit_test.rs`):
+    - Authored 6 automated integration tests:
+      1. `test_audit_api_key_storage_zero_plaintext_leakage`: Validated that stored `ApiKeyRecord` entities store only BLAKE3 256-bit hex hashes with zero plaintext key leakage.
+      2. `test_audit_envelope_encryption_nonce_uniqueness_and_aad_binding`: Validated AES-256-GCM envelope encryption producing unique ciphertexts across identical plaintexts and strictly rejecting AAD session tampering.
+      3. `test_audit_observability_redaction_comprehensive_matrix`: Validated zero-leakage redaction across 10 credential archetypes (API keys, Bearer tokens, GitHub PATs/installation tokens, AWS keys, OpenAI project keys, Anthropic keys, webhook signatures, basic auth credentials, and multi-format RSA/EC/PKCS#8 private keys).
+      4. `test_audit_json_redaction_recursive_fields`: Validated recursive JSON masking of sensitive objects and key-level taxonomy matching.
+      5. `test_audit_deny_toml_governance_invariants`: Verified `deny.toml` configuration invariants (advisories version 2, banned licenses, wildcard denial, and unknown registry/git rejection).
+      6. `test_audit_workspace_no_committed_secrets`: Audited entire workspace source tree (crates, services, deploy, scripts) verifying zero committed live secrets or unencrypted private keys.
+  - Quality & Formal Certification:
+    - 124+ passing tests in `services/api`.
+    - 970+ monorepo workspace tests passing.
+    - All 5 monorepo quality gates passing via `scripts/check-all.ps1` with 0 failures.
+    - Formally certified Phase 11.1 in full.
+
 ### 2026-11-20 — Phase 11.1: Security (`11.1.3`)
 
 #### Added

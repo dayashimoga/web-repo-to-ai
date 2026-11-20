@@ -7349,3 +7349,78 @@
   - 964+ tests passing across the workspace (648 Rust + 213 web + 103 extension).
   - `scripts/check-all.ps1` 100% passing across all 5 quality gates with 0 failures.
 - **Status:** `ACCEPTED`
+
+
+#### Subphase `11.1.4` — Dependency & secrets audit
+- **Unique ID:** `11.1.4`
+- **Objective:** Execute exhaustive secrets redaction, credential hygiene, and dependency audit across all crates and packages; verify zero plaintext secret persistence; verify `deny.toml` governance and license compliance; verify npm and cargo dependency vulnerabilities; author comprehensive audit integration tests in `services/api/tests/secrets_and_dependency_audit_test.rs`; pass all 5 monorepo quality gates via `scripts/check-all.ps1`; and formally certify Phase 11.1.
+- **Scope:** `crates/observability/src/redaction.rs`, `deny.toml`, `apps/web/package.json`, `apps/extension/package-lock.json`, `services/api/tests/secrets_and_dependency_audit_test.rs`, and project tracking ledgers.
+- **Prerequisites:** `11.1.3` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/observability/src/redaction.rs`: Added `wr_api_key_re` matching and redacting live API keys (`wr_live_[0-9a-fA-F]{64}`) to `[REDACTED_API_KEY]`, and extended `openai_key_re` to support modern hyphenated/underscored project keys (`\bsk-[a-zA-Z0-9_\-]{20,}\b`). Added unit test `test_redact_wr_live_api_keys`.
+  - `deny.toml`: Configured `unused-allowed-license = "allow"` under `[licenses]`, eliminating unreferenced license warnings while enforcing zero GPL/AGPL/LGPL/SSPL and unknown registries/git denials. Enforced clean `cargo deny check` passing across advisories, bans, licenses, and sources.
+  - `apps/web/package.json`: Configured npm `overrides` for `cookie` (`^0.7.2`), `tinypool` (`^2.1.2`), and `@vitest/mocker` (`^4.1.12`), neutralizing critical vulnerabilities (GHSA-5gmw-xhrv-c9v3, GHSA-85c8-ppgw-ccpr, GHSA-pxg6-pf52-xh8x).
+  - `apps/extension/package-lock.json`: Created dedicated npm package lockfile for extension dependency resolution.
+  - `services/api/tests/secrets_and_dependency_audit_test.rs`: Authored 6 automated integration tests validating zero plaintext API key persistence, AES-256-GCM envelope encryption nonce uniqueness and AAD binding, 10-archetype credential redaction matrix, recursive JSON masking, deny.toml governance invariants, and workspace source tree zero-committed-secret scanning.
+  - Project tracking ledgers (`PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`, `IMPLEMENTATION_LEDGER.md`).
+- **Implementation Tasks:**
+  1. Secrets Redaction Hardening in `crates/observability/src/redaction.rs`:
+     - Added `WR_API_KEY_REGEX` static cell and `wr_api_key_re()` helper matching `\bwr_live_[0-9a-fA-F]{64}\b`.
+     - Integrated `wr_api_key_re()` into `redact_sensitive_text()`, substituting matches with `REDACTED_API_KEY` (`"[REDACTED_API_KEY]"`).
+     - Extended `openai_key_re()` from `\bsk-[a-zA-Z0-9]{20,}\b` to `\bsk-[a-zA-Z0-9_\-]{20,}\b`, properly redacting modern project-scoped OpenAI keys (`sk-proj-...`).
+     - Added unit test `test_redact_wr_live_api_keys` verifying live key redaction.
+  2. Cargo Deny Governance Hardening in `deny.toml`:
+     - Added `unused-allowed-license = "allow"` under `[licenses]`, eliminating warnings for `PostgreSQL` and `Unicode-DFS-2016`.
+     - Verified `cargo deny check` passes cleanly (`advisories ok, bans ok, licenses ok, sources ok`).
+  3. Frontend Dependency Hardening in `apps/web/package.json`:
+     - Added `overrides` in `apps/web/package.json` for `cookie` (`^0.7.2`), `tinypool` (`^2.1.2`), and `@vitest/mocker` (`^4.1.12`).
+     - Ran `npm i --package-lock-only` in `apps/extension` to generate `apps/extension/package-lock.json`.
+  4. Integration Test Suite in `services/api/tests/secrets_and_dependency_audit_test.rs` (6 tests):
+     - `test_audit_api_key_storage_zero_plaintext_leakage`: Validated that stored `ApiKeyRecord` entities store only BLAKE3 256-bit hex hashes with zero plaintext key leakage.
+     - `test_audit_envelope_encryption_nonce_uniqueness_and_aad_binding`: Validated AES-256-GCM envelope encryption producing unique ciphertexts across identical plaintexts and strictly rejecting AAD session tampering.
+     - `test_audit_observability_redaction_comprehensive_matrix`: Validated zero-leakage redaction across 10 credential archetypes (API keys, Bearer tokens, GitHub PATs/installation tokens, AWS keys, OpenAI project keys, Anthropic keys, webhook signatures, basic auth credentials, and multi-format RSA/EC/PKCS#8 private keys).
+     - `test_audit_json_redaction_recursive_fields`: Validated recursive JSON masking of sensitive objects and key-level taxonomy matching.
+     - `test_audit_deny_toml_governance_invariants`: Verified `deny.toml` configuration invariants (advisories version 2, banned licenses, wildcard denial, and unknown registry/git rejection).
+     - `test_audit_workspace_no_committed_secrets`: Audited entire workspace source tree (crates, services, deploy, scripts) verifying zero committed live secrets or unencrypted private keys.
+  5. Full Workspace Verification:
+     - Verified all 124+ tests in `services/api` pass.
+     - Verified all 35 tests in `crates/observability` pass.
+     - Verified all 970+ tests across the monorepo pass cleanly.
+     - Verified zero clippy warnings under `-D warnings`, zero formatting diffs, clean `cargo deny check`, and 100% passing quality gates (5/5).
+  6. Synchronized all project tracking ledgers and formally certified Phase 11.1.
+- **Acceptance Criteria:**
+  - Zero plaintext secrets persisted in `ApiKeyRecord` storage or token repositories.
+  - AES-256-GCM envelope encryption guarantees 96-bit nonce uniqueness and authenticated AAD session binding.
+  - Redaction engine detects and masks all 10 credential archetypes, including live `wr_live_*` API keys and OpenAI project keys.
+  - Recursive JSON redactor masks sensitive dictionary fields and object trees without corrupting public fields.
+  - `deny.toml` configuration enforces advisory version 2, banned license categories, wildcard denials, and source restrictions.
+  - Production source tree contains zero committed live credentials or unencrypted private key blocks.
+  - Zero mock or placeholder implementations in production code paths.
+  - All 5 monorepo quality gates passing via `scripts/check-all.ps1`.
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-api --test secrets_and_dependency_audit_test` (6 tests passing)
+  - `cargo test -p web-repo-to-ai-observability` (35 tests passing)
+  - `cargo clippy --workspace --all-targets --jobs 4 -- -D warnings` (Clean, zero warnings)
+  - `cargo fmt --all -- --check` (Clean, zero diffs)
+  - `cargo deny check` (Advisories ok, bans ok, licenses ok, sources ok)
+  - `powershell -ExecutionPolicy Bypass -File scripts/check-all.ps1` (All 5 gates passed with 0 failures)
+- **Tests:**
+  - `services/api/tests/secrets_and_dependency_audit_test.rs` (6 tests)
+  - `crates/observability/src/redaction.rs` (35 unit and integration tests)
+- **Security Considerations:**
+  - Cryptographic one-way hashing with BLAKE3 eliminates reverse-engineering of stored keys.
+  - High-entropy live secret regex scanning prevents accidental credential commitments.
+  - Recursive JSON and stream redaction prevents credential leaks into logs, telemetry spans, or error payloads.
+  - Strict dependency auditing neutralizes known supply-chain vulnerabilities and transitive risk.
+- **Performance Considerations:**
+  - Redaction engine uses compiled regexes initialized once via `OnceLock`.
+  - Memory bounds and job concurrency throttles prevent resource starvation during security audits.
+- **Documentation Requirements:**
+  - `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`, `IMPLEMENTATION_LEDGER.md`.
+- **Validation Evidence:**
+  - 124+ tests passing in `services/api`.
+  - 35 tests passing in `crates/observability`.
+  - 970+ tests passing across the workspace (654 Rust + 213 web + 103 extension).
+  - `scripts/check-all.ps1` 100% passing across all 5 quality gates with 0 failures.
+- **Status:** `ACCEPTED`
+

@@ -42,3 +42,7 @@ url = { workspace = true }
 chrono = { workspace = true }
 uuid = { workspace = true, features = ["v4", "serde"] }
 blake3 = { workspace = true }
+
+[dev-dependencies]
+regex = { workspace = true }
+

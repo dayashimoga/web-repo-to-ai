@@ -24,6 +24,7 @@ static WEBHOOK_SIGNATURE_REGEX: OnceLock<Regex> = OnceLock::new();
 static OPENAI_KEY_REGEX: OnceLock<Regex> = OnceLock::new();
 static ANTHROPIC_KEY_REGEX: OnceLock<Regex> = OnceLock::new();
 static AWS_KEY_REGEX: OnceLock<Regex> = OnceLock::new();
+static WR_API_KEY_REGEX: OnceLock<Regex> = OnceLock::new();
 static PRIVATE_KEY_REGEX: OnceLock<Regex> = OnceLock::new();
 
 fn github_token_re() -> &'static Regex {
@@ -69,7 +70,7 @@ fn webhook_signature_re() -> &'static Regex {
 }
 
 fn openai_key_re() -> &'static Regex {
-    OPENAI_KEY_REGEX.get_or_init(|| Regex::new(r"\bsk-[a-zA-Z0-9]{20,}\b").expect("Valid regex"))
+    OPENAI_KEY_REGEX.get_or_init(|| Regex::new(r"\bsk-[a-zA-Z0-9_\-]{20,}\b").expect("Valid regex"))
 }
 
 fn anthropic_key_re() -> &'static Regex {
@@ -80,6 +81,11 @@ fn anthropic_key_re() -> &'static Regex {
 fn aws_key_re() -> &'static Regex {
     AWS_KEY_REGEX
         .get_or_init(|| Regex::new(r"\b(AKIA|ABIA|ACCA|ASIA)[0-9A-Z]{16}\b").expect("Valid regex"))
+}
+
+fn wr_api_key_re() -> &'static Regex {
+    WR_API_KEY_REGEX
+        .get_or_init(|| Regex::new(r"\bwr_live_[0-9a-fA-F]{64}\b").expect("Valid regex"))
 }
 
 fn private_key_re() -> &'static Regex {
@@ -119,8 +125,9 @@ pub fn redact_sensitive_text(text: &str) -> String {
     let step8 = openai_key_re().replace_all(&step7, REDACTED_API_KEY);
     let step9 = anthropic_key_re().replace_all(&step8, REDACTED_API_KEY);
     let step10 = aws_key_re().replace_all(&step9, REDACTED_AWS_KEY);
-    let step11 = private_key_re().replace_all(&step10, REDACTED_PRIVATE_KEY);
-    step11.into_owned()
+    let step11 = wr_api_key_re().replace_all(&step10, REDACTED_API_KEY);
+    let step12 = private_key_re().replace_all(&step11, REDACTED_PRIVATE_KEY);
+    step12.into_owned()
 }
 
 /// Checks if a field name corresponds to a sensitive credential or secret.
@@ -521,5 +528,17 @@ mod tests {
         let written_str = String::from_utf8(output).unwrap();
         assert!(!written_str.contains("ghs_123456789012345678901234567890123456"));
         assert!(written_str.contains(REDACTED_GITHUB_TOKEN));
+    }
+
+    #[test]
+    fn test_redact_wr_live_api_keys() {
+        let text = "Generated live API key wr_live_0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef in session";
+        let redacted = redact_sensitive_text(text);
+        assert!(!redacted
+            .contains("wr_live_0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"));
+        assert_eq!(
+            redacted,
+            format!("Generated live API key {REDACTED_API_KEY} in session")
+        );
     }
 }
