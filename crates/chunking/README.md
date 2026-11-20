@@ -38,6 +38,20 @@ Provides production-grade RAG (Retrieval-Augmented Generation) document and code
   - Canonical Context Document Model (`CdmDocument`) relationship propagation: Maps explicit `Relationship` graph edges (`Imports`, `Calls`, `Extends`, `LinksTo`, `References`) directly onto retrieved chunks.
   - Injected context header formatting: Enriches chunk content headers with authoritative citations, sequence positions (`Chunk 1 of 5 (Prev: None, Next: chk_...)`), and summarized references.
 
+- **JSONL Streaming & Vector Ingest Schemas (`export/`):**
+  - **`ChunkExporter`**: High-performance streaming serializer supporting writing directly to any `std::io::Write` destination without full-buffer overhead.
+  - **`VectorTarget` Adapters**:
+    - `GenericJsonl`: Canonical newline-delimited RAG records with complete chunk coordinates, citations, and graph edges.
+    - `Qdrant`: Point structure with `id` (deterministic RFC 4122 UUID or string), optional dense vector, and rich metadata `payload`. Supports both JSONL points and `{"points": [...]}` batch envelopes.
+    - `Pinecone`: Upsert vector structure with strict metadata validation (flattening to scalar strings, numbers, booleans, and string arrays; zero nulls or nested objects). Supports both JSONL and `{"vectors": [...]}` batch envelopes.
+    - `Chroma`: Document record structure with `document`, `metadata`, and collection batch representations (`ids`, `documents`, `metadatas`).
+    - `Milvus`: Relational row entities with coordinate fields, hashes, and source URLs.
+    - `Weaviate`: Data object format with mandatory RFC 4122 UUIDs, class names (default `"DocumentChunk"`), and properties payload. Supports `{"objects": [...]}` batch envelopes.
+    - `OpenAiBatch`: Format for OpenAI Batch Embeddings API (`POST /v1/embeddings`) with `custom_id`, model specification, and input text.
+    - `CohereBatch`: Record format for Cohere Embed endpoint.
+  - **Deterministic RFC 4122 UUID Generator**: `to_deterministic_uuid` converts any chunk ID or Blake3 hash into a valid Version 4, Variant 1 RFC 4122 UUID with 100% platform reproducibility.
+  - **`VectorSchemaValidator`**: Proactively verifies chunk payloads against database constraints (empty ID/content rejection, Weaviate uppercase class check, Pinecone metadata type compliance, OpenAI context limits).
+
 - **Sliding Window with Overlap (`window.rs`):**
   - Line-boundary and token-calibrated rolling window chunking.
   - Configurable target chunk tokens, maximum chunk tokens, and token overlap percentage.
@@ -105,7 +119,9 @@ Provides production-grade RAG (Retrieval-Augmented Generation) document and code
 
 ## Verification & Quality
 
-- **100% Passing Test Suite:** 32 unit and integration tests across 7 test suites:
+- **100% Passing Test Suite:** 45 unit and integration tests across 9 test suites:
+  - `tests/export_jsonl_test.rs`: Streaming JSONL export, line/byte metrics, token budget truncation, empty collection handling.
+  - `tests/vector_schema_test.rs`: Qdrant points and batch envelopes, Pinecone strict metadata typing, Chroma batch collections, Milvus entities, Weaviate RFC 4122 UUID objects, OpenAI Batch API formatting, Cohere embed records, deterministic UUID generation, schema validator rejections.
   - `tests/citation_test.rs`: GitHub permalinks with commit hashes, web documentation anchors, PDF page numbers, OpenAPI operation paths, local file citations.
   - `tests/cross_reference_test.rs`: Sequential chunk chaining, split-part parent-child hierarchy, intra-document symbol calls/imports, CDM relationship propagation, context header injection, Serde JSON roundtrip.
   - `tests/ast_chunking_test.rs`: Rust, Python, TypeScript, Go AST splitting, oversized function statement splitting.

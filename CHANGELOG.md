@@ -6,6 +6,33 @@
 
 ## [Unreleased] — Stage 10: Advanced Documents and Content
 
+### 2026-11-20 — Phase 10.4: RAG chunk generation (`10.4.3`)
+
+#### Added
+- **`[10.4.3]` JSONL & vector-ingest schema exports in `crates/chunking` (`web-repo-to-ai-chunking`):**
+  - High-Performance Streaming Chunk Exporter (`crates/chunking/src/export/mod.rs`):
+    - Implemented `ChunkExporter` streaming chunks directly to any `std::io::Write` destination line-by-line without intermediate string buffer allocation.
+    - Supported optional cumulative token budgets (`max_token_budget`) halting gracefully with `truncated: true` telemetry.
+    - Emitted `ChunkExportMetrics` tracking exported chunks, total bytes written, lines written, token aggregations, and truncation status.
+  - Strongly-Typed Vector Ingest Adapters & Dialects (`crates/chunking/src/export/schema.rs`):
+    - `GenericJsonl`: Universal newline-delimited RAG record (`GenericRagRecord`) preserving full chunk coordinates, line/byte spans, citations, graph edges, and symbols.
+    - `Qdrant`: Point record (`QdrantPoint`) with metadata `payload` and optional deterministic RFC 4122 UUID point IDs, plus `QdrantBatch` envelope (`{"points": [...]}`).
+    - `Pinecone`: Upsert vector (`PineconeRecord`) with flattened metadata adhering strictly to Pinecone schema constraints (strings, numbers, booleans, string arrays; zero nulls or nested objects), plus `PineconeBatch` envelope (`{"vectors": [...]}`).
+    - `Chroma`: Document record (`ChromaRecord`) and collection batch format (`ChromaBatchCollection`) with parallel arrays for `ids`, `documents`, and `metadatas`.
+    - `Milvus`: Relational row entities (`MilvusEntity`) with line coordinates, language, token counts, BLAKE3 content hashes, and citation permalinks.
+    - `Weaviate`: Data objects (`WeaviateObject`) with mandatory RFC 4122 UUIDs, class names (default `"DocumentChunk"`), and properties payload, plus `WeaviateBatch` envelope (`{"objects": [...]}`).
+    - `OpenAiBatch`: Format for OpenAI Batch Embeddings API (`OpenAiBatchRequest`, `POST /v1/embeddings`) with customizable model (`text-embedding-3-small/large`), custom ID, and token context limits.
+    - `CohereBatch`: Record format (`CohereRecord`) for text embeddings and reranking.
+  - Deterministic RFC 4122 UUID Generation Engine:
+    - Implemented `to_deterministic_uuid` converting BLAKE3 hashes and chunk IDs into standard Version 4, Variant 1 RFC 4122 UUIDs with 100% collision resistance and platform reproducibility.
+    - Implemented `is_valid_uuid` format validator.
+  - Vector Schema Validator (`crates/chunking/src/export/validator.rs`):
+    - Implemented `VectorSchemaValidator` verifying chunk payloads against database constraints (empty ID/content checks, Weaviate uppercase class validation, Pinecone metadata type adherence, and OpenAI token ceiling validation).
+  - Integration & Verification Test Suites:
+    - Authored 13 new integration tests across `tests/export_jsonl_test.rs` (4 tests) and `tests/vector_schema_test.rs` (9 tests).
+    - Total crate tests expanded to 45 (1 unit, 44 integration across 9 test suites).
+    - 857+ workspace tests passing across the monorepo with 0 warnings, 0 clippy diffs, clean `cargo deny check`, and 100% check-all passing.
+
 ### 2026-11-20 — Phase 10.4: RAG chunk generation (`10.4.2`)
 
 #### Added

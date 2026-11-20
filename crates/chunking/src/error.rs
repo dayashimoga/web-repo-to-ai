@@ -30,4 +30,20 @@ pub enum ChunkingError {
         /// Description of the error condition.
         message: String,
     },
+
+    /// Export or serialization failure.
+    #[error("chunk export error: {0}")]
+    ExportError(String),
+
+    /// Schema validation failed during export.
+    #[error("vector schema validation error: {0}")]
+    ValidationError(String),
+
+    /// I/O error during streaming export.
+    #[error("I/O error during chunk export: {0}")]
+    IoError(#[from] std::io::Error),
+
+    /// JSON serialization error.
+    #[error("JSON serialization error: {0}")]
+    JsonError(#[from] serde_json::Error),
 }

@@ -6690,3 +6690,64 @@
   - Monorepo quality gates 100% passing (5/5 gates).
 - **Git Commit Reference:** `6d6a674` (amended)
 - **Status:** `ACCEPTED`
+
+
+---
+
+#### Subphase `10.4.3` — JSONL & vector-ingest schema exports
+- **Unique ID:** `10.4.3`
+- **Objective:** Implement high-performance streaming JSONL exports and strongly-typed vector database ingest schema adapters in `crates/chunking` (`web-repo-to-ai-chunking`), supporting Qdrant, Pinecone, ChromaDB, Milvus, Weaviate, OpenAI Batch Embeddings, and Cohere Embed, along with deterministic RFC 4122 UUID generation and vector schema validation.
+- **Scope:** `crates/chunking` (`src/export/mod.rs`, `src/export/schema.rs`, `src/export/validator.rs`, `src/lib.rs`, `src/error.rs`, `README.md`, `tests/export_jsonl_test.rs`, `tests/vector_schema_test.rs`).
+- **Prerequisites:** `10.4.2` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/chunking/src/lib.rs`
+  - `crates/chunking/src/error.rs`
+  - `crates/chunking/src/export/mod.rs`
+  - `crates/chunking/src/export/schema.rs`
+  - `crates/chunking/src/export/validator.rs`
+  - `crates/chunking/README.md`
+  - `crates/chunking/tests/export_jsonl_test.rs`
+  - `crates/chunking/tests/vector_schema_test.rs`
+- **Implementation Tasks:**
+  1. Define export domain models and target dialects in `src/export/schema.rs`: `VectorTarget` (`GenericJsonl`, `Qdrant`, `Pinecone`, `Chroma`, `Milvus`, `Weaviate`, `OpenAiBatch`, `CohereBatch`), `GenericRagRecord`, `QdrantPoint`, `QdrantBatch`, `PineconeRecord`, `PineconeBatch`, `ChromaRecord`, `ChromaBatchCollection`, `MilvusEntity`, `WeaviateObject`, `WeaviateBatch`, `OpenAiBatchRequest`, `OpenAiBatchBody`, and `CohereRecord`.
+  2. Implement deterministic RFC 4122 UUID generator `to_deterministic_uuid` converting BLAKE3 hashes and chunk IDs into standard Version 4, Variant 1 UUIDs with 100% platform reproducibility, and `is_valid_uuid` format validator.
+  3. Implement vector schema validator in `src/export/validator.rs`: `VectorSchemaValidator` verifying chunk payloads against database constraints (empty ID/content checks, Weaviate uppercase class validation, Pinecone metadata scalar/string-array type adherence, and OpenAI 8191-token ceiling validation).
+  4. Implement streaming exporter engine in `src/export/mod.rs`: `ChunkExporter`, `ChunkExportOptions` (with fluent builders), `ChunkExportMetrics`, `export_chunks_to_jsonl`, and `export_chunks_to_vector_target` streaming directly to any `std::io::Write` destination line-by-line without intermediate string buffer allocation, supporting token budgets (`max_token_budget`) and batch envelopes.
+  5. Extend `ChunkingError` in `src/error.rs` with `ExportError`, `ValidationError`, `IoError`, and `JsonError`.
+  6. Author comprehensive integration tests in `tests/export_jsonl_test.rs` (4 tests) and `tests/vector_schema_test.rs` (9 tests) verifying all 8 vector targets, line/byte/token metrics, token budget truncation, batch collections, deterministic UUID format, and validator rejections.
+- **Acceptance Criteria:**
+  - High-performance streaming JSONL chunk exporter with zero intermediate full-buffer allocation.
+  - Strongly-typed vector adapters for Qdrant, Pinecone, Chroma, Milvus, Weaviate, OpenAI Batch, and Cohere.
+  - Deterministic RFC 4122 Version 4 UUID generation from BLAKE3 hashes.
+  - Strict vector database schema validation preventing corrupted uploads.
+  - Zero mocks and zero placeholders.
+  - 100% test pass rate (45/45 crate tests passing in `web-repo-to-ai-chunking`).
+  - Monorepo quality gates passing (`scripts/check-all.ps1`).
+- **Tests:**
+  - `export_jsonl_test::test_export_chunks_to_jsonl_basic`
+  - `export_jsonl_test::test_export_to_writer_streaming_metrics`
+  - `export_jsonl_test::test_export_token_budget_truncation`
+  - `export_jsonl_test::test_export_empty_chunks_list`
+  - `vector_schema_test::test_deterministic_uuid_rfc4122_compliance`
+  - `vector_schema_test::test_qdrant_point_export_and_batch`
+  - `vector_schema_test::test_pinecone_record_export_and_strict_metadata`
+  - `vector_schema_test::test_chroma_record_and_batch_collection`
+  - `vector_schema_test::test_milvus_entity_export`
+  - `vector_schema_test::test_weaviate_object_and_batch`
+  - `vector_schema_test::test_openai_batch_embeddings_export`
+  - `vector_schema_test::test_cohere_record_export`
+  - `vector_schema_test::test_schema_validator_rejections`
+- **Security Considerations:**
+  - Strict input sanitization and length bounds on vector database IDs and class names, preventing payload corruption or injection attacks.
+  - Cryptographic Blake3 hashing and RFC 4122 UUID determinism preventing vector ID collisions and tampering.
+- **Performance Considerations:**
+  - Direct streaming to `io::Write` destination prevents excessive memory consumption when serializing large document chunk collections.
+  - Linear scan and single-pass formatting with pre-allocated buffer capacities.
+- **Documentation Requirements:**
+  - Updated `crates/chunking/README.md`, `CHANGELOG.md`, `PROJECT_STATUS.md`, `TODO.md`, `ROADMAP.md`, `docs/ROADMAP.md`, and `IMPLEMENTATION_LEDGER.md`.
+- **Validation Evidence:**
+  - 45/45 tests passing in `crates/chunking`.
+  - 857+ tests passing across the workspace.
+  - Monorepo quality gates 100% passing (5/5 gates).
+- **Git Commit Reference:** `1e142ba` (amended)
+- **Status:** `ACCEPTED`

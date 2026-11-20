@@ -14,6 +14,7 @@ pub mod citation;
 pub mod cross_ref;
 pub mod engine;
 pub mod error;
+pub mod export;
 pub mod markdown;
 pub mod model;
 pub mod structured;
@@ -25,6 +26,13 @@ pub use citation::generate_chunk_citation;
 pub use cross_ref::CrossReferenceResolver;
 pub use engine::{chunk_document, chunk_text, Chunker};
 pub use error::{ChunkResult, ChunkingError};
+pub use export::{
+    export_chunks_to_jsonl, export_chunks_to_vector_target, is_valid_uuid, to_deterministic_uuid,
+    ChromaBatchCollection, ChromaRecord, ChunkExportMetrics, ChunkExportOptions, ChunkExporter,
+    CohereRecord, GenericRagRecord, MilvusEntity, OpenAiBatchBody, OpenAiBatchRequest,
+    PineconeBatch, PineconeRecord, QdrantBatch, QdrantPoint, VectorSchemaValidator, VectorTarget,
+    WeaviateBatch, WeaviateObject,
+};
 pub use markdown::chunk_markdown_section;
 pub use model::{
     Chunk, ChunkCitation, ChunkContext, ChunkCrossReference, ChunkId, ChunkKind,

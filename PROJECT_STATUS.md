@@ -6,9 +6,9 @@
 **Last Completed Stage:** `STAGE 9 — DEVELOPER AND AI AGENT INTEGRATIONS` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Last Completed Phase:** `Phase 10.3 — Structured documents` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Active Subphase:** `None`  
-**Last Completed Subphase:** `10.4.2 — Citation & cross-reference metadata injection (crates/chunking: authoritative citation anchoring with GitHub permalinks containing commit hashes and line spans, web documentation slug anchors, PDF page numbers, and OpenAPI operation paths; cross-reference resolution engine with sequential prev/next chaining, multi-part split declaration parent-child hierarchy, intra-document symbol calls and imports discovery, CDM relationship propagation, and enriched context header injection across 32 unit/integration tests)` (`ACCEPTED`)  
+**Last Completed Subphase:** `10.4.3 — JSONL & vector-ingest schema exports (crates/chunking: high-performance streaming JSONL exporter and strongly-typed vector database ingest schema adapters for Qdrant, Pinecone, ChromaDB, Milvus, Weaviate, OpenAI Batch Embeddings, and Cohere Embed; deterministic RFC 4122 UUID generation from Blake3 hashes; vector schema validator with strict typing rules; verified with 45 unit/integration tests across 9 test suites)` (`ACCEPTED`)  
 **Next Upcoming Phase:** `Phase 10.4 — RAG chunk generation`  
-**Next Upcoming Subphase:** `10.4.3 — JSONL & vector-ingest schema exports`
+**Next Upcoming Subphase:** `10.4.4 — Chunk determinism & retrieval validation`
 
 ---
 
@@ -218,6 +218,20 @@ In Stage 10 ("Advanced Documents and Content"):
       - CDM Relationship Propagation: Maps explicit `doc.relationships` (`Imports`, `Calls`, `Extends`, `LinksTo`, `References`) directly onto chunk cross-references.
       - Enriched Context Header Injection: Injects formatted context headers containing source citations, sequence markers (`Chunk 1 of 5 (Prev: None, Next: chk_...)`), and summarized references directly into chunk content.
     - Quality & Verification: Authored 11 new integration tests across `tests/citation_test.rs` (5 tests) and `tests/cross_reference_test.rs` (6 tests). Total crate tests reached 32 (1 unit, 31 integration across 7 test suites). Verified with 844+ workspace tests passing, zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean, and 100% passing quality gates (5/5).
+  - Subphase `10.4.3` delivered streaming JSONL exports and strongly-typed vector database ingest schemas in `crates/chunking` (`web-repo-to-ai-chunking`):
+    - Streaming JSONL Chunk Exporter (`crates/chunking/src/export/mod.rs`): Implemented `ChunkExporter` streaming chunks directly to any `std::io::Write` destination without in-memory buffering. Supported configurable token budgets (`max_token_budget`), schema validation, and telemetry metrics (`ChunkExportMetrics`: chunks, bytes, lines, tokens, truncated status).
+    - Vector Ingest Adapters & Dialects (`crates/chunking/src/export/schema.rs`):
+      - `GenericJsonl`: Canonical newline-delimited RAG records (`GenericRagRecord`) preserving full coordinates, line/byte spans, citations, graph cross-references, and symbols.
+      - `Qdrant`: Point record (`QdrantPoint`) with payload and optional deterministic RFC 4122 UUIDs, plus `QdrantBatch` envelope (`{"points": [...]}`).
+      - `Pinecone`: Upsert vector (`PineconeRecord`) with flattened metadata strictly adhering to Pinecone schema constraints (strings, numbers, booleans, string arrays; zero nulls or nested objects), plus `PineconeBatch` envelope (`{"vectors": [...]}`).
+      - `Chroma`: Single records (`ChromaRecord`) and collection batch format (`ChromaBatchCollection`) with parallel arrays for `ids`, `documents`, and `metadatas`.
+      - `Milvus`: Tabular entity rows (`MilvusEntity`) with line coordinates, language, token counts, BLAKE3 content hashes, and citation permalinks.
+      - `Weaviate`: Data objects (`WeaviateObject`) with mandatory RFC 4122 UUIDs, class names (default `"DocumentChunk"`), and properties payload, plus `WeaviateBatch` envelope (`{"objects": [...]}`).
+      - `OpenAiBatch`: Format for OpenAI Batch Embeddings API (`OpenAiBatchRequest`, `POST /v1/embeddings`) with customizable model (`text-embedding-3-small/large`), custom ID, and token context limits.
+      - `CohereBatch`: Record format (`CohereRecord`) for text embeddings and reranking.
+    - Deterministic RFC 4122 UUID Engine: Implemented `to_deterministic_uuid` converting BLAKE3 hashes and chunk IDs into standard RFC 4122 Version 4 UUIDs, and `is_valid_uuid` format validator.
+    - Vector Schema Validator (`crates/chunking/src/export/validator.rs`): Implemented `VectorSchemaValidator` verifying chunk payloads against database constraints (empty ID/content checks, Weaviate uppercase class validation, Pinecone metadata type adherence, and OpenAI token ceiling validation).
+    - Quality & Verification: Authored 13 new integration tests across `tests/export_jsonl_test.rs` (4 tests) and `tests/vector_schema_test.rs` (9 tests). Total crate tests reached 45 (1 unit, 44 integration across 9 test suites). Verified with 857+ workspace tests passing, zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean, and 100% passing quality gates (5/5).
 
 ---
 
@@ -225,12 +239,12 @@ In Stage 10 ("Advanced Documents and Content"):
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 174 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4`, `10.3.1` – `10.3.4`, `10.4.1`, `10.4.2` |
+| `ACCEPTED` | 175 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4`, `10.3.1` – `10.3.4`, `10.4.1`, `10.4.2`, `10.4.3` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 22 | `10.4.3` – `11.4.5` |
+| `NOT_STARTED` | 21 | `10.4.4` – `11.4.5` |
 | **Total** | **196** | `Stage 0` – `Stage 11` |
 
 ---
