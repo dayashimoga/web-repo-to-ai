@@ -6,6 +6,21 @@
 
 ## [Unreleased] — Stage 11: Production Certification
 
+### 2026-11-21 — Phase 11.4: Release (`11.4.1`)
+
+#### Added
+- **`[11.4.1]` Complete documentation expansion across monorepo (`README.md`, `docs/*`):**
+  - **Root Documentation (`README.md`):** Expanded root README to document the complete 26-component monorepo topology (21 Rust crates, 3 services, 2 apps), Quickstart workflows for Web UI, CLI, MCP Server, Chrome Extension, and Podman Compose, core capabilities matrix, architectural principles, and documentation index.
+  - **User Guide (`docs/USER_GUIDE.md`):** Expanded user guide across 12 comprehensive sections covering web workspace workflows, public and private GitHub conversions, batch conversions, complete CLI command reference (`url`, `repo`, `batch`, `config`, `verify`, `completions`, `mcp`), MCP server setup, tools, and resources, Chrome Extension MV3, PDF/OCR extraction, structured document conversion, context profiles, RAG vector adapters, and local AI zero-key fallbacks.
+  - **System Architecture (`docs/ARCHITECTURE.md`):** Certified production architecture v1.0 detailing client layer, entrypoints, backend execution and storage, external ingestion targets, 26-package responsibilities, acyclic crate dependency graph, 7-stage ingestion sequence diagram, Content-Addressable Storage (CAS) with BLAKE3 indexing, distributed pessimistic leasing and AIMD backpressure flow control, and defense-in-depth security invariants.
+  - **Development Guide (`docs/DEVELOPMENT.md`):** Certified local development guide v1.0 covering hardware constraints (CPU-only, 16 GB RAM bounds, <= 30 GB Podman ceiling, Windows virtual memory paging bounds `--jobs 2`), full package inventory, hybrid native vs containerized workflows, the 5 automated verification gates (`scripts/check-all.ps1`), component build & test commands, Podman lifecycle scripts, and troubleshooting runbook.
+  - **Deployment Guide (`docs/DEPLOYMENT.md`):** Certified production deployment guide v1.0 documenting self-hosted container stack (`deploy/podman-compose.yml`), standalone binary distribution across 5 targets, Chrome extension distribution, the 30 GB Podman ceiling, environment variables reference table, backup/restore runbook with <5 minute cold recovery SLA, and production hardening guidelines (Caddy reverse proxy, security headers, health/readiness/metrics probes).
+  - **Data Model Specification (`docs/DATA_MODEL.md`):** Certified CDM v1.0.0 specification with strongly-typed `CdmDocument` and `CdmSection` structs, mathematical completeness invariant equation, RAG semantic chunk and vector adapter models (Qdrant, Pinecone, ChromaDB, Weaviate, Milvus), PostgreSQL relational schema DDL (`jobs`, `job_artifacts`, `github_installations`, `content_cache_index`, `job_state_transitions`), and CAS storage schema.
+  - **Licensing Policy & Audit (`docs/LICENSING.md`):** Certified third-party license inventory v1.0 detailing approved permissive license whitelist, prohibited copyleft licenses, `deny.toml` configuration, 100% compliant `cargo deny check licenses` audit across all 21 Rust crates, npm package license audit, and CycloneDX/SPDX SBOM generation workflows.
+  - **Quality & Verification:**
+    - Exactly 1,018 tests passing across the workspace (702 Rust + 213 web + 103 extension).
+    - `scripts/check-all.ps1` 100% passing across all 5 quality gates with 0 failures.
+
 ### 2026-11-21 — Phase 11.3: Reliability (`11.3.4` — PHASE 11.3 CERTIFIED)
 
 #### Added

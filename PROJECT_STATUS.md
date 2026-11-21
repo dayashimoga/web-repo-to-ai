@@ -5,10 +5,10 @@
 **Current Stage:** `STAGE 11 — PRODUCTION CERTIFICATION` (`IN_PROGRESS`)  
 **Last Completed Stage:** `STAGE 10 — ADVANCED DOCUMENTS AND CONTENT` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Last Completed Phase:** `Phase 11.3 — Reliability` (`100% COMPLETED & FORMALLY CERTIFIED`)  
-**Active Subphase:** `None`  
-**Last Completed Subphase:** `11.3.4 — Load & failure testing (sustained chaos pipeline with multi-item fault injection [500s, 429s, 404s, disconnects], cascading failure containment with AIMD adaptive concurrency backoff and watermark flow control, simulated network blackout with resilient post-blackout CDM recovery, high-concurrency 32-task contention and stampede resilience across CAS and leases, adversarial/corrupted payload defenses, and graceful worker teardown scratch drain under load; expanded docs/TESTING.md Section 3 with Subsections 3.7 and 3.8; 1,018 tests passing across all 5 quality gates)` (`ACCEPTED`)  
+**Active Subphase:** `None (Awaiting confirmation to begin Subphase 11.4.2 — Production build)`  
+**Last Completed Subphase:** `11.4.1 — Complete documentation (comprehensive expansion of root README.md, docs/USER_GUIDE.md, docs/ARCHITECTURE.md, docs/DEVELOPMENT.md, docs/DEPLOYMENT.md, docs/DATA_MODEL.md, and docs/LICENSING.md across all 26 monorepo components; 1,018 tests passing across all 5 quality gates)` (`ACCEPTED`)  
 **Next Upcoming Phase:** `Phase 11.4 — Release`  
-**Next Upcoming Subphase:** `11.4.1 — Complete documentation`
+**Next Upcoming Subphase:** `11.4.2 — Production build`
 
 ---
 
@@ -376,18 +376,29 @@ In Stage 11 ("Production Certification"):
     - Expanded `docs/TESTING.md` Section 3 with Subsections 3.7 and 3.8 and certified Phase 11.3 Reliability.
     - Quality & Verification: 6 automated load and failure tests passing; 1,018 total workspace tests passing (702 Rust + 213 web + 103 extension). Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean, and 100% passing quality gates (5/5) — **PHASE 11.3 CERTIFIED**.
 
+  - Phase 11.4 ("Release") is in progress:
+    - Subphase `11.4.1` delivered complete documentation across the entire monorepo:
+      1. Root Documentation (`README.md`): Comprehensive overview of the 26-package monorepo topology (21 Rust crates, 3 services, 2 apps), Quickstarts for Web UI, CLI, MCP Server, Chrome Extension, and Podman Compose, core capabilities matrix, architectural principles, and full documentation index.
+      2. User Guide (`docs/USER_GUIDE.md`): Expanded across 12 comprehensive sections covering web workspace workflows, public and private GitHub conversions, batch conversions, complete CLI command reference (`url`, `repo`, `batch`, `config`, `verify`, `completions`, `mcp`), MCP server setup and tool/resource integration, Chrome Extension MV3, PDF/OCR extraction, structured document conversion, context profiles, RAG vector adapters, and local AI zero-key fallbacks.
+      3. System Architecture (`docs/ARCHITECTURE.md`): Certified production architecture v1.0 detailing client layer, entrypoints, backend execution and storage, external ingestion targets, 26-package responsibilities, acyclic crate dependency graph, 7-stage ingestion sequence diagram, Content-Addressable Storage (CAS) with BLAKE3 indexing, distributed pessimistic leasing and AIMD backpressure flow control, and defense-in-depth security invariants.
+      4. Development Guide (`docs/DEVELOPMENT.md`): Certified local development guide v1.0 covering hardware constraints (CPU-only, 16 GB RAM bounds, <= 30 GB Podman ceiling, Windows virtual memory paging bounds `--jobs 2`), full package inventory, hybrid native vs containerized workflows, the 5 automated verification gates (`scripts/check-all.ps1`), component build & test commands, Podman lifecycle scripts, and troubleshooting runbook.
+      5. Deployment Guide (`docs/DEPLOYMENT.md`): Certified production deployment guide v1.0 documenting self-hosted container stack (`deploy/podman-compose.yml`), standalone binary distribution across 5 targets, Chrome extension distribution, the 30 GB Podman ceiling, environment variables reference table, backup/restore runbook with <5 minute cold recovery SLA, and production hardening guidelines (Caddy reverse proxy, security headers, health/readiness/metrics probes).
+      6. Data Model Specification (`docs/DATA_MODEL.md`): Certified CDM v1.0.0 specification with strongly-typed `CdmDocument` and `CdmSection` structs, mathematical completeness invariant equation, RAG semantic chunk and vector adapter models (Qdrant, Pinecone, ChromaDB, Weaviate, Milvus), PostgreSQL relational schema DDL (`jobs`, `job_artifacts`, `github_installations`, `content_cache_index`, `job_state_transitions`), and CAS storage schema.
+      7. Licensing Policy & Audit (`docs/LICENSING.md`): Certified third-party license inventory v1.0 detailing approved permissive license whitelist, prohibited copyleft licenses, `deny.toml` configuration, 100% compliant `cargo deny check licenses` audit across all 21 Rust crates, npm package license audit, and CycloneDX/SPDX SBOM generation workflows.
+      - Quality & Verification: Exactly 1,018 tests passing across the workspace (702 Rust + 213 web + 103 extension). All 5 monorepo quality gates passing via `scripts/check-all.ps1` with 0 failures.
+
 ---
 
 ## 2. Subphase Status Counter
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 192 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4`, `10.3.1` – `10.3.4`, `10.4.1` – `10.4.4`, `10.5.1`, `10.5.2`, `10.5.3`, `10.5.4`, `11.1.1`, `11.1.2`, `11.1.3`, `11.1.4`, `11.2.1`, `11.2.2`, `11.2.3`, `11.2.4`, `11.3.1`, `11.3.2`, `11.3.3`, `11.3.4` |
+| `ACCEPTED` | 193 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4`, `10.3.1` – `10.3.4`, `10.4.1` – `10.4.4`, `10.5.1`, `10.5.2`, `10.5.3`, `10.5.4`, `11.1.1`, `11.1.2`, `11.1.3`, `11.1.4`, `11.2.1`, `11.2.2`, `11.2.3`, `11.2.4`, `11.3.1`, `11.3.2`, `11.3.3`, `11.3.4`, `11.4.1` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 5 | `11.4.1` – `11.4.5` |
+| `NOT_STARTED` | 4 | `11.4.2` – `11.4.5` |
 | `Total` | **197** | `Stage 0` – `Stage 11` |
 
 ---

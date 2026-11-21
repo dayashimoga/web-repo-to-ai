@@ -7903,3 +7903,56 @@
 
 
 
+
+
+### Subphase 11.4.1 — Complete documentation
+- **Date:** 2026-11-21
+- **Component:** `docs/*`, `README.md`
+- **Primary Files:**
+  - `README.md`
+  - `docs/USER_GUIDE.md`
+  - `docs/ARCHITECTURE.md`
+  - `docs/DEVELOPMENT.md`
+  - `docs/DEPLOYMENT.md`
+  - `docs/DATA_MODEL.md`
+  - `docs/LICENSING.md`
+  - `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`, `IMPLEMENTATION_LEDGER.md`
+- **Implementation Tasks:**
+  1. Fully revised and expanded root `README.md` documenting the complete 26-component monorepo layout (21 Rust crates, 3 services, 2 apps), Quickstart workflows for Web UI, CLI, MCP Server, Chrome Extension, and Podman/Docker Compose, core capabilities matrix, architectural principles, and documentation index.
+  2. Fully expanded `docs/USER_GUIDE.md` across 12 comprehensive sections covering web workspace workflows, public & private GitHub conversions, batch conversions, complete CLI command reference (`url`, `repo`, `batch`, `config`, `verify`, `completions`, `mcp`), MCP server setup, tools, and resources, Chrome Extension MV3, PDF/OCR extraction, structured document conversion, context profiles, RAG vector adapters, and local AI zero-key fallbacks.
+  3. Fully revised and expanded `docs/ARCHITECTURE.md` establishing Certified Architecture v1.0, detailing client layer, entrypoints, backend execution and storage, external ingestion targets, 26-package responsibilities, acyclic crate dependency graph, 7-stage ingestion sequence diagram, Content-Addressable Storage (CAS) with BLAKE3 indexing, distributed pessimistic leasing and AIMD backpressure flow control, and defense-in-depth security invariants.
+  4. Fully revised and expanded `docs/DEVELOPMENT.md` establishing Certified Development Guide v1.0, covering workstation hardware constraints (CPU-only, 16 GB RAM bounds, <= 30 GB Podman ceiling, Windows virtual memory paging bounds `--jobs 2`), full package inventory, hybrid native vs containerized workflows, the 5 automated verification gates (`scripts/check-all.ps1`), component build & test commands, Podman lifecycle scripts, and troubleshooting runbook.
+  5. Fully revised and expanded `docs/DEPLOYMENT.md` establishing Certified Deployment Guide v1.0, documenting self-hosted container stack (`deploy/podman-compose.yml`), standalone binary distribution across 5 targets, Chrome extension distribution, the 30 GB Podman ceiling, environment variables reference table, backup/restore runbook with <5 minute cold recovery SLA, and production hardening guidelines (Caddy reverse proxy, security headers, health/readiness/metrics probes).
+  6. Fully revised and expanded `docs/DATA_MODEL.md` establishing Certified CDM v1.0.0 specification with strongly-typed `CdmDocument` and `CdmSection` structs, mathematical completeness invariant equation, RAG semantic chunk and vector adapter models (Qdrant, Pinecone, ChromaDB, Weaviate, Milvus), PostgreSQL relational schema DDL (`jobs`, `job_artifacts`, `github_installations`, `content_cache_index`, `job_state_transitions`), and CAS storage schema.
+  7. Fully revised and expanded `docs/LICENSING.md` establishing Certified Compliance Inventory v1.0, detailing approved permissive license whitelist, prohibited copyleft licenses, `deny.toml` configuration, 100% compliant `cargo deny check licenses` audit across all 21 Rust crates, npm package license audit, and CycloneDX/SPDX SBOM generation workflows.
+  8. Executed full monorepo quality audit via `scripts/check-all.ps1` with 100% passing across all 5 quality gates (1,018 total workspace tests: 702 Rust + 213 web + 103 extension).
+  9. Updated all project tracking ledgers (`PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`, `IMPLEMENTATION_LEDGER.md`).
+- **Acceptance Criteria:**
+  - Root `README.md` provides accurate monorepo topology, Quickstarts, and documentation index.
+  - `docs/USER_GUIDE.md` details all operational capabilities across Web, CLI, MCP, and Chrome Extension.
+  - `docs/ARCHITECTURE.md` details all 26 monorepo components, crate graph, sequence flows, and security boundaries.
+  - `docs/DEVELOPMENT.md` details local developer workflows, verification gates, and troubleshooting runbooks.
+  - `docs/DEPLOYMENT.md` details containerized deployment, environment variables, backup/restore, and hardening.
+  - `docs/DATA_MODEL.md` details CDM v1.0.0, chunk models, PostgreSQL schemas, and CAS layouts.
+  - `docs/LICENSING.md` details permissive licenses, prohibited licenses, cargo-deny configuration, and SBOM.
+  - 100% test pass rate (1,018 tests), 0 clippy warnings under `-D warnings`, zero formatting diffs, clean `cargo deny check`.
+- **Verification Commands:**
+  - `powershell -ExecutionPolicy Bypass -File scripts/verify-bootstrap.ps1` (224/224 checks passed)
+  - `cargo clippy --workspace --all-targets --jobs 4 -- -D warnings` (Clean, zero warnings)
+  - `cargo fmt --all -- --check` (Clean, zero diffs)
+  - `cargo deny check` (Advisories ok, bans ok, licenses ok, sources ok)
+  - `powershell -ExecutionPolicy Bypass -File scripts/check-all.ps1` (All 5 gates passed with 0 failures, 1,018 total tests passing)
+- **Tests:**
+  - Verified across existing test suites: 702 Rust tests, 213 frontend web tests, 103 extension tests (1,018 total).
+- **Security Considerations:**
+  - Documentation accurately reflects zero-trust SSRF defenses, AES-256-GCM token encryption, and network isolation policies.
+  - License policies prohibit copyleft and source-available contamination.
+- **Performance Considerations:**
+  - Clear documentation of workstation constraints (16 GB RAM bounds, `--jobs 2` test execution, 30 GB container ceiling).
+- **Documentation Requirements:**
+  - `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`, `IMPLEMENTATION_LEDGER.md`, `README.md`, `docs/USER_GUIDE.md`, `docs/ARCHITECTURE.md`, `docs/DEVELOPMENT.md`, `docs/DEPLOYMENT.md`, `docs/DATA_MODEL.md`, `docs/LICENSING.md`.
+- **Validation Evidence:**
+  - 224/224 checks passing in `scripts/verify-bootstrap.ps1`.
+  - Exactly 1,018 tests passing across the workspace (702 Rust + 213 web + 103 extension).
+  - `scripts/check-all.ps1` 100% passing across all 5 quality gates with 0 failures.
+- **Status:** `ACCEPTED`

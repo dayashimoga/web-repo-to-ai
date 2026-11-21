@@ -7,26 +7,120 @@ Open-source-first, Rust-powered, web-first, self-hostable conversion platform.
 
 ## Overview
 
-`web-repo-to-ai` converts publicly accessible webpages, public GitHub repositories, authorized private GitHub repositories, and batch URL sets into accurate, structured, provenance-traceable, token-efficient context packages for:
+`web-repo-to-ai` converts publicly accessible webpages, public GitHub repositories, authorized private GitHub repositories, complex documents (PDFs, Jupyter Notebooks, OpenAPI specs), and batch URL collections into structured, provenance-traceable, token-efficient context packages optimized for:
 
 - **Large Language Models** (ChatGPT, Claude, Gemini, local models)
-- **AI Coding Agents & IDEs**
+- **AI Coding Agents & IDEs** (Claude Code, Cursor, Windsurf, Antigravity)
+- **Model Context Protocol (MCP) Clients** (Claude Desktop, VS Code, Goose)
 - **Code Reviewers & Security Auditors**
-- **RAG & Knowledge Retrieval Systems**
+- **RAG & Knowledge Retrieval Systems** (Qdrant, Pinecone, ChromaDB, Weaviate, Milvus)
 - **Developers, Researchers, and Technical Teams**
 
-All core extraction, structural normalization, canonical modeling, deduplication, and token optimization operate **without requiring paid AI API keys, external LLMs, or commercial scraping services**.
+All core extraction, structural normalization, canonical modeling, deduplication, and token optimization operate **completely offline without requiring paid AI API keys, external LLMs, or commercial scraping services**.
 
 ---
 
 ## Core Capabilities
 
-1. **Universal Webpage Extraction**: Fast HTTP static extraction (`html5ever`/`scraper` + readability/documentation extraction) with isolated Playwright + Chromium dynamic rendering fallback.
-2. **Complete GitHub Repository Conversion**: Public and authorized private repositories (via minimal read-only GitHub App), supporting branch/tag/commit selection, selective file trees, and strict completeness accounting.
-3. **Canonical Context Document Model (CDM)**: Versioned intermediate representation preserving exact source code, document hierarchy, tables, metadata, hashes, line ranges, exclusions, and provenance.
-4. **AI Context & Token Intelligence**: Lossless clean extraction, semantic-aware deduplication, context profiles (General AI, Code Review, Security Review, Debugging, Documentation, RAG), model-specific token counting, and deterministic budget chunking.
-5. **Multi-Format Exports**: AI-ready Markdown (default), TXT, JSON, HTML, JSONL, and streaming ZIP archives with manifests, checksums, and quality reports.
-6. **Defense-in-Depth Security**: Mandatory SSRF/DNS-rebinding protection, redirect revalidation, isolated browser rendering, encrypted GitHub credentials, secret redaction, and untrusted content boundaries.
+1. **Universal Webpage Acquisition**: Fast HTTP static extraction (`html5ever`/`scraper` + readability and technical docs hierarchy parsing) with isolated Playwright + Chromium dynamic rendering fallback.
+2. **Complete GitHub Repository Ingestion**: Public and authorized private repositories (via minimal read-only GitHub App), supporting branch/tag/commit selection, selective file trees, and mathematical 100% completeness accounting.
+3. **Advanced Document & Spec Extraction**: Spatial PDF extraction with reading-order reconstruction and Tesseract OCR fallback; structured ingestion for OpenAPI 3.1.0 specifications, CSV/TSV matrices, and Jupyter Notebooks.
+4. **Canonical Context Document Model (CDM v1.0)**: Strongly typed intermediate representation preserving exact source code, document hierarchy, tables, metadata, BLAKE3/SHA-256 hashes, line ranges, exclusions, and citations.
+5. **AI Context & Token Intelligence**: Lossless clean extraction, semantic-aware deduplication ($f(f(x)) \equiv f(x)$), model-specific BPE token counting (GPT-4o, Claude 3.5 Sonnet, Gemini 1.5 Pro), AST semantic chunking, and context profiles.
+6. **Multi-Format Exports**: AI-ready Markdown (default), Plain Text, JSON v1.0, HTML5, streaming JSONL, and streaming ZIP packages with embedded manifests and checksums.
+7. **Developer & Agent Ecosystem**: Production REST API with OpenAPI 3.1 & SSE streaming, standalone Rust CLI (`web-repo-to-ai`), Model Context Protocol (MCP) server daemon (`web-repo-to-ai-mcp`), and Manifest V3 Chrome Extension.
+8. **Defense-in-Depth Security**: Strict SSRF/DNS-rebinding protection, hop-by-hop redirect revalidation, encrypted GitHub App tokens (AES-256-GCM with AAD), recursive credential redaction, and bounded memory execution.
+
+---
+
+## Quickstart
+
+### 1. Web Application
+
+Run the web frontend locally with Node.js (>= 20 LTS):
+
+```bash
+cd apps/web
+npm install
+npm run dev
+```
+
+Visit `http://localhost:5173` to access the interactive conversion workspace, source detector, token budget indicators, and multi-format preview panel.
+
+### 2. Command-Line Interface (CLI)
+
+Build and install the unified CLI binary:
+
+```bash
+cargo install --path crates/cli
+```
+
+Convert any URL or repository directly from your terminal:
+
+```bash
+# Convert a webpage to AI-ready Markdown
+web-repo-to-ai url https://docs.rs/tokio/latest/tokio/ --format markdown
+
+# Convert a GitHub repository with token budgeting
+web-repo-to-ai repo tokio-rs/tokio --max-tokens 50000 --format zip
+
+# Convert a local project directory
+web-repo-to-ai repo ./my-project --format jsonl
+
+# Batch process multiple targets from a text file
+web-repo-to-ai batch targets.txt --output-dir ./exports
+
+# Verify package cryptographic integrity
+web-repo-to-ai verify checksums.sha256
+```
+
+### 3. Model Context Protocol (MCP) Server
+
+Launch the MCP server daemon over stdio for AI desktop clients:
+
+```bash
+cargo install --path crates/mcp
+web-repo-to-ai-mcp
+```
+
+Add to your **Claude Desktop** configuration (`claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "web-repo-to-ai": {
+      "command": "web-repo-to-ai-mcp",
+      "args": []
+    }
+  }
+}
+```
+
+Exposes tools (`convert_url`, `convert_repo`, `detect_source`, `optimize_context`) and resources (`cdm://<doc_id>/markdown`, `cdm://<doc_id>/zip`, `file://`).
+
+### 4. Chrome Browser Extension
+
+Build the extension package:
+
+```bash
+cd apps/extension
+npm install
+npm run build
+```
+
+Open Chrome at `chrome://extensions`, enable **Developer mode**, and click **Load unpacked**, selecting the `apps/extension/dist` directory. Click the extension icon on any page to capture clean DOM content, inspect token statistics, and hand off directly to your conversion workspace.
+
+### 5. Self-Hosted Podman / Docker Stack
+
+Launch the full production stack (PostgreSQL, API, Worker, Browser Worker, and Web UI):
+
+```bash
+# Using Podman Compose
+podman-compose -f deploy/podman-compose.yml up -d
+
+# Using Docker Compose
+docker compose -f deploy/podman-compose.yml up -d
+```
 
 ---
 
@@ -35,37 +129,45 @@ All core extraction, structural normalization, canonical modeling, deduplication
 ```text
 web-repo-to-ai/
 ├── apps/
-│   └── web/                    # SvelteKit + Svelte 5 + TypeScript + Tailwind CSS frontend
+│   ├── web/                    # SvelteKit + Svelte 5 + TypeScript + Tailwind CSS UI
+│   └── extension/              # Chrome Extension (Manifest V3, TypeScript, Vite)
 ├── services/
-│   ├── api/                    # Rust Axum HTTP API service
-│   ├── worker/                 # Rust asynchronous extraction & optimization worker
+│   ├── api/                    # Rust Axum REST & SSE streaming API service
+│   ├── worker/                 # Rust asynchronous extraction & optimization daemon
 │   └── browser-worker/         # Isolated Playwright + Chromium rendering service
 ├── crates/
-│   ├── core/                   # Shared domain types, config, and error taxonomy
-│   ├── cdm/                    # Versioned Canonical Context Document Model
-│   ├── url-security/           # URL validation, DNS resolution, and SSRF protection
-│   ├── web-extractor/          # Static & dynamic HTML/article/docs extraction
-│   ├── github-extractor/       # GitHub REST/GraphQL/Git tree & source acquisition
-│   ├── code-intelligence/      # Tree-sitter parsing, language & symbol analysis
-│   ├── normalizer/             # Structural normalization & clean serialization
+│   ├── core/                   # Shared domain types, errors, UUID v7 IDs, and config
+│   ├── cdm/                    # Canonical Context Document Model (CDM v1.0)
+│   ├── url-security/           # SSRF, DNS-rebinding, and IP-filtering defenses
+│   ├── web-extractor/          # Static HTML, article, and documentation extraction
+│   ├── github-extractor/       # Public & private GitHub API and Git Trees acquisition
+│   ├── code-intelligence/      # Tree-sitter AST parsing, language & symbol analysis
+│   ├── normalizer/             # Structural text and document normalization
 │   ├── deduplication/          # Content-hash & semantic-aware deduplication
-│   ├── tokenizer/              # Model-specific tokenizers & explicit estimators
-│   ├── context-optimizer/      # Context budget prioritization & profile shaping
-│   ├── chunking/               # Deterministic, boundary-aware chunking
-│   ├── exporters/              # Markdown, TXT, JSON, HTML, JSONL, and ZIP exporters
-│   ├── storage/                # Local filesystem & S3-compatible artifact storage
-│   ├── job-engine/             # PostgreSQL-backed durable job state & leasing
-│   └── observability/          # Structured tracing, metrics, and audit logging
+│   ├── tokenizer/              # Model-specific BPE tokenizers and estimators
+│   ├── context-optimizer/      # Budget prioritization and context profile shaping
+│   ├── chunking/               # AST semantic chunking and vector schema adapters
+│   ├── exporters/              # Markdown, TXT, JSON, HTML, JSONL, and streaming ZIP
+│   ├── storage/                # Local filesystem, CAS deduplication, and retention
+│   ├── job-engine/             # PostgreSQL durable job state, leasing, and flow control
+│   ├── observability/          # Tracing, Prometheus metrics, and secret redaction
+│   ├── cli/                    # Unified command-line interface binary
+│   ├── mcp/                    # Model Context Protocol (MCP) JSON-RPC 2.0 server
+│   ├── pdf-extractor/          # Spatial PDF extraction and reading-order reconstruction
+│   ├── ocr-extractor/          # Tesseract OCR engine and image text acquisition
+│   ├── structured-extractor/   # OpenAPI 3.1, CSV/TSV, and Jupyter Notebook parsers
+│   └── ai-adapter/             # Local Ollama & OpenAI-compatible provider adapters
 ├── deploy/                     # Podman Compose, containerfiles, and Caddy configs
-├── scripts/                    # Environment inspection, resource budget, and dev scripts
-├── docs/                       # Comprehensive architecture, security, API, and user docs
+├── scripts/                    # Resource budget, quality gates, and dev lifecycle scripts
+├── docs/                       # Technical architecture, security, API, and user guides
 └── .agent/                     # Antigravity agent skills, rules, and workflows
 ```
 
 ---
 
-## Governance & Documentation
+## Documentation Index
 
+### Core Governance & Tracking
 - [Global Engineering Contract](./GLOBAL_ENGINEERING_CONTRACT.md)
 - [Project Status](./PROJECT_STATUS.md)
 - [Implementation Ledger](./IMPLEMENTATION_LEDGER.md)
@@ -76,22 +178,24 @@ web-repo-to-ai/
 - [Todo Tracker](./TODO.md)
 - [Changelog](./CHANGELOG.md)
 
-### Detailed Documentation (`docs/`)
-- [Requirements (`docs/REQUIREMENTS.md`)](./docs/REQUIREMENTS.md)
-- [System Architecture (`docs/ARCHITECTURE.md`)](./docs/ARCHITECTURE.md)
-- [Security & Threat Model (`docs/SECURITY.md`)](./docs/SECURITY.md)
-- [Data Model & CDM (`docs/DATA_MODEL.md`)](./docs/DATA_MODEL.md)
-- [API Reference (`docs/API.md`)](./docs/API.md)
-- [Development Guide (`docs/DEVELOPMENT.md`)](./docs/DEVELOPMENT.md)
-- [Deployment Guide (`docs/DEPLOYMENT.md`)](./docs/DEPLOYMENT.md)
-- [User Guide (`docs/USER_GUIDE.md`)](./docs/USER_GUIDE.md)
-- [Testing & Validation (`docs/TESTING.md`)](./docs/TESTING.md)
-- [Performance & Benchmarks (`docs/PERFORMANCE.md`)](./docs/PERFORMANCE.md)
-- [Third-Party Licensing (`docs/LICENSING.md`)](./docs/LICENSING.md)
-- [Staged Roadmap (`docs/ROADMAP.md`)](./docs/ROADMAP.md)
+### Detailed Technical Guides (`docs/`)
+- [User Guide & Onboarding (`docs/USER_GUIDE.md`)](./docs/USER_GUIDE.md)
+- [System Architecture Specification (`docs/ARCHITECTURE.md`)](./docs/ARCHITECTURE.md)
+- [REST & Streaming API Reference (`docs/API.md`)](./docs/API.md)
+- [Security Architecture & Threat Model (`docs/SECURITY.md`)](./docs/SECURITY.md)
+- [Data Model & Canonical CDM (`docs/DATA_MODEL.md`)](./docs/DATA_MODEL.md)
+- [Local Development Guide (`docs/DEVELOPMENT.md`)](./docs/DEVELOPMENT.md)
+- [Production Deployment Guide (`docs/DEPLOYMENT.md`)](./docs/DEPLOYMENT.md)
+- [Testing & Quality Verification (`docs/TESTING.md`)](./docs/TESTING.md)
+- [Performance & Benchmark Baselines (`docs/PERFORMANCE.md`)](./docs/PERFORMANCE.md)
+- [Third-Party License Inventory (`docs/LICENSING.md`)](./docs/LICENSING.md)
+- [GitHub App Integration Guide (`docs/GITHUB_APP.md`)](./docs/GITHUB_APP.md)
+- [Frontend Design System (`docs/DESIGN_SYSTEM.md`)](./docs/DESIGN_SYSTEM.md)
+- [Requirements Traceability (`docs/REQUIREMENTS.md`)](./docs/REQUIREMENTS.md)
+- [Staged Execution Roadmap (`docs/ROADMAP.md`)](./docs/ROADMAP.md)
 
 ---
 
 ## License
 
-Licensed under the [MIT License](./LICENSE). See [docs/LICENSING.md](./docs/LICENSING.md) for third-party dependency license policy and inventory.
+Licensed under the [MIT License](./LICENSE). See [docs/LICENSING.md](./docs/LICENSING.md) for the third-party dependency license inventory and governance policy.
