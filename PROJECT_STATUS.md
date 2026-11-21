@@ -5,10 +5,10 @@
 **Current Stage:** `STAGE 11 — PRODUCTION CERTIFICATION` (`IN_PROGRESS`)  
 **Last Completed Stage:** `STAGE 10 — ADVANCED DOCUMENTS AND CONTENT` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Last Completed Phase:** `Phase 11.2 — Performance` (`100% COMPLETED & FORMALLY CERTIFIED`)  
-**Active Subphase:** `None`  
+**Active Subphase:** `11.3.3 — Storage cleanup verification` (`IN_PROGRESS`)  
 **Last Completed Subphase:** `11.3.2 — Retry & idempotency tests (item-level retry loop with exponential backoff on transient errors; terminal failure isolation on backoff exhaustion; mathematical idempotency f(f(x)) == f(x) for text/document normalizer and exact deduplicator; content-addressed storage multi-write and concurrent idempotency; multi-format export bit-for-bit repeatability across Markdown, Plain Text, JSON v1.0, HTML5, and streaming ZIP; state machine terminal immutability; expanded docs/TESTING.md Section 3; 1,006 tests passing across all 5 quality gates)` (`ACCEPTED`)  
 **Next Upcoming Phase:** `Phase 11.3 — Reliability`  
-**Next Upcoming Subphase:** `11.3.3 — Degraded-mode fallbacks`
+**Next Upcoming Subphase:** `11.3.4 — Load & failure testing`
 
 ---
 
@@ -366,9 +366,9 @@ In Stage 11 ("Production Certification"):
 | `ACCEPTED` | 190 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4`, `10.3.1` – `10.3.4`, `10.4.1` – `10.4.4`, `10.5.1`, `10.5.2`, `10.5.3`, `10.5.4`, `11.1.1`, `11.1.2`, `11.1.3`, `11.1.4`, `11.2.1`, `11.2.2`, `11.2.3`, `11.2.4`, `11.3.1`, `11.3.2` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
-| `IN_PROGRESS` | 0 | — |
+| `IN_PROGRESS` | 1 | `11.3.3` |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 6 | `11.3.3` – `11.4.5` |
+| `NOT_STARTED` | 5 | `11.3.4` – `11.4.5` |
 | `Total` | **196** | `Stage 0` – `Stage 11` |
 
 ---

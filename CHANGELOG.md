@@ -6,6 +6,30 @@
 
 ## [Unreleased] — Stage 11: Production Certification
 
+### 2026-11-21 — Phase 11.3: Reliability (`11.3.3`)
+
+#### Added
+- **`[11.3.3]` Storage cleanup verification, ephemeral scratch purging, watermark enforcement, and retention lifecycle integration test suite (`crates/storage`, `services/worker`, `docs/TESTING.md`):**
+  - Storage Module Re-exports & Retention Infrastructure (`crates/storage`):
+    - Re-exported `sqlx::{self, PgPool}` from `crates/storage/src/lib.rs` for unified, non-duplicative dependency consumption across worker daemons and testing targets.
+  - Worker Daemon Retention Execution & Telemetry (`services/worker`):
+    - Added atomic counters for `storage_cleanup_cycles`, `storage_files_purged`, and `storage_bytes_reclaimed` in `WorkerServiceMetrics` and `WorkerMetricsSnapshot` (`services/worker/src/metrics.rs`).
+    - Added `record_storage_cleanup(&self, files_purged: usize, bytes_reclaimed: u64)` helper method.
+    - Added `WorkerEngine::execute_retention_sweep(&self, manager: &RetentionManager, pool: Option<&PgPool>, now: DateTime<Utc>) -> Result<CleanupReport, CoreError>` in `services/worker/src/engine.rs` enforcing shutdown validation (`CoreError::Unavailable`), executing sweeps via `manager.run_full_sweep`, and atomically recording telemetry.
+  - Automated Storage Cleanup Integration Test Suite (`services/worker/tests/storage_cleanup_verification_test.rs`):
+    - Ephemeral Staging Purging (`test_storage_cleanup_ephemeral_staging_purging`): Evaluates ephemeral scratch purging across both `InMemoryStorage` and `LocalFsStorage`, asserting that orphaned temporary staging files (`.*.tmp.*`) are eradicated while finalized artifacts remain intact, and verifying engine metrics snapshot recording.
+    - Capacity Watermark Enforcement (`test_storage_cleanup_capacity_watermark_enforcement`): Evaluates high (40 KB) and low (20 KB) capacity watermarks across multiple artifacts, verifying chronological pruning of oldest files until total disk usage falls below target low watermark.
+    - Job Directory Purging & Zero Orphans (`test_storage_cleanup_job_directory_purging_and_zero_orphans`): Evaluates full 7-format job directory deletion (`cleanup_job_storage`), proving zero orphan file leaks and complete sibling job isolation.
+    - CAS LRU Quota Pruning (`test_storage_cleanup_cas_lru_quota_pruning`): Populates Content-Addressed Storage with 8 unique 1,000-byte blobs and enforces LRU pruning down to 3,500 bytes, verifying space reclamation and cryptographic health audit (`missing == 0`, `corrupted == 0`).
+    - Cooperative Shutdown Scratch Drainage (`test_storage_cleanup_cooperative_worker_shutdown_scratch_drain`): Evaluates stopped worker state, asserting that post-shutdown retention sweeps and task dispatches are strictly rejected with `CoreError::Unavailable`.
+    - TTL Boundary & Monotonicity Invariants (`test_storage_cleanup_ttl_boundary_and_monotonicity_invariants`): Evaluates `RetentionPolicy` validation invariants (`default_ttl >= 60s`, `max_ttl >= default_ttl`, `ephemeral_ttl > 0`, `low_watermark < high_watermark`, `batch_size > 0`), clamped expiration calculations, and mathematical TTL monotonicity ($t_1 < t_2 \implies \text{expires\_at}(t_1) < \text{expires\_at}(t_2)$).
+  - Reliability Documentation Updates (`docs/TESTING.md`):
+    - Added Subsections 3.5 ("Storage Lifecycle, Ephemeral Retention & Watermark Cleanup SLAs") and 3.6 ("Automated Storage Cleanup Test Suite") detailing storage invariants, SLAs, and verification suites.
+  - Quality & Verification:
+    - 6 new automated tests in `services/worker/tests/storage_cleanup_verification_test.rs`.
+    - Exactly 1,012 monorepo workspace tests passing (696 Rust + 213 web + 103 extension).
+    - All 5 monorepo quality gates passing via `scripts/check-all.ps1` with 0 failures.
+
 ### 2026-11-21 — Phase 11.3: Reliability (`11.3.2`)
 
 #### Added

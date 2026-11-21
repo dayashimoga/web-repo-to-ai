@@ -34,6 +34,9 @@ pub struct WorkerServiceMetrics {
     items_reused_from_checkpoint: Arc<AtomicUsize>,
     retries_attempted: Arc<AtomicUsize>,
     retries_succeeded: Arc<AtomicUsize>,
+    storage_cleanup_cycles: Arc<AtomicUsize>,
+    storage_files_purged: Arc<AtomicUsize>,
+    storage_bytes_reclaimed: Arc<AtomicUsize>,
 }
 
 /// Serializable snapshot of worker metrics.
@@ -87,6 +90,12 @@ pub struct WorkerMetricsSnapshot {
     pub retries_attempted: usize,
     /// Total retry attempts that succeeded.
     pub retries_succeeded: usize,
+    /// Total storage cleanup and retention sweep cycles executed.
+    pub storage_cleanup_cycles: usize,
+    /// Total expired artifacts and temporary staging files purged.
+    pub storage_files_purged: usize,
+    /// Total storage bytes reclaimed through retention sweeps.
+    pub storage_bytes_reclaimed: usize,
 }
 
 impl WorkerServiceMetrics {
@@ -204,6 +213,15 @@ impl WorkerServiceMetrics {
         }
     }
 
+    /// Records storage cleanup and retention sweep results.
+    pub fn record_storage_cleanup(&self, files_purged: usize, bytes_reclaimed: u64) {
+        self.storage_cleanup_cycles.fetch_add(1, Ordering::Relaxed);
+        self.storage_files_purged
+            .fetch_add(files_purged, Ordering::Relaxed);
+        self.storage_bytes_reclaimed
+            .fetch_add(bytes_reclaimed as usize, Ordering::Relaxed);
+    }
+
     /// Produces an immutable metrics snapshot.
     #[must_use]
     pub fn snapshot(&self) -> WorkerMetricsSnapshot {
@@ -232,6 +250,9 @@ impl WorkerServiceMetrics {
             items_reused_from_checkpoint: self.items_reused_from_checkpoint.load(Ordering::Relaxed),
             retries_attempted: self.retries_attempted.load(Ordering::Relaxed),
             retries_succeeded: self.retries_succeeded.load(Ordering::Relaxed),
+            storage_cleanup_cycles: self.storage_cleanup_cycles.load(Ordering::Relaxed),
+            storage_files_purged: self.storage_files_purged.load(Ordering::Relaxed),
+            storage_bytes_reclaimed: self.storage_bytes_reclaimed.load(Ordering::Relaxed),
         }
     }
 }
@@ -252,6 +273,7 @@ mod tests {
         metrics.record_resumable_stats(true, 3, 2);
         metrics.record_retry(true);
         metrics.record_retry(false);
+        metrics.record_storage_cleanup(7, 20480);
         metrics.update_active_workers(3);
 
         let snap = metrics.snapshot();
@@ -279,5 +301,8 @@ mod tests {
         assert_eq!(snap.items_reused_from_checkpoint, 2);
         assert_eq!(snap.retries_attempted, 2);
         assert_eq!(snap.retries_succeeded, 1);
+        assert_eq!(snap.storage_cleanup_cycles, 1);
+        assert_eq!(snap.storage_files_purged, 7);
+        assert_eq!(snap.storage_bytes_reclaimed, 20480);
     }
 }

@@ -116,3 +116,46 @@ The test suite evaluates 6 core reliability and idempotency specifications:
    - Verifies terminal immutability: all transitions originating from `Completed`, `Failed`, or `Cancelled` are strictly rejected.
    - Verifies `LeaseConfig` boundary invariants (worker identity, duration ceilings, heartbeat windows, attempt thresholds).
 
+### 3.5 Storage Lifecycle, Ephemeral Retention & Watermark Cleanup SLAs (Subphase 11.3.3)
+
+The system enforces automated, deterministic storage hygiene, bounded disk consumption, and leak-free resource reclamation across both in-memory and filesystem storage backends:
+
+| Storage Cleanup Invariant | SLA Target | Verification Mechanism | Status |
+| :--- | :--- | :--- | :--- |
+| **Ephemeral Staging File Purging** | 100% stale scratch eradication | Scans storage root for temporary staging markers (`.*.tmp.*`); all staging files exceeding `ephemeral_ttl` are purged while finalized artifacts remain strictly preserved. | `ENFORCED` |
+| **Capacity High/Low Watermarks** | Usage reduced below low watermark | When storage usage breaches `high_watermark_bytes` (e.g. 85%), `enforce_capacity_watermark` prunes oldest artifacts chronologically until total usage falls below `low_watermark_bytes` (e.g. 70%). | `ENFORCED` |
+| **Zero Orphan Storage Leaks** | Zero orphaned job files | `cleanup_job_storage` recursively erases job directories (`jobs/{job_id}`); sibling job trees and unrelated artifact hierarchies remain completely untouched. | `ENFORCED` |
+| **CAS LRU Quota Pruning** | Quota ceiling strictly maintained | Content-Addressed Storage (`CasEngine`) enforces LRU eviction policies, pruning least-recently-accessed blobs to remain within maximum byte allowances while cryptographic audits verify zero missing or corrupted items. | `ENFORCED` |
+| **Shutdown Scratch Rejection** | Zero post-shutdown writes | Worker engines in `Draining` or `Stopped` states immediately reject retention sweeps and task executions (`CoreError::Unavailable`), preventing race conditions and incomplete disk writes during cooperative teardown. | `ENFORCED` |
+| **TTL Monotonicity & Clamping** | Mathematical deadline correctness | `RetentionPolicy` enforces strict configuration invariants (`default_ttl >= 60s`, `max_ttl >= default_ttl`, `ephemeral_ttl > 0`, `low_watermark < high_watermark`) and clamps requested TTLs monotonically ($t_{\text{now}} + t_{\text{default}} \le t_{\text{expires}} \le t_{\text{now}} + t_{\text{max}}$). | `ENFORCED` |
+
+### 3.6 Automated Storage Cleanup Test Suite (`services/worker/tests/storage_cleanup_verification_test.rs`)
+
+The test suite evaluates 6 core storage cleanup, retention, and lifecycle enforcement specifications:
+
+1. `test_storage_cleanup_ephemeral_staging_purging`:
+   - Evaluates both `InMemoryStorage` and `LocalFsStorage` ephemeral scratch purging.
+   - Creates temporary staging files (`.artifact.tmp.*`, `.streaming.tmp.*`) alongside finalized artifacts.
+   - Verifies all staging files are eradicated, finalized artifacts are preserved, and worker engine telemetry accurately records `storage_cleanup_cycles = 1`, `storage_files_purged = 2`.
+2. `test_storage_cleanup_capacity_watermark_enforcement`:
+   - Configures storage retention policy with 40 KB high watermark and 20 KB low watermark.
+   - Populates storage with 5 artifacts (10 KB each, total 50 KB, exceeding high watermark).
+   - Verifies capacity enforcement prunes the oldest files first, reducing total usage below 20 KB, and preserves newest files.
+3. `test_storage_cleanup_job_directory_purging_and_zero_orphans`:
+   - Simulates 2 distinct conversion jobs (`job_a`, `job_b`), each generating artifacts across all 7 formats.
+   - Executes job cleanup on `job_a` and asserts 100% removal with zero orphan files remaining.
+   - Verifies `job_b` and its 7 artifact formats remain completely intact and undisturbed.
+4. `test_storage_cleanup_cas_lru_quota_pruning`:
+   - Populates CAS with 8 unique 1,000-byte blobs (8,000 bytes total).
+   - Enforces LRU quota pruning down to 3,500 bytes.
+   - Asserts at least 5 blobs and $\ge 4,500$ bytes are reclaimed, final storage usage is $\le 3,500$ bytes, and CAS cryptographic audit verifies 100% health (`missing == 0`, `corrupted == 0`).
+5. `test_storage_cleanup_cooperative_worker_shutdown_scratch_drain`:
+   - Transitions `WorkerEngine` into `Stopped` state.
+   - Verifies `execute_retention_sweep` and task dispatch are strictly rejected with `CoreError::Unavailable`.
+   - Asserts worker telemetry remains consistent without post-shutdown leakage.
+6. `test_storage_cleanup_ttl_boundary_and_monotonicity_invariants`:
+   - Verifies configuration validation rejects malformed TTLs (`default_ttl < 60s`, `max_ttl < default_ttl`, `ephemeral_ttl <= 0`, `low_watermark >= high_watermark`, `batch_size == 0`).
+   - Verifies expiration calculation clamps negative or zero TTLs to `default_ttl` and excessive TTLs to `max_ttl`.
+   - Proves strict mathematical monotonicity: $t_1 < t_2 \implies \text{expires\_at}(t_1) < \text{expires\_at}(t_2)$.
+
+

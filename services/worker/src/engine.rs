@@ -490,6 +490,39 @@ impl WorkerEngine {
         Ok(summary)
     }
 
+    /// Executes an automated retention and storage cleanup sweep cycle with telemetry tracking.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CoreError`] if the worker engine is shutting down or if storage cleanup fails.
+    pub async fn execute_retention_sweep(
+        &self,
+        manager: &web_repo_to_ai_storage::RetentionManager,
+        pool: Option<&web_repo_to_ai_storage::PgPool>,
+        now: chrono::DateTime<chrono::Utc>,
+    ) -> Result<web_repo_to_ai_storage::CleanupReport, CoreError> {
+        if self.is_shutting_down() {
+            return Err(CoreError::Validation {
+                field: "shutdown".to_string(),
+                reason: "Worker daemon is shutting down; storage cleanup rejected".to_string(),
+            });
+        }
+
+        let report = manager.run_full_sweep(pool, now).await?;
+        self.metrics
+            .record_storage_cleanup(report.total_files_deleted(), report.total_bytes_freed());
+
+        info!(
+            worker_id = %self.config.worker_id,
+            files_deleted = report.total_files_deleted(),
+            bytes_freed = report.total_bytes_freed(),
+            errors = report.errors.len(),
+            "Worker engine completed storage retention sweep"
+        );
+
+        Ok(report)
+    }
+
     /// Executes a batch of tasks with durable checkpointing and automatic resumption support.
     ///
     /// # Errors

@@ -47,6 +47,7 @@ pub use rate_limit::*;
 pub use repository::*;
 pub use retention::*;
 pub use schema::*;
+pub use sqlx::{self, PgPool};
 pub use state_machine::*;
 pub use token_storage::*;
 pub use validation::*;

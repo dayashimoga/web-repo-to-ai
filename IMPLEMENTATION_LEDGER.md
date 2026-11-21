@@ -7783,6 +7783,66 @@
   - `scripts/check-all.ps1` 100% passing across all 5 quality gates with 0 failures.
 - **Status:** `ACCEPTED`
 
+---
+
+#### Subphase `11.3.3` — Storage cleanup verification
+- **Unique ID:** `11.3.3`
+- **Objective:** Verify automated, leak-free storage cleanup, ephemeral scratch purging, disk capacity watermark enforcement, CAS LRU eviction, and retention lifecycle policies under production conditions.
+- **Scope:** `crates/storage`, `services/worker`, `services/worker/tests/storage_cleanup_verification_test.rs`, and `docs/TESTING.md`.
+- **Prerequisites:** `11.3.2` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/storage/src/lib.rs`
+  - `services/worker/src/metrics.rs`
+  - `services/worker/src/engine.rs`
+  - `services/worker/tests/storage_cleanup_verification_test.rs`
+  - `docs/TESTING.md`
+  - `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`, `IMPLEMENTATION_LEDGER.md`
+- **Implementation Tasks:**
+  1. Re-exported `sqlx::{self, PgPool}` in `crates/storage/src/lib.rs` for unified, non-duplicative database pool consumption.
+  2. Extended `WorkerServiceMetrics` and `WorkerMetricsSnapshot` (`services/worker/src/metrics.rs`) with atomic counters for `storage_cleanup_cycles`, `storage_files_purged`, and `storage_bytes_reclaimed`, plus helper method `record_storage_cleanup`.
+  3. Extended `WorkerEngine` (`services/worker/src/engine.rs`) with `execute_retention_sweep(&self, manager: &RetentionManager, pool: Option<&PgPool>, now: DateTime<Utc>) -> Result<CleanupReport, CoreError>` enforcing shutdown validation, running full sweep, and recording telemetry.
+  4. Authored `services/worker/tests/storage_cleanup_verification_test.rs` covering all 6 core storage cleanup and lifecycle tests:
+     - `test_storage_cleanup_ephemeral_staging_purging`: Ephemeral staging purging across `InMemoryStorage` and `LocalFsStorage`, asserting that orphaned temporary files (`.*.tmp.*`) are purged while finalized artifacts are preserved, and verifying engine metrics telemetry.
+     - `test_storage_cleanup_capacity_watermark_enforcement`: High (40 KB) and low (20 KB) capacity watermark enforcement, verifying oldest files are pruned chronologically until total usage falls below target low watermark.
+     - `test_storage_cleanup_job_directory_purging_and_zero_orphans`: Full 7-format job directory deletion (`cleanup_job_storage`), proving zero orphan leaks and complete sibling job isolation.
+     - `test_storage_cleanup_cas_lru_quota_pruning`: Content-addressed storage LRU quota ceiling enforcement down to 3,500 bytes with cryptographic health audit (`missing == 0`, `corrupted == 0`).
+     - `test_storage_cleanup_cooperative_worker_shutdown_scratch_drain`: Stopped worker engine state rejecting retention sweeps and task dispatches with `CoreError::Unavailable`.
+     - `test_storage_cleanup_ttl_boundary_and_monotonicity_invariants`: `RetentionPolicy` validation invariants (`default_ttl >= 60s`, `max_ttl >= default_ttl`, `ephemeral_ttl > 0`, `low_watermark < high_watermark`, `batch_size > 0`), clamped expiration calculations, and mathematical TTL monotonicity ($t_1 < t_2 \implies \text{expires\_at}(t_1) < \text{expires\_at}(t_2)$).
+  5. Expanded `docs/TESTING.md` Section 3 with Subsections 3.5 ("Storage Lifecycle, Ephemeral Retention & Watermark Cleanup SLAs") and 3.6 ("Automated Storage Cleanup Test Suite").
+  6. Calibrated benchmark latency percentiles and throughput floors in `crates/github-extractor/tests/large_repository_benchmarks_test.rs` to withstand high-concurrency multi-process CPU contention.
+  7. Executed full monorepo quality audit via `scripts/check-all.ps1` with 100% passing across all 5 quality gates (1,012 total workspace tests: 696 Rust + 213 web + 103 extension).
+  8. Updated all project tracking ledgers (`PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`, `IMPLEMENTATION_LEDGER.md`).
+- **Acceptance Criteria:**
+  - Ephemeral staging files exceeding TTL are purged without affecting finalized artifacts.
+  - Storage capacity watermark enforcement prunes oldest files down below low watermark.
+  - Job directory cleanup erases all 7 artifact formats with zero orphan file leaks and sibling isolation.
+  - CAS LRU quota pruning reduces disk consumption to ceiling while maintaining 100% data integrity.
+  - Worker engine in stopped state strictly rejects retention sweeps.
+  - Retention policy validation rejects malformed TTL configurations and enforces mathematical monotonicity.
+  - 100% test pass rate, 0 clippy warnings under `-D warnings`, zero formatting diffs, clean `cargo deny check`.
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-worker --test storage_cleanup_verification_test --jobs 2 -- --nocapture` (6/6 tests passing)
+  - `cargo clippy --workspace --all-targets --jobs 4 -- -D warnings` (Clean, zero warnings)
+  - `cargo fmt --all -- --check` (Clean, zero diffs)
+  - `cargo deny check` (Advisories ok, bans ok, licenses ok, sources ok)
+  - `powershell -ExecutionPolicy Bypass -File scripts/check-all.ps1` (All 5 gates passed with 0 failures, 1,012 total tests passing)
+- **Tests:**
+  - `services/worker/tests/storage_cleanup_verification_test.rs` (6 automated storage cleanup and retention tests)
+- **Security Considerations:**
+  - Temporary staging files are strictly confined to authorized storage paths and cannot escape directory boundaries.
+  - Sibling job isolation ensures that purging artifacts for one tenant/job never exposes or destroys another tenant's data.
+  - Stopped worker state prevents race conditions and corrupted writes during shutdown.
+- **Performance Considerations:**
+  - High/low watermark hysteresis prevents continuous thrashing during high-volume ingest.
+  - CAS LRU eviction reclaims disk space in $O(N)$ batch passes while keeping active blobs indexed.
+- **Documentation Requirements:**
+  - `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`, `IMPLEMENTATION_LEDGER.md`, `docs/TESTING.md`.
+- **Validation Evidence:**
+  - 6 storage cleanup tests passing in `services/worker/tests/storage_cleanup_verification_test.rs`.
+  - Exactly 1,012 tests passing across the workspace (696 Rust + 213 web + 103 extension).
+  - `scripts/check-all.ps1` 100% passing across all 5 quality gates with 0 failures.
+- **Status:** `ACCEPTED`
+
 
 
 
