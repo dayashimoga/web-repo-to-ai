@@ -37,6 +37,8 @@ pub struct WorkerServiceMetrics {
     storage_cleanup_cycles: Arc<AtomicUsize>,
     storage_files_purged: Arc<AtomicUsize>,
     storage_bytes_reclaimed: Arc<AtomicUsize>,
+    chaos_faults_injected: Arc<AtomicUsize>,
+    circuit_breaker_trips: Arc<AtomicUsize>,
 }
 
 /// Serializable snapshot of worker metrics.
@@ -96,6 +98,10 @@ pub struct WorkerMetricsSnapshot {
     pub storage_files_purged: usize,
     /// Total storage bytes reclaimed through retention sweeps.
     pub storage_bytes_reclaimed: usize,
+    /// Total chaos faults injected into the pipeline during resilience testing.
+    pub chaos_faults_injected: usize,
+    /// Total circuit breaker trips or shedding events triggered under overload.
+    pub circuit_breaker_trips: usize,
 }
 
 impl WorkerServiceMetrics {
@@ -222,6 +228,16 @@ impl WorkerServiceMetrics {
             .fetch_add(bytes_reclaimed as usize, Ordering::Relaxed);
     }
 
+    /// Records chaos faults injected into the pipeline during resilience testing.
+    pub fn record_chaos_fault(&self) {
+        self.chaos_faults_injected.fetch_add(1, Ordering::Relaxed);
+    }
+
+    /// Records circuit breaker trips or shedding events under overload.
+    pub fn record_circuit_breaker_trip(&self) {
+        self.circuit_breaker_trips.fetch_add(1, Ordering::Relaxed);
+    }
+
     /// Produces an immutable metrics snapshot.
     #[must_use]
     pub fn snapshot(&self) -> WorkerMetricsSnapshot {
@@ -253,6 +269,8 @@ impl WorkerServiceMetrics {
             storage_cleanup_cycles: self.storage_cleanup_cycles.load(Ordering::Relaxed),
             storage_files_purged: self.storage_files_purged.load(Ordering::Relaxed),
             storage_bytes_reclaimed: self.storage_bytes_reclaimed.load(Ordering::Relaxed),
+            chaos_faults_injected: self.chaos_faults_injected.load(Ordering::Relaxed),
+            circuit_breaker_trips: self.circuit_breaker_trips.load(Ordering::Relaxed),
         }
     }
 }
@@ -274,6 +292,8 @@ mod tests {
         metrics.record_retry(true);
         metrics.record_retry(false);
         metrics.record_storage_cleanup(7, 20480);
+        metrics.record_chaos_fault();
+        metrics.record_circuit_breaker_trip();
         metrics.update_active_workers(3);
 
         let snap = metrics.snapshot();
@@ -304,5 +324,7 @@ mod tests {
         assert_eq!(snap.storage_cleanup_cycles, 1);
         assert_eq!(snap.storage_files_purged, 7);
         assert_eq!(snap.storage_bytes_reclaimed, 20480);
+        assert_eq!(snap.chaos_faults_injected, 1);
+        assert_eq!(snap.circuit_breaker_trips, 1);
     }
 }

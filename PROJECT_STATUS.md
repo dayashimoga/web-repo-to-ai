@@ -4,11 +4,11 @@
 **Last Updated:** 2026-11-21  
 **Current Stage:** `STAGE 11 — PRODUCTION CERTIFICATION` (`IN_PROGRESS`)  
 **Last Completed Stage:** `STAGE 10 — ADVANCED DOCUMENTS AND CONTENT` (`100% COMPLETED & FORMALLY CERTIFIED`)  
-**Last Completed Phase:** `Phase 11.2 — Performance` (`100% COMPLETED & FORMALLY CERTIFIED`)  
-**Active Subphase:** `11.3.3 — Storage cleanup verification` (`IN_PROGRESS`)  
-**Last Completed Subphase:** `11.3.2 — Retry & idempotency tests (item-level retry loop with exponential backoff on transient errors; terminal failure isolation on backoff exhaustion; mathematical idempotency f(f(x)) == f(x) for text/document normalizer and exact deduplicator; content-addressed storage multi-write and concurrent idempotency; multi-format export bit-for-bit repeatability across Markdown, Plain Text, JSON v1.0, HTML5, and streaming ZIP; state machine terminal immutability; expanded docs/TESTING.md Section 3; 1,006 tests passing across all 5 quality gates)` (`ACCEPTED`)  
-**Next Upcoming Phase:** `Phase 11.3 — Reliability`  
-**Next Upcoming Subphase:** `11.3.4 — Load & failure testing`
+**Last Completed Phase:** `Phase 11.3 — Reliability` (`100% COMPLETED & FORMALLY CERTIFIED`)  
+**Active Subphase:** `None`  
+**Last Completed Subphase:** `11.3.4 — Load & failure testing (sustained chaos pipeline with multi-item fault injection [500s, 429s, 404s, disconnects], cascading failure containment with AIMD adaptive concurrency backoff and watermark flow control, simulated network blackout with resilient post-blackout CDM recovery, high-concurrency 32-task contention and stampede resilience across CAS and leases, adversarial/corrupted payload defenses, and graceful worker teardown scratch drain under load; expanded docs/TESTING.md Section 3 with Subsections 3.7 and 3.8; 1,018 tests passing across all 5 quality gates)` (`ACCEPTED`)  
+**Next Upcoming Phase:** `Phase 11.4 — Release`  
+**Next Upcoming Subphase:** `11.4.1 — Complete documentation`
 
 ---
 
@@ -357,19 +357,38 @@ In Stage 11 ("Production Certification"):
     - Expanded `docs/TESTING.md` Section 3 with Subsections 3.3 ("Retry Dynamics & Mathematical Idempotency SLAs") and 3.4 detailing automated test coverage.
     - Quality & Verification: 6 automated retry and idempotency tests passing; 1,006 total workspace tests passing (690 Rust + 213 web + 103 extension). Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean, and 100% passing quality gates (5/5).
 
+  - Subphase `11.3.3` delivered storage cleanup verification, ephemeral scratch purging, capacity watermarks, and CAS LRU eviction in `services/worker/tests/storage_cleanup_verification_test.rs`:
+    1. Ephemeral Staging Purging (`test_storage_cleanup_ephemeral_staging_purging`): Evaluates ephemeral scratch purging across `InMemoryStorage` and `LocalFsStorage`, asserting that orphaned temporary files (`.*.tmp.*`) are purged while finalized artifacts remain strictly preserved, and verifying engine metrics telemetry.
+    2. Capacity Watermark Enforcement (`test_storage_cleanup_capacity_watermark_enforcement`): High (40 KB) and low (20 KB) capacity watermark enforcement, verifying oldest files are pruned chronologically until total usage falls below target low watermark.
+    3. Job Directory Purging & Zero Orphans (`test_storage_cleanup_job_directory_purging_and_zero_orphans`): Full 7-format job directory deletion (`cleanup_job_storage`), proving zero orphan leaks and complete sibling job isolation.
+    4. CAS LRU Quota Pruning (`test_storage_cleanup_cas_lru_quota_pruning`): Content-addressed storage LRU quota ceiling enforcement down to 3,500 bytes with cryptographic health audit (`missing == 0`, `corrupted == 0`).
+    5. Cooperative Worker Shutdown Scratch Drain (`test_storage_cleanup_cooperative_worker_shutdown_scratch_drain`): Stopped worker engine state rejecting retention sweeps and task dispatches with `CoreError::Unavailable`.
+    6. TTL Monotonicity Invariants (`test_storage_cleanup_ttl_boundary_and_monotonicity_invariants`): `RetentionPolicy` validation invariants (`default_ttl >= 60s`, `max_ttl >= default_ttl`, `ephemeral_ttl > 0`, `low_watermark < high_watermark`, `batch_size > 0`), clamped expiration calculations, and mathematical TTL monotonicity ($t_1 < t_2 \implies \text{expires\_at}(t_1) < \text{expires\_at}(t_2)$).
+    - Expanded `docs/TESTING.md` Section 3 with Subsections 3.5 and 3.6.
+    - Quality & Verification: 6 automated storage cleanup tests passing; 1,012 total workspace tests passing (696 Rust + 213 web + 103 extension). Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean, and 100% passing quality gates (5/5).
+  - Subphase `11.3.4` delivered load, stress, chaos fault injection, and failure resilience verification in `services/worker/tests/load_and_failure_testing_test.rs`:
+    1. Sustained Chaos Pipeline Under Fault Injection (`test_sustained_high_load_pipeline_under_chaos_fault_injection`): Multi-task high-load batch under injected HTTP 500s, 429 rate limits, socket disconnects, and 404 permanent failures, proving healthy items complete, retrying items heal, and metrics snapshot reconciles cleanly (`total = succeeded + failed`).
+    2. Cascading Failure Containment & Dynamic Flow Regulation (`test_cascading_failure_containment_and_dynamic_flow_regulation`): Evaluates dynamic AIMD adaptive concurrency under cascading throttling signals ($8 \to 4 \to 2$ floor) and post-cooldown additive recovery ($2 \to 3$), plus `FlowControlledQueue` watermark regulation (`6` capacity, `4` high, `2` low) with `try_push` saturation rejection and smooth draining back to `Normal`.
+    3. Simulated Network Blackout & Resilient Recovery (`test_simulated_network_blackout_and_resilient_recovery`): Simulates an epoch-wide network blackout failing 8 batch items cleanly without unhandled panics or hangs, lifts the network partition, and dispatches a second 8-item batch through the same worker daemon to 100% success with full CDM synthesis and section hash verification.
+    4. High-Concurrency Contention & Stampede Resilience (`test_high_concurrency_contention_and_stampede_resilience`): 32 concurrent Tokio worker tasks execute a thundering herd CAS write stampede on an identical 4 KB blob, proving exactly 1 write registers as new while 31 writes deduplicate ($O(1)$ storage, 100% CAS audit health); 32 concurrent worker tasks contend for an exclusive lease lock, verifying mutual exclusion, zero deadlocks, and completion within the 5.0s SLA ceiling.
+    5. Adversarial, Malformed & Corrupted Payload Resilience Under Load (`test_adversarial_and_corrupted_payload_resilience_under_load`): Evaluates parser resilience against truncated JSON (`CdmError::Deserialization`), oversized payloads exceeding byte ceilings (`CdmError::PayloadTooLarge`), and mixed-batch processing (5 valid + 5 adversarial items) under load, proving 5 valid items succeed and 5 adversarial items fail cleanly without poisoning sibling processing.
+    6. Graceful Worker Teardown & Scratch Drain Under Active Load (`test_graceful_worker_teardown_and_scratch_drain_under_load`): Initiates cooperative worker shutdown mid-flight during an active 16-task high-concurrency batch, proving in-flight tasks drain cleanly, engine transitions to `is_shutting_down == true`, subsequent batch submissions are rejected immediately, and retention manager purges temporary staging scratch files (`.artifact.tmp.*`), preserving finalized artifacts and leaving zero orphan files.
+    - Expanded `docs/TESTING.md` Section 3 with Subsections 3.7 and 3.8 and certified Phase 11.3 Reliability.
+    - Quality & Verification: 6 automated load and failure tests passing; 1,018 total workspace tests passing (702 Rust + 213 web + 103 extension). Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean, and 100% passing quality gates (5/5) — **PHASE 11.3 CERTIFIED**.
+
 ---
 
 ## 2. Subphase Status Counter
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 190 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4`, `10.3.1` – `10.3.4`, `10.4.1` – `10.4.4`, `10.5.1`, `10.5.2`, `10.5.3`, `10.5.4`, `11.1.1`, `11.1.2`, `11.1.3`, `11.1.4`, `11.2.1`, `11.2.2`, `11.2.3`, `11.2.4`, `11.3.1`, `11.3.2` |
+| `ACCEPTED` | 192 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4`, `10.3.1` – `10.3.4`, `10.4.1` – `10.4.4`, `10.5.1`, `10.5.2`, `10.5.3`, `10.5.4`, `11.1.1`, `11.1.2`, `11.1.3`, `11.1.4`, `11.2.1`, `11.2.2`, `11.2.3`, `11.2.4`, `11.3.1`, `11.3.2`, `11.3.3`, `11.3.4` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
-| `IN_PROGRESS` | 1 | `11.3.3` |
+| `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 5 | `11.3.4` – `11.4.5` |
-| `Total` | **196** | `Stage 0` – `Stage 11` |
+| `NOT_STARTED` | 5 | `11.4.1` – `11.4.5` |
+| `Total` | **197** | `Stage 0` – `Stage 11` |
 
 ---
 

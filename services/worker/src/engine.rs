@@ -83,10 +83,26 @@ impl WorkerEngine {
         &self.config
     }
 
+    /// Returns a reference to the worker telemetry metrics repository.
+    #[must_use]
+    pub fn metrics(&self) -> &WorkerServiceMetrics {
+        &self.metrics
+    }
+
     /// Returns a snapshot of current telemetry metrics.
     #[must_use]
     pub fn metrics_snapshot(&self) -> WorkerMetricsSnapshot {
         self.metrics.snapshot()
+    }
+
+    /// Records a chaos fault injection event in telemetry.
+    pub fn record_chaos_fault(&self) {
+        self.metrics.record_chaos_fault();
+    }
+
+    /// Records a circuit breaker trip event in telemetry.
+    pub fn record_circuit_breaker_trip(&self) {
+        self.metrics.record_circuit_breaker_trip();
     }
 
     /// Returns the shutdown cancellation token for signal monitoring.

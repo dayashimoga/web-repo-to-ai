@@ -6,6 +6,29 @@
 
 ## [Unreleased] — Stage 11: Production Certification
 
+### 2026-11-21 — Phase 11.3: Reliability (`11.3.4` — PHASE 11.3 CERTIFIED)
+
+#### Added
+- **`[11.3.4]` Load, stress, chaos fault injection, and failure resilience verification test suite (`services/worker`, `docs/TESTING.md`):**
+  - Worker Telemetry Telemetry Expansion (`services/worker`):
+    - Added atomic counters for `chaos_faults_injected` and `circuit_breaker_trips` to `WorkerServiceMetrics` and `WorkerMetricsSnapshot` (`services/worker/src/metrics.rs`).
+    - Added helper methods `record_chaos_fault()` and `record_circuit_breaker_trip()` to `WorkerServiceMetrics` and forwarded via `WorkerEngine` (`services/worker/src/engine.rs`).
+    - Added `WorkerEngine::metrics(&self) -> &WorkerServiceMetrics` for direct access to metrics telemetry repository.
+  - Automated Load & Failure Integration Test Suite (`services/worker/tests/load_and_failure_testing_test.rs`):
+    - Sustained Chaos Pipeline Under Fault Injection (`test_sustained_high_load_pipeline_under_chaos_fault_injection`): Multi-task high-load batch under injected HTTP 500s, 429 rate limits, socket disconnects, and 404 permanent failures; proves healthy items complete, retrying items heal, and metrics snapshot reconciles cleanly (`total = succeeded + failed`, exactly 21 succeeded and 3 failed).
+    - Cascading Failure Containment & Dynamic Flow Regulation (`test_cascading_failure_containment_and_dynamic_flow_regulation`): Evaluates dynamic AIMD adaptive concurrency under cascading throttling signals ($8 \to 4 \to 2$ floor) and post-cooldown additive recovery ($2 \to 3$), plus `FlowControlledQueue` watermark regulation (`6` capacity, `4` high, `2` low) with `try_push` saturation rejection and smooth draining back to `Normal`.
+    - Simulated Network Blackout & Resilient Recovery (`test_simulated_network_blackout_and_resilient_recovery`): Simulates an epoch-wide network blackout failing 8 batch items cleanly without unhandled panics or hangs, lifts the network partition, and dispatches a second 8-item batch through the same worker daemon to 100% success with full CDM synthesis and section hash verification.
+    - High-Concurrency Contention & Stampede Resilience (`test_high_concurrency_contention_and_stampede_resilience`): 32 concurrent Tokio worker tasks execute a thundering herd CAS write stampede on an identical 4 KB blob, proving exactly 1 write registers as new while 31 writes deduplicate ($O(1)$ storage, 100% CAS audit health); 32 concurrent worker tasks contend for an exclusive lease lock, verifying mutual exclusion, zero deadlocks, and completion within the 5.0s SLA ceiling.
+    - Adversarial, Malformed & Corrupted Payload Resilience Under Load (`test_adversarial_and_corrupted_payload_resilience_under_load`): Evaluates parser resilience against truncated JSON (`CdmError::Deserialization`), oversized payloads exceeding byte ceilings (`CdmError::PayloadTooLarge`), and mixed-batch processing (5 valid + 5 adversarial items) under load, proving 5 valid items succeed and 5 adversarial items fail cleanly without poisoning sibling processing.
+    - Graceful Worker Teardown & Scratch Drain Under Active Load (`test_graceful_worker_teardown_and_scratch_drain_under_load`): Initiates cooperative worker shutdown mid-flight during an active 16-task high-concurrency batch, proving in-flight tasks drain cleanly, engine transitions to `is_shutting_down == true`, subsequent batch submissions are rejected immediately, and retention manager purges temporary staging scratch files (`.artifact.tmp.*`), preserving finalized artifacts and leaving zero orphan files.
+  - Reliability Documentation Updates & Formal Certification (`docs/TESTING.md`):
+    - Added Subsections 3.7 ("Load, Stress & Chaos Fault-Injection SLAs") and 3.8 ("Automated Load & Failure Testing Suite").
+    - Added Section 4 ("Phase 11.3 Reliability Formal Certification") formally certifying all 4 reliability subphases (11.3.1, 11.3.2, 11.3.3, 11.3.4) with 24 passing automated tests and zero unhandled failures.
+  - Quality & Verification:
+    - 6 new automated tests in `services/worker/tests/load_and_failure_testing_test.rs`.
+    - Exactly 1,018 monorepo workspace tests passing (702 Rust + 213 web + 103 extension).
+    - All 5 monorepo quality gates passing via `scripts/check-all.ps1` with 0 failures — **PHASE 11.3 CERTIFIED**.
+
 ### 2026-11-21 — Phase 11.3: Reliability (`11.3.3`)
 
 #### Added
