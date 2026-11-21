@@ -569,6 +569,8 @@ impl ResumableParallelExecutor {
         let spawn_peak = Arc::clone(&peak_concurrency);
         let spawn_cancel = cancel_token.clone();
         let item_timeout = self.batch_config.item_timeout;
+        let max_retries = self.batch_config.max_retries;
+        let retry_backoff = self.batch_config.retry_backoff;
 
         tokio::spawn(async move {
             for task in spawn_tasks {
@@ -613,41 +615,79 @@ impl ResumableParallelExecutor {
                     let _permit = permit;
                     let item_start = Instant::now();
 
-                    let res = if task_cancel.is_cancelled() {
-                        BatchItemExecutionResult::cancelled(
+                    let mut attempt: u32 = 0;
+                    let mut final_res = None;
+
+                    while attempt <= max_retries {
+                        if task_cancel.is_cancelled() {
+                            final_res = Some(BatchItemExecutionResult::cancelled(
+                                task.item_index,
+                                task.job_id,
+                                task.url.clone(),
+                                task.custom_id.clone(),
+                                "Cancelled before execution",
+                            ));
+                            break;
+                        }
+
+                        match timeout(item_timeout, task_proc(task.clone())).await {
+                            Ok(Ok(val)) => {
+                                final_res = Some(BatchItemExecutionResult::success(
+                                    task.item_index,
+                                    task.job_id,
+                                    task.url.clone(),
+                                    task.custom_id.clone(),
+                                    item_start.elapsed().as_millis() as u64,
+                                    val,
+                                ));
+                                break;
+                            }
+                            Ok(Err(err)) => {
+                                if attempt < max_retries && !task_cancel.is_cancelled() {
+                                    attempt += 1;
+                                    let backoff = retry_backoff * attempt;
+                                    tokio::time::sleep(backoff).await;
+                                    continue;
+                                }
+                                final_res = Some(BatchItemExecutionResult::failure(
+                                    task.item_index,
+                                    task.job_id,
+                                    task.url.clone(),
+                                    task.custom_id.clone(),
+                                    item_start.elapsed().as_millis() as u64,
+                                    err,
+                                ));
+                                break;
+                            }
+                            Err(_) => {
+                                if attempt < max_retries && !task_cancel.is_cancelled() {
+                                    attempt += 1;
+                                    let backoff = retry_backoff * attempt;
+                                    tokio::time::sleep(backoff).await;
+                                    continue;
+                                }
+                                final_res = Some(BatchItemExecutionResult::timed_out(
+                                    task.item_index,
+                                    task.job_id,
+                                    task.url.clone(),
+                                    task.custom_id.clone(),
+                                    item_start.elapsed().as_millis() as u64,
+                                ));
+                                break;
+                            }
+                        }
+                    }
+
+                    let res = final_res.unwrap_or_else(|| {
+                        BatchItemExecutionResult::failure(
                             task.item_index,
                             task.job_id,
                             task.url,
                             task.custom_id,
-                            "Cancelled before execution",
+                            item_start.elapsed().as_millis() as u64,
+                            "Execution exhausted retries without outcome",
                         )
-                    } else {
-                        match timeout(item_timeout, task_proc(task.clone())).await {
-                            Ok(Ok(val)) => BatchItemExecutionResult::success(
-                                task.item_index,
-                                task.job_id,
-                                task.url,
-                                task.custom_id,
-                                item_start.elapsed().as_millis() as u64,
-                                val,
-                            ),
-                            Ok(Err(err)) => BatchItemExecutionResult::failure(
-                                task.item_index,
-                                task.job_id,
-                                task.url,
-                                task.custom_id,
-                                item_start.elapsed().as_millis() as u64,
-                                err,
-                            ),
-                            Err(_) => BatchItemExecutionResult::timed_out(
-                                task.item_index,
-                                task.job_id,
-                                task.url,
-                                task.custom_id,
-                                item_start.elapsed().as_millis() as u64,
-                            ),
-                        }
-                    };
+                    });
 
                     task_active.fetch_sub(1, Ordering::SeqCst);
                     let _ = task_tx.send(res).await;

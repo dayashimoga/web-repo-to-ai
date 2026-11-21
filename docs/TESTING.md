@@ -72,3 +72,47 @@ The test suite exercises real pipeline components without mocks or stubs:
    - Evaluates end-to-end CDM document assembly, section cryptographic hashing, and streaming ZIP package creation across interrupted runs.
    - Verifies archive contains 6 document directories with matching BLAKE3/SHA-256 manifests.
 
+### 3.3 Retry Dynamics & Mathematical Idempotency SLAs (Subphase 11.3.2)
+
+The system guarantees deterministic fault-tolerance, transient failure recovery, and mathematical idempotency $f(f(x)) \equiv f(x)$ across all pipeline layers:
+
+| Idempotency & Retry Guarantee | Target SLA | Verification Mechanism | Status |
+| :--- | :--- | :--- | :--- |
+| **Transient Error Auto-Recovery** | Automatic backoff recovery | Bounded parallel executor automatically retries failing batch items up to `max_retries` with exponential backoff (`retry_backoff * attempt`); items healing mid-retry achieve 100% success. | `ENFORCED` |
+| **Backoff Exhaustion Isolation** | Zero whole-batch cascade | Failing items exceeding `max_retries` deterministically transition to `BatchItemStatusOutcome::Failed` with original upstream error preserved while healthy batch peers complete normally. | `ENFORCED` |
+| **Text Normalization Idempotence** | $f(f(x)) \equiv f(x)$ exact identity | `normalize_text(normalize_text(s)) == normalize_text(s)` across CRLF/LF, BOM stripping, duplicate spacing, and control char sanitation. | `ENFORCED` |
+| **Document Normalization Idempotence** | Zero secondary modifications | `normalize_document(&doc_norm_1)` yields `sections_modified == 0`, preserving document tree structure and cryptographic section hashes. | `ENFORCED` |
+| **Document Deduplication Idempotence** | Zero secondary cluster discoveries | `deduplicate_document(&doc_dedup_1)` yields `duplicate_sections_found == 0` and bit-for-bit identical section vectors on repeated passes. | `ENFORCED` |
+| **CAS Multi-Write Idempotency** | $O(1)$ physical storage growth | Sequential and concurrent multi-threaded writes of identical blobs produce identical BLAKE3/SHA-256 addresses with `is_new == false` and zero disk bloat. | `ENFORCED` |
+| **Multi-Format Export Determinism** | Bit-for-bit identical byte streams | Repeated exports of CDM documents across Markdown, Plain Text, JSON v1.0, HTML5, and streaming ZIP packages produce invariant cryptographic digests and identical CRC32 checksums. | `ENFORCED` |
+| **State Machine Immutability** | Terminal state lockdown | `evaluate_transition` rejects any mutation from `Completed`, `Failed`, or `Cancelled` states, guaranteeing state machine immutability. | `ENFORCED` |
+
+### 3.4 Automated Retry & Idempotency Test Suite (`services/worker/tests/retry_and_idempotency_test.rs`)
+
+The test suite evaluates 6 core reliability and idempotency specifications:
+
+1. `test_transient_failure_automatic_retry_and_recovery`:
+   - Configures worker pool with `max_retries = 3` and fast backoff.
+   - Tasks 1, 3, and 5 simulate transient connection drops on attempts 0 and 1, healing on attempt 2.
+   - Verifies all 6 items complete with `BatchItemStatusOutcome::Succeeded`, preserves sequence order, and records telemetry.
+2. `test_retry_backoff_exhaustion_deterministic_terminal_failure`:
+   - Configures worker pool with `max_retries = 2`.
+   - Task 2 permanently fails with HTTP 404, while tasks 0, 1, 3, 4 succeed immediately.
+   - Verifies task 2 executes exactly 3 times (1 initial + 2 retries) and records terminal failure without failing or aborting healthy sibling items.
+3. `test_document_normalization_and_deduplication_mathematical_idempotency`:
+   - Verifies $f(f(x)) \equiv f(x)$ for `normalize_text` (reaches immediate fixed point).
+   - Verifies $f(f(x)) \equiv f(x)$ for `normalize_document` (pass 2 performs 0 section modifications).
+   - Verifies $f(f(x)) \equiv f(x)$ for `deduplicate_document` (pass 2 discovers 0 new duplicates).
+4. `test_content_addressed_storage_and_cache_write_idempotency`:
+   - Verifies `cas.put(payload)` returns `is_new: true` on initial write and `is_new: false` on duplicate write.
+   - Verifies 10 concurrent Tokio tasks writing identical payloads produce matching digests and zero corruption.
+   - Verifies CAS audit confirms healthy storage with exactly 1 indexed blob.
+5. `test_multi_format_export_bit_for_bit_deterministic_idempotency`:
+   - Evaluates 5 consecutive export iterations across Markdown, Plain Text, JSON, and HTML.
+   - Verifies cryptographic BLAKE3 hashes remain 100% invariant across all iterations.
+   - Verifies streaming ZIP archive exports from identical documents produce matching file entry names, sizes, and CRC32 checksums.
+6. `test_state_machine_transition_and_lease_renewal_idempotency`:
+   - Evaluates distributed leasing lifecycle transitions: `Queued` $\to$ `Leased` $\to$ `Running` $\to$ `Completed`.
+   - Verifies terminal immutability: all transitions originating from `Completed`, `Failed`, or `Cancelled` are strictly rejected.
+   - Verifies `LeaseConfig` boundary invariants (worker identity, duration ceilings, heartbeat windows, attempt thresholds).
+

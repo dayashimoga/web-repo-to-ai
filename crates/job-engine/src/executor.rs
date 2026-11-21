@@ -87,7 +87,7 @@ impl BoundedParallelExecutor {
         cancellation_token: Option<CancellationToken>,
     ) -> Result<BatchExecutionSummary<R>, JobEngineError>
     where
-        T: Send + Sync + 'static,
+        T: Clone + Send + Sync + 'static,
         R: Send + Sync + 'static,
         F: Fn(BatchItemTask<T>) -> Fut + Send + Sync + Clone + 'static,
         Fut: Future<Output = Result<R, String>> + Send + 'static,
@@ -126,6 +126,8 @@ impl BoundedParallelExecutor {
             let sub_cancel = internal_cancel.clone();
             let item_timeout_dur = self.config.item_timeout;
             let abort_on_first = self.config.abort_on_first_error;
+            let max_retries = self.config.max_retries;
+            let retry_backoff = self.config.retry_backoff;
             let comp_counter = Arc::clone(&completed_count);
             let fail_counter = Arc::clone(&failed_count);
             let prog_tx = progress_tx.clone();
@@ -188,84 +190,123 @@ impl BoundedParallelExecutor {
 
                 let item_start = Instant::now();
 
-                // Execute task with timeout and cooperative cancellation monitoring
-                let result = tokio::select! {
-                    _ = parent_cancel.cancelled() => {
+                // Execute task with timeout, retries, and cooperative cancellation monitoring
+                let mut attempt: u32 = 0;
+                let mut final_res = None;
+
+                while attempt <= max_retries {
+                    if parent_cancel.is_cancelled() {
                         fail_counter.fetch_add(1, Ordering::Relaxed);
-                        BatchItemExecutionResult::cancelled(
+                        final_res = Some(BatchItemExecutionResult::cancelled(
                             item_index,
                             job_id,
-                            url,
-                            custom_id,
+                            url.clone(),
+                            custom_id.clone(),
                             "Execution cancelled by client request",
-                        )
+                        ));
+                        break;
                     }
-                    _ = sub_cancel.cancelled() => {
+
+                    if sub_cancel.is_cancelled() {
                         fail_counter.fetch_add(1, Ordering::Relaxed);
-                        BatchItemExecutionResult::cancelled(
+                        final_res = Some(BatchItemExecutionResult::cancelled(
                             item_index,
                             job_id,
-                            url,
-                            custom_id,
+                            url.clone(),
+                            custom_id.clone(),
                             "Execution cancelled due to prior error in batch",
-                        )
+                        ));
+                        break;
                     }
-                    outcome = timeout(item_timeout_dur, proc(task)) => {
-                        let duration_ms = item_start.elapsed().as_millis() as u64;
-                        match outcome {
-                            Ok(Ok(val)) => {
-                                comp_counter.fetch_add(1, Ordering::Relaxed);
-                                BatchItemExecutionResult::success(
-                                    item_index,
-                                    job_id,
-                                    url,
-                                    custom_id,
-                                    duration_ms,
-                                    val,
-                                )
+
+                    let outcome = timeout(item_timeout_dur, proc(task.clone())).await;
+                    let duration_ms = item_start.elapsed().as_millis() as u64;
+
+                    match outcome {
+                        Ok(Ok(val)) => {
+                            comp_counter.fetch_add(1, Ordering::Relaxed);
+                            final_res = Some(BatchItemExecutionResult::success(
+                                item_index,
+                                job_id,
+                                url.clone(),
+                                custom_id.clone(),
+                                duration_ms,
+                                val,
+                            ));
+                            break;
+                        }
+                        Ok(Err(err_msg)) => {
+                            if attempt < max_retries
+                                && !parent_cancel.is_cancelled()
+                                && !sub_cancel.is_cancelled()
+                            {
+                                attempt += 1;
+                                let backoff = retry_backoff * attempt;
+                                tokio::time::sleep(backoff).await;
+                                continue;
                             }
-                            Ok(Err(err_msg)) => {
-                                fail_counter.fetch_add(1, Ordering::Relaxed);
-                                warn!(
-                                    item_index,
-                                    %job_id,
-                                    error = %err_msg,
-                                    "Item execution failed"
-                                );
-                                if abort_on_first {
-                                    sub_cancel.cancel();
-                                }
-                                BatchItemExecutionResult::failure(
-                                    item_index,
-                                    job_id,
-                                    url,
-                                    custom_id,
-                                    duration_ms,
-                                    err_msg,
-                                )
+                            fail_counter.fetch_add(1, Ordering::Relaxed);
+                            warn!(
+                                item_index,
+                                %job_id,
+                                error = %err_msg,
+                                "Item execution failed after retries"
+                            );
+                            if abort_on_first {
+                                sub_cancel.cancel();
                             }
-                            Err(_) => {
-                                fail_counter.fetch_add(1, Ordering::Relaxed);
-                                error!(
-                                    item_index,
-                                    %job_id,
-                                    timeout_ms = item_timeout_dur.as_millis(),
-                                    "Item execution timed out"
-                                );
-                                if abort_on_first {
-                                    sub_cancel.cancel();
-                                }
-                                BatchItemExecutionResult::timed_out(
-                                    item_index,
-                                    job_id,
-                                    url,
-                                    custom_id,
-                                    duration_ms,
-                                )
+                            final_res = Some(BatchItemExecutionResult::failure(
+                                item_index,
+                                job_id,
+                                url.clone(),
+                                custom_id.clone(),
+                                duration_ms,
+                                err_msg,
+                            ));
+                            break;
+                        }
+                        Err(_) => {
+                            if attempt < max_retries
+                                && !parent_cancel.is_cancelled()
+                                && !sub_cancel.is_cancelled()
+                            {
+                                attempt += 1;
+                                let backoff = retry_backoff * attempt;
+                                tokio::time::sleep(backoff).await;
+                                continue;
                             }
+                            fail_counter.fetch_add(1, Ordering::Relaxed);
+                            error!(
+                                item_index,
+                                %job_id,
+                                timeout_ms = item_timeout_dur.as_millis(),
+                                "Item execution timed out after retries"
+                            );
+                            if abort_on_first {
+                                sub_cancel.cancel();
+                            }
+                            final_res = Some(BatchItemExecutionResult::timed_out(
+                                item_index,
+                                job_id,
+                                url.clone(),
+                                custom_id.clone(),
+                                duration_ms,
+                            ));
+                            break;
                         }
                     }
-                };
+                }
+
+                let result = final_res.unwrap_or_else(|| {
+                    BatchItemExecutionResult::failure(
+                        item_index,
+                        job_id,
+                        url,
+                        custom_id,
+                        item_start.elapsed().as_millis() as u64,
+                        "Execution exhausted retries without outcome",
+                    )
+                });
 
                 // Decrement active worker counter and release permit
                 active.fetch_sub(1, Ordering::SeqCst);

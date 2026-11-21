@@ -51,6 +51,12 @@ impl WorkerEngine {
             config.max_concurrent_jobs,
             config.default_batch_parallelism,
         )
+        .map(|c| {
+            c.with_retries(
+                config.default_max_retries,
+                std::time::Duration::from_millis(config.default_retry_backoff_millis),
+            )
+        })
         .map_err(|e| CoreError::Validation {
             field: "pool_config".to_string(),
             reason: e.to_string(),
@@ -116,7 +122,7 @@ impl WorkerEngine {
         progress_tx: Option<mpsc::Sender<BatchProgressUpdate>>,
     ) -> Result<BatchExecutionSummary<R>, CoreError>
     where
-        T: Send + Sync + 'static,
+        T: Clone + Send + Sync + 'static,
         R: Send + Sync + 'static,
         F: Fn(BatchItemTask<T>) -> Fut + Send + Sync + Clone + 'static,
         Fut: Future<Output = Result<R, String>> + Send + 'static,
@@ -530,6 +536,12 @@ impl WorkerEngine {
                 .map(|c| {
                     c.with_batch_timeout(std::time::Duration::from_secs(lease_secs * 2))
                         .with_item_timeout(std::time::Duration::from_secs(lease_secs))
+                        .with_retries(
+                            self.config.default_max_retries,
+                            std::time::Duration::from_millis(
+                                self.config.default_retry_backoff_millis,
+                            ),
+                        )
                 })
                 .map_err(|e| CoreError::Validation {
                     field: "batch_config".to_string(),

@@ -5,10 +5,10 @@
 **Current Stage:** `STAGE 11 — PRODUCTION CERTIFICATION` (`IN_PROGRESS`)  
 **Last Completed Stage:** `STAGE 10 — ADVANCED DOCUMENTS AND CONTENT` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Last Completed Phase:** `Phase 11.2 — Performance` (`100% COMPLETED & FORMALLY CERTIFIED`)  
-**Active Subphase:** None  
-**Last Completed Subphase:** `11.3.1 — Interrupted-job recovery (empirically evaluated worker process crash simulation mid-batch, durable checkpointing with BLAKE3 cryptographic verification, cascading multi-stage crashes across 3 worker generations, distributed lease expiration and stale recovery failover, cooperative cancellation drainage, and end-to-end CDM document synthesis & streaming ZIP package export integrity; expanded docs/TESTING.md Section 3; exactly 1,000 tests passing across all 5 quality gates [684 Rust + 213 web + 103 extension])` (`ACCEPTED`)  
-**Current Phase:** `Phase 11.3 — Reliability` (`IN_PROGRESS`)  
-**Next Upcoming Subphase:** `11.3.2 — Retry & idempotency tests`
+**Active Subphase:** `None`  
+**Last Completed Subphase:** `11.3.2 — Retry & idempotency tests (item-level retry loop with exponential backoff on transient errors; terminal failure isolation on backoff exhaustion; mathematical idempotency f(f(x)) == f(x) for text/document normalizer and exact deduplicator; content-addressed storage multi-write and concurrent idempotency; multi-format export bit-for-bit repeatability across Markdown, Plain Text, JSON v1.0, HTML5, and streaming ZIP; state machine terminal immutability; expanded docs/TESTING.md Section 3; 1,006 tests passing across all 5 quality gates)` (`ACCEPTED`)  
+**Next Upcoming Phase:** `Phase 11.3 — Reliability`  
+**Next Upcoming Subphase:** `11.3.3 — Degraded-mode fallbacks`
 
 ---
 
@@ -336,16 +336,6 @@ In Stage 11 ("Production Certification"):
       6. Cooperative Shutdown & Task Cancellation Under Load (`test_cooperative_shutdown_and_cancellation_under_load`): Mid-batch cooperative engine shutdown during an active 16-task run, verifying clean cancellation via `CancellationToken`, graceful task accounting (`cancelled_count + succeeded_count == 16`), engine shutdown state transition (`is_shutting_down == true`), and immediate rejection of subsequent batch submissions.
     - Expanded `docs/PERFORMANCE.md` with Section 5 ("Memory Bounds & Concurrency Stress SLAs") detailing empirical tables, memory invariants, concurrency ceilings, backpressure parameters, streaming buffer limits, and shutdown lifecycles.
     - Quality & Verification: 6 memory and concurrency benchmark tests passing; 988+ total workspace tests passing (672 Rust + 213 web + 103 extension). Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean, and 100% passing quality gates (5/5).
-  - Subphase `11.2.4` delivered automated performance regression benchmarks, SLA drift verification, and Phase 11.2 formal certification:
-    - Authored 6 automated regression benchmark suites in `services/worker/tests/regression_benchmarks_test.rs` covering:
-      1. End-to-End Web Pipeline Regression (`test_regression_end_to_end_web_pipeline`): DOM parsing (`DomParser`), article extraction (`ArticleExtractor`), CDM synthesis, normalization, dual BPE token counting, and multi-format Markdown export, achieving $P_{95}$ latency of **5.91 ms** against a 60.0 ms SLA ceiling and 40.0 ms baseline (**-85.2% drift**, 1.87 MB/s, 201.2 items/s).
-      2. Context Budget Optimizer Regression (`test_regression_context_budget_optimizer`): Priority ranking, greedy knapsack allocation, deterministic boundary truncation, and zero silent drops across a 15-section polyglot corpus, achieving $P_{95}$ latency of **0.33 ms** against a 20.0 ms SLA ceiling and 10.0 ms baseline (**-96.7% drift**, 13.82 MB/s, 5,088.3 items/s) while strictly preserving token budget constraints (`fitted_tokens <= target_tokens`).
-      3. AST Semantic Chunking & Vector Ingest Export Regression (`test_regression_chunking_and_vector_export`): Polyglot AST-boundary code splitting and streaming line-delimited JSONL vector export (`export_chunks_to_jsonl`), achieving $P_{95}$ latency of **3.19 ms** against a 25.0 ms SLA ceiling and 12.0 ms baseline (**-73.4% drift**, 1.05 MB/s, 385.8 items/s).
-      4. Exact Content Deduplication Regression (`test_regression_content_deduplication`): Exact BLAKE3 content-hash comparison and cluster consolidation using `ExactDeduplicationConfig::aggressive()`, achieving $P_{95}$ latency of **0.43 ms** against a 20.0 ms SLA ceiling and 8.0 ms baseline (**-94.6% drift**, 13.64 MB/s, 5,024.7 items/s).
-      5. Multi-Format AI Exporter Suite Regression (`test_regression_multi_format_exporters`): Concurrently generating Markdown, Plain Text, Canonical JSON v1.0, HTML5, and BSD/GNU coreutils SHA-256 manifests across a multi-section document, achieving $P_{95}$ latency of **2.09 ms** against a 35.0 ms SLA ceiling and 15.0 ms baseline (**-86.1% drift**, 5.91 MB/s, 544.2 items/s).
-      6. System-Wide Regression Matrix & Drift Verification (`test_regression_system_wide_drift_audit`): Verified that all 5 critical conversion pipelines exhibit negative latency drift (faster than baseline) with zero regressions against target SLA ceilings.
-    - Expanded `docs/PERFORMANCE.md` with Section 6 ("Automated Regression Benchmark Suite & Phase 11.2 Performance Certification") detailing empirical SLA drift tables, zero-regression guarantees, and the formal Phase 11.2 Performance Certification statement.
-    - Quality & Formal Certification: 6 regression benchmark tests passing; 994+ total workspace tests passing (678 Rust + 213 web + 103 extension). Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean, and 100% passing quality gates (5/5). Formally certified Phase 11.2 in full.
 
 - Phase 11.3 ("Reliability"):
   - Subphase `11.3.1` delivered interrupted-job recovery, durable state checkpointing, and failover integration test suite in `services/worker/tests/interrupted_job_recovery_test.rs`:
@@ -357,6 +347,15 @@ In Stage 11 ("Production Certification"):
     6. End-to-End CDM Synthesis & Streaming Export Integrity (`test_interrupted_job_cdm_synthesis_and_export_integrity`): Evaluates end-to-end CDM document assembly, section cryptographic hashing, and streaming ZIP package creation across interrupted runs, verifying the archive contains all 6 document directories with matching BLAKE3/SHA-256 manifests.
     - Expanded `docs/TESTING.md` with Section 3 ("Reliability & Interrupted-Job Recovery Verification (Phase 11.3)") detailing failure SLAs, mathematical completeness conservation ($\text{Items}_{\text{total}} = \text{Items}_{\text{reused}} + \text{Items}_{\text{executed}}$), zero-duplication guarantees, and automated recovery matrices.
     - Quality & Verification: 6 automated recovery tests passing; exactly 1,000 total workspace tests passing (684 Rust + 213 web + 103 extension). Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean, and 100% passing quality gates (5/5).
+  - Subphase `11.3.2` delivered retry dynamics, backoff exhaustion isolation, mathematical idempotency, and deterministic repeatability verification in `services/worker/tests/retry_and_idempotency_test.rs`:
+    1. Transient Failure Automatic Retry & Recovery (`test_transient_failure_automatic_retry_and_recovery`): Worker pool with `max_retries = 3` and 10ms backoff automatically retries failing batch items; items experiencing connection resets on attempts 0 and 1 heal on attempt 2 to 100% batch success with exact sequential index ordering and updated worker metrics snapshot.
+    2. Retry Backoff Exhaustion Deterministic Terminal Failure (`test_retry_backoff_exhaustion_deterministic_terminal_failure`): Permanently failing item cleanly transitions to `BatchItemStatusOutcome::Failed` after exhausting exactly 1 initial + 2 retry attempts without aborting, crashing, or corrupting healthy sibling tasks.
+    3. Document Normalization & Deduplication Mathematical Idempotency (`test_document_normalization_and_deduplication_mathematical_idempotency`): Proved $f(f(x)) \equiv f(x)$ across raw text normalization (immediate fixed point), full CDM document normalization (pass 2 executes exactly 0 section modifications), and document deduplication (pass 2 discovers exactly 0 duplicates).
+    4. Content-Addressed Storage & Cache Write Idempotency (`test_content_addressed_storage_and_cache_write_idempotency`): Initial write returns `is_new: true`; secondary duplicate write returns `is_new: false` with identical BLAKE3/SHA-256 addresses; 10 concurrent multi-threaded worker tasks writing identical blobs produce zero data races or storage corruption; CAS audit confirms 100% health with exactly 1 indexed physical blob ($O(1)$ space).
+    5. Multi-Format Export Bit-for-Bit Deterministic Idempotency (`test_multi_format_export_bit_for_bit_deterministic_idempotency`): 5 consecutive export iterations across Markdown, Plain Text, JSON v1.0, and HTML5 produce bit-for-bit invariant byte streams and constant BLAKE3 checksums; streaming ZIP package exports yield identical file entries, sizes, and CRC32 digests.
+    6. State Machine Transition & Lease Renewal Idempotency (`test_state_machine_transition_and_lease_renewal_idempotency`): Evaluates distributed leasing lifecycle transitions (`Queued` -> `Leased` -> `Running` -> `Completed`); proves terminal immutability where all mutations from `Completed`, `Failed`, or `Cancelled` states are strictly rejected; validates `LeaseConfig` boundary invariants.
+    - Expanded `docs/TESTING.md` Section 3 with Subsections 3.3 ("Retry Dynamics & Mathematical Idempotency SLAs") and 3.4 detailing automated test coverage.
+    - Quality & Verification: 6 automated retry and idempotency tests passing; 1,006 total workspace tests passing (690 Rust + 213 web + 103 extension). Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean, and 100% passing quality gates (5/5).
 
 ---
 
@@ -364,12 +363,12 @@ In Stage 11 ("Production Certification"):
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 189 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4`, `10.3.1` – `10.3.4`, `10.4.1` – `10.4.4`, `10.5.1`, `10.5.2`, `10.5.3`, `10.5.4`, `11.1.1`, `11.1.2`, `11.1.3`, `11.1.4`, `11.2.1`, `11.2.2`, `11.2.3`, `11.2.4`, `11.3.1` |
+| `ACCEPTED` | 190 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4`, `10.3.1` – `10.3.4`, `10.4.1` – `10.4.4`, `10.5.1`, `10.5.2`, `10.5.3`, `10.5.4`, `11.1.1`, `11.1.2`, `11.1.3`, `11.1.4`, `11.2.1`, `11.2.2`, `11.2.3`, `11.2.4`, `11.3.1`, `11.3.2` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 7 | `11.3.2` – `11.4.5` |
+| `NOT_STARTED` | 6 | `11.3.3` – `11.4.5` |
 | `Total` | **196** | `Stage 0` – `Stage 11` |
 
 ---

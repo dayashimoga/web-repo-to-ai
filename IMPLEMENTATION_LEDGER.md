@@ -7718,5 +7718,71 @@
   - `scripts/check-all.ps1` 100% passing across all 5 quality gates with 0 failures.
 - **Status:** `ACCEPTED`
 
+---
+
+#### Subphase `11.3.2` — Retry & idempotency tests
+- **Unique ID:** `11.3.2`
+- **Objective:** Implement and verify retry dynamics, automatic exponential backoff on transient errors, backoff exhaustion isolation, mathematical idempotency $f(f(x)) \equiv f(x)$ across document and text normalization and deduplication, content-addressed storage (CAS) multi-write and concurrent idempotency, multi-format export bit-for-bit repeatability across Markdown, Plain Text, JSON v1.0, HTML5, and streaming ZIP archives, and state machine terminal immutability.
+- **Scope:** `services/worker/tests/retry_and_idempotency_test.rs`, `crates/job-engine/src/resumable.rs`, `crates/job-engine/src/executor.rs`, `crates/job-engine/src/pool.rs`, `services/worker/src/config.rs`, `services/worker/src/engine.rs`, `services/worker/src/metrics.rs`, `docs/TESTING.md`.
+- **Prerequisites:** `11.3.1` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `crates/job-engine/src/executor.rs`
+  - `crates/job-engine/src/pool.rs`
+  - `crates/job-engine/src/resumable.rs`
+  - `services/worker/src/config.rs`
+  - `services/worker/src/engine.rs`
+  - `services/worker/src/metrics.rs`
+  - `services/worker/tests/retry_and_idempotency_test.rs`
+  - `docs/TESTING.md`
+  - `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`, `IMPLEMENTATION_LEDGER.md`
+- **Implementation Tasks:**
+  1. Extended `crates/job-engine/src/executor.rs` with item-level retry loops and exponential backoff (`retry_backoff * attempt`) up to `max_retries` for transient errors and timeouts.
+  2. Extended `crates/job-engine/src/pool.rs` with `default_max_retries` and `default_retry_backoff` on `WorkerPoolConfig` and `WorkerPool::execute_batch`.
+  3. Extended `crates/job-engine/src/resumable.rs` with automatic item retry loops in `ResumableParallelExecutor::execute_resumable`.
+  4. Extended `services/worker/src/config.rs` with `default_max_retries` and `default_retry_backoff_millis` builder options on `WorkerServiceConfig`.
+  5. Extended `services/worker/src/engine.rs` wiring retries into `WorkerPoolConfig` and `execute_resumable_batch`.
+  6. Extended `services/worker/src/metrics.rs` with atomic counters for `retries_attempted` and `retries_succeeded`.
+  7. Authored `services/worker/tests/retry_and_idempotency_test.rs` covering all 6 core integration tests:
+     - `test_transient_failure_automatic_retry_and_recovery`: Transient failures on attempts 0 and 1 heal on attempt 2 to 100% batch success with exact sequential index ordering.
+     - `test_retry_backoff_exhaustion_deterministic_terminal_failure`: Persistent failure cleanly terminates as `BatchItemStatusOutcome::Failed` after exhausting 1 initial + 2 retries without failing or corrupting sibling tasks.
+     - `test_document_normalization_and_deduplication_mathematical_idempotency`: Mathematical proof of $f(f(x)) \equiv f(x)$ across raw text normalization, full CDM document normalization (pass 2 executes 0 section modifications), and document deduplication (pass 2 discovers 0 new duplicates).
+     - `test_content_addressed_storage_and_cache_write_idempotency`: Initial write returns `is_new: true`, duplicate write returns `is_new: false` with identical BLAKE3/SHA-256 addresses; 10 concurrent multi-threaded worker tasks writing identical blobs produce zero data races or storage corruption; CAS audit confirms 100% health with exactly 1 indexed physical blob ($O(1)$ space).
+     - `test_multi_format_export_bit_for_bit_deterministic_idempotency`: 5 consecutive export iterations across Markdown, Plain Text, JSON v1.0, and HTML5 produce bit-for-bit invariant byte streams and constant BLAKE3 checksums; streaming ZIP package exports yield identical file entries, sizes, and CRC32 digests.
+     - `test_state_machine_transition_and_lease_renewal_idempotency`: Evaluates distributed leasing lifecycle transitions (`Queued` -> `Leased` -> `Running` -> `Completed`); proves terminal immutability where all mutations from `Completed`, `Failed`, or `Cancelled` states are strictly rejected; validates `LeaseConfig` boundary invariants.
+  8. Expanded `docs/TESTING.md` Section 3 with Subsections 3.3 ("Retry Dynamics & Mathematical Idempotency SLAs") and 3.4 detailing automated test coverage.
+  9. Executed full monorepo quality audit via `scripts/check-all.ps1` with 100% passing across all 5 quality gates (1,006 total workspace tests: 690 Rust + 213 web + 103 extension).
+  10. Updated all project tracking ledgers.
+- **Acceptance Criteria:**
+  - Bounded parallel executor automatically retries failing batch items up to `max_retries` with exponential backoff.
+  - Backoff exhaustion isolates failures without failing or aborting healthy sibling batch items.
+  - Mathematical idempotency $f(f(x)) \equiv f(x)$ holds across text normalization, document normalization, and deduplication.
+  - Content-addressed storage deduplicates writes with zero disk bloat under sequential and concurrent access.
+  - Multi-format exporters produce bit-for-bit identical outputs across repeated runs.
+  - State machine strictly rejects all transitions originating from terminal states.
+  - 100% test pass rate, 0 clippy warnings under `-D warnings`, zero formatting diffs, clean `cargo deny check`.
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-worker --test retry_and_idempotency_test --jobs 2 -- --nocapture` (6/6 tests passing)
+  - `cargo test -p web-repo-to-ai-worker --test interrupted_job_recovery_test --jobs 2 -- --nocapture` (6/6 tests passing)
+  - `cargo clippy --workspace --all-targets --jobs 4 -- -D warnings` (Clean, zero warnings)
+  - `cargo fmt --all -- --check` (Clean, zero diffs)
+  - `cargo deny check` (Advisories ok, bans ok, licenses ok, sources ok)
+  - `powershell -ExecutionPolicy Bypass -File scripts/check-all.ps1` (All 5 gates passed with 0 failures, 1,006 total tests passing)
+- **Tests:**
+  - `services/worker/tests/retry_and_idempotency_test.rs` (6 automated reliability and idempotency tests)
+- **Security Considerations:**
+  - Terminal state transitions cannot be spoofed or bypassed, preventing re-execution of completed, cancelled, or failed jobs.
+  - Content-addressed storage validates cryptographic digests (BLAKE3 and SHA-256) on write and read, preventing hash collision attacks or payload tampering.
+- **Performance Considerations:**
+  - Exponential backoff prevents thundering herd against transiently degraded upstream endpoints.
+  - CAS deduplication guarantees $O(1)$ disk space growth for redundant artifact writes.
+- **Documentation Requirements:**
+  - `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`, `IMPLEMENTATION_LEDGER.md`, `docs/TESTING.md`.
+- **Validation Evidence:**
+  - 6 retry and idempotency tests passing in `services/worker`.
+  - Exactly 1,006 tests passing across the workspace (690 Rust + 213 web + 103 extension).
+  - `scripts/check-all.ps1` 100% passing across all 5 quality gates with 0 failures.
+- **Status:** `ACCEPTED`
+
+
 
 

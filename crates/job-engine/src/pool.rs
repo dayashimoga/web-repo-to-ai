@@ -38,6 +38,12 @@ pub struct WorkerPoolConfig {
 
     /// Maximum duration allowed for active tasks to complete during graceful shutdown.
     pub shutdown_timeout: Duration,
+
+    /// Default maximum automatic retries per failing item.
+    pub default_max_retries: u32,
+
+    /// Default backoff delay between retries.
+    pub default_retry_backoff: Duration,
 }
 
 impl Default for WorkerPoolConfig {
@@ -47,6 +53,8 @@ impl Default for WorkerPoolConfig {
             max_worker_concurrency: DEFAULT_MAX_WORKER_CONCURRENCY,
             default_batch_parallelism: crate::config::DEFAULT_PARALLELISM,
             shutdown_timeout: Duration::from_secs(DEFAULT_SHUTDOWN_TIMEOUT_SECONDS),
+            default_max_retries: 0,
+            default_retry_backoff: Duration::from_millis(500),
         }
     }
 }
@@ -63,9 +71,19 @@ impl WorkerPoolConfig {
             max_worker_concurrency,
             default_batch_parallelism,
             shutdown_timeout: Duration::from_secs(DEFAULT_SHUTDOWN_TIMEOUT_SECONDS),
+            default_max_retries: 0,
+            default_retry_backoff: Duration::from_millis(500),
         };
         config.validate()?;
         Ok(config)
+    }
+
+    /// Configures automatic item-level retry limits and backoff.
+    #[must_use]
+    pub fn with_retries(mut self, max_retries: u32, retry_backoff: Duration) -> Self {
+        self.default_max_retries = max_retries;
+        self.default_retry_backoff = retry_backoff;
+        self
     }
 
     /// Validates the pool configuration.
@@ -186,7 +204,7 @@ impl WorkerPool {
         progress_tx: Option<mpsc::Sender<BatchProgressUpdate>>,
     ) -> Result<BatchExecutionSummary<R>, JobEngineError>
     where
-        T: Send + Sync + 'static,
+        T: Clone + Send + Sync + 'static,
         R: Send + Sync + 'static,
         F: Fn(BatchItemTask<T>) -> Fut + Send + Sync + Clone + 'static,
         Fut: Future<Output = Result<R, String>> + Send + 'static,
@@ -200,7 +218,11 @@ impl WorkerPool {
             .unwrap_or(self.config.default_batch_parallelism)
             .min(self.config.max_worker_concurrency);
 
-        let execution_config = BatchExecutionConfig::with_parallelism(effective_parallelism)?;
+        let execution_config = BatchExecutionConfig::with_parallelism(effective_parallelism)?
+            .with_retries(
+                self.config.default_max_retries,
+                self.config.default_retry_backoff,
+            );
         let executor = BoundedParallelExecutor::new(execution_config)?;
 
         let summary = executor

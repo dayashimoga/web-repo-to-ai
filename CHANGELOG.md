@@ -6,6 +6,31 @@
 
 ## [Unreleased] — Stage 11: Production Certification
 
+### 2026-11-21 — Phase 11.3: Reliability (`11.3.2`)
+
+#### Added
+- **`[11.3.2]` Automated retry dynamics, backoff exhaustion isolation, mathematical idempotency, and deterministic repeatability integration test suite (`crates/job-engine`, `services/worker`, `docs/TESTING.md`):**
+  - Item-Level Retry Loops & Backoff in Job Engine (`crates/job-engine`):
+    - Added item-level automatic retry loop with exponential backoff (`retry_backoff * attempt`) up to `max_retries` in `BoundedParallelExecutor` (`crates/job-engine/src/executor.rs`) and `ResumableParallelExecutor` (`crates/job-engine/src/resumable.rs`).
+    - Added `default_max_retries` and `default_retry_backoff` configuration options to `WorkerPoolConfig` and propagated them through `WorkerPool::execute_batch` (`crates/job-engine/src/pool.rs`).
+  - Worker Daemon Retry Configuration & Telemetry (`services/worker`):
+    - Added `default_max_retries` and `default_retry_backoff_millis` configuration fields with fluent builder `WorkerServiceConfig::with_retries` (`services/worker/src/config.rs`).
+    - Added atomic counters for `retries_attempted` and `retries_succeeded` in `WorkerServiceMetrics` and `WorkerMetricsSnapshot` (`services/worker/src/metrics.rs`).
+    - Wired default retries through `WorkerEngine::new` and `execute_resumable_batch` (`services/worker/src/engine.rs`).
+  - Reliability, Retry & Idempotency Integration Test Suite (`services/worker/tests/retry_and_idempotency_test.rs`):
+    - Transient Failure Automatic Retry & Recovery (`test_transient_failure_automatic_retry_and_recovery`): Worker pool with `max_retries = 3` and 10ms backoff automatically retries failing batch items; items experiencing connection resets on attempts 0 and 1 heal on attempt 2 to 100% batch success with exact sequential index ordering.
+    - Retry Backoff Exhaustion Deterministic Terminal Failure (`test_retry_backoff_exhaustion_deterministic_terminal_failure`): Permanently failing item cleanly transitions to `BatchItemStatusOutcome::Failed` after exhausting exactly 1 initial + 2 retry attempts without aborting, crashing, or corrupting healthy sibling tasks.
+    - Document Normalization & Deduplication Mathematical Idempotency (`test_document_normalization_and_deduplication_mathematical_idempotency`): Proved $f(f(x)) \equiv f(x)$ across raw text normalization (immediate fixed point), full CDM document normalization (pass 2 executes exactly 0 section modifications), and document deduplication (pass 2 discovers exactly 0 duplicates).
+    - Content-Addressed Storage & Cache Write Idempotency (`test_content_addressed_storage_and_cache_write_idempotency`): Initial write returns `is_new: true`; secondary duplicate write returns `is_new: false` with identical BLAKE3/SHA-256 addresses; 10 concurrent multi-threaded worker tasks writing identical blobs produce zero data races or storage corruption; CAS audit confirms 100% health with exactly 1 indexed physical blob ($O(1)$ space).
+    - Multi-Format Export Bit-for-Bit Deterministic Idempotency (`test_multi_format_export_bit_for_bit_deterministic_idempotency`): 5 consecutive export iterations across Markdown, Plain Text, JSON v1.0, and HTML5 produce bit-for-bit invariant byte streams and constant BLAKE3 checksums; streaming ZIP package exports yield identical file entries, sizes, and CRC32 digests.
+    - State Machine Transition & Lease Renewal Idempotency (`test_state_machine_transition_and_lease_renewal_idempotency`): Evaluates distributed leasing lifecycle transitions (`Queued` -> `Leased` -> `Running` -> `Completed`); proves terminal immutability where all mutations from `Completed`, `Failed`, or `Cancelled` states are strictly rejected; validates `LeaseConfig` boundary invariants.
+  - Reliability Documentation Updates (`docs/TESTING.md`):
+    - Added Subsections 3.3 ("Retry Dynamics & Mathematical Idempotency SLAs") and 3.4 detailing the test suite and idempotency SLA guarantees.
+  - Quality & Verification:
+    - 6 new automated tests in `services/worker/tests/retry_and_idempotency_test.rs`.
+    - Exactly 1,006 monorepo workspace tests passing (690 Rust + 213 web + 103 extension).
+    - All 5 monorepo quality gates passing via `scripts/check-all.ps1` with 0 failures.
+
 ### 2026-11-21 — Phase 11.3: Reliability (`11.3.1`)
 
 #### Added

@@ -61,6 +61,12 @@ pub struct WorkerServiceConfig {
 
     /// Local filesystem directory for storing converted artifacts.
     pub storage_dir: Option<PathBuf>,
+
+    /// Default maximum retry attempts for failing batch items.
+    pub default_max_retries: u32,
+
+    /// Backoff delay in milliseconds between retry attempts.
+    pub default_retry_backoff_millis: u64,
 }
 
 impl Default for WorkerServiceConfig {
@@ -75,6 +81,8 @@ impl Default for WorkerServiceConfig {
             shutdown_timeout_seconds: DEFAULT_SHUTDOWN_TIMEOUT_SECONDS,
             database_url: None,
             storage_dir: None,
+            default_max_retries: 0,
+            default_retry_backoff_millis: 500,
         }
     }
 }
@@ -98,6 +106,14 @@ impl WorkerServiceConfig {
         };
         config.validate()?;
         Ok(config)
+    }
+
+    /// Configures automatic item-level retry limits and backoff duration in milliseconds.
+    #[must_use]
+    pub fn with_retries(mut self, max_retries: u32, retry_backoff_millis: u64) -> Self {
+        self.default_max_retries = max_retries;
+        self.default_retry_backoff_millis = retry_backoff_millis;
+        self
     }
 
     /// Returns the polling interval as a `Duration`.

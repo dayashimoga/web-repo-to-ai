@@ -32,6 +32,8 @@ pub struct WorkerServiceMetrics {
     resumed_jobs_count: Arc<AtomicUsize>,
     checkpoints_saved_count: Arc<AtomicUsize>,
     items_reused_from_checkpoint: Arc<AtomicUsize>,
+    retries_attempted: Arc<AtomicUsize>,
+    retries_succeeded: Arc<AtomicUsize>,
 }
 
 /// Serializable snapshot of worker metrics.
@@ -81,6 +83,10 @@ pub struct WorkerMetricsSnapshot {
     pub checkpoints_saved_count: usize,
     /// Total items skipped and reused directly from checkpoints.
     pub items_reused_from_checkpoint: usize,
+    /// Total retry attempts executed across batch tasks.
+    pub retries_attempted: usize,
+    /// Total retry attempts that succeeded.
+    pub retries_succeeded: usize,
 }
 
 impl WorkerServiceMetrics {
@@ -190,6 +196,14 @@ impl WorkerServiceMetrics {
             .fetch_add(items_reused, Ordering::Relaxed);
     }
 
+    /// Records retry attempts and outcomes.
+    pub fn record_retry(&self, succeeded: bool) {
+        self.retries_attempted.fetch_add(1, Ordering::Relaxed);
+        if succeeded {
+            self.retries_succeeded.fetch_add(1, Ordering::Relaxed);
+        }
+    }
+
     /// Produces an immutable metrics snapshot.
     #[must_use]
     pub fn snapshot(&self) -> WorkerMetricsSnapshot {
@@ -216,6 +230,8 @@ impl WorkerServiceMetrics {
             resumed_jobs_count: self.resumed_jobs_count.load(Ordering::Relaxed),
             checkpoints_saved_count: self.checkpoints_saved_count.load(Ordering::Relaxed),
             items_reused_from_checkpoint: self.items_reused_from_checkpoint.load(Ordering::Relaxed),
+            retries_attempted: self.retries_attempted.load(Ordering::Relaxed),
+            retries_succeeded: self.retries_succeeded.load(Ordering::Relaxed),
         }
     }
 }
@@ -234,6 +250,8 @@ mod tests {
         metrics.record_backpressure_stats(2, 0, 8);
         metrics.record_streaming_export(4096);
         metrics.record_resumable_stats(true, 3, 2);
+        metrics.record_retry(true);
+        metrics.record_retry(false);
         metrics.update_active_workers(3);
 
         let snap = metrics.snapshot();
@@ -259,5 +277,7 @@ mod tests {
         assert_eq!(snap.resumed_jobs_count, 1);
         assert_eq!(snap.checkpoints_saved_count, 3);
         assert_eq!(snap.items_reused_from_checkpoint, 2);
+        assert_eq!(snap.retries_attempted, 2);
+        assert_eq!(snap.retries_succeeded, 1);
     }
 }
