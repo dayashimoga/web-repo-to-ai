@@ -140,7 +140,8 @@ foreach ($file in $stagedBinaries) {
     $checksumLines += "$sha256  $($file.Name)"
 }
 $checksumFilePath = Join-Path $OutDir "checksums.sha256"
-Set-Content -Path $checksumFilePath -Value $checksumLines -Encoding utf8
+$utf8NoBom = New-Object System.Text.UTF8Encoding $false
+[System.IO.File]::WriteAllLines($checksumFilePath, $checksumLines, $utf8NoBom)
 Write-Output "  [CHECKSUM] Staged SHA-256 checksums written to $checksumFilePath"
 
 # Create structured build manifest
@@ -156,7 +157,8 @@ $manifest = [ordered]@{
     status = "SUCCESS"
 }
 $manifestJson = $manifest | ConvertTo-Json -Depth 4
-Set-Content -Path (Join-Path $OutDir "BUILD_MANIFEST.json") -Value $manifestJson -Encoding utf8
+$manifestPath = Join-Path $OutDir "BUILD_MANIFEST.json"
+[System.IO.File]::WriteAllText($manifestPath, $manifestJson, $utf8NoBom)
 
 # Smoke execution test
 $cliBinaryName = if ($IsWindows -or $env:OS -like "*Windows*") { "web-repo-to-ai.exe" } else { "web-repo-to-ai" }

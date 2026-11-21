@@ -5,10 +5,10 @@
 **Current Stage:** `STAGE 11 — PRODUCTION CERTIFICATION` (`IN_PROGRESS`)  
 **Last Completed Stage:** `STAGE 10 — ADVANCED DOCUMENTS AND CONTENT` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Last Completed Phase:** `Phase 11.3 — Reliability` (`100% COMPLETED & FORMALLY CERTIFIED`)  
-**Active Subphase:** `None (Awaiting confirmation to begin Subphase 11.4.3 — Release artifacts & SBOM)`  
-**Last Completed Subphase:** `11.4.2 — Production build (release compilation of all Rust backend binaries [api, worker, cli, mcp], production SvelteKit web bundle with adapter-node, Chrome extension MV3 build, scripts/build-production.ps1 and build-production.sh orchestration, and crates/cli/tests/production_build_test.rs; 1,023 tests passing across all 5 quality gates)` (`ACCEPTED`)  
+**Active Subphase:** `None (Awaiting confirmation to begin Subphase 11.4.4 — Deployment verification)`  
+**Last Completed Subphase:** `11.4.3 — Release artifacts & SBOM (CycloneDX v1.5 JSON [369 components] and SPDX v2.3 JSON [370 packages] SBOM generation via scripts/generate-sbom.py, release archive packaging engine via scripts/package-release.ps1 and package-release.sh producing Windows binaries zip, frontend web zip, Chrome extension zip, release checksums.sha256, and RELEASE_MANIFEST.json, release CI workflow integration in .github/workflows/release.yml, and 6 comprehensive automated tests in crates/cli/tests/release_artifacts_and_sbom_test.rs; 1,029 tests passing across all 5 quality gates)` (`ACCEPTED`)  
 **Next Upcoming Phase:** `Phase 11.4 — Release`  
-**Next Upcoming Subphase:** `11.4.3 — Release artifacts & SBOM`
+**Next Upcoming Subphase:** `11.4.4 — Deployment verification`
 
 ---
 
@@ -393,6 +393,13 @@ In Stage 11 ("Production Certification"):
     4. Production Build Orchestration Engine: Implemented `scripts/build-production.ps1` and `scripts/build-production.sh`, providing automated toolchain inspection, 30 GB storage ceiling verification, multi-target compilation, unified staging (`dist/bin/`, `dist/web/`, `dist/extension/`), cryptographic SHA-256 and BLAKE3 checksum generation, `dist/BUILD_MANIFEST.json` synthesis, and binary smoke testing.
     5. Production Build Verification Test Suite: Implemented 5 automated tests in `crates/cli/tests/production_build_test.rs` validating binary metadata, subcommand help contracts, file attribute and size bounds, checksum calculations, and multi-target artifact packaging manifest deserialization.
     - Quality & Verification: 5 new automated tests passing; 1,023 total workspace tests passing (707 Rust + 213 web + 103 extension). All 5 quality gates passing via `scripts/check-all.ps1` with 0 failures.
+  - Subphase `11.4.3` delivered standards-compliant Software Bills of Materials (SBOM) and release artifact packaging:
+    1. SBOM Generator (`scripts/generate-sbom.py`): Automated dependency extraction across 353 Cargo packages and 20 Node.js packages (`apps/web`, `apps/extension`), producing standards-compliant **CycloneDX v1.5 JSON** (369 components with purls, licenses, and dependency relationships) and **SPDX v2.3 JSON** (370 packages with SPDX IDs, licenses, supplier metadata, and SHA-256 package verification codes).
+    2. Cross-Platform SBOM Scripts: Implemented `scripts/generate-sbom.ps1` and `scripts/generate-sbom.sh` wrappers with clean UTF-8 no-BOM output encoding.
+    3. Release Packaging Engine (`scripts/package-release.ps1` & `scripts/package-release.sh`): Built automated release packaging producing Windows release binaries archive (`web-repo-to-ai-v0.1.0-windows-x86_64.zip`), frontend web production archive (`web-repo-to-ai-v0.1.0-frontend-web.zip`), Chrome extension MV3 package (`web-repo-to-ai-v0.1.0-chrome-extension.zip`), CycloneDX & SPDX SBOMs, SHA-256 checksums manifest (`checksums.sha256`), and release inventory manifest (`RELEASE_MANIFEST.json`) in `release-assets/`.
+    4. Release CI Integration: Updated `.github/workflows/release.yml` with dynamic SBOM generation and packaging, validated via `scripts/validate-workflows.py` (7/7 workflows passing).
+    5. Automated Verification Test Suite (`crates/cli/tests/release_artifacts_and_sbom_test.rs`): Implemented 6 comprehensive automated tests validating CycloneDX schema and purls, SPDX schema and license compliance, release manifest structure, zip archive PK headers and decompression integrity, dual SHA-256 hash verification against assets, and SPDX permissive license whitelist adherence.
+    - Quality & Verification: 6 new automated tests passing; 1,029 total workspace tests passing (713 Rust + 213 web + 103 extension). All 5 monorepo quality gates passing via `scripts/check-all.ps1` with 0 failures.
 
 ---
 
@@ -400,12 +407,12 @@ In Stage 11 ("Production Certification"):
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 194 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4`, `10.3.1` – `10.3.4`, `10.4.1` – `10.4.4`, `10.5.1`, `10.5.2`, `10.5.3`, `10.5.4`, `11.1.1`, `11.1.2`, `11.1.3`, `11.1.4`, `11.2.1`, `11.2.2`, `11.2.3`, `11.2.4`, `11.3.1`, `11.3.2`, `11.3.3`, `11.3.4`, `11.4.1`, `11.4.2` |
+| `ACCEPTED` | 195 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4`, `10.3.1` – `10.3.4`, `10.4.1` – `10.4.4`, `10.5.1`, `10.5.2`, `10.5.3`, `10.5.4`, `11.1.1`, `11.1.2`, `11.1.3`, `11.1.4`, `11.2.1`, `11.2.2`, `11.2.3`, `11.2.4`, `11.3.1`, `11.3.2`, `11.3.3`, `11.3.4`, `11.4.1`, `11.4.2`, `11.4.3` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 3 | `11.4.3` – `11.4.5` |
+| `NOT_STARTED` | 2 | `11.4.4` – `11.4.5` |
 | `Total` | **197** | `Stage 0` – `Stage 11` |
 
 ---

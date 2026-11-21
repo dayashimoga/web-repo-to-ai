@@ -6,6 +6,40 @@
 
 ## [Unreleased] — Stage 11: Production Certification
 
+### 2026-11-21 — Phase 11.4: Release (`11.4.3`)
+
+#### Added
+- **`[11.4.3]` Automated Software Bill of Materials (SBOM) and release artifact packaging (`scripts/`, `crates/cli`, `.github/workflows`):**
+  - **Automated SBOM Generator (`scripts/generate-sbom.py`):**
+    - Implemented Python generator parsing `cargo metadata` (353 workspace and transitive packages) and npm lockfiles / `package.json` files for `apps/web` and `apps/extension` (20 Node.js packages).
+    - Produces **CycloneDX v1.5 JSON** (`sbom-cyclonedx.json`, 369 components) containing purls (`pkg:cargo/...`, `pkg:npm/...`), license objects, descriptions, hashes, and complete dependency graph relationships.
+    - Produces **SPDX v2.3 JSON** (`sbom-spdx.json`, 370 packages) containing unique `SPDXRef-Package-*` identifiers, standard SPDX license expressions, download locations, supplier metadata, package verification codes, and `DEPENDS_ON` relationships.
+  - **Cross-Platform SBOM Scripts (`scripts/generate-sbom.ps1` & `scripts/generate-sbom.sh`):**
+    - Created PowerShell and Bash wrappers enforcing clean UTF-8 no-BOM output encoding.
+  - **Release Archive Packaging Engine (`scripts/package-release.ps1` & `scripts/package-release.sh`):**
+    - Created release packager assembling release bundles into `release-assets/`:
+      - Windows x86_64 binaries zip (`web-repo-to-ai-v0.1.0-windows-x86_64.zip`, ~37.3 MB).
+      - Frontend web production bundle zip (`web-repo-to-ai-v0.1.0-frontend-web.zip`, ~0.63 MB).
+      - Chrome extension MV3 package zip (`web-repo-to-ai-v0.1.0-chrome-extension.zip`, ~23.2 KB).
+      - CycloneDX and SPDX SBOM JSON files.
+      - Dual SHA-256 and BLAKE3 checksums (`checksums.sha256`).
+      - Full release inventory manifest (`RELEASE_MANIFEST.json`).
+  - **Release CI Automation (`.github/workflows/release.yml`):**
+    - Integrated `python scripts/generate-sbom.py` into the release workflow pipeline.
+    - Validated all 7 repository workflows with `scripts/validate-workflows.py` (7/7 passed).
+  - **Automated Verification Test Suite (`crates/cli/tests/release_artifacts_and_sbom_test.rs`):**
+    - Implemented 6 automated integration tests covering:
+      1. `test_cyclonedx_sbom_specification_schema_and_invariants`: Validates CycloneDX 1.5 schema, tool descriptor, >=300 components, valid purl format, and dependency graph nodes.
+      2. `test_spdx_sbom_specification_schema_and_invariants`: Validates SPDX-2.3 schema, CC0-1.0 dataLicense, >=300 packages, SPDXRef IDs, and relationships.
+      3. `test_release_manifest_structure_and_completeness`: Validates `RELEASE_MANIFEST.json` release name, version tag, component mappings, and artifact file sizes.
+      4. `test_release_archive_zip_integrity_and_decompression`: Validates PK magic header (`PK\x03\x04`), payload entries, and non-empty size across all zip archives.
+      5. `test_dual_checksum_verification_and_monotonic_ordering`: Recalculates SHA-256 for each release asset and validates 100% cryptographic match against `checksums.sha256`.
+      6. `test_license_audit_and_spdx_whitelist_compliance`: Audits all SBOM components against approved permissive licenses (MIT, Apache-2.0, BSD-2/3, 0BSD, ISC, Unicode, PostgreSQL, CC0, BSL-1.0, MIT-0) ensuring zero prohibited copyleft.
+  - **Quality & Verification:**
+    - 6 new automated tests in `crates/cli/tests/release_artifacts_and_sbom_test.rs`.
+    - Exactly 1,029 tests passing across the workspace (713 Rust + 213 web + 103 extension).
+    - All 5 monorepo quality gates passing via `scripts/check-all.ps1` with 0 failures.
+
 ### 2026-11-21 — Phase 11.4: Release (`11.4.2`)
 
 #### Added

@@ -58,22 +58,8 @@ jobs:
             done
           fi
 
-          # 3. Generate baseline SBOM document
-          cat << EOF > release-assets/sbom-cyclonedx.json
-          {
-            "bomFormat": "CycloneDX",
-            "specVersion": "1.5",
-            "serialNumber": "urn:uuid:$(uuidgen || echo '019335c4-7c20-7000-8000-000000000001')",
-            "version": 1,
-            "metadata": {
-              "component": {
-                "name": "web-repo-to-ai",
-                "version": "${RELEASE_TAG}",
-                "type": "application"
-              }
-            }
-          }
-          EOF
+          # 3. Generate standards-compliant CycloneDX v1.5 and SPDX v2.3 SBOMs
+          python scripts/generate-sbom.py --out-dir release-assets --tag "${RELEASE_TAG}"
 
           # 4. Generate SHA-256 checksums
           cd release-assets

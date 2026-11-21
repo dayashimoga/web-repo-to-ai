@@ -134,7 +134,8 @@ async fn test_production_multi_target_artifact_manifest() {
         "completeness": true
     });
 
-    let serialized = serde_json::to_string_pretty(&manifest_json).expect("Serialization must succeed");
+    let serialized =
+        serde_json::to_string_pretty(&manifest_json).expect("Serialization must succeed");
     assert!(serialized.contains("web-repo-to-ai-cli"));
     assert!(serialized.contains("chrome-extension"));
     assert!(serialized.contains("mv3-distribution"));
