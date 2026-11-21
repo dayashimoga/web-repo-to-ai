@@ -4,10 +4,12 @@
 //! startup timestamps, artifact storage, token storage, and GitHub client handles.
 
 use chrono::{DateTime, Utc};
+use std::collections::HashMap;
 use std::fmt;
 use std::sync::Arc;
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, RwLock};
 use web_repo_to_ai_core::crypto::EncryptionKey;
+use web_repo_to_ai_core::id::JobId;
 use web_repo_to_ai_core::rate_limit::{InMemoryTieredRateLimiter, RateLimiter};
 use web_repo_to_ai_core::AppConfig;
 use web_repo_to_ai_github_extractor::callback::InMemoryWebhookDeliveryTracker;
@@ -18,6 +20,14 @@ use web_repo_to_ai_storage::{
     InMemoryApiKeyRepository, InMemoryBatchRepository, InMemoryStorage, InMemoryTokenStorage,
     TokenStorageRepository,
 };
+
+use crate::dto::JobResponse;
+
+/// Entry representing an in-memory job descriptor and its optional tenant owner.
+pub type JobStoreEntry = (JobResponse, Option<uuid::Uuid>);
+
+/// Thread-safe in-memory job storage table.
+pub type InMemoryJobStore = Arc<RwLock<HashMap<JobId, JobStoreEntry>>>;
 
 /// Centralized thread-safe application state shared across all HTTP request handlers.
 #[derive(Clone)]
@@ -44,6 +54,8 @@ pub struct AppState {
     pub webhook_tracker: Arc<Mutex<InMemoryWebhookDeliveryTracker>>,
     /// Configured webhook secret for HMAC verification.
     pub webhook_secret: Option<String>,
+    /// In-memory repository of registered and submitted jobs with optional tenant ownership.
+    pub in_memory_jobs: InMemoryJobStore,
 }
 
 impl fmt::Debug for AppState {
@@ -76,6 +88,7 @@ impl AppState {
         let github_client = Arc::new(GitHubApiClient::new());
         let webhook_tracker = Arc::new(Mutex::new(InMemoryWebhookDeliveryTracker::default()));
         let webhook_secret = std::env::var("GITHUB_APP_WEBHOOK_SECRET").ok();
+        let in_memory_jobs = Arc::new(RwLock::new(HashMap::new()));
 
         Self {
             config: Arc::new(config),
@@ -89,6 +102,7 @@ impl AppState {
             github_client,
             webhook_tracker,
             webhook_secret,
+            in_memory_jobs,
         }
     }
 
