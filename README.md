@@ -193,6 +193,8 @@ web-repo-to-ai/
 - [Frontend Design System (`docs/DESIGN_SYSTEM.md`)](./docs/DESIGN_SYSTEM.md)
 - [Requirements Traceability (`docs/REQUIREMENTS.md`)](./docs/REQUIREMENTS.md)
 - [Staged Execution Roadmap (`docs/ROADMAP.md`)](./docs/ROADMAP.md)
+- [Production Release Certification Report (`docs/PRODUCTION_CERTIFICATION.md`)](./docs/PRODUCTION_CERTIFICATION.md)
+- [Production Build & Release Guide (`docs/PRODUCTION_BUILD.md`)](./docs/PRODUCTION_BUILD.md)
 
 ---
 

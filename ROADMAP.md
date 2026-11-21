@@ -110,8 +110,8 @@
 - **Phase 10.4 — RAG chunk generation:** `10.4.1` Semantic & AST-boundary chunking (`ACCEPTED`) | `10.4.2` Citation & cross-reference metadata injection (`ACCEPTED`) | `10.4.3` JSONL & vector-ingest schema exports (`ACCEPTED`) | `10.4.4` Chunk determinism & retrieval validation (`ACCEPTED` — **PHASE 10.4 CERTIFIED**)
 - **Phase 10.5 — Optional local and external AI provider adapters:** `10.5.1` Provider-independent AI adapter trait (`ACCEPTED`) | `10.5.2` Local Ollama / OpenAI-compatible adapter (`ACCEPTED`) | `10.5.3` Strict opt-in guardrails & zero-key fallback (`ACCEPTED`) | `10.5.4` Adapter contract & isolation tests (`ACCEPTED` — **PHASE 10.5 CERTIFIED & STAGE 10 COMPLETED**)
 
-### STAGE 11 — PRODUCTION CERTIFICATION
+### STAGE 11 — PRODUCTION CERTIFICATION (`COMPLETED`)
 - **Phase 11.1 — Security:** `11.1.1` Threat model review (`ACCEPTED`) | `11.1.2` SSRF & network security (`ACCEPTED`) | `11.1.3` OAuth & access-control audit (`ACCEPTED`) | `11.1.4` Dependency & secrets audit (`ACCEPTED` — **PHASE 11.1 CERTIFIED**)
 - **Phase 11.2 — Performance:** `11.2.1` Extraction benchmarks (`ACCEPTED`) | `11.2.2` Large repository benchmarks (`ACCEPTED`) | `11.2.3` Memory & concurrency testing (`ACCEPTED`) | `11.2.4` Regression benchmarks (`ACCEPTED` — **PHASE 11.2 CERTIFIED**)
 - **Phase 11.3 — Reliability:** `11.3.1` Interrupted-job recovery (`ACCEPTED`) | `11.3.2` Retry & idempotency tests (`ACCEPTED`) | `11.3.3` Storage cleanup verification (`ACCEPTED`) | `11.3.4` Load & failure testing (`ACCEPTED` — **PHASE 11.3 CERTIFIED**)
-- **Phase 11.4 — Release:** `11.4.1` Complete documentation (`ACCEPTED`) | `11.4.2` Production build (`ACCEPTED`) | `11.4.3` Release artifacts & SBOM (`ACCEPTED`) | `11.4.4` Deployment verification (`ACCEPTED`) | `11.4.5` Final certification report
+- **Phase 11.4 — Release:** `11.4.1` Complete documentation (`ACCEPTED`) | `11.4.2` Production build (`ACCEPTED`) | `11.4.3` Release artifacts & SBOM (`ACCEPTED`) | `11.4.4` Deployment verification (`ACCEPTED`) | `11.4.5` Final certification report (`ACCEPTED` — **PHASE 11.4 CERTIFIED & STAGE 11 COMPLETED — MONOREPO 100% COMPLETE**)
