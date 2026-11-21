@@ -52,3 +52,4 @@ tracing-subscriber = { workspace = true, features = ["env-filter", "fmt"] }
 
 [dev-dependencies]
 axum = { workspace = true }
+serde_yaml_ng = { workspace = true }

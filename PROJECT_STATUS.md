@@ -5,10 +5,10 @@
 **Current Stage:** `STAGE 11 — PRODUCTION CERTIFICATION` (`IN_PROGRESS`)  
 **Last Completed Stage:** `STAGE 10 — ADVANCED DOCUMENTS AND CONTENT` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Last Completed Phase:** `Phase 11.3 — Reliability` (`100% COMPLETED & FORMALLY CERTIFIED`)  
-**Active Subphase:** `None (Awaiting confirmation to begin Subphase 11.4.4 — Deployment verification)`  
-**Last Completed Subphase:** `11.4.3 — Release artifacts & SBOM (CycloneDX v1.5 JSON [369 components] and SPDX v2.3 JSON [370 packages] SBOM generation via scripts/generate-sbom.py, release archive packaging engine via scripts/package-release.ps1 and package-release.sh producing Windows binaries zip, frontend web zip, Chrome extension zip, release checksums.sha256, and RELEASE_MANIFEST.json, release CI workflow integration in .github/workflows/release.yml, and 6 comprehensive automated tests in crates/cli/tests/release_artifacts_and_sbom_test.rs; 1,029 tests passing across all 5 quality gates)` (`ACCEPTED`)  
+**Active Subphase:** `None (Awaiting confirmation to begin Subphase 11.4.5 — Final certification report)`  
+**Last Completed Subphase:** `11.4.4 — Deployment verification (universal deployment verification engine scripts/verify-deployment.ps1 and verify-deployment.sh auditing container stack topology, network isolation, unprivileged users, standalone binary contracts, Chrome extension MV3 CSP, disaster recovery runbooks, and automated test suite in crates/cli/tests/deployment_verification_test.rs; 1,035 tests passing across all 5 quality gates)` (`ACCEPTED`)  
 **Next Upcoming Phase:** `Phase 11.4 — Release`  
-**Next Upcoming Subphase:** `11.4.4 — Deployment verification`
+**Next Upcoming Subphase:** `11.4.5 — Final certification report`
 
 ---
 
@@ -400,6 +400,14 @@ In Stage 11 ("Production Certification"):
     4. Release CI Integration: Updated `.github/workflows/release.yml` with dynamic SBOM generation and packaging, validated via `scripts/validate-workflows.py` (7/7 workflows passing).
     5. Automated Verification Test Suite (`crates/cli/tests/release_artifacts_and_sbom_test.rs`): Implemented 6 comprehensive automated tests validating CycloneDX schema and purls, SPDX schema and license compliance, release manifest structure, zip archive PK headers and decompression integrity, dual SHA-256 hash verification against assets, and SPDX permissive license whitelist adherence.
     - Quality & Verification: 6 new automated tests passing; 1,029 total workspace tests passing (713 Rust + 213 web + 103 extension). All 5 monorepo quality gates passing via `scripts/check-all.ps1` with 0 failures.
+  - Subphase `11.4.4` delivered universal multi-topology deployment verification and automated deployment test suites:
+    1. Deployment Verification Engine (`scripts/verify-deployment.ps1` & `scripts/verify-deployment.sh`): Built an automated deployment verification engine auditing all 4 supported topologies:
+       - *Topology 1 (Self-Hosted Container Stack):* Verified `deploy/podman-compose.yml` service definitions (`postgres`, `api`, `worker`, `browser-worker`, `web`), dual isolated networks (`internal_net`, `browser_net`), strict sandbox isolation (browser-worker forbidden from internal_net and PostgreSQL), `no-new-privileges:true` security opt, persistent volumes (`postgres_data`, `artifact_data`), multi-stage Containerfiles, unprivileged runtime users (`appuser`, `pwuser`, `node`), and 14 core environment variables in `deploy/.env.example`.
+       - *Topology 2 (Standalone Release Binaries):* Verified all 5 workspace binaries (`web-repo-to-ai`, `web-repo-to-ai-cli`, `web-repo-to-ai-api`, `web-repo-to-ai-worker`, `web-repo-to-ai-mcp`), size bounds (100 KB to 80 MB), CLI help output contracts across all 7 subcommands (`url`, `repo`, `config`, `batch`, `verify`, `completions`, `mcp`), `--version` flag, and cryptographic checksums.
+       - *Topology 3 (Chrome Extension MV3):* Verified Manifest V3 specifications, permissions (`storage`, `activeTab`, `scripting`, `downloads`), host permissions (`localhost`, `127.0.0.1`), strict Content Security Policy (`script-src 'self'`), icons (16, 48, 128), and bundled background worker.
+       - *Topology 4 (Disaster Recovery & Resource Budget):* Verified $\le 30$ GB storage ceiling enforcement, presence of all 10 lifecycle scripts, and disaster recovery runbooks in `docs/DEPLOYMENT.md` (`pg_dump`, `pg_restore`, <5 min cold recovery SLA).
+    2. Automated Verification Test Suite (`crates/cli/tests/deployment_verification_test.rs`): Implemented 6 automated integration tests covering compose topology and network isolation, Containerfile multi-stage builds and unprivileged users, environment variables schema and security bounds, standalone binary contracts and execution, Chrome extension MV3 and CSP compliance, and disaster recovery and resource budget governance.
+    - Quality & Verification: 6 new automated tests passing; 1,035 total workspace tests passing (719 Rust + 213 web + 103 extension). All 5 monorepo quality gates passing via `scripts/check-all.ps1` with 0 failures.
 
 ---
 
@@ -407,12 +415,12 @@ In Stage 11 ("Production Certification"):
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 195 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4`, `10.3.1` – `10.3.4`, `10.4.1` – `10.4.4`, `10.5.1`, `10.5.2`, `10.5.3`, `10.5.4`, `11.1.1`, `11.1.2`, `11.1.3`, `11.1.4`, `11.2.1`, `11.2.2`, `11.2.3`, `11.2.4`, `11.3.1`, `11.3.2`, `11.3.3`, `11.3.4`, `11.4.1`, `11.4.2`, `11.4.3` |
+| `ACCEPTED` | 196 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4`, `10.3.1` – `10.3.4`, `10.4.1` – `10.4.4`, `10.5.1`, `10.5.2`, `10.5.3`, `10.5.4`, `11.1.1`, `11.1.2`, `11.1.3`, `11.1.4`, `11.2.1`, `11.2.2`, `11.2.3`, `11.2.4`, `11.3.1`, `11.3.2`, `11.3.3`, `11.3.4`, `11.4.1`, `11.4.2`, `11.4.3`, `11.4.4` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 2 | `11.4.4` – `11.4.5` |
+| `NOT_STARTED` | 1 | `11.4.5` |
 | `Total` | **197** | `Stage 0` – `Stage 11` |
 
 ---

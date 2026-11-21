@@ -8085,3 +8085,63 @@
   - Exactly 1,029 tests passing across the workspace (713 Rust + 213 web + 103 extension).
   - `scripts/check-all.ps1` 100% passing across all 5 quality gates with 0 failures.
 - **Status:** `ACCEPTED`
+
+
+### Subphase 11.4.4 — Deployment verification
+- **Date:** 2026-11-21
+- **Component:** `scripts/`, `crates/cli`, `deploy/`
+- **Primary Files:**
+  - `scripts/verify-deployment.ps1`
+  - `scripts/verify-deployment.sh`
+  - `crates/cli/tests/deployment_verification_test.rs`
+  - `deploy/.env.example`
+  - `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`, `IMPLEMENTATION_LEDGER.md`
+- **Implementation Tasks:**
+  1. Implemented Universal Deployment Verification Engine in `scripts/verify-deployment.ps1` and `scripts/verify-deployment.sh` auditing all 4 deployment topologies:
+     - *Topology 1 (Self-Hosted Container Stack):* Audited `deploy/podman-compose.yml` service definitions (`postgres`, `api`, `worker`, `browser-worker`, `web`), dual isolated networks (`internal_net`, `browser_net`), strict sandbox isolation (browser-worker forbidden from internal_net and PostgreSQL), `no-new-privileges:true` security opt, persistent volumes (`postgres_data`, `artifact_data`), multi-stage Containerfiles, unprivileged runtime users (`appuser`, `pwuser`, `node`), and 14 core environment variables in `deploy/.env.example`.
+     - *Topology 2 (Standalone Release Binaries):* Audited all 5 workspace executables (`web-repo-to-ai`, `web-repo-to-ai-cli`, `web-repo-to-ai-api`, `web-repo-to-ai-worker`, `web-repo-to-ai-mcp`), size bounds (100 KB to 80 MB ceiling), CLI help contracts across all 7 subcommands (`url`, `repo`, `config`, `batch`, `verify`, `completions`, `mcp`), `--version` flag, and cryptographic checksums.
+     - *Topology 3 (Chrome Extension MV3):* Audited Manifest V3 specifications, permissions (`storage`, `activeTab`, `scripting`, `downloads`), host permissions (`localhost`, `127.0.0.1`), strict Content Security Policy (`script-src 'self'`), icons (16, 48, 128), and bundled background worker.
+     - *Topology 4 (Disaster Recovery & Resource Budget):* Audited $\le 30$ GB storage ceiling enforcement, presence of all 10 lifecycle scripts, and disaster recovery runbooks in `docs/DEPLOYMENT.md` (`pg_dump`, `pg_restore`, <5 min cold recovery SLA).
+  2. Updated `deploy/.env.example` and `deploy/.env` with explicit `TOKEN_ENCRYPTION_KEY` configuration template.
+  3. Staged extension `manifest.json` into distribution directories and updated `scripts/build-production.ps1` to ensure automated extension staging.
+  4. Implemented comprehensive automated test suite in `crates/cli/tests/deployment_verification_test.rs` covering:
+     - `test_compose_topology_and_network_isolation_invariants`: Tests compose YAML parsing, 5 core services, isolated networks, volume persistence, and strict browser-worker network sandbox isolation.
+     - `test_containerfile_multi_stage_and_unprivileged_users`: Validates multi-stage build patterns, slim base images, and unprivileged user switches across all 4 Containerfiles.
+     - `test_environment_variables_schema_and_security_bounds`: Validates `.env.example` vs `docs/DEPLOYMENT.md`, checking all 14 required production variables and sensitive variable masking.
+     - `test_standalone_binary_contracts_and_execution`: Tests all workspace binaries, CLI subcommands, version reporting, size bounds, and release packaging manifests.
+     - `test_chrome_extension_manifest_v3_and_csp_compliance`: Parses extension `manifest.json`, validates MV3 schemas, host permissions, and CSP strictness.
+     - `test_disaster_recovery_and_resource_budget_governance`: Tests resource limits (<= 30 GB ceiling), lifecycle scripts inventory, and disaster recovery runbook command invariants.
+  5. Executed full monorepo quality audit via `scripts/check-all.ps1` with 100% passing across all 5 quality gates (1,035 total workspace tests: 719 Rust + 213 web + 103 extension).
+  6. Updated all project tracking ledgers (`PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`, `IMPLEMENTATION_LEDGER.md`).
+- **Acceptance Criteria:**
+  - Automated deployment verification across all 4 supported topologies via `verify-deployment.ps1` and `.sh`.
+  - Strict network isolation verified for `browser-worker` against internal network and PostgreSQL.
+  - Multi-stage Containerfiles and unprivileged users verified across all containers.
+  - Standalone release binaries and CLI contracts verified.
+  - Chrome Extension MV3 CSP and assets verified.
+  - Disaster recovery runbooks and 30 GB ceiling verified.
+  - 100% test pass rate (1,035 tests), 0 clippy warnings under `-D warnings`, zero formatting diffs, clean `cargo deny check`.
+- **Verification Commands:**
+  - `powershell -ExecutionPolicy Bypass -File scripts/verify-deployment.ps1 -Quick` (45/45 checks passed, 0 failures)
+  - `cargo test -p web-repo-to-ai-cli --test deployment_verification_test --jobs 2 -- --nocapture` (6/6 tests passing)
+  - `cargo clippy --workspace --all-targets --jobs 4 -- -D warnings` (Clean, zero warnings)
+  - `cargo fmt --all -- --check` (Clean, zero diffs)
+  - `cargo deny check` (Advisories ok, bans ok, licenses ok, sources ok)
+  - `powershell -ExecutionPolicy Bypass -File scripts/check-all.ps1` (All 5 gates passed with 0 failures, 1,035 total tests passing)
+- **Tests:**
+  - `crates/cli/tests/deployment_verification_test.rs` (6 automated deployment verification tests)
+- **Security Considerations:**
+  - Strict network segregation between `internal_net` and `browser_net` prevents browser worker SSRF pivoting.
+  - All containers enforce unprivileged non-root users (`appuser`, `pwuser`, `node`).
+  - Strict Chrome extension Content Security Policy prevents XSS or code injection.
+- **Performance Considerations:**
+  - Multi-stage container builds minimize production layer size.
+  - Fast static and runtime verification executes in <1 second.
+- **Documentation Requirements:**
+  - `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`, `IMPLEMENTATION_LEDGER.md`, `docs/DEPLOYMENT.md`.
+- **Validation Evidence:**
+  - 45/45 checks passing in `scripts/verify-deployment.ps1 -Quick`.
+  - 6 tests passing in `crates/cli/tests/deployment_verification_test.rs`.
+  - Exactly 1,035 tests passing across the workspace (719 Rust + 213 web + 103 extension).
+  - `scripts/check-all.ps1` 100% passing across all 5 quality gates with 0 failures.
+- **Status:** `ACCEPTED`

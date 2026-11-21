@@ -6,6 +6,29 @@
 
 ## [Unreleased] — Stage 11: Production Certification
 
+### 2026-11-21 — Phase 11.4: Release (`11.4.4`)
+
+#### Added
+- **`[11.4.4]` Universal deployment verification engine and automated deployment test suite (`scripts/`, `crates/cli`, `deploy/`):**
+  - **Universal Deployment Verification Engine (`scripts/verify-deployment.ps1` & `scripts/verify-deployment.sh`):**
+    - Implemented cross-platform verification engine auditing all 4 supported deployment topologies:
+      - *Topology 1 (Self-Hosted Container Stack):* Audited `deploy/podman-compose.yml` service definitions (`postgres`, `api`, `worker`, `browser-worker`, `web`), dual isolated networks (`internal_net`, `browser_net`), strict sandbox isolation (browser-worker forbidden from internal_net and PostgreSQL), `no-new-privileges:true` security opt, persistent volumes (`postgres_data`, `artifact_data`), multi-stage Containerfiles, unprivileged runtime users (`appuser`, `pwuser`, `node`), and 14 core environment variables in `deploy/.env.example`.
+      - *Topology 2 (Standalone Release Binaries):* Audited all 5 workspace executables (`web-repo-to-ai`, `web-repo-to-ai-cli`, `web-repo-to-ai-api`, `web-repo-to-ai-worker`, `web-repo-to-ai-mcp`), size bounds (100 KB to 80 MB ceiling), CLI help contracts across all 7 subcommands (`url`, `repo`, `config`, `batch`, `verify`, `completions`, `mcp`), `--version` flag, and cryptographic checksums.
+      - *Topology 3 (Chrome Extension MV3):* Audited Manifest V3 specifications, permissions (`storage`, `activeTab`, `scripting`, `downloads`), host permissions (`localhost`, `127.0.0.1`), strict Content Security Policy (`script-src 'self'`), icons (16, 48, 128), and bundled background worker.
+      - *Topology 4 (Disaster Recovery & Resource Budget):* Audited $\le 30$ GB storage ceiling enforcement, presence of all 10 lifecycle scripts, and disaster recovery runbooks in `docs/DEPLOYMENT.md` (`pg_dump`, `pg_restore`, <5 min cold recovery SLA).
+  - **Automated Deployment Verification Test Suite (`crates/cli/tests/deployment_verification_test.rs`):**
+    - Implemented 6 automated integration tests covering:
+      1. `test_compose_topology_and_network_isolation_invariants`: Tests compose YAML parsing, 5 core services, isolated networks, volume persistence, and strict browser-worker network sandbox isolation.
+      2. `test_containerfile_multi_stage_and_unprivileged_users`: Validates multi-stage build patterns, slim base images, and unprivileged user switches across all 4 Containerfiles.
+      3. `test_environment_variables_schema_and_security_bounds`: Validates `.env.example` vs `docs/DEPLOYMENT.md`, checking all 14 required production variables and sensitive variable masking.
+      4. `test_standalone_binary_contracts_and_execution`: Tests all workspace binaries, CLI subcommands, version reporting, size bounds, and release packaging manifests.
+      5. `test_chrome_extension_manifest_v3_and_csp_compliance`: Parses extension `manifest.json`, validates MV3 schemas, host permissions, and CSP strictness.
+      6. `test_disaster_recovery_and_resource_budget_governance`: Tests resource limits (<= 30 GB ceiling), lifecycle scripts inventory, and disaster recovery runbook command invariants.
+  - **Quality & Verification:**
+    - 6 new automated tests in `crates/cli/tests/deployment_verification_test.rs`.
+    - Exactly 1,035 tests passing across the workspace (719 Rust + 213 web + 103 extension).
+    - All 5 monorepo quality gates passing via `scripts/check-all.ps1` with 0 failures.
+
 ### 2026-11-21 — Phase 11.4: Release (`11.4.3`)
 
 #### Added

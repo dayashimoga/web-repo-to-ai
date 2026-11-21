@@ -125,6 +125,11 @@ try {
 $extBuildSource = Join-Path $extDir "dist"
 if (Test-Path $extBuildSource) {
     Copy-Item -Recurse -Force "$extBuildSource/*" $extDistDir
+    if (Test-Path (Join-Path $extBuildSource "manifest.json")) {
+        Copy-Item -Force (Join-Path $extBuildSource "manifest.json") $extDistDir
+    } else {
+        Copy-Item -Force (Join-Path $extDir "manifest.json") $extDistDir
+    }
     Write-Output "  [STAGED] Chrome extension build staged to $extDistDir"
 } else {
     Write-Warning "apps/extension/dist directory not found after build"
