@@ -41,4 +41,5 @@ thiserror = { workspace = true }
 tokio = { workspace = true, features = ["full", "test-util"] }
 web-repo-to-ai-pdf-extractor = { workspace = true }
 web-repo-to-ai-structured-extractor = { workspace = true }
+blake3 = { workspace = true }
 

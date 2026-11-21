@@ -7661,4 +7661,62 @@
   - Phase 11.2 formally certified.
 - **Status:** `ACCEPTED`
 
+---
+
+### Phase 11.3 — Reliability
+
+#### Subphase `11.3.1` — Interrupted-job recovery
+- **Unique ID:** `11.3.1`
+- **Objective:** Implement and verify interrupted-job recovery, durable state checkpointing, cryptographic integrity verification, cascading multi-stage worker crash resilience, distributed lease expiration, stale lease reclamation, cooperative cancellation drainage, and end-to-end CDM document synthesis & streaming export package integrity.
+- **Scope:** `services/worker/tests/interrupted_job_recovery_test.rs`, `services/worker/Cargo.toml`, `docs/TESTING.md`, `services/worker`.
+- **Prerequisites:** `11.2.4` (`ACCEPTED`).
+- **Files/Components Affected:**
+  - `services/worker/tests/interrupted_job_recovery_test.rs`
+  - `services/worker/Cargo.toml`
+  - `docs/TESTING.md`
+  - `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`, `IMPLEMENTATION_LEDGER.md`
+- **Implementation Tasks:**
+  1. Authored `services/worker/tests/interrupted_job_recovery_test.rs` covering:
+     - Worker Process Crash Simulation & Resumption (`test_interrupted_batch_worker_crash_and_resumption`): Mid-batch crash simulation after 5 items checkpointed out of 12. Replacement worker boots up, validates checkpoint checksum, reuses 5 completed items directly from checkpoint, and executes only remaining 7 items to 100% success (12 items in strict sequence order) with exact worker telemetry metrics (`resumed_jobs_count == 1`, `items_reused_from_checkpoint == 5`, `batches_processed == 1`, `items_succeeded == 12`).
+     - Cascading Multi-Stage Worker Crashes (`test_multi_stage_cascading_worker_crashes_and_resumption`): Cascading multi-stage crash simulation across 3 worker generations on a 20-item batch (Worker 1: 6 processed; Worker 2: 6 reused, 7 processed; Worker 3: 13 reused, 7 processed to full completion), verifying cumulative checkpoint progression, sequence monotonicity, and final complete checkpoint state.
+     - Corrupted Checkpoint Quarantine & Clean Recovery Fallback (`test_interrupted_job_tampered_or_corrupted_checkpoint_recovery`): Evaluates bit rot / partial disk write detection with `verify_checksum_on_load: true` returning `JobEngineError::CheckpointCorrupted`, safely quarantines corrupted checkpoint, and executes fresh recovery without daemon disruption or deadlocks.
+     - Distributed Lease Expiration & Worker Failover (`test_distributed_lease_expiration_and_worker_failover`): Evaluates distributed leasing lifecycle transitions (`Queued` $\to$ `Leased` $\to$ `Running` $\to$ `Queued` [requeue] $\to$ `Leased` $\to$ `Running` $\to$ `Completed`), verifying lease validity probing, stale lease recovery sweep, attempt count bounding, and permanent failure threshold (`attempt_count >= max_attempts`).
+     - Cooperative Cancellation & Safe Resumption (`test_interrupted_batch_cancellation_and_safe_drain`): Evaluates cooperative token cancellation mid-batch, verifying in-flight permit drainage, partial checkpoint persistence, and subsequent resumption of cancelled items to 100% success.
+     - End-to-End CDM Synthesis & Streaming Export Integrity (`test_interrupted_job_cdm_synthesis_and_export_integrity`): Evaluates end-to-end CDM document assembly, section cryptographic hashing, and streaming ZIP package creation across interrupted runs, verifying the archive contains all 6 document directories with matching BLAKE3/SHA-256 manifests.
+  2. Expanded `docs/TESTING.md` with Section 3 ("Reliability & Interrupted-Job Recovery Verification (Phase 11.3)") detailing failure SLAs, mathematical completeness conservation ($\text{Items}_{\text{total}} = \text{Items}_{\text{reused}} + \text{Items}_{\text{executed}}$), zero-duplication guarantees, and automated recovery matrices.
+  3. Executed full monorepo quality audit via `scripts/check-all.ps1` with 100% passing across all 5 quality gates (exactly 1,000 total workspace tests).
+  4. Updated all project tracking ledgers.
+- **Acceptance Criteria:**
+  - Automated recovery test suite exercises in-flight worker crash simulation, cryptographic BLAKE3 tamper detection, multi-stage cascading crashes, distributed lease reclamation, cooperative cancellation, and CDM synthesis export integrity.
+  - Mathematical completeness conservation holds strictly across all resumption scenarios ($\text{Items}_{\text{total}} = \text{Items}_{\text{reused}} + \text{Items}_{\text{executed}}$).
+  - Zero duplicate executions for already-completed items.
+  - Zero mock or placeholder implementations in production paths.
+  - Zero clippy warnings under `-D warnings`, zero formatting diffs, and clean `cargo deny check`.
+  - All 5 monorepo quality gates passing via `scripts/check-all.ps1`.
+- **Verification Commands:**
+  - `cargo test -p web-repo-to-ai-worker --test interrupted_job_recovery_test --jobs 2 -- --nocapture` (6 recovery tests passing)
+  - `cargo clippy --workspace --all-targets --jobs 4 -- -D warnings` (Clean, zero warnings)
+  - `cargo fmt --all -- --check` (Clean, zero diffs)
+  - `cargo deny check` (Advisories ok, bans ok, licenses ok, sources ok)
+  - `cargo test --workspace --jobs 2` (All 684 Rust workspace tests passing)
+  - `Push-Location H:\web-repo-to-ai\apps\web; npm run lint; npm run check; npm test; Pop-Location` (All 213 web tests passing)
+  - `Push-Location H:\web-repo-to-ai\apps\extension; npm run lint; npm run build; npm test; Pop-Location` (All 103 extension tests passing)
+  - `powershell -ExecutionPolicy Bypass -File scripts/verify-bootstrap.ps1; python scripts/validate-workflows.py` (224/224 bootstrap checks, 7/7 workflows passing)
+- **Tests:**
+  - `services/worker/tests/interrupted_job_recovery_test.rs` (6 automated reliability recovery tests)
+- **Security Considerations:**
+  - Cryptographic BLAKE3 checksum validation on all checkpoints guarantees tamper detection and bit-rot prevention prior to state deserialization.
+  - Distributed lease expirations and worker ownership validation prevent cross-worker lease hijacking or orphaned zombie executions.
+- **Performance Considerations:**
+  - Checkpoint resumption reuses 100% of previously completed items without re-running CPU/network tasks ($O(0)$ overhead for completed work).
+  - Streaming ZIP export maintains bounded constant $O(1)$ chunk buffers (8 KiB) during archive synthesis.
+- **Documentation Requirements:**
+  - `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`, `IMPLEMENTATION_LEDGER.md`, `docs/TESTING.md`.
+- **Validation Evidence:**
+  - 6 recovery tests passing in `services/worker`.
+  - Exactly 1,000 tests passing across the workspace (684 Rust + 213 web + 103 extension).
+  - `scripts/check-all.ps1` 100% passing across all 5 quality gates with 0 failures.
+- **Status:** `ACCEPTED`
+
+
 

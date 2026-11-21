@@ -1,14 +1,14 @@
 # PROJECT STATUS (`PROJECT_STATUS.md`)
 
 **Project:** `web-repo-to-ai` (Universal URL & GitHub Repository → AI-Ready Content Converter)  
-**Last Updated:** 2026-11-20  
+**Last Updated:** 2026-11-21  
 **Current Stage:** `STAGE 11 — PRODUCTION CERTIFICATION` (`IN_PROGRESS`)  
 **Last Completed Stage:** `STAGE 10 — ADVANCED DOCUMENTS AND CONTENT` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Last Completed Phase:** `Phase 11.2 — Performance` (`100% COMPLETED & FORMALLY CERTIFIED`)  
 **Active Subphase:** None  
-**Last Completed Subphase:** `11.2.4 — Regression benchmarks (empirically evaluated end-to-end web pipeline [P95 5.91 ms], context budget optimizer [P95 0.33 ms], AST-boundary chunking & JSONL vector export [P95 3.19 ms], exact BLAKE3 content deduplication [P95 0.43 ms], and multi-format exporters suite [P95 2.09 ms] against established baseline SLAs; verified negative drift [-73.4% to -96.7%] across all subsystems proving zero performance regressions; expanded docs/PERFORMANCE.md Section 6; 994+ tests passing across all 5 quality gates — PHASE 11.2 CERTIFIED)` (`ACCEPTED`)  
-**Next Upcoming Phase:** `Phase 11.3 — Reliability`  
-**Next Upcoming Subphase:** `11.3.1 — Interrupted-job recovery`
+**Last Completed Subphase:** `11.3.1 — Interrupted-job recovery (empirically evaluated worker process crash simulation mid-batch, durable checkpointing with BLAKE3 cryptographic verification, cascading multi-stage crashes across 3 worker generations, distributed lease expiration and stale recovery failover, cooperative cancellation drainage, and end-to-end CDM document synthesis & streaming ZIP package export integrity; expanded docs/TESTING.md Section 3; exactly 1,000 tests passing across all 5 quality gates [684 Rust + 213 web + 103 extension])` (`ACCEPTED`)  
+**Current Phase:** `Phase 11.3 — Reliability` (`IN_PROGRESS`)  
+**Next Upcoming Subphase:** `11.3.2 — Retry & idempotency tests`
 
 ---
 
@@ -347,18 +347,29 @@ In Stage 11 ("Production Certification"):
     - Expanded `docs/PERFORMANCE.md` with Section 6 ("Automated Regression Benchmark Suite & Phase 11.2 Performance Certification") detailing empirical SLA drift tables, zero-regression guarantees, and the formal Phase 11.2 Performance Certification statement.
     - Quality & Formal Certification: 6 regression benchmark tests passing; 994+ total workspace tests passing (678 Rust + 213 web + 103 extension). Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean, and 100% passing quality gates (5/5). Formally certified Phase 11.2 in full.
 
+- Phase 11.3 ("Reliability"):
+  - Subphase `11.3.1` delivered interrupted-job recovery, durable state checkpointing, and failover integration test suite in `services/worker/tests/interrupted_job_recovery_test.rs`:
+    1. Worker Process Crash Simulation & Resumption (`test_interrupted_batch_worker_crash_and_resumption`): Simulates mid-batch crash after 5 items checkpointed out of 12; replacement worker boots up, reuses 5 completed items directly from checkpoint, executes only remaining 7 items to 100% success (12 items in strict sequence order) with exact worker telemetry metrics (`resumed_jobs_count == 1`, `items_reused_from_checkpoint == 5`).
+    2. Cascading Multi-Stage Worker Crashes (`test_multi_stage_cascading_worker_crashes_and_resumption`): Simulates successive crashes across 3 worker generations on a 20-item batch (Worker 1: 6 processed; Worker 2: 6 reused, 7 processed; Worker 3: 13 reused, 7 processed to full completion), verifying cumulative checkpoint progression and state monotonicity.
+    3. Corrupted Checkpoint Quarantine & Clean Recovery Fallback (`test_interrupted_job_tampered_or_corrupted_checkpoint_recovery`): Detects bit rot / checksum mismatch with `verify_checksum_on_load: true` returning `JobEngineError::CheckpointCorrupted`, safely quarantines corrupted checkpoint, and executes fresh recovery without daemon disruption or deadlocks.
+    4. Distributed Lease Expiration & Worker Failover (`test_distributed_lease_expiration_and_worker_failover`): Evaluates distributed leasing lifecycle transitions (`Queued` -> `Leased` -> `Running` -> `Queued` [requeue] -> `Leased` -> `Running` -> `Completed`), verifying lease validity probing, stale lease recovery sweep, attempt count bounding, and permanent failure threshold (`attempt_count >= max_attempts`).
+    5. Cooperative Cancellation & Safe Resumption (`test_interrupted_batch_cancellation_and_safe_drain`): Evaluates cooperative token cancellation mid-batch, verifying in-flight permit drainage, partial checkpoint persistence, and subsequent resumption of cancelled items to 100% success.
+    6. End-to-End CDM Synthesis & Streaming Export Integrity (`test_interrupted_job_cdm_synthesis_and_export_integrity`): Evaluates end-to-end CDM document assembly, section cryptographic hashing, and streaming ZIP package creation across interrupted runs, verifying the archive contains all 6 document directories with matching BLAKE3/SHA-256 manifests.
+    - Expanded `docs/TESTING.md` with Section 3 ("Reliability & Interrupted-Job Recovery Verification (Phase 11.3)") detailing failure SLAs, mathematical completeness conservation ($\text{Items}_{\text{total}} = \text{Items}_{\text{reused}} + \text{Items}_{\text{executed}}$), zero-duplication guarantees, and automated recovery matrices.
+    - Quality & Verification: 6 automated recovery tests passing; exactly 1,000 total workspace tests passing (684 Rust + 213 web + 103 extension). Zero clippy warnings under `-D warnings`, zero formatting diffs, `cargo deny check` clean, and 100% passing quality gates (5/5).
+
 ---
 
 ## 2. Subphase Status Counter
 
 | Status | Count | Subphases |
 | :--- | :---: | :--- |
-| `ACCEPTED` | 188 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4`, `10.3.1` – `10.3.4`, `10.4.1` – `10.4.4`, `10.5.1`, `10.5.2`, `10.5.3`, `10.5.4`, `11.1.1`, `11.1.2`, `11.1.3`, `11.1.4`, `11.2.1`, `11.2.2`, `11.2.3`, `11.2.4` |
+| `ACCEPTED` | 189 | `0.1.1` – `0.3.5`, `1.1.1` – `1.4.3`, `2.1.1` – `2.4.4`, `3.1.1` – `3.4.4`, `4.1.1` – `4.4.4`, `5.1.1` – `5.5.4`, `6.1.1` – `6.4.4`, `7.1.1` – `7.4.4`, `8.1.1` – `8.4.4`, `9.1.1` – `9.1.4`, `9.2.1` – `9.2.4`, `9.3.1` – `9.3.4`, `9.4.1` – `9.4.4`, `10.1.1` – `10.1.4`, `10.2.1` – `10.2.4`, `10.3.1` – `10.3.4`, `10.4.1` – `10.4.4`, `10.5.1`, `10.5.2`, `10.5.3`, `10.5.4`, `11.1.1`, `11.1.2`, `11.1.3`, `11.1.4`, `11.2.1`, `11.2.2`, `11.2.3`, `11.2.4`, `11.3.1` |
 | `VERIFIED` | 0 | — |
 | `IMPLEMENTED` | 0 | — |
 | `IN_PROGRESS` | 0 | — |
 | `BLOCKED` | 0 | — |
-| `NOT_STARTED` | 8 | `11.3.1` – `11.4.5` |
+| `NOT_STARTED` | 7 | `11.3.2` – `11.4.5` |
 | `Total` | **196** | `Stage 0` – `Stage 11` |
 
 ---

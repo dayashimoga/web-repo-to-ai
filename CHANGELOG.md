@@ -6,6 +6,24 @@
 
 ## [Unreleased] — Stage 11: Production Certification
 
+### 2026-11-21 — Phase 11.3: Reliability (`11.3.1`)
+
+#### Added
+- **`[11.3.1]` Interrupted-job recovery, durable state checkpointing, and failover integration test suite (`services/worker`, `docs/TESTING.md`):**
+  - Reliability & Interrupted-Job Recovery Test Suite (`services/worker/tests/interrupted_job_recovery_test.rs`):
+    - Worker Process Crash Simulation & Resumption (`test_interrupted_batch_worker_crash_and_resumption`): Mid-batch worker crash simulation after 5 items checkpointed out of 12. Replacement worker boots up, validates checkpoint checksum, reuses 5 completed items directly from checkpoint, and executes only remaining 7 items to 100% success (12 items in strict sequence order) with exact worker telemetry metrics (`resumed_jobs_count == 1`, `items_reused_from_checkpoint == 5`, `batches_processed == 1`, `items_succeeded == 12`).
+    - Cascading Multi-Stage Worker Crashes (`test_multi_stage_cascading_worker_crashes_and_resumption`): Cascading multi-stage crash simulation across 3 worker generations on a 20-item batch (Worker 1: 6 processed; Worker 2: 6 reused, 7 processed; Worker 3: 13 reused, 7 processed to full completion), verifying cumulative checkpoint progression, sequence monotonicity, and final complete checkpoint state.
+    - Corrupted Checkpoint Quarantine & Clean Recovery Fallback (`test_interrupted_job_tampered_or_corrupted_checkpoint_recovery`): Evaluates bit rot / partial disk write detection with `verify_checksum_on_load: true` returning `JobEngineError::CheckpointCorrupted`, safely quarantines corrupted checkpoint, and executes fresh recovery without daemon disruption or deadlocks.
+    - Distributed Lease Expiration & Worker Failover (`test_distributed_lease_expiration_and_worker_failover`): Evaluates distributed leasing lifecycle transitions (`Queued` $\to$ `Leased` $\to$ `Running` $\to$ `Queued` [requeue] $\to$ `Leased` $\to$ `Running` $\to$ `Completed`), verifying lease validity probing, stale lease recovery sweep, attempt count bounding, and permanent failure threshold (`attempt_count >= max_attempts`).
+    - Cooperative Cancellation & Safe Resumption (`test_interrupted_batch_cancellation_and_safe_drain`): Evaluates cooperative token cancellation mid-batch, verifying in-flight permit drainage, partial checkpoint persistence, and subsequent resumption of cancelled items to 100% success.
+    - End-to-End CDM Synthesis & Streaming Export Integrity (`test_interrupted_job_cdm_synthesis_and_export_integrity`): Evaluates end-to-end CDM document assembly, section cryptographic hashing, and streaming ZIP package creation across interrupted runs, verifying the archive contains all 6 document directories with matching BLAKE3/SHA-256 manifests.
+  - Reliability Testing Documentation (`docs/TESTING.md`):
+    - Added Section 3 ("Reliability & Interrupted-Job Recovery Verification (Phase 11.3)") detailing failure SLAs, mathematical completeness conservation ($\text{Items}_{\text{total}} = \text{Items}_{\text{reused}} + \text{Items}_{\text{executed}}$), zero-duplication guarantees, and automated recovery matrices.
+  - Quality & Verification:
+    - 6 new automated recovery tests in `services/worker/tests/interrupted_job_recovery_test.rs`.
+    - Exactly 1,000 monorepo workspace tests passing (684 Rust + 213 web + 103 extension).
+    - All 5 monorepo quality gates passing via `scripts/check-all.ps1` with 0 failures.
+
 ### 2026-11-20 — Phase 11.2: Performance (`11.2.4`) — PHASE 11.2 CERTIFIED
 
 #### Added
