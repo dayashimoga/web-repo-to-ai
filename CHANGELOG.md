@@ -6,6 +6,20 @@
 
 ## [Unreleased] — Stage 11: Production Certification
 
+### 2026-11-21 — Phase 11.4: Release (`11.4.2`)
+
+#### Added
+- **`[11.4.2]` Production release build orchestration and multi-target compilation (`scripts/`, `crates/cli`):**
+  - **Release Binary Compilation (`Cargo.toml`, `target/release`):** Built all 5 optimized workspace executables under release profile (`web-repo-to-ai`, `web-repo-to-ai-cli`, `web-repo-to-ai-api`, `web-repo-to-ai-worker`, `web-repo-to-ai-mcp`) with zero compiler warnings and zero errors.
+  - **Frontend Web Production Bundle (`apps/web`):** Built optimized SvelteKit production build using `@sveltejs/adapter-node` in 5.05s, producing SSR server chunks and compressed client static assets (`.br`, `.gz`) ready for container staging.
+  - **Chrome Extension MV3 Bundle (`apps/extension`):** Built optimized Manifest V3 production bundle in 209ms, packaging background service worker, options UI, action popup, and content script assets into `apps/extension/dist/`.
+  - **Production Build Orchestration Engine (`scripts/build-production.ps1` & `scripts/build-production.sh`):** Implemented automated multi-target build orchestration script that audits toolchains and the 30 GB storage ceiling, compiles all Rust binaries, builds the web app and extension, organizes outputs into unified `dist/` staging (`dist/bin/`, `dist/web/`, `dist/extension/`), generates SHA-256 and BLAKE3 checksums (`dist/checksums.sha256`), writes `dist/BUILD_MANIFEST.json`, and executes binary smoke tests.
+  - **Production Build Verification Test Suite (`crates/cli/tests/production_build_test.rs`):** Authored 5 automated tests verifying CLI binary metadata flags (`--version`, `--help`), all 7 subcommand help contracts (`url`, `repo`, `config`, `batch`, `verify`, `completions`, `mcp`), release binary file attributes and size bounds (100 KB to 80 MB ceiling), cryptographic SHA-256 and BLAKE3 checksum calculation formatting, and multi-target artifact packaging manifest deserialization.
+  - **Quality & Verification:**
+    - 5 new automated tests in `crates/cli/tests/production_build_test.rs`.
+    - Exactly 1,023 tests passing across the workspace (707 Rust + 213 web + 103 extension).
+    - All 5 monorepo quality gates passing via `scripts/check-all.ps1` with 0 failures.
+
 ### 2026-11-21 — Phase 11.4: Release (`11.4.1`)
 
 #### Added

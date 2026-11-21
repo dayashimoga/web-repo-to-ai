@@ -340,7 +340,7 @@
 
 ### Phase 11.4 — Release
 - [x] **[11.4.1]** Complete documentation *(Completed 2026-11-21, Delivered comprehensive expansion of root README.md, docs/USER_GUIDE.md, docs/ARCHITECTURE.md, docs/DEVELOPMENT.md, docs/DEPLOYMENT.md, docs/DATA_MODEL.md, and docs/LICENSING.md documenting the full 26-component monorepo architecture [21 Rust crates, 3 services, 2 apps], Quickstart guides for Web/CLI/MCP/Extension/Compose, complete CLI command reference, MCP server JSON-RPC tools and resources, Chrome Extension MV3 architecture, CDM v1.0 specifications and mathematical completeness invariant, PostgreSQL schema DDL, disaster recovery runbooks [<5 min RTO], production hardening guidelines, and cargo-deny license compliance; verified with 1,018 tests passing across all 5 quality gates [702 Rust + 213 web + 103 extension])*
-- [ ] **[11.4.2]** Production build
+- [x] **[11.4.2]** Production build *(Completed 2026-11-21, Delivered full-stack production release compilation across all Rust backend binaries [web-repo-to-ai, web-repo-to-ai-cli, web-repo-to-ai-api, web-repo-to-ai-worker, web-repo-to-ai-mcp], SvelteKit frontend web production bundle with @sveltejs/adapter-node, Chrome extension MV3 production bundle, reproducible container build specifications, unified release orchestration engine in scripts/build-production.ps1 and build-production.sh, and comprehensive production build verification suite in crates/cli/tests/production_build_test.rs; verified with 1,023 tests passing across all 5 quality gates [707 Rust + 213 web + 103 extension])*
 - [ ] **[11.4.3]** Release artifacts & SBOM
 - [ ] **[11.4.4]** Deployment verification
 - [ ] **[11.4.5]** Final certification report

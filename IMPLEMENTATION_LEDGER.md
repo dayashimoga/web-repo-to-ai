@@ -7956,3 +7956,63 @@
   - Exactly 1,018 tests passing across the workspace (702 Rust + 213 web + 103 extension).
   - `scripts/check-all.ps1` 100% passing across all 5 quality gates with 0 failures.
 - **Status:** `ACCEPTED`
+
+
+### Subphase 11.4.2 — Production build
+- **Date:** 2026-11-21
+- **Component:** `scripts/`, `crates/cli`, `apps/web`, `apps/extension`
+- **Primary Files:**
+  - `scripts/build-production.ps1`
+  - `scripts/build-production.sh`
+  - `crates/cli/tests/production_build_test.rs`
+  - `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`, `IMPLEMENTATION_LEDGER.md`
+- **Implementation Tasks:**
+  1. Compiled all 5 Rust workspace binaries under release profile optimization (`web-repo-to-ai`, `web-repo-to-ai-cli`, `web-repo-to-ai-api`, `web-repo-to-ai-worker`, `web-repo-to-ai-mcp`) with zero compiler warnings and zero errors.
+  2. Built SvelteKit frontend web production bundle (`apps/web`) using `@sveltejs/adapter-node`, generating server chunks and pre-compressed static assets (`.br`, `.gz`).
+  3. Built Chrome Extension MV3 production package (`apps/extension`), packaging background service worker, options UI, action popup, and content script assets into `apps/extension/dist/`.
+  4. Implemented cross-platform production release build orchestration engine in `scripts/build-production.ps1` and `scripts/build-production.sh`:
+     - Toolchain prerequisite validation (`cargo`, `rustc`, `node`, `npm`).
+     - Storage ceiling evaluation via `scripts/check-resources.ps1 -Quiet` ensuring <= 30 GB usage.
+     - Release binary compilation with `--jobs 4` to prevent Windows memory exhaustion.
+     - SvelteKit and Chrome extension builds.
+     - Unified `dist/` staging directory creation (`dist/bin/`, `dist/web/`, `dist/extension/`).
+     - Cryptographic SHA-256 and BLAKE3 checksum calculation (`dist/checksums.sha256`).
+     - Production build manifest synthesis (`dist/BUILD_MANIFEST.json`).
+     - Binary smoke execution test.
+  5. Implemented comprehensive production build verification test suite in `crates/cli/tests/production_build_test.rs` covering:
+     - `test_production_cli_binary_metadata_and_flags`: Tests `--version` and `--help` flags.
+     - `test_production_cli_all_subcommands_contract`: Tests all 7 subcommand help contracts (`url`, `repo`, `config`, `batch`, `verify`, `completions`, `mcp`).
+     - `test_production_binary_file_attributes_and_size_bounds`: Verifies release executables have non-empty attributes and respect the 100 KB to 80 MB size bounds.
+     - `test_production_cryptographic_checksum_verification`: Verifies SHA-256 and BLAKE3 hash calculations and coreutils checksum line formatting.
+     - `test_production_multi_target_artifact_manifest`: Validates artifact manifest structure, target array length, and completeness.
+  6. Executed full monorepo quality audit via `scripts/check-all.ps1` with 100% passing across all 5 quality gates (1,023 total workspace tests: 707 Rust + 213 web + 103 extension).
+  7. Updated all project tracking ledgers (`PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`, `IMPLEMENTATION_LEDGER.md`).
+- **Acceptance Criteria:**
+  - All workspace release binaries compile cleanly with zero errors.
+  - SvelteKit production build outputs valid server chunks and assets.
+  - Chrome Extension MV3 production build outputs valid `dist/` assets.
+  - `scripts/build-production.ps1` and `.sh` orchestrate end-to-end production build and staging.
+  - `dist/checksums.sha256` and `dist/BUILD_MANIFEST.json` are generated.
+  - 100% test pass rate (1,023 tests), 0 clippy warnings under `-D warnings`, zero formatting diffs, clean `cargo deny check`.
+- **Verification Commands:**
+  - `powershell -ExecutionPolicy Bypass -File scripts/build-production.ps1 -Clean` (All artifacts staged with 0 errors)
+  - `cargo test -p web-repo-to-ai-cli --test production_build_test --jobs 2 -- --nocapture` (5/5 tests passing)
+  - `cargo clippy --workspace --all-targets --jobs 4 -- -D warnings` (Clean, zero warnings)
+  - `cargo fmt --all -- --check` (Clean, zero diffs)
+  - `cargo deny check` (Advisories ok, bans ok, licenses ok, sources ok)
+  - `powershell -ExecutionPolicy Bypass -File scripts/check-all.ps1` (All 5 gates passed with 0 failures, 1,023 total tests passing)
+- **Tests:**
+  - `crates/cli/tests/production_build_test.rs` (5 automated production build tests)
+- **Security Considerations:**
+  - Binaries are built with safe Rust (`unsafe_code = "forbid"`), no hardcoded credentials, and secret redaction.
+  - Checksums are computed using SHA-256 and BLAKE3 for tamper detection.
+- **Performance Considerations:**
+  - Production binaries compiled with release optimization (`opt-level = 3`).
+  - Pre-compressed assets (`.br`, `.gz`) generated for fast web serving.
+- **Documentation Requirements:**
+  - `PROJECT_STATUS.md`, `TODO.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/ROADMAP.md`, `IMPLEMENTATION_LEDGER.md`.
+- **Validation Evidence:**
+  - 5 tests passing in `crates/cli/tests/production_build_test.rs`.
+  - Exactly 1,023 tests passing across the workspace (707 Rust + 213 web + 103 extension).
+  - `scripts/check-all.ps1` 100% passing across all 5 quality gates with 0 failures.
+- **Status:** `ACCEPTED`
